@@ -1,0 +1,10 @@
+/* tailwind.css -- entry stylesheet for the Tailwind/shadcn redesign pass
+   (Dashboard.jsx + Shell.jsx only -- see those files' comments). Loaded
+   before main.css in main.jsx; preflight is disabled in tailwind.config.js
+   so this can't strip styling from the rest of the app's plain-CSS pages,
+   it only adds utility classes for the components that opt into them. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
