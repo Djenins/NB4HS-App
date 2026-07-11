@@ -1,0 +1,507 @@
+  :root{
+    /* NB4HS Design System (brand overhaul pass) -- Primary is now the
+       interactive blue (buttons/links/active states/focus/charts/icons),
+       split out from the brand navy (sidebar/hero/nav/footer chrome), which
+       now has its own --navy/--navy-dark tokens. Red is scoped to errors/
+       validation/destructive actions only. Gold is a sparing premium accent
+       (dividers, featured stats, KPI highlights, badges) -- never a
+       dominant color. Values are exact hex from the client's brand spec. */
+    --primary:#2563EB; --primary-dark:#1D4ED8;
+    --navy:#1F2A6D; --navy-dark:#172052;
+    --accent:#D61F26; --accent-dark:#9A161B;
+    --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
+    --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
+    --secondary-border:#CBD5E1;
+    --radius:16px;
+    /* Subtle tints for icon badges / highlighted backgrounds -- same hues, low saturation */
+    --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
+    /* Neutral/semantic tints reused by badges, code, board columns, etc. so dark mode can re-theme them centrally.
+       tint-warn now matches gold-tint since warnings are gold; tint-danger matches the new red's tint. */
+    --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
+    /* Spacing scale (8pt system) -- used by new components; existing
+       hard-coded values are left alone unless called out below. */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
+    --radius-lg:20px;
+    /* Elevation scale */
+    --shadow-sm:0 1px 3px rgba(20,30,50,.08); --shadow-md:0 3px 10px rgba(20,30,50,.1); --shadow-lg:0 8px 24px rgba(20,30,50,.14);
+  }
+  /* Dark theme: same brand hues, re-tuned for a dark surface. Primary/accent/
+     gold are lightened so they stay readable on a dark background -- solid
+     buttons keep white text either way, so this doesn't hurt button
+     contrast, only helps link/icon/text contrast. Toggled via
+     html[data-theme="dark"], set in JS and persisted alongside other config. */
+  html[data-theme="dark"]{
+    --primary:#6A94F1; --primary-dark:#A2BCF6;
+    --navy:#24317F; --navy-dark:#1B255F;
+    --accent:#EA7075; --accent-dark:#F09498;
+    --success:#3fbf6b; --gold:#E1B25C; --gold-dark:#E7C27E; --warn:#E1B25C;
+    --bg:#12151b; --card:#1c2129; --text:#e8eaed; --muted:#a2acba; --border:#333c48;
+    --secondary-border:#475569;
+    --primary-tint:#192643; --accent-tint:#411B1C; --gold-tint:#3F331D;
+    --tint-neutral:#242b34; --tint-success:#16321f; --tint-warn:#3F331D; --tint-danger:#411B1C;
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); font-size:18px; line-height:1.4;
+  }
+  #root{min-height:100vh; display:flex; flex-direction:column;}
+  h1,h2,h3{line-height:1.25; margin:0 0 .55em 0; font-weight:800; letter-spacing:-.01em;}
+  h1{font-size:2rem;} h2{font-size:1.55rem;} h3{font-size:1.15rem; font-weight:700; letter-spacing:0;}
+  p{margin:0 0 .75em 0;}
+  a{color:var(--primary);}
+  code{background:var(--tint-neutral); padding:2px 6px; border-radius:5px; font-size:.85em; color:var(--primary-dark);}
+  .icon{width:18px; height:18px; flex:0 0 auto; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vertical-align:-4px;}
+  .icon-lg{width:26px; height:26px; vertical-align:-6px;}
+  .icon-badge{
+    width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    background:var(--primary-tint); color:var(--primary); flex:0 0 auto;
+  }
+  .icon-badge .icon{width:23px; height:23px; vertical-align:0;}
+  .icon-badge.accent{background:var(--accent-tint); color:var(--accent);}
+  .icon-badge.success{background:var(--tint-success); color:var(--success);}
+  .icon-badge.warn{background:var(--tint-warn); color:var(--warn);}
+  .empty-state{text-align:center; padding:32px 20px; border:1px dashed var(--border); border-radius:var(--radius); color:var(--muted); background:var(--bg);}
+  .empty-state .icon{width:30px; height:30px; stroke-width:1.6; color:var(--muted); opacity:.7; margin-bottom:8px; vertical-align:0;}
+  .empty-state p{margin:0; font-size:.95rem;}
+  .demo-note{margin-top:16px; padding:12px 14px; background:var(--bg); border:1px dashed var(--border); border-radius:10px; font-size:.85rem;}
+  .demo-note .demo-note-title{font-weight:700; margin-bottom:6px; color:var(--text);}
+  .demo-note div + div{margin-top:4px;}
+  button, .btn{
+    font-size:1rem; font-family:inherit; cursor:pointer; border-radius:10px; border:2px solid transparent;
+    min-height:52px; padding:12px 20px; font-weight:600;
+    transition:transform .12s ease, opacity .15s ease, box-shadow .12s ease, background-color .12s ease;
+  }
+  button:not(:disabled):hover{transform:translateY(-1px);}
+  button:active{transform:scale(0.98);}
+  /* Opt-in loading state -- e.g. className={"btn-primary" + (busy ? " btn-loading" : "")};
+     no existing call site sets this yet, added as a ready-to-use hook. */
+  .btn-loading{position:relative; color:transparent !important; pointer-events:none;}
+  .btn-loading::after{
+    content:""; position:absolute; top:50%; left:50%; width:18px; height:18px; margin:-9px 0 0 -9px;
+    border:2px solid rgba(255,255,255,.55); border-top-color:#fff; border-radius:50%; animation:btn-spin .6s linear infinite;
+  }
+  .btn-secondary.btn-loading::after, .btn-ghost.btn-loading::after{border-color:rgba(31,42,109,.3); border-top-color:var(--navy);}
+  @keyframes btn-spin{to{transform:rotate(360deg);}}
+  /* Loading-skeleton placeholder -- opt-in, e.g. <div className="skeleton" style={{height:16,width:"60%"}} />
+     in place of real content while data loads. Nothing in the app awaits
+     remote data yet (everything reads from local state synchronously), so
+     no call site uses this today -- added ready for the Supabase migration,
+     when queries will have real network latency to cover. */
+  .skeleton{
+    background:linear-gradient(90deg, var(--tint-neutral) 25%, var(--border) 37%, var(--tint-neutral) 63%);
+    background-size:400% 100%; border-radius:8px; animation:skeleton-shine 1.4s ease infinite;
+  }
+  @keyframes skeleton-shine{0%{background-position:100% 50%;} 100%{background-position:0 50%;}}
+  .btn-primary{background:var(--primary); color:#fff; box-shadow:0 1px 2px rgba(27,37,89,.3);}
+  .btn-primary:hover{background:var(--primary-dark); box-shadow:0 2px 6px rgba(27,37,89,.35);}
+  /* Secondary button text is brand navy (not the interactive blue) per the
+     NB4HS Design System spec -- white bg, a dedicated slate border, navy label. */
+  .btn-secondary{background:var(--card); color:var(--navy); border-color:var(--secondary-border);}
+  .btn-secondary:hover{background:var(--primary-tint);}
+  .btn-accent{background:var(--accent); color:#fff;}
+  .btn-accent:hover{background:var(--accent-dark);}
+  .btn-ghost{background:transparent; color:var(--muted); border-color:var(--border);}
+  .btn-ghost:hover{background:var(--bg); color:var(--text);}
+  .btn-lg{min-height:72px; font-size:1.25rem; width:100%;}
+  .btn-block{width:100%;}
+  button:disabled{opacity:.5; cursor:not-allowed;}
+  /* Compact modifier for buttons inside dense rows (list items, table actions) --
+     use alongside a base class, e.g. class="btn-secondary btn-sm" */
+  .btn-sm{min-height:38px; padding:6px 14px; font-size:.88rem; border-radius:8px;}
+  /* Icon-only ghost button (×, pencil, etc.) -- replaces the repeated
+     inline min-height/padding/border overrides that used to live on every call site */
+  .btn-icon{min-height:auto; padding:4px 8px; border:none; background:transparent; border-radius:8px;}
+  .btn-icon:hover{background:var(--bg);}
+  .btn-icon-danger{color:var(--accent);}
+  .btn-icon-danger:hover{background:var(--tint-danger);}
+  /* Labeled destructive action (e.g. "Delete") -- red-bordered ghost button */
+  .btn-outline-danger{color:var(--accent); border-color:var(--accent);}
+  .btn-outline-danger:hover{background:var(--tint-danger);}
+  /* Filled-input look: a soft gray resting fill (var(--bg), same tone as
+     the page background) that lifts to solid white/card on focus -- modeled
+     on a reference form design the client shared. Border thinned from 2px
+     to 1px since the fill itself now does most of the work of separating
+     a field from its surroundings. */
+  input, select, textarea{
+    font-size:1rem; font-family:inherit; padding:12px 14px; border-radius:14px; border:1px solid var(--border);
+    width:100%; background:var(--bg); color:var(--text); min-height:52px;
+    transition:border-color .12s ease, box-shadow .12s ease, background-color .12s ease;
+  }
+  textarea{min-height:90px;}
+  /* Native select chrome ignores the shared input fill/radius in some
+     browsers, so reset its appearance and redraw the dropdown chevron
+     as a background image to keep it visually aligned with text inputs. */
+  select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    padding-right:40px; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2364748B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center; background-size:16px;
+  }
+  input[type="checkbox"], input[type="radio"]{
+    width:18px; height:18px; min-height:auto; padding:0; flex:0 0 auto; accent-color:var(--primary); cursor:pointer;
+  }
+  input:focus, select:focus, textarea:focus{outline:3px solid rgba(37,99,235,.28); border-color:var(--primary); background:var(--card);}
+  /* Horizontal group of radio options with inline labels (gender, deduction
+     day, account type, etc.) -- one shared class instead of re-typing the
+     same flex/gap inline style at every call site. */
+  .radio-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px 22px; min-height:52px;}
+  .radio-row label{display:flex; align-items:center; gap:8px; font-weight:500; margin:0; cursor:pointer;}
+  .field-invalid{border-color:var(--accent) !important; background:var(--tint-danger);}
+  label{display:block; font-weight:600; margin-bottom:6px;}
+  .field{margin-bottom:16px;}
+  .required:after{content:" *"; color:var(--accent);}
+  .error-text{color:var(--accent); font-weight:600; font-size:.9rem; margin-top:4px;}
+  .card{
+    background:var(--card); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-sm); margin-bottom:20px;
+    border:1px solid var(--border); transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .card:hover{box-shadow:var(--shadow-md); transform:translateY(-1px);}
+  .grid{display:grid; gap:16px;}
+  .grid-2{grid-template-columns:1fr;}
+  .grid-3{grid-template-columns:1fr;}
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  @media(min-width:640px){
+    .grid-2{grid-template-columns:1fr 1fr;}
+    .grid-3{grid-template-columns:1fr 1fr 1fr;}
+  }
+  @media(min-width:900px){
+    .grid-4{grid-template-columns:repeat(4,1fr);}
+  }
+  .app-shell-top{position:sticky; top:0; z-index:20;}
+  header.topbar{
+    background:var(--card); color:var(--text); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    border-bottom:3px solid var(--accent); box-shadow:var(--shadow-sm);
+  }
+  header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem;}
+  header.topbar .brand img{height:46px; width:auto; display:block;}
+  header.topbar .brand-sub{color:var(--muted); font-weight:600; font-size:.85rem; border-left:2px solid var(--border); padding-left:10px; margin-left:2px;}
+  .profile-chip{font-size:.85rem; text-align:right; line-height:1.3;}
+  nav.tabs{display:flex; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);}
+  /* React version: nav tabs are react-router <NavLink>s (real <a> elements,
+     so ctrl/cmd-click "open in new tab" works) instead of <button>s -- same
+     look, so the selectors below cover both tag names. */
+  nav.tabs button, nav.tabs a{position:relative; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; min-height:44px; padding:8px 16px; background:var(--card); color:var(--muted); border:2px solid var(--border); text-decoration:none;}
+  nav.tabs button:hover, nav.tabs a:hover{background:var(--bg); color:var(--text);}
+  nav.tabs button.active, nav.tabs a.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+  nav.tabs button.active:hover, nav.tabs a.active:hover{background:var(--primary-dark);}
+  nav.tabs button .icon, nav.tabs a .icon{width:16px; height:16px; vertical-align:0;}
+  .nav-divider{width:1px; align-self:stretch; background:var(--border); margin:6px 4px; flex:0 0 auto;}
+  .nav-badge{
+    position:absolute; top:-6px; right:-6px; background:var(--accent); color:#fff; border-radius:999px;
+    min-width:18px; height:18px; padding:0 4px; font-size:.68rem; font-weight:800; line-height:18px; text-align:center; box-shadow:0 0 0 2px #fff;
+  }
+  main{flex:1; padding:16px; max-width:1100px; width:100%; margin:0 auto;}
+  .kiosk-wrap{max-width:640px; margin:0 auto; width:100%;}
+  .stat-card{
+    background:var(--card); border-radius:var(--radius); padding:22px; border:1px solid var(--border); text-align:left;
+    box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, transform .15s ease; display:flex; align-items:center; gap:16px;
+  }
+  .stat-card:hover{box-shadow:var(--shadow-md); transform:translateY(-2px);}
+  .section-label{color:var(--muted); font-weight:700; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; margin:22px 0 8px 0;}
+  .section-label:first-child{margin-top:0;}
+  .stat-num{font-size:2.1rem; font-weight:800; color:var(--primary); letter-spacing:-.02em; line-height:1.15;}
+  .stat-label{color:var(--muted); font-weight:600; font-size:.85rem; margin-top:2px;}
+  .badge{display:inline-block; padding:3px 10px; border-radius:999px; font-size:.8rem; font-weight:700;}
+  .badge-in{background:var(--tint-success); color:var(--success);}
+  .badge-out{background:var(--tint-neutral); color:var(--muted);}
+  .badge-tag{background:var(--primary-tint); color:var(--primary); margin:2px 4px 2px 0;}
+  .badge-warn{background:var(--tint-warn); color:var(--warn);}
+  .appt-row{background:var(--card); border-radius:12px; padding:16px 18px; margin-bottom:12px; border:1px solid var(--border); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
+  .appt-row:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .case-client-card{background:var(--card); border-radius:var(--radius); padding:20px; margin-bottom:14px; border:1px solid var(--border); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
+  .case-client-card:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .case-client-name-btn{background:none; border:none; padding:0; font-weight:700; font-size:1.05rem; color:var(--primary); cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px;}
+  .case-client-name-btn:hover{text-decoration:underline;}
+  .chevron-hint{color:var(--muted); font-size:.8em; font-weight:400; text-decoration:none; display:inline-block;}
+  .client-row-name{display:flex; align-items:center; gap:10px; font-weight:700; color:var(--text);}
+  .case-notes-panel{margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);}
+  .case-note-item{background:var(--bg); border-radius:8px; padding:8px 12px; margin-bottom:8px; font-size:.9rem;}
+  .case-note-item .note-date{color:var(--muted); font-size:.78rem; font-weight:600; margin-bottom:2px;}
+  table{width:100%; border-collapse:collapse; font-size:.95rem;}
+  th,td{text-align:left; padding:14px 12px; border-bottom:1px solid var(--border);}
+  th{color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; background:var(--card); position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--border);}
+  tbody tr{transition:background .1s ease;}
+  tbody tr:hover{background:var(--bg);}
+  /* Rounded scroll pane so a long visitor-log/roster table doesn't force the
+     whole page to scroll -- the header stays put (sticky) while just the
+     body scrolls. Only kicks in once content is actually taller than
+     max-height, so short tables (e.g. a small past-session roster) look
+     exactly as before. */
+  .table-wrap{overflow:auto; max-height:65vh; border:1px solid var(--border); border-radius:12px;}
+  /* Numbered pagination (Pagination.jsx) -- modeled on a reference design
+     the client shared. Was previously an inline-styled Prev/"Page X of Y"/
+     Next row; "pagination-controls" is now a real class instead of just a
+     semantic marker. */
+  .pagination-controls{display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; flex-wrap:wrap;}
+  .pagination-page, .pagination-arrow{
+    min-height:36px; min-width:36px; padding:0 10px; border-radius:8px; background:transparent; border:1px solid transparent;
+    color:var(--text); font-weight:600; font-size:.9rem; display:flex; align-items:center; justify-content:center;
+  }
+  .pagination-arrow{width:36px; padding:0;}
+  .pagination-page:hover, .pagination-arrow:not(:disabled):hover{background:var(--bg);}
+  .pagination-page.active{background:var(--primary); color:#fff;}
+  .pagination-arrow:disabled{opacity:.4; cursor:not-allowed;}
+  .pagination-ellipsis{color:var(--muted); padding:0 2px; font-weight:600;}
+  /* Generic mirror-flip -- reuses a right-pointing chevron as a left one
+     wherever needed, instead of drawing a second icon. */
+  .icon-flip-x{transform:scaleX(-1);}
+  /* Avatar-initials chip -- used in place of a real photo (none of this
+     app's records store one) on client/student rows. */
+  .avatar-chip{
+    width:36px; height:36px; border-radius:50%; background:var(--primary-tint); color:var(--primary);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.78rem; flex:0 0 auto;
+  }
+  .bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .bar-label{flex:0 0 150px; font-size:.9rem; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bar-track{flex:1; background:var(--tint-neutral); border-radius:6px; height:22px; overflow:hidden;}
+  .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:#fff; font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
+  .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+  .pill{padding:8px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.9rem; cursor:pointer; transition:background .1s ease, border-color .1s ease;}
+  .pill:hover{border-color:#b7c0d1;}
+  .pill.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+  .pill.active:hover{background:var(--primary-dark);}
+  .success-box{text-align:center; padding:40px 20px;}
+  @keyframes success-pop{0%{transform:scale(0.6); opacity:0;} 70%{transform:scale(1.06); opacity:1;} 100%{transform:scale(1);}}
+  .success-icon{width:88px; height:88px; border-radius:50%; background:var(--success); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 18px auto; animation:success-pop .35s ease-out;}
+  .success-icon .icon{stroke-width:3;}
+  .muted{color:var(--muted);}
+  .skip-link{
+    position:absolute; left:-9999px; top:0; background:var(--primary); color:#fff; padding:12px 18px;
+    border-radius:0 0 8px 0; font-weight:700; z-index:1000;
+  }
+  .skip-link:focus{left:0;}
+  .role-grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  @media(min-width:600px){.role-grid{grid-template-columns:1fr 1fr;}}
+  .role-btn{background:var(--card); border:2px solid var(--border); border-radius:var(--radius); padding:20px; text-align:left; cursor:pointer; transition:border-color .12s ease, box-shadow .12s ease, transform .05s ease;}
+  .role-btn:hover{border-color:var(--primary); box-shadow:var(--shadow-md);}
+  .role-btn:active{transform:scale(0.99);}
+  .role-btn h3{margin:0 0 6px 0; color:var(--primary);}
+  .footer-note{color:var(--muted); font-size:.82rem; text-align:center; padding:14px;}
+  .flex-between{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .lang-select select{min-height:40px; padding:6px 10px; width:auto;}
+  @keyframes toast-in{from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);}}
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#161b22; color:#fff; padding:12px 22px; border-radius:10px; font-weight:600; z-index:999; box-shadow:0 4px 14px rgba(0,0,0,.25); animation:toast-in .18s ease-out;}
+  .qr-box{background:#fff; padding:24px; border-radius:var(--radius); text-align:center; border:1px solid var(--border);}
+  .qr-box img{max-width:260px; width:100%; height:auto;}
+  .kv{
+    display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 10px; margin:0 -10px;
+    border-bottom:1px solid var(--border); font-size:.9rem; border-radius:10px; transition:background .12s ease;
+  }
+  .kv:hover{background:var(--bg);}
+  .kv:last-child{border-bottom:none;}
+  /* KANBAN BOARD -- restyled per a reference project-management board the
+     client shared: white rounded columns (instead of a flat gray tint) on a
+     soft page-tint backdrop, a count-badge pill in each column header, and
+     card-style students with shadow + hover-lift instead of flat outlined
+     boxes. Structure (waiting list + one column per classroom, native HTML5
+     drag-and-drop) is unchanged -- this is a visual pass plus the toolbar
+     below, not a rebuild of the board's logic. */
+  .board{display:flex; gap:16px; overflow-x:auto; padding-bottom:12px; align-items:flex-start;}
+  .board-col{background:var(--bg); border-radius:16px; padding:14px; flex:0 0 264px; min-height:120px; max-height:600px; overflow-y:auto; border:1px solid var(--border); border-top:4px solid var(--border); transition:box-shadow .12s ease;}
+  .board-col.drop-hover{outline:3px dashed var(--primary); outline-offset:-3px;}
+  .board-col-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;}
+  .board-col-head h3{margin:0; font-size:.95rem; font-weight:700;}
+  .board-col-count{background:var(--card); color:var(--muted); font-weight:700; font-size:.72rem; padding:3px 10px; border-radius:999px; border:1px solid var(--border); white-space:nowrap;}
+  .student-card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:10px; border:1px solid var(--border); cursor:grab; box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
+  .student-card:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .student-card:active{cursor:grabbing; transform:none;}
+  .student-card .name{font-weight:700; font-size:.95rem;}
+  .student-card select{margin-top:8px; min-height:36px; padding:4px 8px; font-size:.83rem;}
+  .student-card input{margin-top:6px; min-height:34px; padding:4px 8px; font-size:.83rem;}
+  .student-card .edit-row{display:flex; gap:6px; margin-top:8px;}
+  .student-card .edit-row button{flex:1; min-height:32px; padding:4px 8px; font-size:.8rem;}
+  .student-card-id{display:inline-block; background:var(--primary-tint); color:var(--primary); font-weight:700; font-size:.72rem; padding:2px 8px; border-radius:999px; margin:6px 0 4px;}
+  /* Pretest/posttest assessment fields (edit mode) + gain/flag badges (view
+     mode) -- see assessments.js. Only shown once a pretest score exists. */
+  .student-card-assessment-fields{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;}
+  .student-card-assessment-fields input{margin-top:0; font-size:.78rem;}
+  .student-card-assessment{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .student-card-assessment .badge{margin:0; font-size:.72rem;}
+  /* Outcome row: auto "Completed" badge (gain achieved) or the Working/
+     Schedule Retest dropdown staff pick between otherwise. */
+  .student-card-outcome{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:.72rem;}
+  .student-card-outcome .muted{font-weight:600;}
+  .student-card-outcome select{margin-top:0; min-height:28px; padding:2px 6px; font-size:.72rem; flex:1;}
+  .student-card-outcome .badge{margin:0; font-size:.72rem;}
+  /* Toolbar row (Filter / Sorted by / + Add Classroom), modeled on the same
+     reference board's header controls. Sits above the columns. */
+  .board-toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .board-toolbar-label{color:var(--muted); font-weight:600; font-size:.85rem; white-space:nowrap;}
+  .board-toolbar select{min-height:38px; padding:6px 30px 6px 10px; width:auto; font-size:.85rem;}
+  .board-toolbar-spacer{flex:1;}
+  details.card{padding:0;}
+  details.card > summary{cursor:pointer; font-weight:700; font-size:1.05rem; list-style:none; padding:20px; margin:0; display:flex; justify-content:space-between; align-items:center; border-radius:var(--radius); transition:background .1s ease;}
+  details.card > summary:hover{background:var(--bg);}
+  details.card[open] > summary:hover{border-radius:var(--radius) var(--radius) 0 0;}
+  details.card > summary::-webkit-details-marker{display:none;}
+  details.card > summary:after{content:"▸"; color:var(--muted); font-weight:400; transition:transform .15s ease;}
+  details.card[open] > summary:after{transform:rotate(90deg);}
+  details.card > summary{border-bottom:1px solid transparent;}
+  details.card[open] > summary{border-bottom:1px solid var(--border);}
+  details.card > .details-body{padding:20px;}
+  .student-search-bar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+  .student-search-bar input{flex:1; min-width:220px;}
+  /* In-app confirmation dialog -- replaces window.confirm() so destructive
+     actions match the app's own visual language and work in dark mode. */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(15,20,30,.5); display:flex; align-items:center; justify-content:center;
+    z-index:1200; padding:20px; animation:modal-fade-in .12s ease-out;
+  }
+  @keyframes modal-fade-in{from{opacity:0;} to{opacity:1;}}
+  @keyframes modal-pop-in{from{opacity:0; transform:scale(.96) translateY(8px);} to{opacity:1; transform:scale(1) translateY(0);}}
+  .modal-box{
+    background:var(--card); color:var(--text); border-radius:var(--radius); padding:24px; max-width:420px; width:100%;
+    box-shadow:var(--shadow-lg); border:1px solid var(--border); animation:modal-pop-in .16s ease-out;
+  }
+  .modal-box p{margin:0 0 20px 0; font-size:1.05rem;}
+  /* =========================================================
+     SIDEBAR LAYOUT -- the authenticated/kiosk app shell (Shell.jsx). Login
+     and StaffLogin now use the AUTH SPLIT LAYOUT below instead (they're
+     public, no nav needed); this section is only for signed-in/kiosk
+     screens. Brand colors only (navy/red/success/warn tints already
+     defined above) -- no new hues introduced for this layout.
+  ========================================================= */
+  .app-shell{display:flex; flex:1; min-height:0;}
+  /* The sidebar itself (<aside>) is now built with Tailwind utility classes
+     directly in Shell.jsx (see that file's header comment) -- no .sidebar*
+     classes live here anymore. .theme-pill/.theme-pill-option below are
+     kept: components/ThemeToggle.jsx (still used by AuthShell.jsx's login
+     screens) renders them independently of the sidebar. */
+  .theme-pill{display:flex; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px;}
+  .theme-pill-option{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px; min-height:34px; padding:0 8px; border:none;
+    border-radius:8px; background:transparent; color:var(--muted); font-weight:600; font-size:.85rem;
+  }
+  .theme-pill-option .icon{width:15px; height:15px;}
+  .theme-pill-option.active{background:var(--card); color:var(--primary); box-shadow:var(--shadow-sm);}
+  .content-col{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .content-col > header.topbar{position:sticky; top:0; z-index:15;}
+  .content-col > main{max-width:1200px;}
+  /* =========================================================
+     AUTH SPLIT LAYOUT -- Login.jsx / StaffLogin.jsx (AuthShell.jsx). Split-
+     screen look modeled on a reference design the client shared: a colored
+     brand panel on the left, plain content on the right. Kept to the two
+     existing brand colors -- navy panel (matches --primary, used
+     everywhere else as the dominant brand hue) with red for this page's
+     "Log In" heading/button (matches --accent, already the app's CTA/danger
+     color) -- no new hues added. The two soft circles are a light nod to the
+     reference's wavy divider without building a full SVG wave shape.
+  ========================================================= */
+  .auth-split{min-height:100vh; display:flex;}
+  .auth-split-panel{
+    flex:0 0 42%; max-width:460px; position:relative; overflow:hidden; display:flex; flex-direction:column;
+    justify-content:space-between; padding:48px 40px; color:#fff;
+    background:linear-gradient(160deg, var(--navy-dark), var(--navy) 65%);
+  }
+  .auth-split-panel::before, .auth-split-panel::after{
+    content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07); pointer-events:none;
+  }
+  .auth-split-panel::before{width:340px; height:340px; right:-160px; top:35%;}
+  .auth-split-panel::after{width:220px; height:220px; right:-80px; bottom:-60px;}
+  .auth-split-brand{display:flex; align-items:center; gap:12px; position:relative; z-index:1;}
+  .auth-split-brand img{height:44px; width:auto; display:block; filter:brightness(0) invert(1);}
+  .auth-split-brand span{font-weight:800; font-size:1.15rem;}
+  .auth-split-tagline{max-width:320px; font-size:1rem; line-height:1.5; opacity:.92; position:relative; z-index:1;}
+  .auth-split-foot{font-size:.8rem; opacity:.75; position:relative; z-index:1;}
+  .auth-split-content{
+    flex:1; display:flex; flex-direction:column; background:var(--bg); padding:24px 32px;
+  }
+  .auth-split-controls{display:flex; justify-content:flex-end; align-items:center; gap:10px;}
+  .auth-split-form-wrap{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:24px 0;}
+  .auth-split-form{width:100%; max-width:380px;}
+  .auth-split-form h1{color:var(--navy); margin:0 0 6px 0;}
+  .auth-split-form .lede{color:var(--muted); margin:0 0 24px 0;}
+  .auth-field{position:relative; margin-bottom:22px;}
+  .auth-field input{
+    border:none; border-bottom:2px solid var(--border); border-radius:0; background:transparent; padding:10px 2px;
+    min-height:auto;
+  }
+  .auth-field input:focus{outline:none; border-color:var(--primary); box-shadow:none;}
+  .auth-field .pw-toggle{
+    position:absolute; right:2px; top:8px; background:transparent; border:none; padding:4px; color:var(--muted); cursor:pointer;
+  }
+  .auth-field .pw-toggle:hover{color:var(--text);}
+  @media(max-width:820px){
+    .auth-split{flex-direction:column;}
+    .auth-split-panel{flex:0 0 auto; max-width:none; padding:32px 24px;}
+    .auth-split-tagline{display:none;}
+  }
+  /* =========================================================
+     FORM SECTION LAYOUT -- grouped form sections (a short title +
+     description on the left, the actual fields on the right, a divider
+     between groups), modeled on a reference form design the client shared.
+     This is a layout pattern only: native <select>/<input type="date"|
+     "tel"> stay native, no custom dropdown/date-picker/signature widgets
+     were added (scoped deliberately -- see chat). Works with the existing
+     .grid/.field markup already used inside each section's right column.
+  ========================================================= */
+  .form-section{padding:24px 0; border-bottom:1px solid var(--border);}
+  .form-section:first-of-type{padding-top:4px;}
+  .form-section:last-of-type{border-bottom:none; padding-bottom:4px;}
+  .form-section-head{margin-bottom:14px;}
+  .form-section-head h3{margin:0 0 4px 0;}
+  .form-section-head p{margin:0; color:var(--muted); font-size:.88rem; line-height:1.5;}
+  .form-section-body{min-width:0;}
+  @media(min-width:760px){
+    .form-section{display:grid; grid-template-columns:240px 1fr; gap:32px; padding:32px 0;}
+    .form-section-head{margin-bottom:0;}
+  }
+  /* =========================================================
+     DATE PICKER -- components/DatePicker.jsx. Replaces native
+     <input type="date"> app-wide with a popover calendar (Today/Tomorrow
+     quick-picks + month grid), modeled on a reference design the client
+     shared. Single-date only (see that file's header comment for why no
+     range-picker was built). Trigger button is sized/styled to match the
+     regular input/select fill so it drops into existing .field layouts
+     without any surrounding markup changes.
+  ========================================================= */
+  .date-picker{position:relative;}
+  .date-picker-trigger{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; font-weight:400;
+    font-size:1rem; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); min-height:52px;
+  }
+  .date-picker-trigger:hover{background:var(--card); border-color:#c7cedb;}
+  .date-picker.field-invalid .date-picker-trigger{border-color:var(--accent); background:var(--tint-danger);}
+  .date-picker-panel{
+    position:absolute; top:calc(100% + 8px); left:0; z-index:60; width:300px; max-width:90vw;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg);
+    padding:16px; animation:modal-pop-in .14s ease-out;
+  }
+  .date-picker-quick{display:flex; gap:8px; margin-bottom:14px;}
+  .date-picker-quick .pill{padding:6px 14px; font-size:.85rem;}
+  .date-picker-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .date-picker-month-label{font-weight:700; font-size:.95rem;}
+  .date-picker-weekdays, .date-picker-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center;}
+  .date-picker-weekdays span{color:var(--muted); font-size:.72rem; font-weight:700; text-transform:uppercase; padding:4px 0;}
+  .date-picker-day{
+    position:relative; aspect-ratio:1; min-height:auto; width:100%; padding:0; border:none; background:transparent;
+    border-radius:50%; font-weight:600; font-size:.88rem; color:var(--text); cursor:pointer;
+  }
+  .date-picker-day:hover{background:var(--bg);}
+  .date-picker-day.outside{color:var(--muted); opacity:.55;}
+  .date-picker-day.selected{background:var(--primary); color:#fff;}
+  .date-picker-day.selected:hover{background:var(--primary-dark);}
+  .date-picker-day.today:not(.selected):after{
+    content:""; position:absolute; bottom:4px; left:50%; width:4px; height:4px; margin-left:-2px;
+    border-radius:50%; background:var(--primary);
+  }
+  @media print{
+    /* Printed reports should always be light, regardless of on-screen dark mode. */
+    :root, html[data-theme="dark"]{
+      --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
+      --primary:#2563EB; --primary-dark:#1D4ED8; --navy:#1F2A6D; --navy-dark:#172052;
+      --accent:#D61F26; --accent-dark:#9A161B; --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
+      --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
+      --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
+    }
+    nav.tabs, .sidebar, .no-print{display:none !important;}
+    .app-shell-top{position:static;}
+    .content-col > header.topbar{position:static;}
+    header.topbar{border-bottom:2px solid var(--accent); box-shadow:none;}
+    body{background:#fff;}
+    main, .content-col > main{max-width:100%;}
+  }
