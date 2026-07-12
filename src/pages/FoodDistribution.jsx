@@ -11,17 +11,21 @@
 import { useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
-  buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
+  allDistributions, buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
   exportFoodDistributionCSV, exportFoodDistributionExcel, exportFoodRosterCSV, exportFoodRosterExcel
 } from "../lib/clients.js";
 import { paginateList } from "../lib/pagination.js";
-import { rangeForPreset } from "../lib/reports_data.js";
+import { inRange, rangeForPreset } from "../lib/reports_data.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
 import { todayStr, uid } from "../lib/utils.js";
 import DatePicker from "../components/DatePicker.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FoodClientCard from "../components/FoodClientCard.jsx";
+import Icon from "../components/Icon.jsx";
 import Pagination from "../components/Pagination.jsx";
+import StatCard from "../components/StatCard.jsx";
+
+const HOUSEHOLD_SIZES = ["1", "2", "3", "4", "5", "6+"];
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", householdSize: "", intakeDate: "", street: "", city: "", zip: "" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
@@ -54,41 +58,106 @@ function AddHouseholdDetails({ open, onToggle }) {
 
   return (
     <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("addFoodClientTitle")}</summary>
+      <summary>
+        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="icon-badge round"><Icon name="user" /></span>
+          {t("addFoodClientTitle")}
+        </span>
+      </summary>
       <div className="details-body">
         <div className="form-section">
-          <div className="form-section-head">
-            <h3>{t("sectionPersonalDetails")}</h3>
-            <p>{t("sectionPersonalDetailsDesc")}</p>
+          <div className="form-section-head-row">
+            <div className="icon-badge round"><Icon name="user" /></div>
+            <div className="form-section-head">
+              <h3>{t("sectionPersonalDetails")}</h3>
+              <p>{t("sectionPersonalDetailsDesc")}</p>
+            </div>
           </div>
           <div className="form-section-body">
             <div className="grid grid-2">
-              <div className="field"><label htmlFor="new-food-client-first-name">{t("firstName")}</label><input type="text" id="new-food-client-first-name" className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-last-name">{t("lastName")}</label><input type="text" id="new-food-client-last-name" className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-phone">{t("phone")}</label><input type="tel" id="new-food-client-phone" className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-email">{t("email")}</label><input type="text" id="new-food-client-email" value={fields.email} onChange={(e) => setField("email", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-household-size">{t("householdSizeLabel")}</label><input type="number" min="1" id="new-food-client-household-size" value={fields.householdSize} onChange={(e) => setField("householdSize", e.target.value)} /></div>
+              <div className="field">
+                <label htmlFor="new-food-client-first-name">{t("firstName")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="user" />
+                  <input type="text" id="new-food-client-first-name" className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-last-name">{t("lastName")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="user" />
+                  <input type="text" id="new-food-client-last-name" className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-phone">{t("phone")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="phone" />
+                  <input type="tel" id="new-food-client-phone" className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-email">{t("email")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="mail" />
+                  <input type="text" id="new-food-client-email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-household-size">{t("householdSizeLabel")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="users" />
+                  <select id="new-food-client-household-size" value={fields.householdSize} onChange={(e) => setField("householdSize", e.target.value)}>
+                    <option value="">{t("selectHouseholdSize")}</option>
+                    {HOUSEHOLD_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
               <div className="field"><label htmlFor="new-food-client-intake-date">{t("intakeDateLabel")}</label><DatePicker id="new-food-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} /></div>
             </div>
           </div>
         </div>
 
         <div className="form-section">
-          <div className="form-section-head">
-            <h3>{t("sectionAddress")}</h3>
-            <p>{t("sectionAddressDesc")}</p>
+          <div className="form-section-head-row">
+            <div className="icon-badge round"><Icon name="mappin" /></div>
+            <div className="form-section-head">
+              <h3>{t("sectionAddress")}</h3>
+              <p>{t("sectionAddressDesc")}</p>
+            </div>
           </div>
           <div className="form-section-body">
             <div className="grid grid-3">
-              <div className="field"><label htmlFor="new-food-client-street">{t("address")}</label><input type="text" id="new-food-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-city">{t("city")}</label><input type="text" id="new-food-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} /></div>
-              <div className="field"><label htmlFor="new-food-client-zip">{t("zip")}</label><input type="text" id="new-food-client-zip" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></div>
+              <div className="field">
+                <label htmlFor="new-food-client-street">{t("address")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="mappin" />
+                  <input type="text" id="new-food-client-street" placeholder={t("streetAddressPlaceholder")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-city">{t("city")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="city" />
+                  <input type="text" id="new-food-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="new-food-client-zip">{t("zip")}</label>
+                <div className="field-icon-wrap">
+                  <Icon name="hash" />
+                  <input type="text" id="new-food-client-zip" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+                </div>
+              </div>
             </div>
             <p className="muted" style={{ fontSize: ".85rem" }}>{t("stateAlwaysRI")}</p>
           </div>
         </div>
 
-        <div className="pill-row" style={{ marginTop: 4 }}><button className="btn-primary" onClick={submit}>{t("addFoodClientBtn")}</button></div>
+        <div className="pill-row" style={{ marginTop: 4, justifyContent: "flex-end" }}>
+          <button className="btn-secondary" onClick={() => setFields(EMPTY_NEW_CLIENT)}>{t("clearLabel")}</button>
+          <button className="btn-primary" onClick={submit}><Icon name="plus" /> {t("addFoodClientBtn")}</button>
+        </div>
       </div>
     </details>
   );
@@ -114,13 +183,18 @@ function ImportHouseholdsDetails({ open, onToggle }) {
 
   return (
     <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("importHouseholdsTitle")}</summary>
+      <summary>
+        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="icon-badge round"><Icon name="cloudupload" /></span>
+          {t("importHouseholdsTitle")}
+        </span>
+      </summary>
       <div className="details-body">
         <p className="muted">{t("importHouseholdsDesc")}</p>
-        <div className="pill-row"><button className="btn-secondary" onClick={downloadFoodClientTemplate}>{t("downloadHouseholdTemplate")}</button></div>
-        <div className="grid grid-2">
-          <div className="field"><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
-          <button className="btn-primary" onClick={handleImportClick}>{t("importBtn")}</button>
+        <div className="pill-row"><button className="btn-secondary" onClick={downloadFoodClientTemplate}><Icon name="download" /> {t("downloadHouseholdTemplate")}</button></div>
+        <div className="grid grid-2" style={{ alignItems: "center" }}>
+          <div className="field" style={{ marginBottom: 0 }}><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
+          <button className="btn-primary" onClick={handleImportClick}><Icon name="upload" /> {t("importBtn")}</button>
         </div>
       </div>
     </details>
@@ -144,13 +218,18 @@ function ExportDataDetails({ open, onToggle }) {
 
   return (
     <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("exportDataTitle")}</summary>
+      <summary>
+        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="icon-badge round"><Icon name="download" /></span>
+          {t("exportDataTitle")}
+        </span>
+      </summary>
       <div className="details-body">
         <h3 style={{ marginTop: 0 }}>{t("exportRosterTitle")}</h3>
         <p className="muted">{t("exportRosterDesc")}</p>
         <div className="pill-row">
-          <button className="btn-secondary" onClick={exportRosterCSV}>{t("exportCSV")}</button>
-          <button className="btn-secondary" onClick={exportRosterExcel}>{t("exportExcel")}</button>
+          <button className="btn-secondary" onClick={exportRosterCSV}><Icon name="download" /> {t("exportCSV")}</button>
+          <button className="btn-secondary" onClick={exportRosterExcel}><Icon name="download" /> {t("exportExcel")}</button>
         </div>
 
         <h3>{t("exportDistributionLogTitle")}</h3>
@@ -169,8 +248,8 @@ function ExportDataDetails({ open, onToggle }) {
           </div>
         )}
         <div className="pill-row" style={{ marginTop: 14 }}>
-          <button className="btn-secondary" onClick={exportLogCSV}>{t("exportCSV")}</button>
-          <button className="btn-secondary" onClick={exportLogExcel}>{t("exportExcel")}</button>
+          <button className="btn-secondary" onClick={exportLogCSV}><Icon name="download" /> {t("exportCSV")}</button>
+          <button className="btn-secondary" onClick={exportLogExcel}><Icon name="download" /> {t("exportExcel")}</button>
         </div>
       </div>
     </details>
@@ -180,15 +259,26 @@ function ExportDataDetails({ open, onToggle }) {
 export default function FoodDistribution() {
   const { data, setData, requestConfirm } = useApp();
   const t = useT();
-  const [opens, setOpens] = useState({ addHousehold: false, importHouseholds: false, exportData: false });
+  const [opens, setOpens] = useState({ addHousehold: true, importHouseholds: false, exportData: false });
   const [search, setSearch] = useState("");
+  const [sizeFilter, setSizeFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState(null);
 
+  const foodClients = data.foodClients || [];
   const term = search.trim().toLowerCase();
-  const matched = (data.foodClients || []).filter((c) => clientMatchesSearch("food", c, term));
+  let matched = foodClients.filter((c) => clientMatchesSearch("food", c, term));
+  if (sizeFilter) matched = matched.filter((c) => (c.householdSize || "") === sizeFilter);
   const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
   const paged = paginateList(sorted, page);
+
+  const monthRange = rangeForPreset("month");
+  const dists = allDistributions(foodClients);
+  const pickupsThisMonth = dists.filter((d) => inRange(d, monthRange.from, monthRange.to)).length;
+  const avgHouseholdSize = foodClients.length
+    ? (foodClients.reduce((sum, c) => sum + (parseFloat(c.householdSize) || 0), 0) / foodClients.length).toFixed(1)
+    : 0;
 
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeFoodClientConfirm"), { danger: true });
@@ -208,10 +298,19 @@ export default function FoodDistribution() {
 
   return (
     <>
-      <h1>{t("foodDistributionTitle")}</h1>
-      <div className="card">
-        <p className="muted">{t("foodDistributionDesc")}</p>
-        <div className="muted">{t("totalHouseholdsLabel")}: {(data.foodClients || []).length}</div>
+      <div className="page-header">
+        <div className="icon-badge"><Icon name="fooddistribution" className="icon-lg" /></div>
+        <div>
+          <h1>{t("foodDistributionTitle")}</h1>
+          <p className="muted">{t("foodDistributionDesc")}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-4" style={{ marginBottom: 20 }}>
+        <StatCard icon="users" variant="violet" num={foodClients.length} label={t("totalHouseholdsLabel")} />
+        <StatCard icon="cart" variant="success" num={pickupsThisMonth} label={t("pickupsThisMonthLabel")} />
+        <StatCard icon="reports" num={dists.length} label={t("totalPickupsLabel")} />
+        <StatCard icon="calendar" variant="warn" num={avgHouseholdSize} label={t("avgHouseholdSizeLabel")} />
       </div>
 
       <AddHouseholdDetails open={opens.addHousehold} onToggle={(v) => setOpen("addHousehold", v)} />
@@ -219,8 +318,38 @@ export default function FoodDistribution() {
       <ExportDataDetails open={opens.exportData} onToggle={(v) => setOpen("exportData", v)} />
 
       <div className="card">
-        <div className="student-search-bar">
-          <input type="text" placeholder={t("foodClientSearchPlaceholder")} aria-label={t("foodClientSearchPlaceholder")} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        <div className="student-search-bar" style={{ position: "relative" }}>
+          <div className="field-icon-wrap" style={{ flex: 1, minWidth: 220 }}>
+            <Icon name="search" />
+            <input
+              type="text" placeholder={t("foodClientSearchPlaceholder")} aria-label={t("foodClientSearchPlaceholder")}
+              value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+          <div style={{ position: "relative" }}>
+            <button type="button" className="btn-secondary" onClick={() => setFiltersOpen((v) => !v)}>
+              <Icon name="filter" /> {t("filtersLabel")} <Icon name="chevrondn" />
+            </button>
+            {filtersOpen && (
+              <div className="date-picker-panel" style={{ right: 0, left: "auto", width: 220 }}>
+                <div className="field">
+                  <label htmlFor="food-size-filter">{t("householdSizeLabel")}</label>
+                  <select
+                    id="food-size-filter" value={sizeFilter}
+                    onChange={(e) => { setSizeFilter(e.target.value); setPage(1); }}
+                  >
+                    <option value="">{t("allHouseholdSizes")}</option>
+                    {HOUSEHOLD_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                {sizeFilter && (
+                  <button type="button" className="btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => { setSizeFilter(""); setPage(1); }}>
+                    {t("clearFilters")}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {paged.items.length ? (

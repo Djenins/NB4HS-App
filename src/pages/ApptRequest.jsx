@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { buildAppointment } from "../lib/appointments.js";
 import FormField from "../components/FormField.jsx";
+import Icon from "../components/Icon.jsx";
 
 export default function ApptRequest() {
   const { setData, setKiosk, showToast } = useApp();
@@ -47,36 +48,50 @@ export default function ApptRequest() {
         <button className="btn-ghost" style={{ marginBottom: 14 }} onClick={() => { setKiosk(false); navigate("/"); }}>
           &larr; {t("back")}
         </button>
-        <h1>{t("requestApptTitle")}</h1>
-        <p className="muted">{t("requestApptDesc")}</p>
+        <div className="page-header">
+          <div className="icon-badge"><Icon name="calendar" className="icon-lg" /></div>
+          <div>
+            <h1>{t("requestApptTitle")}</h1>
+            <p className="muted">{t("requestApptDesc")}</p>
+          </div>
+        </div>
         <form ref={formRef} onSubmit={handleSubmit} noValidate>
           <div className="form-section">
-            <div className="form-section-head">
-              <h3>{t("sectionApptYourInfo")}</h3>
-              <p>{t("sectionApptYourInfoDesc")}</p>
+            <div className="form-section-head-row">
+              <div className="icon-badge round"><Icon name="user" /></div>
+              <div className="form-section-head">
+                <h3>{t("sectionApptYourInfo")}</h3>
+                <p>{t("sectionApptYourInfoDesc")}</p>
+              </div>
             </div>
             <div className="form-section-body">
               <div className="grid grid-2">
-                <FormField name="firstName" label={t("firstName")} required invalid={isInvalid("firstName")} />
-                <FormField name="lastName" label={t("lastName")} required invalid={isInvalid("lastName")} />
-                <FormField name="phone" label={t("phone")} required invalid={isInvalid("phone")} />
-                <FormField name="email" label={t("email")} />
+                <FormField name="firstName" label={t("firstName")} icon="user" required invalid={isInvalid("firstName")} />
+                <FormField name="lastName" label={t("lastName")} icon="user" required invalid={isInvalid("lastName")} />
+                <FormField name="phone" label={t("phone")} type="tel" icon="phone" required invalid={isInvalid("phone")} />
+                <FormField name="email" label={t("email")} type="email" icon="mail" />
               </div>
             </div>
           </div>
 
           <div className="form-section">
-            <div className="form-section-head">
-              <h3>{t("sectionApptDetails")}</h3>
-              <p>{t("sectionApptDetailsDesc")}</p>
+            <div className="form-section-head-row">
+              <div className="icon-badge round"><Icon name="calendar" /></div>
+              <div className="form-section-head">
+                <h3>{t("sectionApptDetails")}</h3>
+                <p>{t("sectionApptDetailsDesc")}</p>
+              </div>
             </div>
             <div className="form-section-body">
               <div className="field">
                 <label className="required" htmlFor="appt-req-meeting-with">{t("apptMeetingWithLabel")}</label>
-                <select name="meetingWith" id="appt-req-meeting-with" defaultValue="case_manager">
-                  <option value="case_manager">{t("roleCaseManager")}</option>
-                  <option value="job_developer">{t("roleJobDeveloper")}</option>
-                </select>
+                <div className="field-icon-wrap">
+                  <Icon name="users" />
+                  <select name="meetingWith" id="appt-req-meeting-with" defaultValue="case_manager">
+                    <option value="case_manager">{t("roleCaseManager")}</option>
+                    <option value="job_developer">{t("roleJobDeveloper")}</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-2">
                 <FormField name="date" label={t("apptPreferredDateLabel")} type="date" required invalid={isInvalid("date")} />
@@ -84,12 +99,26 @@ export default function ApptRequest() {
               </div>
               <div className="field">
                 <label htmlFor="checkin-field-reason">{t("apptReasonLabel")}</label>
-                <textarea name="reason" id="checkin-field-reason" rows={3} />
+                <div className="field-icon-wrap">
+                  <Icon name="message" />
+                  <textarea name="reason" id="checkin-field-reason" rows={3} style={{ paddingLeft: 42 }} />
+                </div>
+                <p className="muted" style={{ fontSize: ".82rem", margin: "6px 0 0 0" }}>{t("apptReasonHint")}</p>
               </div>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary btn-block">{t("submitApptRequestBtn")}</button>
+          <div className="info-callout">
+            <Icon name="info" />
+            <div>
+              <strong>{t("apptWhatsNextTitle")}</strong>
+              <p>{t("apptWhatsNextDesc")}</p>
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary btn-block">
+            <Icon name="send" /> {t("submitApptRequestBtn")}
+          </button>
         </form>
       </div>
     </div>
