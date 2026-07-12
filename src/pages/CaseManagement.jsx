@@ -145,8 +145,8 @@ function ImportContactsDetails({ open, onToggle }) {
       <div className="details-body">
         <p className="muted">{t("importContactsDesc")}</p>
         <div className="pill-row"><button className="btn-secondary" onClick={downloadCaseClientTemplate}>{t("downloadClientTemplate")}</button></div>
-        <div className="grid grid-2">
-          <div className="field"><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
+        <div className="grid grid-2" style={{ alignItems: "center" }}>
+          <div className="field" style={{ marginBottom: 0 }}><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
           <button className="btn-primary" onClick={handleImportClick}>{t("importBtn")}</button>
         </div>
       </div>
