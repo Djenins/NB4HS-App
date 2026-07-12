@@ -23,7 +23,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
 import { Fragment, useState } from "react";
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
@@ -218,8 +218,14 @@ function SidebarThemeToggle({ collapsed }) {
 export default function Shell() {
   const { data, session, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
+  const location = useLocation();
 
   if (!session && !kiosk) return <Navigate to="/" replace />;
+
+  // The kiosk landing page (CheckIn.jsx) is a full-bleed self-service
+  // design that owns its own header/footer chrome -- skip Shell's default
+  // topbar/footer-note there instead of nesting one inside the other.
+  const isKioskLanding = kiosk && location.pathname === "/checkin";
 
   const role = session ? session.role : null;
   const items = !kiosk && role ? navItemsForRole(role) : [];
@@ -337,25 +343,31 @@ export default function Shell() {
             </aside>
           )}
 
-          <div className="content-col">
-            <header className="topbar">
-              {!showSidebar && (
-                <div className="brand">
-                  <img src={LOGO_DATA_URI} alt={ORG.name} />
-                  <span className="brand-sub no-print">{t("appTitle")}</span>
+          <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
+            {!isKioskLanding && (
+              <header className="topbar">
+                {!showSidebar && (
+                  <div className="brand">
+                    <img src={LOGO_DATA_URI} alt={ORG.name} />
+                    <span className="brand-sub no-print">{t("appTitle")}</span>
+                  </div>
+                )}
+                <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
+                  {!showSidebar && <ThemeToggle compact />}
+                  <LangSelect />
                 </div>
-              )}
-              <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
-                {!showSidebar && <ThemeToggle compact />}
-                <LangSelect />
-              </div>
-            </header>
+              </header>
+            )}
 
-            <main id="main-content" tabIndex={-1}>
+            {isKioskLanding ? (
               <Outlet />
-            </main>
+            ) : (
+              <main id="main-content" tabIndex={-1}>
+                <Outlet />
+              </main>
+            )}
 
-            <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>
+            {!isKioskLanding && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>

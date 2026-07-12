@@ -505,3 +505,16 @@
     body{background:#fff;}
     main, .content-col > main{max-width:100%;}
   }
+
+  /* Recharts hardcodes "display:block; margin-right:10px" inline on legend
+     <li>s for layout="vertical" (vs "display:inline-block" for horizontal),
+     with no vertical spacing and no prop to add it -- so it's added here. */
+  .recharts-legend-item[style*="display: block"] + .recharts-legend-item{
+    margin-top:8px;
+  }
+
+  /* Kiosk check-in landing page (CheckIn.jsx) -- full-bleed self-service
+     screen, so it opts out of the app shell's default main/content-col
+     padding and gets its own fade-in entrance. */
+  .content-col--kiosk-landing{padding:0;}
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }

@@ -21,12 +21,15 @@ export function paginationPageList(page, totalPages) {
     for (var i = 1; i <= totalPages; i++) all.push(i);
     return all;
   }
+  var start = page - 2;
+  var end = page + 2;
+  if (start < 1) { end += (1 - start); start = 1; }
+  if (end > totalPages) { start -= (end - totalPages); end = totalPages; }
+  start = Math.max(1, start);
   var keep = {};
   keep[1] = true;
   keep[totalPages] = true;
-  keep[page] = true;
-  if (page - 1 >= 1) keep[page - 1] = true;
-  if (page + 1 <= totalPages) keep[page + 1] = true;
+  for (var i2 = start; i2 <= end; i2++) keep[i2] = true;
   var sorted = Object.keys(keep).map(Number).sort(function (a, b) { return a - b; });
   var out = [];
   for (var j = 0; j < sorted.length; j++) {
