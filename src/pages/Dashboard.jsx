@@ -161,9 +161,9 @@ function RecentCheckIns({ visits, services, lang, t }) {
 // belongs on this page. Scoped to Dashboard.jsx only (not main.css's shared
 // .section-label rule, which is also used by many other pages where gold
 // isn't called for) so it can't spread gold anywhere it wasn't asked for.
-function SectionLabel({ children }) {
+function SectionLabel({ children, className }) {
   return (
-    <div className="section-label flex items-center gap-1.5">
+    <div className={"section-label flex items-center gap-1.5" + (className ? " " + className : "")}>
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
       {children}
     </div>
@@ -296,7 +296,11 @@ export default function Dashboard() {
       <AnimatePresence>
         {showFoodStats && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <SectionLabel>{t("dashSectionFoodDistribution")}</SectionLabel>
+            {/* Not a :first-child on the page, but it is the first child of
+                this motion.div wrapper -- main.css's .section-label:first-child
+                rule (margin-top:0) would otherwise match it by accident, so
+                the normal 22px top margin is restored explicitly here. */}
+            <SectionLabel className="!mt-[22px]">{t("dashSectionFoodDistribution")}</SectionLabel>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatTile icon={ShoppingBasket} num={(data.foodClients || []).length} label={t("totalHouseholdsLabel")} index={0} />
               <StatTile icon={ShoppingBasket} num={distWeek} label={t("distributionsWeekLabel")} index={1} />
