@@ -1,14 +1,27 @@
 // Students.jsx -- the Administrator/Case Manager/Job Developer Students
 // page: search + drag-and-drop Kanban roster board (waiting list + each
 // active classroom), student enrollment, CSV/Excel roster upload, and
-// session history (including past-session roster import). Ported from
-// students.js's renderStudents()/renderStudentsBoardHtml()/
-// renderSessionHistoryCard() and their attach* handlers.
+// session history (including past-session roster import). Tailwind/shadcn
+// redesign pass (client-provided "Student Waiting List & Classrooms"
+// mockup), same idiom as the Dashboard.jsx/Search.jsx redesign passes --
+// every data computation below still comes from the existing lib/students.js
+// /lib/assessments.js helpers and AppContext's setData; only the
+// presentation layer changed. The three collapsible <details> panels
+// (Enroll/Upload/Past Sessions) became always-visible Cards laid out exactly
+// like the mockup's bottom two-column grid, since the reference design has
+// no accordion affordance for them.
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  CalendarPlus, CalendarRange, CheckCircle2, ChevronDown, ChevronUp, Download, FileUp, Info, LogOut, Mail, Pencil, Phone,
+  TrendingUp, UserPlus, Upload, Users, X
+} from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CLASS_CAPACITY } from "../lib/constants.js";
-import { addMonths, fmtDateLong, formatAddress, todayStr, uid } from "../lib/utils.js";
+import { nrsLevelLabel, studentAssessmentStatus } from "../lib/assessments.js";
+import { cn } from "../lib/cn.js";
+import { addMonths, fmtDateLong, formatAddress, initialsOf, todayStr, uid } from "../lib/utils.js";
 import {
   buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
@@ -16,18 +29,23 @@ import {
 } from "../lib/students.js";
 import DatePicker from "../components/DatePicker.jsx";
 import EmptyState from "../components/EmptyState.jsx";
-import StudentCard from "../components/StudentCard.jsx";
+import StudentCard, { avatarColorFor } from "../components/StudentCard.jsx";
+import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
+import { Badge } from "../components/ui/badge.jsx";
+import { Button } from "../components/ui/button.jsx";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 
-function StudentsBoard({ term, sortMode, filterMode }) {
+const WAITING_ACCENT = "#D99E32"; // gold -- matches columnAccentColor("waiting", ...)
+const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
+
+// Shared by the Kanban board (StudentsBoard) and the Waiting List panel,
+// which now live as two separate sections instead of one board with a
+// "waiting" column -- both still mutate the same data.students array via
+// AppContext's setData, so the move/remove/dropout/outcome/edit logic stays
+// in one place rather than forking into two copies.
+function useStudentRosterActions() {
   const { data, setData, requestConfirm, showToast } = useApp();
   const t = useT();
-  const [editingId, setEditingId] = useState(null);
-  const [dropHover, setDropHover] = useState(null);
-
-  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
-  const columns = [{ key: "waiting", name: t("waitingList"), students: waitingListStudents(data.students) }].concat(
-    activeClasses.map((c) => ({ key: c.key, name: c.name, students: studentsForClass(data.students, c.key) }))
-  );
 
   // Waiting List (the backlog) has no cap -- only real classrooms do. Moving
   // a student who's already in the target class is always a no-op allowed
@@ -83,73 +101,475 @@ function StudentsBoard({ term, sortMode, filterMode }) {
     }));
   }
 
+  // Returns true on success so callers can close their own local editingId
+  // state -- that's per-section UI state, not something this shared hook owns.
   function saveEdit(student, fields) {
     const updated = buildUpdatedStudent(student, fields);
-    if (!updated) { showToast(t("fixErrors")); return; }
+    if (!updated) { showToast(t("fixErrors")); return false; }
     setData((prev) => Object.assign({}, prev, {
       students: prev.students.map((s) => (s.id === student.id ? updated : s))
     }));
-    setEditingId(null);
     showToast(t("studentUpdated"));
+    return true;
   }
+
+  return { moveStudent, removeStudent, markDropout, setOutcome, saveEdit };
+}
+
+function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
+      <Card>
+        <CardContent className="flex items-center gap-3 p-5">
+          <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
+            <Icon className="h-5 w-5" strokeWidth={2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-semibold text-muted">{label}</div>
+            <div className={"mt-1 font-extrabold tracking-tight text-card-foreground " + (big ? "text-2xl" : "text-base leading-snug")}>{value}</div>
+            {sublabel ? <div className="mt-0.5 truncate text-xs text-muted">{sublabel}</div> : null}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function FilterFieldSelect({ label, value, onChange, children }) {
+  return (
+    <div className="relative min-w-[170px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-[#b7c0d1]">
+      <div className="text-xs font-medium text-muted">{label}</div>
+      <select
+        value={value}
+        onChange={onChange}
+        aria-label={label}
+        className="min-h-0 w-full appearance-none border-0 bg-transparent p-0 text-sm font-semibold text-card-foreground focus:outline-none"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function TextField({ id, label, required, invalid, icon: Icon, value, onChange, placeholder, type }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
+        {label}{required ? <span className="text-accent"> *</span> : null}
+      </label>
+      <div className="relative">
+        {Icon ? <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /> : null}
+        <input
+          id={id}
+          type={type || "text"}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={cn(
+            "h-11 min-h-0 w-full rounded-lg border bg-background text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/15",
+            Icon ? "pl-9 pr-3" : "px-3",
+            invalid ? "border-accent bg-tint-danger" : "border-border focus:border-primary"
+          )}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Full student detail (ID, contact info, assessment, outcome) now lives here
+// instead of inline on every Kanban card -- StudentCard's view mode is just
+// a clickable name + move select, and clicking the name opens this. Reuses
+// the app's existing .modal-overlay/.modal-box CSS (same pattern as
+// Search.jsx's visit-detail modal) rather than inventing a second modal look.
+function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout, onRemove, onSetOutcome }) {
+  const { lang } = useApp();
+  const t = useT();
+  if (!student) return null;
+
+  const assessment = studentAssessmentStatus(student);
+  const name = student.firstName + " " + student.lastName;
+  const currentClass = classes.find((c) => c.key === student.classKey);
+
+  return (
+    <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-box" style={{ maxWidth: 440 }}>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="m-0">{t("studentDetailsTitle")}</h3>
+          <Button variant="ghost" size="icon" aria-label={t("closeLabel")} onClick={onClose} className="h-8 w-8 text-muted hover:bg-background">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="mb-4 flex items-center gap-3">
+          <Avatar className="h-12 w-12"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
+          <div className="min-w-0">
+            <div className="text-base font-bold text-card-foreground">{name}</div>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {student.studentId && <Badge>{student.studentId}</Badge>}
+              {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("classroomColumn")}</span><span className="text-right font-semibold">{currentClass ? currentClass.name : t("waitingList")}</span></div>
+          <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("phoneLabel")}</span><span className="text-right font-semibold">{student.phone || "—"}</span></div>
+          <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("emailLabel")}</span><span className="text-right font-semibold">{student.email || "—"}</span></div>
+          <div className="flex justify-between gap-3"><span className="text-muted">{t("address")}</span><span className="text-right font-semibold">{formatAddress(student) || "—"}</span></div>
+        </div>
+
+        {assessment.status !== "noPretest" && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge variant="neutral">{t("pretestLabel")}: {nrsLevelLabel(assessment.pretestLevel, lang)}</Badge>
+            {assessment.status === "posttestMissing" ? (
+              <Badge variant="warn">{t("posttestNotCompletedFlag")}</Badge>
+            ) : (
+              <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+            )}
+          </div>
+        )}
+
+        {assessment.outcome && (
+          <div className="mt-3 flex items-center gap-2 text-sm">
+            <span className="font-semibold text-muted">{t("outcomeLabel")}:</span>
+            {assessment.outcomeEditable ? (
+              <select
+                value={assessment.outcome}
+                onChange={(e) => onSetOutcome(e.target.value)}
+                className="h-10 min-h-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium leading-tight text-card-foreground focus:border-primary focus:outline-none"
+              >
+                <option value="working">{t("outcomeWorking")}</option>
+                <option value="scheduleRetest">{t("outcomeScheduleRetest")}</option>
+              </select>
+            ) : (
+              <Badge variant="success">{t("outcomeCompleted")}</Badge>
+            )}
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          {student.classKey ? (
+            <Button variant="secondary" onClick={onDropout} className="gap-2"><LogOut className="h-4 w-4" />{t("dropoutBtn")}</Button>
+          ) : null}
+          <Button variant="secondary" onClick={onEditStart} className="gap-2"><Pencil className="h-4 w-4" />{t("editStudentTitle")}</Button>
+          <Button variant="destructive" onClick={onRemove} className="gap-2"><X className="h-4 w-4" />{t("deleteLabel")}</Button>
+          <Button onClick={onClose}>{t("closeLabel")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
+  const { data } = useApp();
+  const t = useT();
+  const [editingId, setEditingId] = useState(null);
+  const [dropHover, setDropHover] = useState(null);
+  // Stores the id, not the student object -- so the detail modal stays live
+  // (e.g. the Outcome select inside it) as data.students changes underneath it.
+  const [detailStudentId, setDetailStudentId] = useState(null);
+  const { moveStudent, removeStudent, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
+
+  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
+  const columns = activeClasses.map((c) => ({ key: c.key, name: c.name, students: studentsForClass(data.students, c.key) }));
+  const detailStudent = detailStudentId ? (data.students || []).find((s) => s.id === detailStudentId) || null : null;
 
   function handleDrop(e, colKey) {
     e.preventDefault();
     setDropHover(null);
     const studentId = e.dataTransfer.getData("text/plain");
-    if (studentId) moveStudent(studentId, colKey === "waiting" ? null : colKey);
+    if (studentId) moveStudent(studentId, colKey);
   }
 
   return (
-    <div className="board">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {columns.map((col, idx) => {
+        const accent = columnAccentColor(col.key, idx);
         const searched = col.students.filter((s) => studentMatchesSearch(s, term));
         const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
         const filtered = sortStudentsList(withFilter, sortMode);
         const emptyMsg = term || filterMode === "missingContact" ? t("noSearchResults") : t("noStudentsEnrolled");
         return (
           <div
-            className={"board-col" + (dropHover === col.key ? " drop-hover" : "")}
-            style={{ borderTopColor: columnAccentColor(col.key, idx - 1) }}
             key={col.key}
+            className={cn(
+              "flex flex-col overflow-hidden rounded-xl border bg-card shadow-card transition-shadow",
+              dropHover === col.key ? "border-primary ring-2 ring-primary/30" : "border-border"
+            )}
+            style={{ borderTopWidth: 4, borderTopColor: accent }}
             onDragOver={(e) => { e.preventDefault(); setDropHover(col.key); }}
             onDragLeave={() => setDropHover((cur) => (cur === col.key ? null : cur))}
             onDrop={(e) => handleDrop(e, col.key)}
           >
-            <div className="board-col-head">
-              <h3>{col.name}</h3>
-              <span className="board-col-count">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <h3 className="m-0 truncate text-sm font-bold text-card-foreground">{col.name}</h3>
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
                 {filtered.length}
-                {(term || filterMode === "missingContact") ? "/" + col.students.length : (col.key !== "waiting" ? "/" + CLASS_CAPACITY : "")}
+                {(term || filterMode === "missingContact") ? "/" + col.students.length : "/" + CLASS_CAPACITY}
               </span>
             </div>
-            {filtered.length ? (
-              filtered.map((s) => (
-                <StudentCard
-                  key={s.id}
-                  student={s}
-                  classes={activeClasses}
-                  editing={editingId === s.id}
-                  onMove={(classKey) => moveStudent(s.id, classKey)}
-                  onEditStart={() => setEditingId(s.id)}
-                  onEditCancel={() => setEditingId(null)}
-                  onSave={(fields) => saveEdit(s, fields)}
-                  onRemove={() => removeStudent(s.id)}
-                  onDropout={() => markDropout(s.id)}
-                  onSetOutcome={(outcome) => setOutcome(s.id, outcome)}
-                />
-              ))
-            ) : (
-              <p className="muted" style={{ fontSize: ".85rem" }}>{emptyMsg}</p>
-            )}
+            <div className="flex-1 space-y-2.5 overflow-y-auto p-3" style={{ maxHeight: 560 }}>
+              {filtered.length ? (
+                filtered.map((s) => (
+                  <StudentCard
+                    key={s.id}
+                    student={s}
+                    classes={activeClasses}
+                    editing={editingId === s.id}
+                    onMove={(classKey) => moveStudent(s.id, classKey)}
+                    onEditStart={() => setEditingId(s.id)}
+                    onEditCancel={() => setEditingId(null)}
+                    onSave={(fields) => { if (saveEdit(s, fields)) setEditingId(null); }}
+                    onRemove={() => removeStudent(s.id)}
+                    onDropout={() => markDropout(s.id)}
+                    onViewDetails={() => setDetailStudentId(s.id)}
+                  />
+                ))
+              ) : (
+                <p className="py-6 text-center text-sm text-muted">{emptyMsg}</p>
+              )}
+            </div>
+            <div className="border-t border-border p-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onAddStudentClick}
+                className="w-full font-semibold hover:bg-background"
+                style={{ color: accent }}
+              >
+                {t("addStudentColumnBtn")}
+              </Button>
+            </div>
           </div>
         );
       })}
+
+      <StudentDetailModal
+        student={detailStudent}
+        classes={activeClasses}
+        onClose={() => setDetailStudentId(null)}
+        onEditStart={() => { setEditingId(detailStudentId); setDetailStudentId(null); }}
+        onDropout={() => { markDropout(detailStudentId); setDetailStudentId(null); }}
+        onRemove={() => { removeStudent(detailStudentId); setDetailStudentId(null); }}
+        onSetOutcome={(outcome) => setOutcome(detailStudentId, outcome)}
+      />
     </div>
   );
 }
 
-function EnrollStudentDetails({ open, onToggle }) {
+const listEditInputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+
+// One row of the Waiting List panel -- same student fields/edit form as a
+// Kanban StudentCard, laid out horizontally instead of stacked in a card.
+// No dropout control here: a waiting-list student has no classKey to drop
+// out of by definition (waitingListStudents() below only returns students
+// with none), so that action is simply never applicable in this list.
+function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onViewDetails }) {
+  const { lang } = useApp();
+  const t = useT();
+  const [fields, setFields] = useState(() => ({
+    firstName: student.firstName || "", lastName: student.lastName || "", phone: student.phone || "",
+    email: student.email || "", street: student.street || "", city: student.city || "", zip: student.zip || "",
+    pretestReading: student.pretestReading || "", posttestReading: student.posttestReading || ""
+  }));
+  function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  if (editing) {
+    return (
+      <div className="py-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <input className={listEditInputClass} placeholder={t("firstName")} aria-label={t("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("lastName")} aria-label={t("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("phone")} aria-label={t("phone")} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("email")} aria-label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("address")} aria-label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("city")} aria-label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("zip")} aria-label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="number" className={listEditInputClass} placeholder={t("pretestReadingLabel")} aria-label={t("pretestReadingLabel")} value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} />
+            <input type="number" className={listEditInputClass} placeholder={t("posttestReadingLabel")} aria-label={t("posttestReadingLabel")} value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
+          <Button size="sm" variant="secondary" onClick={onEditCancel}>{t("cancelLabel")}</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const assessment = studentAssessmentStatus(student);
+  const name = student.firstName + " " + student.lastName;
+
+  return (
+    <div
+      className="grid grid-cols-1 items-start gap-2 py-3 cursor-grab active:cursor-grabbing md:grid-cols-[minmax(200px,1.6fr)_minmax(140px,1fr)_minmax(150px,1.3fr)_180px_auto] md:items-center md:gap-x-4 md:gap-y-0"
+      draggable="true"
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", student.id); e.dataTransfer.effectAllowed = "move"; }}
+    >
+      <button
+        type="button"
+        onClick={onViewDetails}
+        className="flex min-h-0 min-w-0 items-center gap-3 border-0 bg-transparent p-0 text-left"
+      >
+        <Avatar className="h-9 w-9 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {student.studentId && <Badge>{student.studentId}</Badge>}
+            {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+          </div>
+        </div>
+      </button>
+      <div className="pl-12 text-xs text-muted md:pl-0">
+        {student.phone && <div>{student.phone}</div>}
+        {formatAddress(student) && <div>{formatAddress(student)}</div>}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 pl-12 md:pl-0">
+        {assessment.status !== "noPretest" && (
+          <>
+            <Badge variant="neutral">{t("pretestLabel")}: {nrsLevelLabel(assessment.pretestLevel, lang)}</Badge>
+            {assessment.status === "posttestMissing" ? (
+              <Badge variant="warn">{t("posttestNotCompletedFlag")}</Badge>
+            ) : (
+              <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+            )}
+          </>
+        )}
+      </div>
+      <select
+        value="waiting"
+        onChange={(e) => onMove(e.target.value === "waiting" ? null : e.target.value)}
+        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+      >
+        <option value="waiting">{t("waitingList")}</option>
+        {classes.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+      </select>
+      <div className="flex shrink-0 items-center justify-end gap-0.5">
+        <Button variant="ghost" size="icon" title={t("editStudentTitle")} aria-label={t("editStudentTitle")} onClick={onEditStart} className="h-9 w-9 text-muted hover:bg-background hover:text-card-foreground">
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove} className="h-9 w-9 text-muted hover:bg-tint-danger hover:text-accent">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Waiting List, pulled out of the Kanban grid into its own list section --
+// it's the intake backlog (no capacity cap, often the longest roster), so a
+// dense list reads better here than a column of tall cards. Still a drop
+// target for drag-and-drop (dropping a card back here un-places a student),
+// same as when it was a board column.
+function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
+  const { data } = useApp();
+  const t = useT();
+  const [editingId, setEditingId] = useState(null);
+  const [dropHover, setDropHover] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  // Whole-panel collapse (independent of the row-level "show all" toggle
+  // below) -- lets staff shrink the backlog down to just its header when
+  // they're focused on the classroom board instead.
+  const [collapsed, setCollapsed] = useState(false);
+  const [detailStudentId, setDetailStudentId] = useState(null);
+  const { moveStudent, removeStudent, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
+
+  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
+  const students = waitingListStudents(data.students);
+  const searched = students.filter((s) => studentMatchesSearch(s, term));
+  const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
+  const filtered = sortStudentsList(withFilter, sortMode);
+  const emptyMsg = term || filterMode === "missingContact" ? t("noSearchResults") : t("noStudentsEnrolled");
+  const visible = showAll ? filtered : filtered.slice(0, WAITING_LIST_PREVIEW);
+  const detailStudent = detailStudentId ? (data.students || []).find((s) => s.id === detailStudentId) || null : null;
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDropHover(false);
+    const studentId = e.dataTransfer.getData("text/plain");
+    if (studentId) moveStudent(studentId, null);
+  }
+
+  return (
+    <Card
+      className={cn("mb-5", dropHover ? "border-primary ring-2 ring-primary/30" : "")}
+      style={{ borderTopWidth: 4, borderTopColor: WAITING_ACCENT }}
+      onDragOver={(e) => { e.preventDefault(); setDropHover(true); }}
+      onDragLeave={() => setDropHover(false)}
+      onDrop={handleDrop}
+    >
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-expanded={!collapsed}
+          className="flex min-h-0 items-center gap-2 border-0 bg-transparent p-0"
+        >
+          {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
+          <CardTitle>{t("waitingList")}</CardTitle>
+          <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
+            {filtered.length}{(term || filterMode === "missingContact") ? "/" + students.length : ""}
+          </span>
+        </button>
+        <Button type="button" variant="ghost" size="sm" onClick={onAddStudentClick} className="font-semibold" style={{ color: WAITING_ACCENT }}>
+          {t("addStudentColumnBtn")}
+        </Button>
+      </CardHeader>
+      {collapsed ? null : (
+        <CardContent className="pt-0">
+          {filtered.length ? (
+            <>
+              <div className="divide-y divide-border">
+                {visible.map((s) => (
+                  <WaitingListRow
+                    key={s.id}
+                    student={s}
+                    classes={activeClasses}
+                    editing={editingId === s.id}
+                    onMove={(classKey) => moveStudent(s.id, classKey)}
+                    onEditStart={() => setEditingId(s.id)}
+                    onEditCancel={() => setEditingId(null)}
+                    onSave={(fields) => { if (saveEdit(s, fields)) setEditingId(null); }}
+                    onRemove={() => removeStudent(s.id)}
+                    onViewDetails={() => setDetailStudentId(s.id)}
+                  />
+                ))}
+              </div>
+              {filtered.length > WAITING_LIST_PREVIEW ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAll((v) => !v)}
+                  className="mt-2 flex min-h-0 w-full items-center justify-center gap-1.5 border-0 border-t border-border bg-transparent pt-3 text-sm font-semibold text-primary hover:underline"
+                >
+                  {showAll ? (
+                    <>{t("showLessLabel")} <ChevronUp className="h-4 w-4" /></>
+                  ) : (
+                    <>{t("showAllLabel").replace("{n}", String(filtered.length))} <ChevronDown className="h-4 w-4" /></>
+                  )}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted">{emptyMsg}</p>
+          )}
+        </CardContent>
+      )}
+
+      <StudentDetailModal
+        student={detailStudent}
+        classes={activeClasses}
+        onClose={() => setDetailStudentId(null)}
+        onEditStart={() => { setEditingId(detailStudentId); setDetailStudentId(null); }}
+        onDropout={() => { markDropout(detailStudentId); setDetailStudentId(null); }}
+        onRemove={() => { removeStudent(detailStudentId); setDetailStudentId(null); }}
+        onSetOutcome={(outcome) => setOutcome(detailStudentId, outcome)}
+      />
+    </Card>
+  );
+}
+
+function EnrollStudentPanel() {
   const { data, setData, showToast } = useApp();
   const t = useT();
   const [fields, setFields] = useState({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
@@ -175,50 +595,40 @@ function EnrollStudentDetails({ open, onToggle }) {
   }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("enrollStudentTitle")}</summary>
-      <div className="details-body">
-        <p className="muted">{t("enrollStudentDesc")}</p>
-        <div className="form-section">
-          <div className="form-section-head">
-            <h3>{t("sectionPersonalDetails")}</h3>
-            <p>{t("sectionPersonalDetailsDesc")}</p>
-          </div>
-          <div className="form-section-body">
-            <div className="grid grid-2">
-              <div className="field"><label htmlFor="enroll-first-name">{t("firstName")}</label><input type="text" id="enroll-first-name" className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} /></div>
-              <div className="field"><label htmlFor="enroll-last-name">{t("lastName")}</label><input type="text" id="enroll-last-name" className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} /></div>
-              <div className="field"><label htmlFor="enroll-phone">{t("phone")}</label><input type="text" id="enroll-phone" value={fields.phone} onChange={(e) => setField("phone", e.target.value)} /></div>
-              <div className="field"><label htmlFor="enroll-email">{t("email")}</label><input type="text" id="enroll-email" value={fields.email} onChange={(e) => setField("email", e.target.value)} /></div>
-            </div>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary">
+          <UserPlus className="h-5 w-5" />
         </div>
-
-        <div className="form-section">
-          <div className="form-section-head">
-            <h3>{t("sectionAddress")}</h3>
-            <p>{t("sectionAddressDesc")}</p>
-          </div>
-          <div className="form-section-body">
-            <div className="grid grid-3">
-              <div className="field"><label htmlFor="enroll-street">{t("address")}</label><input type="text" id="enroll-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} /></div>
-              <div className="field"><label htmlFor="enroll-city">{t("city")}</label><input type="text" id="enroll-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} /></div>
-              <div className="field"><label htmlFor="enroll-zip">{t("zip")}</label><input type="text" id="enroll-zip" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></div>
-            </div>
-            <p className="muted" style={{ fontSize: ".85rem" }}>{t("stateAlwaysRI")}</p>
-          </div>
+        <div>
+          <CardTitle>{t("enrollStudentTitle")}</CardTitle>
+          <CardDescription className="mt-0.5">{t("enrollStudentDesc")}</CardDescription>
         </div>
-
-        <div className="pill-row" style={{ marginTop: 4 }}><button className="btn-primary" onClick={submit}>{t("enrollBtn")}</button></div>
-      </div>
-    </details>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <TextField id="enroll-first-name" label={t("firstName")} required invalid={errors.indexOf("firstName") !== -1} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} placeholder={t("enterFirstNamePlaceholder")} />
+          <TextField id="enroll-last-name" label={t("lastName")} required invalid={errors.indexOf("lastName") !== -1} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} placeholder={t("enterLastNamePlaceholder")} />
+          <TextField id="enroll-phone" label={t("phone")} icon={Phone} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="(401) 123-4567" />
+          <TextField id="enroll-email" label={t("email")} icon={Mail} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder="name@example.com" />
+        </div>
+        <TextField id="enroll-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("streetAddressPlaceholder")} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <TextField id="enroll-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} placeholder={t("city")} />
+          <TextField id="enroll-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} placeholder={t("zip")} />
+        </div>
+        <p className="text-xs text-muted">{t("stateAlwaysRI")}</p>
+        <Button size="lg" onClick={submit}>{t("enrollBtn")}</Button>
+      </CardContent>
+    </Card>
   );
 }
 
-function UploadStudentsDetails({ open, onToggle }) {
+function UploadStudentsPanel() {
   const { data, setData, showToast } = useApp();
   const t = useT();
   const fileRef = useRef(null);
+  const [fileName, setFileName] = useState("");
 
   function importRows(rows) {
     const result = buildImportedStudents(rows, data.students, data.nextStudentNumber || 1);
@@ -237,22 +647,39 @@ function UploadStudentsDetails({ open, onToggle }) {
   }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("uploadStudents")}</summary>
-      <div className="details-body">
-        <p className="muted">{t("uploadStudentsDesc")}</p>
-        <div className="pill-row"><button className="btn-secondary" onClick={downloadStudentTemplate}>{t("downloadTemplate")}</button></div>
-        <div className="grid grid-2">
-          <div className="field"><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
-          <button className="btn-primary" onClick={handleImportClick}>{t("importBtn")}</button>
+    <Card>
+      <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-success text-success">
+          <Upload className="h-5 w-5" />
         </div>
-        <p className="muted">{t("waitingListNote")}</p>
-      </div>
-    </details>
+        <div>
+          <CardTitle>{t("uploadStudents")}</CardTitle>
+          <CardDescription className="mt-0.5">{t("uploadStudentsDesc")}</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <Button variant="secondary" size="sm" className="gap-2" onClick={downloadStudentTemplate}>
+          <Download className="h-4 w-4" /> {t("downloadTemplate")}
+        </Button>
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-primary-tint/40">
+          <FileUp className="h-6 w-6 text-muted" />
+          <span className="text-sm font-semibold text-card-foreground">{fileName || t("chooseFileDragDrop")}</span>
+          <span className="text-xs text-muted">{t("fileTypesHint")}</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
+          />
+        </label>
+        <Button size="lg" className="mt-4 w-full" onClick={handleImportClick}>{t("importBtn")}</Button>
+      </CardContent>
+    </Card>
   );
 }
 
-function SessionHistoryDetails({ open, onToggle }) {
+function PastSessionsPanel() {
   const { data, setData, requestConfirm, showToast } = useApp();
   const t = useT();
   const [expandedSessionId, setExpandedSessionId] = useState(null);
@@ -304,85 +731,102 @@ function SessionHistoryDetails({ open, onToggle }) {
   }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>{t("sessionHistoryTitle")}</summary>
-      <div className="details-body">
-        {!history.length ? (
-          <EmptyState icon="calendar" message={t("noPastSessions")} />
-        ) : (
-          history.map((s) => {
-            const count = rosterCount(s.id);
-            const expanded = expandedSessionId === s.id;
-            const rows = (data.pastSessionStudents || []).filter((r) => r.sessionId === s.id);
-            return (
-              <div key={s.id} style={{ borderBottom: "1px solid var(--border,#e5e5e5)", padding: "8px 0" }}>
-                <div className="kv">
-                  <span>{fmtDateLong(s.startDate)} – {fmtDateLong(s.endDate)} <span className="muted">({count})</span></span>
-                  <span>
-                    <button className="btn-ghost btn-sm" onClick={() => setExpandedSessionId(expanded ? null : s.id)}>
-                      {expanded ? t("hideRoster") : t("viewRoster")}
-                    </button>{" "}
-                    <button className="btn-ghost btn-sm btn-outline-danger" onClick={() => deleteSession(s.id)}>{t("deleteLabel")}</button>
-                  </span>
-                </div>
-                {expanded && (
-                  rows.length ? (
-                    <div className="table-wrap">
-                      <table>
-                        <thead>
-                          <tr><th>{t("nameLabel")}</th><th>{t("phoneLabel")}</th><th>{t("emailLabel")}</th><th>{t("address")}</th><th>{t("classroomColumn")}</th></tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((r) => (
-                            <tr key={r.id}>
-                              <td>{r.firstName} {r.lastName}</td><td>{r.phone || ""}</td><td>{r.email || ""}</td>
-                              <td>{formatAddress(r)}</td>
-                              <td>{r.className || ""}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : <EmptyState icon="inbox" message={t("noPastRosterYet")} />
-                )}
-              </div>
-            );
-          })
-        )}
-        <div className="grid grid-3" style={{ marginTop: 14 }}>
-          <div className="field"><label htmlFor="past-session-start">{t("pastSessionStart")}</label><DatePicker id="past-session-start" value={start} onChange={setStart} /></div>
-          <div className="field"><label htmlFor="past-session-end">{t("pastSessionEnd")}</label><DatePicker id="past-session-end" value={end} onChange={setEnd} /></div>
-          <div className="field" style={{ display: "flex", alignItems: "flex-end" }}>
-            <button className="btn-secondary btn-block" onClick={addPastSession}>{t("addSession")}</button>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-neutral text-muted">
+          <CalendarRange className="h-5 w-5" />
         </div>
+        <div>
+          <CardTitle>{t("sessionHistoryTitle")}</CardTitle>
+          <CardDescription className="mt-0.5">{t("sessionHistoryDesc")}</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="field" style={{ marginBottom: 0 }}><label htmlFor="past-session-start">{t("pastSessionStart")}</label><DatePicker id="past-session-start" value={start} onChange={setStart} /></div>
+          <div className="field" style={{ marginBottom: 0 }}><label htmlFor="past-session-end">{t("pastSessionEnd")}</label><DatePicker id="past-session-end" value={end} onChange={setEnd} /></div>
+          <div className="flex items-end"><Button className="w-full" onClick={addPastSession}>{t("addSession")}</Button></div>
+        </div>
+
+        {!history.length ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-tint px-4 py-3.5 text-sm text-primary">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-semibold">{t("noPastSessions")}</div>
+              <div className="mt-0.5 text-primary/80">{t("noPastSessionsHint")}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-1">
+            {history.map((s) => {
+              const count = rosterCount(s.id);
+              const expanded = expandedSessionId === s.id;
+              const rows = (data.pastSessionStudents || []).filter((r) => r.sessionId === s.id);
+              return (
+                <div key={s.id} className="border-b border-border py-2 last:border-b-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm">{fmtDateLong(s.startDate)} – {fmtDateLong(s.endDate)} <span className="text-muted">({count})</span></span>
+                    <span className="flex gap-1.5">
+                      <Button size="sm" variant="ghost" className="border border-border" onClick={() => setExpandedSessionId(expanded ? null : s.id)}>
+                        {expanded ? t("hideRoster") : t("viewRoster")}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="border border-border text-accent hover:bg-tint-danger" onClick={() => deleteSession(s.id)}>{t("deleteLabel")}</Button>
+                    </span>
+                  </div>
+                  {expanded && (
+                    rows.length ? (
+                      <div className="table-wrap mt-2">
+                        <table>
+                          <thead>
+                            <tr><th>{t("nameLabel")}</th><th>{t("phoneLabel")}</th><th>{t("emailLabel")}</th><th>{t("address")}</th><th>{t("classroomColumn")}</th></tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r) => (
+                              <tr key={r.id}>
+                                <td>{r.firstName} {r.lastName}</td><td>{r.phone || ""}</td><td>{r.email || ""}</td>
+                                <td>{formatAddress(r)}</td>
+                                <td>{r.className || ""}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : <div className="mt-2"><EmptyState icon="inbox" message={t("noPastRosterYet")} /></div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {history.length ? (
-          <div style={{ marginTop: 18, borderTop: "1px solid var(--border,#e5e5e5)", paddingTop: 14 }}>
-            <h4 style={{ margin: "0 0 6px 0" }}>{t("importPastRosterTitle")}</h4>
-            <p className="muted">{t("importPastRosterDesc")}</p>
-            <div className="pill-row"><button className="btn-secondary" onClick={downloadPastSessionTemplate}>{t("downloadPastTemplate")}</button></div>
-            <div className="grid grid-3">
-              <div className="field">
-                <label htmlFor="past-roster-session">{t("selectSession")}</label>
-                <select id="past-roster-session" value={pastSessionId} onChange={(e) => setPastSessionId(e.target.value)}>
+          <div className="mt-4 border-t border-border pt-4">
+            <h4 className="m-0 mb-1.5 text-sm font-bold text-card-foreground">{t("importPastRosterTitle")}</h4>
+            <p className="text-sm text-muted">{t("importPastRosterDesc")}</p>
+            <div className="mt-2"><Button variant="secondary" size="sm" className="gap-2" onClick={downloadPastSessionTemplate}><Download className="h-4 w-4" />{t("downloadPastTemplate")}</Button></div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="past-roster-session" className="mb-1 block text-xs font-semibold text-card-foreground">{t("selectSession")}</label>
+                <select id="past-roster-session" value={pastSessionId} onChange={(e) => setPastSessionId(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
                   <option value=""></option>
                   {history.map((s) => <option key={s.id} value={s.id}>{fmtDateLong(s.startDate)} – {fmtDateLong(s.endDate)}</option>)}
                 </select>
               </div>
-              <div className="field"><label htmlFor="past-roster-upload-input">{t("uploadStudents")}</label><input ref={pastFileRef} type="file" id="past-roster-upload-input" accept=".xlsx,.xls,.csv" /></div>
-              <div className="field" style={{ display: "flex", alignItems: "flex-end" }}>
-                <button className="btn-primary btn-block" onClick={handleImportPastClick}>{t("importBtn")}</button>
+              <div>
+                <label htmlFor="past-roster-upload-input" className="mb-1 block text-xs font-semibold text-card-foreground">{t("uploadStudents")}</label>
+                <input ref={pastFileRef} type="file" id="past-roster-upload-input" accept=".xlsx,.xls,.csv" className="min-h-0 block w-full border-0 bg-transparent p-0 text-sm text-card-foreground file:mr-3 file:h-11 file:min-h-0 file:rounded-lg file:border-0 file:bg-primary-tint file:px-3 file:text-sm file:font-semibold file:text-primary" />
               </div>
+              <div className="flex items-end"><Button className="w-full" onClick={handleImportPastClick}>{t("importBtn")}</Button></div>
             </div>
           </div>
-        ) : <p className="muted" style={{ marginTop: 14 }}>{t("addPastSessionFirst")}</p>}
-      </div>
-    </details>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
 export default function Students() {
-  const { data, setData, requestConfirm, showToast } = useApp();
+  const { data, lang, requestConfirm, setData, showToast } = useApp();
   const t = useT();
   const location = useLocation();
   // Sidebar's "search a student" shortcut (Shell.jsx) hands its query here
@@ -391,7 +835,7 @@ export default function Students() {
   const [search, setSearch] = useState(() => (location.state && location.state.presetSearch) || "");
   const [sortMode, setSortMode] = useState("name");
   const [filterMode, setFilterMode] = useState("all");
-  const [opens, setOpens] = useState({ enroll: false, upload: false, sessions: false });
+  const enrollSectionRef = useRef(null);
 
   useEffect(() => {
     if (location.state && typeof location.state.presetSearch === "string") {
@@ -414,43 +858,75 @@ export default function Students() {
     showToast(t("newSessionStarted"));
   }
 
+  function scrollToEnroll() {
+    enrollSectionRef.current && enrollSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
+  const totalEnrolled = totalEnrolledCount(data.students);
+  const seatsAvailable = Math.max(0, activeClasses.length * CLASS_CAPACITY - totalEnrolled);
+  const assessed = (data.students || []).filter((s) => s.active !== false).map(studentAssessmentStatus).filter((a) => a.status !== "noPretest");
+  const completedCount = assessed.filter((a) => a.outcome === "completed").length;
+  const completionRate = assessed.length ? Math.round((completedCount / assessed.length) * 100) : 0;
+
   return (
     <>
-      <h1>{t("studentsPageTitle")}</h1>
-      <div className="card flex-between">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <strong>{t("currentSession")}:</strong> {fmtDateLong(session.startDate)} – {fmtDateLong(session.endDate)}
-          <div className="muted" style={{ marginTop: 4 }}>{t("totalEnrolledLabel")}: {totalEnrolledCount(data.students)}</div>
+          <h1 className="mb-1">{t("studentsPageTitle")}</h1>
+          <p className="m-0 text-sm text-muted">{t("studentsPageSubtitle")}</p>
         </div>
-        <button className="btn-secondary" onClick={startNewSession}>{t("startNewSession")}</button>
+        <Button size="lg" className="gap-2" onClick={startNewSession}>
+          <CalendarPlus className="h-4 w-4" /> {t("startNewSession")}
+        </Button>
       </div>
 
-      <div className="card">
-        <div className="student-search-bar">
-          <input type="text" placeholder={t("studentSearchPlaceholder")} aria-label={t("studentSearchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <p className="muted no-print" style={{ margin: "0 0 10px 0" }}>{t("dragHint")}</p>
-        <div className="board-toolbar no-print">
-          <span className="board-toolbar-label">{t("filterLabel")}</span>
-          <select aria-label={t("filterLabel")} value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
-            <option value="all">{t("filterAllLabel")}</option>
-            <option value="missingContact">{t("filterMissingContactLabel")}</option>
-          </select>
-          <span className="board-toolbar-label">{t("sortByLabel")}</span>
-          <select aria-label={t("sortByLabel")} value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
-            <option value="name">{t("sortByNameLabel")}</option>
-            <option value="id">{t("sortByIdLabel")}</option>
-            <option value="recent">{t("sortByRecentLabel")}</option>
-          </select>
-          <span className="board-toolbar-spacer" />
-          <Link to="/manage" className="btn-secondary btn-sm">{t("addClassroomShortcutBtn")}</Link>
-        </div>
-        <StudentsBoard term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} />
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiStat icon={CalendarRange} tint="bg-primary-tint text-primary" label={t("currentSession")} value={fmtDateLong(session.startDate, lang) + " – " + fmtDateLong(session.endDate, lang)} index={0} />
+        <KpiStat icon={Users} tint="bg-tint-success text-success" label={t("statTotalEnrolledLabel")} value={totalEnrolled} sublabel={t("navStudents")} index={1} big />
+        <KpiStat icon={CheckCircle2} tint="bg-primary-tint text-primary" label={t("statSeatsAvailableLabel")} value={seatsAvailable} sublabel={t("statAcrossClassroomsLabel")} index={2} big />
+        <KpiStat icon={TrendingUp} tint="bg-tint-warn text-warn" label={t("statCompletionRateLabel")} value={completionRate + "%"} sublabel={t("statThisSessionLabel")} index={3} big />
       </div>
 
-      <EnrollStudentDetails open={opens.enroll} onToggle={(v) => setOpens((prev) => Object.assign({}, prev, { enroll: v }))} />
-      <UploadStudentsDetails open={opens.upload} onToggle={(v) => setOpens((prev) => Object.assign({}, prev, { upload: v }))} />
-      <SessionHistoryDetails open={opens.sessions} onToggle={(v) => setOpens((prev) => Object.assign({}, prev, { sessions: v }))} />
+      <Card className="mb-5">
+        <CardContent className="p-5">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("studentSearchPlaceholder")}
+            aria-label={t("studentSearchPlaceholder")}
+            className="h-12 min-h-0 w-full rounded-xl border border-border bg-background px-4 text-base text-card-foreground focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15"
+          />
+          <p className="no-print mt-3 text-sm text-muted">{t("dragHint")}</p>
+          <div className="no-print mt-3 flex flex-wrap items-stretch gap-2.5">
+            <FilterFieldSelect label={t("filterLabel")} value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
+              <option value="all">{t("filterAllLabel")}</option>
+              <option value="missingContact">{t("filterMissingContactLabel")}</option>
+            </FilterFieldSelect>
+            <FilterFieldSelect label={t("sortByLabel")} value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
+              <option value="name">{t("sortByNameLabel")}</option>
+              <option value="id">{t("sortByIdLabel")}</option>
+              <option value="recent">{t("sortByRecentLabel")}</option>
+            </FilterFieldSelect>
+            <div className="ml-auto flex items-center">
+              <Link to="/manage"><Button variant="secondary">{t("addClassroomShortcutBtn")}</Button></Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <WaitingListPanel term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} />
+
+      <StudentsBoard term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} />
+
+      <div ref={enrollSectionRef} className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <EnrollStudentPanel />
+        <div className="flex flex-col gap-4">
+          <UploadStudentsPanel />
+          <PastSessionsPanel />
+        </div>
+      </div>
     </>
   );
 }
