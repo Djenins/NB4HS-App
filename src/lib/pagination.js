@@ -3,11 +3,12 @@
 // (components/Pagination.jsx) instead of an HTML-string builder.
 import { PAGE_SIZE } from "./constants.js";
 
-export function paginateList(list, page) {
-  var totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+export function paginateList(list, page, pageSize) {
+  var size = pageSize || PAGE_SIZE;
+  var totalPages = Math.max(1, Math.ceil(list.length / size));
   var safePage = Math.min(Math.max(1, page || 1), totalPages);
-  var start = (safePage - 1) * PAGE_SIZE;
-  return { items: list.slice(start, start + PAGE_SIZE), page: safePage, totalPages: totalPages, total: list.length };
+  var start = (safePage - 1) * size;
+  return { items: list.slice(start, start + size), page: safePage, totalPages: totalPages, total: list.length, pageSize: size };
 }
 
 // Builds the list of page-number buttons (plus "…" gap markers) for

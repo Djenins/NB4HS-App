@@ -19,7 +19,7 @@
 //     FormField.jsx's type="date" case (ApptRequest.jsx).
 import { useEffect, useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { addDays, buildMonthGrid, fmtDateLong, monthYearLabel, todayStr, weekdayShortLabels } from "../lib/utils.js";
+import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
 
 export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder }) {
@@ -68,6 +68,25 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
 
   const cells = buildMonthGrid(viewYear, viewMonth);
   const weekdays = weekdayShortLabels(lang);
+  const monthNames = monthNamesLong(lang);
+  const currentDate = current ? new Date(current + "T00:00:00") : null;
+  const selectedDay = currentDate && currentDate.getFullYear() === viewYear && currentDate.getMonth() === viewMonth ? currentDate.getDate() : "";
+  const dayCount = daysInMonth(viewYear, viewMonth);
+  const dayOptions = Array.from({ length: dayCount }, (_, i) => i + 1);
+  const thisRealYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 111 }, (_, i) => thisRealYear + 10 - i);
+
+  function setYear(y) {
+    const d = new Date(y, viewMonth, Math.min(viewD.getDate(), daysInMonth(y, viewMonth)));
+    setViewDate(d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()));
+  }
+  function setMonth(m) {
+    const d = new Date(viewYear, m, Math.min(viewD.getDate(), daysInMonth(viewYear, m)));
+    setViewDate(d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()));
+  }
+  function setDay(day) {
+    commit(viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(day));
+  }
 
   return (
     <div className={"date-picker" + (invalid ? " field-invalid" : "")} ref={containerRef}>
@@ -94,10 +113,38 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
             <button type="button" className="btn-icon" aria-label={t("prevPage")} onClick={() => shiftMonth(-1)}>
               <Icon name="chevronrt" className="icon-flip-x" />
             </button>
-            <span className="date-picker-month-label">{monthYearLabel(viewYear, viewMonth, lang)}</span>
+            <select
+              className="date-picker-select"
+              aria-label={t("monthLabel")}
+              value={viewMonth}
+              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+            >
+              {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <select
+              className="date-picker-select"
+              aria-label={t("yearLabel")}
+              value={viewYear}
+              onChange={(e) => setYear(parseInt(e.target.value, 10))}
+            >
+              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
             <button type="button" className="btn-icon" aria-label={t("nextPage")} onClick={() => shiftMonth(1)}>
               <Icon name="chevronrt" />
             </button>
+          </div>
+          <div className="date-picker-day-select">
+            <label>
+              {t("dayLabel")}
+              <select
+                aria-label={t("dayLabel")}
+                value={selectedDay}
+                onChange={(e) => setDay(parseInt(e.target.value, 10))}
+              >
+                <option value="" disabled>{t("pleaseSelect")}</option>
+                {dayOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </label>
           </div>
           <div className="date-picker-weekdays">
             {weekdays.map((w, i) => <span key={i}>{w}</span>)}

@@ -23,11 +23,11 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { serviceDisplay } from "../lib/students.js";
 import { computeDailyTrend, computeStats, exportCSV, exportExcel, rangeForPreset } from "../lib/reports_data.js";
 import {
-  dateStrFromDate, fmtDuration, fmtTime, fullServiceList, fullStaffList,
+  dateStrFromDate, fmtDuration, fmtTime, formatPhone, fullServiceList, fullStaffList,
   initialsOf, labelFor, minutesBetween, todayStr
 } from "../lib/utils.js";
-import { paginationPageList } from "../lib/pagination.js";
 import DatePicker from "../components/DatePicker.jsx";
+import Pagination from "../components/Pagination.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
@@ -35,8 +35,6 @@ import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "../components/ui/dropdown-menu.jsx";
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 function Sparkline({ data, color }) {
   if (!data.length) return null;
@@ -77,24 +75,6 @@ function StatusBadge({ checkedOut, t }) {
   return checkedOut
     ? <Badge className="gap-1.5 bg-tint-danger text-accent"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{t("checkedOut")}</Badge>
     : <Badge className="gap-1.5 bg-tint-success text-success"><span className="h-1.5 w-1.5 rounded-full bg-success" />{t("inBuilding")}</Badge>;
-}
-
-function FilterSelect({ value, onChange, children, className }) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={onChange}
-        className={
-          "min-h-0 appearance-none bg-none rounded-full border border-border bg-background py-2 pl-3.5 pr-9 text-sm font-semibold text-card-foreground " +
-          "transition-colors hover:border-[#b7c0d1] focus:outline-none focus:ring-2 focus:ring-primary/30 " + (className || "")
-        }
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-    </div>
-  );
 }
 
 function FilterFieldBox({ label, children, className }) {
@@ -229,7 +209,6 @@ export default function Search() {
   const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
   const rows = list.slice((safePage - 1) * pageSize, (safePage - 1) * pageSize + pageSize);
-  const pageList = paginationPageList(safePage, totalPages);
 
   const allOnPageSelected = rows.length > 0 && rows.every((v) => selected.has(v.id));
   function toggleAllOnPage() {
@@ -258,7 +237,7 @@ export default function Search() {
 
   function handleCopyPhone(phone) {
     if (navigator.clipboard && phone) {
-      navigator.clipboard.writeText(phone).then(() => showToast(t("phoneCopied")));
+      navigator.clipboard.writeText(formatPhone(phone)).then(() => showToast(t("phoneCopied")));
     }
   }
   function handlePrint(v) {
@@ -442,7 +421,7 @@ export default function Search() {
                               <Avatar className="h-9 w-9"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(v)}</AvatarFallback></Avatar>
                               <div className="min-w-0">
                                 <div className="truncate font-semibold text-card-foreground">{name}</div>
-                                <div className="truncate text-xs text-muted">{v.phone}</div>
+                                <div className="truncate text-xs text-muted">{formatPhone(v.phone)}</div>
                               </div>
                             </div>
                           </td>
@@ -498,7 +477,7 @@ export default function Search() {
                           <Avatar className="h-10 w-10"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(v)}</AvatarFallback></Avatar>
                           <div>
                             <div className="font-semibold text-card-foreground">{name}</div>
-                            <div className="text-xs text-muted">{v.phone}</div>
+                            <div className="text-xs text-muted">{formatPhone(v.phone)}</div>
                           </div>
                         </div>
                         <StatusBadge checkedOut={!!v.timeOut} t={t} />
@@ -520,41 +499,11 @@ export default function Search() {
             </>
           )}
 
-          <div className="mt-4 grid grid-cols-1 items-center gap-3 sm:grid-cols-3">
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <span>{t("rowsPerPageLabel")}</span>
-              <FilterSelect value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="py-1.5 pl-3 pr-8 text-xs">
-                {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-              </FilterSelect>
-            </div>
-            {totalPages > 1 ? (
-              <div className="flex items-center justify-center gap-1.5 sm:col-start-2">
-                <button
-                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold text-card-foreground disabled:pointer-events-none disabled:opacity-40 hover:bg-background"
-                  disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}
-                >
-                  <ChevronDown className="h-3.5 w-3.5 rotate-90" /> {t("prevPage")}
-                </button>
-                {pageList.map((p, i) => p === "…" ? (
-                  <span key={"e" + i} className="px-1 text-sm text-muted">…</span>
-                ) : (
-                  <button
-                    key={p}
-                    className={"flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-sm font-semibold " + (p === safePage ? "border-primary bg-primary text-primary-foreground" : "border-border text-card-foreground hover:bg-background")}
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold text-card-foreground disabled:pointer-events-none disabled:opacity-40 hover:bg-background"
-                  disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}
-                >
-                  {t("nextPage")} <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <Pagination
+            page={safePage} totalPages={totalPages} total={list.length} pageSize={pageSize}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelVisitors")}
+            onChange={(delta) => setPage(safePage + delta)}
+          />
         </CardContent>
       </Card>
 
@@ -569,7 +518,7 @@ export default function Search() {
               <Avatar className="h-11 w-11"><AvatarFallback>{initialsOf(detailVisit)}</AvatarFallback></Avatar>
               <div>
                 <div className="font-bold text-card-foreground">{detailVisit.firstName} {detailVisit.lastName}</div>
-                <div className="text-sm text-muted">{detailVisit.phone}</div>
+                <div className="text-sm text-muted">{formatPhone(detailVisit.phone)}</div>
               </div>
               <div className="ml-auto"><StatusBadge checkedOut={!!detailVisit.timeOut} t={t} /></div>
             </div>

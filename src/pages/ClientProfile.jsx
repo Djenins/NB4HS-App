@@ -1,0 +1,564 @@
+// ClientProfile.jsx -- the unified "one person, one record" Client Profile
+// page. Reads/writes the master data.clients record + data.programEnrollments
+// (see src/lib/masterClients.js); Case Management/Job Developer program
+// detail stays on data.caseClients/data.jobClients exactly as before,
+// resolved here for display via resolveEnrollmentsForClient(). Only
+// Overview and Programs tabs are wired up this phase -- the rest of the
+// spec's tabs (Appointments/Services/Notes/Documents/Communications/
+// Activity History) are visible but intentionally show a "not yet
+// available" placeholder rather than fabricated data.
+import { useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Briefcase, Download, GraduationCap, Paperclip, ShoppingBasket, Users } from "lucide-react";
+import { useApp, useT } from "../context/AppContext.jsx";
+import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
+import { immigrationStatusLabel } from "../lib/clients.js";
+import { IMMIGRATION_STATUSES } from "../lib/constants.js";
+import {
+  buildClientDocument, buildClientNote, buildCommunication, buildEnrollment, findClientByNbId, PROGRAM_DATA_KEY,
+  resolveAppointmentsForClient, resolveCommunicationsForClient, resolveDocumentsForClient, resolveEnrollmentsForClient, resolveNotesForClient
+} from "../lib/masterClients.js";
+import { fmtDateLong, genStudentId, uid } from "../lib/utils.js";
+import ClientHeader from "../components/ClientHeader.jsx";
+import DatePicker from "../components/DatePicker.jsx";
+import { Badge } from "../components/ui/badge.jsx";
+import { Button } from "../components/ui/button.jsx";
+import { Card, CardContent } from "../components/ui/card.jsx";
+
+const TABS = [
+  "clientTabOverview", "clientTabPrograms", "clientTabAppointments", "clientTabServices",
+  "clientTabNotes", "clientTabDocuments", "clientTabCommunications", "clientTabActivity"
+];
+const TAB_KEYS = ["overview", "programs", "appointments", "services", "notes", "documents", "communications", "activity"];
+const PROGRAM_META = {
+  case: { labelKey: "navCaseManagement", icon: Users, path: "/casemanagement" },
+  job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/jobdeveloper" },
+  student: { labelKey: "navStudents", icon: GraduationCap, path: "/students" },
+  food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/fooddistribution" }
+};
+
+function FieldRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
+      <span className="text-muted">{label}</span>
+      <span className="font-semibold text-card-foreground">{value || "—"}</span>
+    </div>
+  );
+}
+
+function TextField({ id, label, value, onChange, placeholder, type }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
+      <input
+        id={id} type={type || "text"} value={value} onChange={onChange} placeholder={placeholder}
+        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+      />
+    </div>
+  );
+}
+
+function EditProfileModal({ client, onSave, onCancel }) {
+  const t = useT();
+  const [fields, setFields] = useState({
+    firstName: client.firstName || "", lastName: client.lastName || "", phone: client.phone || "", email: client.email || "",
+    dob: client.dob || "", street: client.street || "", city: client.city || "", zip: client.zip || "", intakeDate: client.intakeDate || ""
+  });
+  function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+        <p className="mb-4 text-base font-bold text-card-foreground">{t("editProfileBtn")}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <TextField id="edit-first-name" label={t("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+          <TextField id="edit-last-name" label={t("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+          <TextField id="edit-phone" label={t("phone")} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+          <TextField id="edit-email" label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+          <div>
+            <label htmlFor="edit-dob" className="mb-1 block text-xs font-semibold text-card-foreground">{t("dobLabel")}</label>
+            <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
+          </div>
+          <TextField id="edit-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+          <TextField id="edit-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+          <TextField id="edit-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
+          <Button type="button" variant="secondary" onClick={onCancel}>{t("cancelLabel")}</Button>
+          <Button onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddToProgramModal({ existingTypes, onEnroll, onCancel }) {
+  const t = useT();
+  const choices = Object.keys(PROGRAM_META).filter((k) => existingTypes.indexOf(k) === -1);
+  const [programType, setProgramType] = useState(choices[0] || "");
+  const [immigrationStatus, setImmigrationStatus] = useState("");
+  const [workPermit, setWorkPermit] = useState("no");
+
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+        <p className="mb-4 text-base font-bold text-card-foreground">{t("addToProgramBtn")}</p>
+        {choices.length === 0 ? (
+          <p className="text-sm text-muted">{t("alreadyEnrolledAllPrograms")}</p>
+        ) : (
+          <>
+            <div className="mb-4">
+              <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("clientTabPrograms")}</label>
+              <select
+                value={programType}
+                onChange={(e) => setProgramType(e.target.value)}
+                className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+              >
+                {choices.map((k) => <option key={k} value={k}>{t(PROGRAM_META[k].labelKey)}</option>)}
+              </select>
+            </div>
+            {programType === "case" && (
+              <div className="mb-4">
+                <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("immigrationStatusLabel")}</label>
+                <select
+                  value={immigrationStatus}
+                  onChange={(e) => setImmigrationStatus(e.target.value)}
+                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                >
+                  <option value="">{t("pleaseSelect")}</option>
+                  {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key)}</option>)}
+                </select>
+              </div>
+            )}
+            {programType === "job" && (
+              <div className="mb-4">
+                <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("workPermitLabel")}</label>
+                <select
+                  value={workPermit}
+                  onChange={(e) => setWorkPermit(e.target.value)}
+                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                >
+                  <option value="no">{t("noOption")}</option>
+                  <option value="yes">{t("yesOption")}</option>
+                </select>
+              </div>
+            )}
+          </>
+        )}
+        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
+          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
+          {choices.length > 0 && (
+            <Button onClick={() => onEnroll(programType, { immigrationStatus, workPermit: workPermit === "yes" })}>{t("confirmLabel")}</Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddNoteModal({ onSave, onCancel }) {
+  const t = useT();
+  const [content, setContent] = useState("");
+  const [type, setType] = useState("general");
+  const [visibility, setVisibility] = useState("all");
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+        <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
+          <textarea
+            value={content} onChange={(e) => setContent(e.target.value)} rows={4}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+          />
+        </div>
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteTypeLabel")}</label>
+            <select value={type} onChange={(e) => setType(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+              <option value="general">{t("noteTypeGeneral")}</option>
+              <option value="followup">{t("noteTypeFollowUp")}</option>
+              <option value="incident">{t("noteTypeIncident")}</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteVisibilityLabel")}</label>
+            <select value={visibility} onChange={(e) => setVisibility(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+              <option value="all">{t("visibilityAll")}</option>
+              <option value="department">{t("visibilityDepartment")}</option>
+              <option value="private">{t("visibilityPrivate")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
+          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
+          <Button disabled={!content.trim()} onClick={() => onSave({ content, type, visibility })}>{t("saveLabel")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UploadDocumentModal({ onSave, onCancel }) {
+  const t = useT();
+  const [category, setCategory] = useState("other");
+  const [fileName, setFileName] = useState("");
+  const fileRef = useRef(null);
+
+  function submit() {
+    const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => onSave({ category: category, fileName: file.name, dataUri: e.target.result });
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+        <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("documentCategoryLabel")}</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+            <option value="identification">{t("documentCategoryIdentification")}</option>
+            <option value="resume">{t("documentCategoryResume")}</option>
+            <option value="immigration">{t("documentCategoryImmigration")}</option>
+            <option value="other">{t("documentCategoryOther")}</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("documentFileLabel")}</label>
+          <input
+            ref={fileRef} type="file" onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
+            className="block w-full text-sm text-card-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary"
+          />
+        </div>
+        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
+          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
+          <Button disabled={!fileName} onClick={submit}>{t("saveLabel")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogCommunicationModal({ onSave, onCancel }) {
+  const t = useT();
+  const [method, setMethod] = useState("phone");
+  const [direction, setDirection] = useState("outbound");
+  const [summary, setSummary] = useState("");
+  const [followUpRequired, setFollowUpRequired] = useState(false);
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+        <p className="mb-4 text-base font-bold text-card-foreground">{t("logCommunicationBtn")}</p>
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationMethodLabel")}</label>
+            <select value={method} onChange={(e) => setMethod(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+              <option value="phone">{t("methodPhone")}</option>
+              <option value="email">{t("methodEmail")}</option>
+              <option value="sms">{t("methodSms")}</option>
+              <option value="inperson">{t("methodInPerson")}</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationDirectionLabel")}</label>
+            <select value={direction} onChange={(e) => setDirection(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+              <option value="outbound">{t("directionOutbound")}</option>
+              <option value="inbound">{t("directionInbound")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationSummaryLabel")}</label>
+          <textarea
+            value={summary} onChange={(e) => setSummary(e.target.value)} rows={3}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+          />
+        </div>
+        <label className="mb-3 flex items-center gap-2 text-sm font-medium text-card-foreground">
+          <input type="checkbox" checked={followUpRequired} onChange={(e) => setFollowUpRequired(e.target.checked)} className="h-4 w-4" />
+          {t("followUpRequiredLabel")}
+        </label>
+        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
+          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
+          <Button disabled={!summary.trim()} onClick={() => onSave({ method, direction, summary, followUpRequired })}>{t("saveLabel")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppointmentsTab({ appointments, lang }) {
+  const t = useT();
+  if (!appointments.length) return <p className="py-8 text-center text-sm text-muted">{t("noAppointmentsYet")}</p>;
+  return (
+    <div className="space-y-2">
+      {appointments.map((a) => (
+        <Card key={a.id}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
+          <div>
+            <div className="text-sm font-bold text-card-foreground">{fmtDateLong(a.date)} {a.time ? "· " + a.time : ""}</div>
+            <div className="mt-0.5 text-sm text-muted">{t("apptWithLabel")}: {meetingWithLabel(a.meetingWith, lang)}{a.reason ? " — " + a.reason : ""}</div>
+          </div>
+          <Badge variant={a.status === "cancelled" ? "neutral" : a.status === "completed" ? "success" : "default"}>{apptStatusLabel(a.status, lang)}</Badge>
+        </CardContent></Card>
+      ))}
+    </div>
+  );
+}
+
+const NOTE_TYPE_KEY = { general: "noteTypeGeneral", followup: "noteTypeFollowUp", incident: "noteTypeIncident" };
+const DOCUMENT_CATEGORY_KEY = { identification: "documentCategoryIdentification", resume: "documentCategoryResume", immigration: "documentCategoryImmigration", other: "documentCategoryOther" };
+const COMM_METHOD_KEY = { phone: "methodPhone", email: "methodEmail", sms: "methodSms", inperson: "methodInPerson" };
+const COMM_DIRECTION_KEY = { outbound: "directionOutbound", inbound: "directionInbound" };
+
+function NotesTab({ notes }) {
+  const t = useT();
+  if (!notes.length) return <p className="py-8 text-center text-sm text-muted">{t("noNotesYet")}</p>;
+  return (
+    <div className="space-y-2">
+      {notes.map((n) => (
+        <Card key={n.id}><CardContent className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-bold text-card-foreground">{n.staffName || "—"} · {fmtDateLong(n.date)}</span>
+            <Badge variant="neutral">{t(NOTE_TYPE_KEY[n.type] || "noteTypeGeneral")}</Badge>
+          </div>
+          <p className="mt-2 text-sm text-card-foreground">{n.content}</p>
+        </CardContent></Card>
+      ))}
+    </div>
+  );
+}
+
+function DocumentsTab({ documents }) {
+  const t = useT();
+  if (!documents.length) return <p className="py-8 text-center text-sm text-muted">{t("noDocumentsYet")}</p>;
+  return (
+    <div className="space-y-2">
+      {documents.map((d) => (
+        <Card key={d.id}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
+          <div className="flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-bold text-card-foreground">{d.fileName}</div>
+              <div className="text-xs text-muted">{t(DOCUMENT_CATEGORY_KEY[d.category] || "documentCategoryOther")} · {t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
+            </div>
+          </div>
+          <a href={d.dataUri} download={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+            <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
+          </a>
+        </CardContent></Card>
+      ))}
+    </div>
+  );
+}
+
+function CommunicationsTab({ communications, onLog }) {
+  const t = useT();
+  return (
+    <div>
+      <div className="mb-3 flex justify-end">
+        <Button size="sm" onClick={onLog}>{t("logCommunicationBtn")}</Button>
+      </div>
+      {!communications.length ? (
+        <p className="py-8 text-center text-sm text-muted">{t("noCommunicationsYet")}</p>
+      ) : (
+        <div className="space-y-2">
+          {communications.map((c) => (
+            <Card key={c.id}><CardContent className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-bold text-card-foreground">{t(COMM_METHOD_KEY[c.method] || "methodPhone")} · {fmtDateLong(c.date)}</span>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="neutral">{t("communicationDirectionLabel")}: {t(COMM_DIRECTION_KEY[c.direction] || "directionOutbound")}</Badge>
+                  {c.followUpRequired && <Badge variant="warn">{t("followUpRequiredLabel")}</Badge>}
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-card-foreground">{c.summary}</p>
+            </CardContent></Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OverviewTab({ client }) {
+  const t = useT();
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Card><CardContent className="p-4">
+        <FieldRow label={t("dobLabel")} value={fmtDateLong(client.dob)} />
+        <FieldRow label={t("phone")} value={client.phone} />
+        <FieldRow label={t("email")} value={client.email} />
+        <FieldRow label={t("address")} value={[client.street, client.city, client.zip].filter(Boolean).join(", ")} />
+        <FieldRow label={t("intakeDateLabel")} value={fmtDateLong(client.intakeDate)} />
+      </CardContent></Card>
+    </div>
+  );
+}
+
+function ProgramsTab({ enrollments, lang }) {
+  const t = useT();
+  const navigate = useNavigate();
+  if (!enrollments.length) return <p className="py-8 text-center text-sm text-muted">{t("noProgramsYet")}</p>;
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {enrollments.map(({ enrollment, programType, record }) => {
+        const meta = PROGRAM_META[programType];
+        const Icon = meta.icon;
+        return (
+          <Card key={enrollment.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-bold text-card-foreground">
+                  <Icon className="h-4 w-4 text-primary" /> {t(meta.labelKey)}
+                </span>
+                <Badge variant={enrollment.status === "active" ? "success" : "neutral"}>{enrollment.status}</Badge>
+              </div>
+              <FieldRow label={t("intakeDateLabel")} value={fmtDateLong(enrollment.enrolledAt)} />
+              {programType === "case" && <FieldRow label={t("immigrationStatusLabel")} value={immigrationStatusLabel(record.immigrationStatus, lang)} />}
+              {programType === "job" && <FieldRow label={t("workPermitLabel")} value={record.workPermit ? t("yesOption") : t("noOption")} />}
+              {programType === "student" && <FieldRow label={t("studentIdLabel")} value={record.studentId} />}
+              {programType === "food" && <FieldRow label={t("householdSizeLabel")} value={record.householdSize} />}
+              <Button size="sm" variant="secondary" className="mt-3" onClick={() => navigate(meta.path)}>{t("openProgramRecordBtn")}</Button>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function ClientProfile() {
+  const { nbId } = useParams();
+  const { data, lang, session, setData } = useApp();
+  const t = useT();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState("overview");
+  const [editing, setEditing] = useState(false);
+  const [addingToProgram, setAddingToProgram] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [loggingCommunication, setLoggingCommunication] = useState(false);
+
+  const client = findClientByNbId(nbId, data);
+
+  if (!client) {
+    return (
+      <Card><CardContent className="p-10 text-center text-sm text-muted">{t("clientNotFoundMessage")}</CardContent></Card>
+    );
+  }
+
+  const enrollments = resolveEnrollmentsForClient(nbId, data);
+  const name = (client.firstName + " " + client.lastName).trim();
+  const existingTypes = enrollments.map((e) => e.programType);
+  const appointments = resolveAppointmentsForClient(nbId, data);
+  const notes = resolveNotesForClient(nbId, data);
+  const documents = resolveDocumentsForClient(nbId, data);
+  const communications = resolveCommunicationsForClient(nbId, data);
+  const schedulingProgram = enrollments.find((e) => e.programType === "case" || e.programType === "job");
+
+  function saveProfile(fields) {
+    setData((prev) => Object.assign({}, prev, {
+      clients: (prev.clients || []).map((c) => (c.id === client.id ? Object.assign({}, c, fields, { updatedAt: new Date().toISOString() }) : c))
+    }));
+    setEditing(false);
+  }
+
+  function toggleStatus() {
+    setData((prev) => Object.assign({}, prev, {
+      clients: (prev.clients || []).map((c) => (c.id === client.id ? Object.assign({}, c, { status: c.status === "inactive" ? "active" : "inactive" }) : c))
+    }));
+  }
+
+  function enrollInProgram(programType, extra) {
+    // Builds the minimal program row the same shape each program's own
+    // constructor produces (clients.js's buildClient() for case/job/food,
+    // students.js's enrollStudent() shape for student), carrying over the
+    // master record's shared fields, then links it back to this master
+    // client via an enrollment -- same shape attachClientToProgram() uses,
+    // just with the master client already known (this page, not an
+    // add-client form).
+    setData((prev) => {
+      const base = { firstName: client.firstName, lastName: client.lastName, phone: client.phone, email: client.email, intakeDate: client.intakeDate, street: client.street, city: client.city, zip: client.zip, state: "RI" };
+      const dataKey = PROGRAM_DATA_KEY[programType];
+      let extraFields;
+      if (programType === "case") extraFields = { immigrationStatus: extra.immigrationStatus || "", dob: client.dob || "", services: [], notes: [] };
+      else if (programType === "job") extraFields = { workPermit: !!extra.workPermit, workPermitExpiration: "", hasResume: false, resumeDataUri: "", resumeFileName: "" };
+      else if (programType === "student") extraFields = { studentId: genStudentId(prev.nextStudentNumber || 1), classKey: null, active: true };
+      else extraFields = { householdSize: "", distributions: [] };
+      const row = Object.assign({}, base, { id: uid(), nbId: client.nbId }, extraFields);
+      const enrollment = buildEnrollment(client.id, programType, row.id, {});
+      const patch = { programEnrollments: (prev.programEnrollments || []).concat([enrollment]) };
+      patch[dataKey] = (prev[dataKey] || []).concat([row]);
+      if (programType === "student") patch.nextStudentNumber = (prev.nextStudentNumber || 1) + 1;
+      return Object.assign({}, prev, patch);
+    });
+    setAddingToProgram(false);
+  }
+
+  function addNote(fields) {
+    setData((prev) => Object.assign({}, prev, { clientNotes: (prev.clientNotes || []).concat([buildClientNote(client.id, fields, session)]) }));
+    setAddingNote(false);
+  }
+
+  function uploadDocument(fields) {
+    setData((prev) => Object.assign({}, prev, { clientDocuments: (prev.clientDocuments || []).concat([buildClientDocument(client.id, fields, session)]) }));
+    setUploadingDocument(false);
+  }
+
+  function logCommunication(fields) {
+    setData((prev) => Object.assign({}, prev, { communications: (prev.communications || []).concat([buildCommunication(client.id, fields, session)]) }));
+    setLoggingCommunication(false);
+  }
+
+  return (
+    <>
+      <ClientHeader
+        client={client} name={name}
+        onEditProfile={() => setEditing(true)}
+        onAddToProgram={() => setAddingToProgram(true)}
+        onScheduleAppointment={schedulingProgram ? () => navigate(PROGRAM_META[schedulingProgram.programType].path) : undefined}
+        onAddNote={() => setAddingNote(true)}
+        onUploadDocument={() => setUploadingDocument(true)}
+        onToggleStatus={toggleStatus}
+      />
+
+      <Card className="mt-5">
+        <div className="flex flex-wrap gap-1 overflow-x-auto border-b border-border px-3 pt-2">
+          {TAB_KEYS.map((key, i) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={
+                "shrink-0 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors " +
+                (tab === key ? "border-b-2 border-primary text-primary" : "text-muted hover:text-card-foreground")
+              }
+            >
+              {t(TABS[i])}
+            </button>
+          ))}
+        </div>
+        <CardContent className="p-5">
+          {tab === "overview" && <OverviewTab client={client} />}
+          {tab === "programs" && <ProgramsTab enrollments={enrollments} lang={lang} />}
+          {tab === "appointments" && <AppointmentsTab appointments={appointments} lang={lang} />}
+          {tab === "notes" && <NotesTab notes={notes} />}
+          {tab === "documents" && <DocumentsTab documents={documents} />}
+          {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
+          {(tab === "services" || tab === "activity") && (
+            <p className="py-10 text-center text-sm text-muted">{t("clientTabComingSoon")}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {editing && <EditProfileModal client={client} onSave={saveProfile} onCancel={() => setEditing(false)} />}
+      {addingToProgram && <AddToProgramModal existingTypes={existingTypes} onEnroll={enrollInProgram} onCancel={() => setAddingToProgram(false)} />}
+      {addingNote && <AddNoteModal onSave={addNote} onCancel={() => setAddingNote(false)} />}
+      {uploadingDocument && <UploadDocumentModal onSave={uploadDocument} onCancel={() => setUploadingDocument(false)} />}
+      {loggingCommunication && <LogCommunicationModal onSave={logCommunication} onCancel={() => setLoggingCommunication(false)} />}
+    </>
+  );
+}

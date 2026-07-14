@@ -12,7 +12,7 @@
     --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
     --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
     --secondary-border:#CBD5E1;
-    --radius:16px;
+    --radius:18px;
     /* Subtle tints for icon badges / highlighted backgrounds -- same hues, low saturation */
     --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
     /* Neutral/semantic tints reused by badges, code, board columns, etc. so dark mode can re-theme them centrally.
@@ -23,7 +23,7 @@
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
     --radius-lg:20px;
     /* Elevation scale */
-    --shadow-sm:0 1px 3px rgba(20,30,50,.08); --shadow-md:0 3px 10px rgba(20,30,50,.1); --shadow-lg:0 8px 24px rgba(20,30,50,.14);
+    --shadow-sm:0 6px 20px rgba(15,23,42,.06); --shadow-md:0 3px 10px rgba(20,30,50,.1); --shadow-lg:0 8px 24px rgba(20,30,50,.14);
   }
   /* Dark theme: same brand hues, re-tuned for a dark surface. Primary/accent/
      gold are lightened so they stay readable on a dark background -- solid
@@ -487,14 +487,24 @@
   .date-picker-trigger:hover{background:var(--card); border-color:#c7cedb;}
   .date-picker.field-invalid .date-picker-trigger{border-color:var(--accent); background:var(--tint-danger);}
   .date-picker-panel{
-    position:absolute; top:calc(100% + 8px); left:0; z-index:60; width:300px; max-width:90vw;
+    position:absolute; top:calc(100% + 8px); left:0; z-index:60; width:320px; max-width:90vw;
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg);
     padding:16px; animation:modal-pop-in .14s ease-out;
   }
   .date-picker-quick{display:flex; gap:8px; margin-bottom:14px;}
   .date-picker-quick .pill{padding:6px 14px; font-size:.85rem;}
-  .date-picker-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .date-picker-nav{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:10px;}
   .date-picker-month-label{font-weight:700; font-size:.95rem;}
+  .date-picker-select{
+    flex:1; min-height:auto; height:34px; padding:2px 6px; font-size:.85rem; font-weight:700;
+    border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--text);
+  }
+  .date-picker-day-select{margin-bottom:10px;}
+  .date-picker-day-select label{display:flex; align-items:center; gap:8px; font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase;}
+  .date-picker-day-select select{
+    flex:1; min-height:auto; height:34px; padding:2px 8px; font-size:.85rem; font-weight:600; text-transform:none;
+    border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--text);
+  }
   .date-picker-weekdays, .date-picker-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center;}
   .date-picker-weekdays span{color:var(--muted); font-size:.72rem; font-weight:700; text-transform:uppercase; padding:4px 0;}
   .date-picker-day{

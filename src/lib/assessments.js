@@ -7,7 +7,6 @@
 // pattern as clients.js/appointments.js) since this is a distinct concern
 // from the roster/board logic in students.js.
 import { NRS_LEVELS } from "./constants.js";
-import { labelFor } from "./utils.js";
 
 export function isScoreEntered(v) {
   return v !== "" && v !== null && v !== undefined && !isNaN(Number(v));
@@ -19,11 +18,6 @@ export function nrsLevelForReading(score) {
   if (!isScoreEntered(score)) return null;
   var n = Number(score);
   return NRS_LEVELS.filter(function (l) { return n >= l.readingMin && n <= l.readingMax; })[0] || null;
-}
-
-export function nrsLevelLabel(level, lang) {
-  if (!level) return "";
-  return labelFor(NRS_LEVELS, level.key, lang);
 }
 
 // Full assessment picture for one student, based on the Reading STEPS

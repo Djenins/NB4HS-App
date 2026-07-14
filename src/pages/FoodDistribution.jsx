@@ -9,21 +9,27 @@
 // were added after the fact, mirroring Case Management's import and
 // Reports' CSV/Excel export + date-range picker respectively.
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Trash2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
   exportFoodDistributionCSV, exportFoodDistributionExcel, exportFoodRosterCSV, exportFoodRosterExcel
 } from "../lib/clients.js";
+import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
 import { paginateList } from "../lib/pagination.js";
 import { inRange, rangeForPreset } from "../lib/reports_data.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
-import { todayStr, uid } from "../lib/utils.js";
+import { formatPhone, todayStr, uid } from "../lib/utils.js";
+import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
+import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FoodClientCard from "../components/FoodClientCard.jsx";
 import Icon from "../components/Icon.jsx";
 import Pagination from "../components/Pagination.jsx";
 import StatCard from "../components/StatCard.jsx";
+import { Button } from "../components/ui/button.jsx";
 
 const HOUSEHOLD_SIZES = ["1", "2", "3", "4", "5", "6+"];
 
@@ -33,12 +39,23 @@ const EXPORT_PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const EXPORT_PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
 
 function AddHouseholdDetails({ open, onToggle }) {
-  const { setData, showToast } = useApp();
+  const { data, setData, showToast } = useApp();
   const t = useT();
+  const navigate = useNavigate();
   const [fields, setFields] = useState(EMPTY_NEW_CLIENT);
   const [errors, setErrors] = useState([]);
+  const [dupMatches, setDupMatches] = useState(null);
+  const [pendingClient, setPendingClient] = useState(null);
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  function finalizeCreate(client, matchedClient) {
+    setData((prev) => attachClientToProgram(prev, "food", client, matchedClient));
+    setFields(EMPTY_NEW_CLIENT);
+    setDupMatches(null);
+    setPendingClient(null);
+    showToast(t("foodClientAdded"));
+  }
 
   function submit() {
     const errs = ["firstName", "lastName"].filter((f) => !fields[f].trim());
@@ -51,9 +68,13 @@ function AddHouseholdDetails({ open, onToggle }) {
     setErrors([]);
     const client = buildClient("food", fields);
     if (!client) return;
-    setData((prev) => Object.assign({}, prev, { foodClients: (prev.foodClients || []).concat([client]) }));
-    setFields(EMPTY_NEW_CLIENT);
-    showToast(t("foodClientAdded"));
+    const matches = findPossibleDuplicates(fields, data.clients || []);
+    if (matches.length) {
+      setPendingClient(client);
+      setDupMatches(matches);
+      return;
+    }
+    finalizeCreate(client, null);
   }
 
   return (
@@ -93,7 +114,7 @@ function AddHouseholdDetails({ open, onToggle }) {
                 <label htmlFor="new-food-client-phone">{t("phone")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="phone" />
-                  <input type="tel" id="new-food-client-phone" className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+                  <input type="tel" id="new-food-client-phone" className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
                 </div>
               </div>
               <div className="field">
@@ -159,6 +180,15 @@ function AddHouseholdDetails({ open, onToggle }) {
           <button className="btn-primary" onClick={submit}><Icon name="plus" /> {t("addFoodClientBtn")}</button>
         </div>
       </div>
+      {dupMatches && (
+        <DuplicateClientWarning
+          matches={dupMatches}
+          onOpenExisting={(nbId) => { setDupMatches(null); setPendingClient(null); navigate("/clients/" + nbId); }}
+          onEnrollExisting={(matchedClient) => finalizeCreate(pendingClient, matchedClient)}
+          onCreateAnyway={() => finalizeCreate(pendingClient, null)}
+          onCancel={() => { setDupMatches(null); setPendingClient(null); }}
+        />
+      )}
     </details>
   );
 }
@@ -171,7 +201,17 @@ function ImportHouseholdsDetails({ open, onToggle }) {
   function importRows(rows) {
     const result = buildImportedFoodClients(rows);
     if (!result) { showToast(t("importError")); return; }
-    setData((prev) => Object.assign({}, prev, { foodClients: (prev.foodClients || []).concat(result.added) }));
+    // Bulk import has no UI for a per-row duplicate review -- silently
+    // attach each imported household to the best existing master-client
+    // match or create a new one, same as Case Management/Students imports.
+    setData((prev) => {
+      let next = prev;
+      result.added.forEach((row) => {
+        const matches = findPossibleDuplicates(row, next.clients || []);
+        next = attachClientToProgram(next, "food", row, matches.length ? matches[0].client : null);
+      });
+      return next;
+    });
     showToast(result.added.length + " " + t("householdsImported"));
   }
 
@@ -264,14 +304,33 @@ export default function FoodDistribution() {
   const [sizeFilter, setSizeFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [openId, setOpenId] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
 
   const foodClients = data.foodClients || [];
   const term = search.trim().toLowerCase();
   let matched = foodClients.filter((c) => clientMatchesSearch("food", c, term));
   if (sizeFilter) matched = matched.filter((c) => (c.householdSize || "") === sizeFilter);
   const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
-  const paged = paginateList(sorted, page);
+  const paged = paginateList(sorted, page, pageSize);
+  const allOnPageSelected = paged.items.length > 0 && paged.items.every((c) => selected.has(c.id));
+
+  function toggleSelect(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) paged.items.forEach((c) => next.delete(c.id));
+      else paged.items.forEach((c) => next.add(c.id));
+      return next;
+    });
+  }
 
   const monthRange = rangeForPreset("month");
   const dists = allDistributions(foodClients);
@@ -284,6 +343,13 @@ export default function FoodDistribution() {
     const ok = await requestConfirm(t("removeFoodClientConfirm"), { danger: true });
     if (!ok) return;
     setData((prev) => Object.assign({}, prev, { foodClients: (prev.foodClients || []).filter((c) => c.id !== id) }));
+  }
+
+  async function removeSelected() {
+    const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(selected.size)), { danger: true });
+    if (!ok) return;
+    setData((prev) => Object.assign({}, prev, { foodClients: (prev.foodClients || []).filter((c) => !selected.has(c.id)) }));
+    setSelected(new Set());
   }
 
   function addDistribution(client, entry) {
@@ -352,11 +418,16 @@ export default function FoodDistribution() {
           </div>
         </div>
 
+        <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
+          <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}><Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}</Button>
+        </BulkActionsBar>
+
         {paged.items.length ? (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
+                  <th><input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} aria-label={t("selectAllLabel")} /></th>
                   <th>{t("nameLabel")}</th>
                   <th>{t("phoneLabel")}</th>
                   <th>{t("householdSizeLabel")}</th>
@@ -374,6 +445,8 @@ export default function FoodDistribution() {
                     onToggle={() => setOpenId((cur) => (cur === c.id ? null : c.id))}
                     onRemove={() => removeClient(c.id)}
                     onAddDistribution={(entry) => addDistribution(c, entry)}
+                    selected={selected.has(c.id)}
+                    onToggleSelect={() => toggleSelect(c.id)}
                   />
                 ))}
               </tbody>
@@ -382,7 +455,11 @@ export default function FoodDistribution() {
         ) : (
           <EmptyState icon="fooddistribution" message={t("noFoodClientsYet")} />
         )}
-        <Pagination page={paged.page} totalPages={paged.totalPages} onChange={(delta) => setPage(paged.page + delta)} />
+        <Pagination
+          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+          onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelHouseholds")}
+          onChange={(delta) => setPage(paged.page + delta)}
+        />
       </div>
     </>
   );

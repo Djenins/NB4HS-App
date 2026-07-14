@@ -85,7 +85,21 @@ export function buildClient(kind, fields, extra) {
       workPermitExpiration: fields.workPermit ? (fields.workPermitExpiration || "") : "",
       hasResume: !!fields.hasResume,
       resumeDataUri: fields.hasResume ? (extra.resumeDataUri || "") : "",
-      resumeFileName: fields.hasResume ? (extra.resumeFileName || "") : ""
+      resumeFileName: fields.hasResume ? (extra.resumeFileName || "") : "",
+      // Job Developer client detail page fields (JobClientProfile.jsx) --
+      // additive, defaulted neutral/empty so the existing add-client form
+      // and table column (workPermit boolean) are untouched.
+      employmentStatus: fields.employmentStatus || "not_started",
+      pipelineStage: fields.pipelineStage || "resume",
+      workAuthorization: fields.workAuthorization || "",
+      workAuthorizationExpiration: fields.workAuthorizationExpiration || "",
+      transportation: fields.transportation || "",
+      preferredLanguage: fields.preferredLanguage || "",
+      secondaryLanguage: fields.secondaryLanguage || "",
+      barriers: fields.barriers || [],
+      servicesProvided: fields.servicesProvided || [],
+      skills: fields.skills || [],
+      applications: fields.applications || []
     });
   } else if (kind === "food") {
     Object.assign(client, {

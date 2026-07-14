@@ -35,6 +35,18 @@ export function genStudentId(n) {
   var padded = ("00000" + n).slice(-5);
   return "NB-" + padded;
 }
+// Unified master-client id, same "NB-#####" format as genStudentId() but
+// backed by its own counter (data.nextClientNumber, see masterClients.js) --
+// deliberately NOT the same sequence as student ids. Students and unified
+// clients are different arrays (data.students vs data.clients) looked up
+// independently by their own id field, so a student and a client can validly
+// share the same NB-##### text without ever colliding in a lookup. Unifying
+// the two counters into one global id space is a future, deliberate choice,
+// not implied by sharing this format.
+export function genClientId(n) {
+  var padded = ("00000" + n).slice(-5);
+  return "NB-" + padded;
+}
 export function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 export function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
 export function dateStrFromDate(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
@@ -105,6 +117,17 @@ export function monthYearLabel(year, month, lang) {
   var d = new Date(year, month, 1);
   return d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { year: "numeric", month: "long" });
 }
+// Locale-correct long month names (January..December), same reference-date
+// trick as weekdayShortLabels below -- used by DatePicker's month <select>.
+export function monthNamesLong(lang) {
+  var out = [];
+  for (var m = 0; m < 12; m++) {
+    var d = new Date(2024, m, 1);
+    out.push(d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { month: "long" }));
+  }
+  return out;
+}
+export function daysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 // Locale-correct short weekday names (Mon..Sun) without hand-translating 28
 // strings -- Jan 1 2024 was a Monday, so formatting that reference week in
 // the target locale gives the right labels for free.
@@ -181,6 +204,16 @@ export function initialsOf(rec) {
   var f = ((rec && rec.firstName) || "").trim().charAt(0);
   var l = ((rec && rec.lastName) || "").trim().charAt(0);
   return (f + l).toUpperCase() || "?";
+}
+// Formats/normalizes any phone-ish string to (000) 000-0000 as digits are
+// typed or displayed -- used both live in onChange handlers and for display
+// of stored values (some of which may be raw digits from CSV import/seed data).
+export function formatPhone(value) {
+  var digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+  if (!digits) return "";
+  if (digits.length < 4) return "(" + digits;
+  if (digits.length < 7) return "(" + digits.slice(0, 3) + ") " + digits.slice(3);
+  return "(" + digits.slice(0, 3) + ") " + digits.slice(3, 6) + "-" + digits.slice(6);
 }
 export function formatAddress(rec) {
   if (!rec || (!rec.street && !rec.city && !rec.zip)) return "";

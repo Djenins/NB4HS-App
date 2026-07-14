@@ -12,12 +12,13 @@ export default function Users() {
   const { data, lang, session, setData, showToast } = useApp();
   const t = useT();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState(ROLES[0]);
 
-  const paged = paginateList(data.users || [], page);
+  const paged = paginateList(data.users || [], page, pageSize);
   const currentEmail = (session && session.currentUserEmail || "").toLowerCase();
 
   function toggleActive(id, checked) {
@@ -78,7 +79,11 @@ export default function Users() {
         ) : (
           <EmptyState icon="users" message={t("noUsersYet")} />
         )}
-        <Pagination page={paged.page} totalPages={paged.totalPages} onChange={(delta) => setPage(paged.page + delta)} />
+        <Pagination
+          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+          onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelUsers")}
+          onChange={(delta) => setPage(paged.page + delta)}
+        />
 
         <div className="form-section">
           <div className="form-section-head">

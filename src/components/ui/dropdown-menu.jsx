@@ -16,7 +16,12 @@ export const DropdownMenuContent = forwardRef(function DropdownMenuContent({ cla
         ref={ref}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-card p-1 text-card-foreground shadow-card-hover animate-in fade-in-0 zoom-in-95",
+          // z-[1300] (not the default z-50) so this still renders above
+          // .modal-overlay (z-index:1200, main.css) when a trigger like
+          // Students.jsx's ClassroomPicker lives inside a modal -- otherwise
+          // the menu opens in the DOM but is visually hidden behind the
+          // modal backdrop and every item click silently hits the overlay.
+          "z-[1300] min-w-[10rem] overflow-hidden rounded-lg border border-border bg-card p-1 text-card-foreground shadow-card-hover animate-in fade-in-0 zoom-in-95",
           className
         )}
         {...props}

@@ -36,6 +36,8 @@ import Assessments from "./pages/Assessments.jsx";
 import FoodDistribution from "./pages/FoodDistribution.jsx";
 import CaseManagement from "./pages/CaseManagement.jsx";
 import JobDeveloper from "./pages/JobDeveloper.jsx";
+import ClientProfile from "./pages/ClientProfile.jsx";
+import JobClientProfile from "./pages/JobClientProfile.jsx";
 import Users from "./pages/Users.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -107,6 +109,8 @@ export default function App() {
           <Route path="/assessments" element={<Assessments />} />
           <Route path="/casemanagement" element={<CaseManagement />} />
           <Route path="/jobdeveloper" element={<JobDeveloper />} />
+          <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
+          <Route path="/clients/:nbId" element={<ClientProfile />} />
           <Route path="/users" element={<Users />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

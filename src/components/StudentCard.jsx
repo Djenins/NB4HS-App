@@ -9,7 +9,8 @@
 import { useState } from "react";
 import { LogOut, Pencil, X } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
-import { initialsOf } from "../lib/utils.js";
+import { formatPhone, initialsOf } from "../lib/utils.js";
+import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
@@ -54,7 +55,7 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
         <div className="text-sm font-bold text-card-foreground">{t("editStudentTitle")}</div>
         <input type="text" placeholder={t("firstName")} aria-label={t("firstName")} className={editInputClass} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
         <input type="text" placeholder={t("lastName")} aria-label={t("lastName")} className={editInputClass} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-        <input type="text" placeholder={t("phone")} aria-label={t("phone")} className={editInputClass} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+        <input type="text" placeholder={t("phone")} aria-label={t("phone")} className={editInputClass} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
         <input type="text" placeholder={t("email")} aria-label={t("email")} className={editInputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
         <input type="text" placeholder={t("address")} aria-label={t("address")} className={editInputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
         <input type="text" placeholder={t("city")} aria-label={t("city")} className={editInputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
@@ -79,31 +80,31 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
       draggable="true"
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", student.id); e.dataTransfer.effectAllowed = "move"; }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onViewDetails}
-          className="flex min-h-0 min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left"
-        >
-          <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
-          <span className="truncate text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</span>
-        </button>
-        <div className="flex shrink-0 items-center gap-0.5">
-          {student.classKey && (
-            <Button variant="ghost" size="icon" title={t("dropoutBtn")} aria-label={t("dropoutBtn")} onClick={onDropout} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" title={t("editStudentTitle")} aria-label={t("editStudentTitle")} onClick={onEditStart} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
-            <Pencil className="h-3.5 w-3.5" />
+      <button
+        type="button"
+        onClick={onViewDetails}
+        className="flex min-h-0 w-full items-center gap-2 border-0 bg-transparent p-0 text-left"
+      >
+        <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
+        <span className="min-w-0 flex-1 truncate text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</span>
+      </button>
+      {student.nbId && <div className="mt-1"><NbIdBadge nbId={student.nbId} /></div>}
+
+      <div className="mt-1.5 flex items-center justify-start gap-0.5">
+        {student.classKey && (
+          <Button variant="ghost" size="icon" title={t("dropoutBtn")} aria-label={t("dropoutBtn")} onClick={onDropout} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
+            <LogOut className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove} className="h-7 w-7 text-muted hover:bg-tint-danger hover:text-accent">
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        )}
+        <Button variant="ghost" size="icon" title={t("editStudentTitle")} aria-label={t("editStudentTitle")} onClick={onEditStart} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove} className="h-7 w-7 text-muted hover:bg-tint-danger hover:text-accent">
+          <X className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
-      {student.droppedOut && <div className="ml-10 mt-1"><Badge variant="warn">{t("droppedOutBadge")}</Badge></div>}
+      {student.droppedOut && <div className="mt-1"><Badge variant="warn">{t("droppedOutBadge")}</Badge></div>}
 
       <select
         value={student.classKey || "waiting"}

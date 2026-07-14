@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, GraduationCap, Headset, User } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
+import { cn } from "../lib/cn.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import LangSelect from "../components/LangSelect.jsx";
@@ -30,29 +31,33 @@ function LiveClock({ lang }) {
   );
 }
 
-function RoleCard({ icon, iconBg, iconColor, title, services, buttonLabel, buttonClass, onClick }) {
+function RoleCard({ icon, iconBg, iconColor, title, services, buttonLabel, buttonClass, onClick, compact }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full max-w-[420px] flex-col items-center rounded-[24px] border border-border bg-card px-8 py-10 text-center shadow-card transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-card-hover focus-visible:-translate-y-1 focus-visible:scale-[1.02] focus-visible:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+      className={cn(
+        "group flex w-full max-w-[420px] flex-col items-center rounded-[24px] border border-border bg-card text-center shadow-card transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-card-hover focus-visible:-translate-y-1 focus-visible:scale-[1.02] focus-visible:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
+        compact ? "px-6 py-6" : "px-8 py-10"
+      )}
     >
       <span
-        className="flex h-24 w-24 items-center justify-center rounded-full"
+        className={cn("flex items-center justify-center rounded-full", compact ? "h-16 w-16" : "h-24 w-24")}
         style={{ background: iconBg }}
       >
-        {icon({ size: 44, color: iconColor, strokeWidth: 2 })}
+        {icon({ size: compact ? 30 : 44, color: iconColor, strokeWidth: 2 })}
       </span>
-      <h2 className="mt-6 text-3xl font-extrabold text-navy">{title}</h2>
-      <p className="mt-3 min-h-[3.5rem] text-base leading-relaxed text-muted">{services}</p>
+      <h2 className={cn("font-extrabold text-navy", compact ? "mt-3 text-xl" : "mt-6 text-3xl")}>{title}</h2>
+      <p className={cn("text-muted", compact ? "mt-1.5 text-sm leading-snug" : "mt-3 min-h-[3.5rem] text-base leading-relaxed")}>{services}</p>
       <span
-        className={
-          "mt-8 flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl px-6 text-lg font-bold text-white shadow-md transition-transform duration-150 group-hover:scale-[1.03] group-active:scale-[0.98] " +
+        className={cn(
+          "flex w-full items-center justify-center gap-2 rounded-2xl font-bold text-white shadow-md transition-transform duration-150 group-hover:scale-[1.03] group-active:scale-[0.98]",
+          compact ? "mt-4 min-h-[44px] px-4 text-base" : "mt-8 min-h-[56px] px-6 text-lg",
           buttonClass
-        }
+        )}
       >
         {buttonLabel}
-        <ArrowRight size={22} strokeWidth={2.5} />
+        <ArrowRight size={compact ? 18 : 22} strokeWidth={2.5} />
       </span>
     </button>
   );
@@ -63,8 +68,15 @@ export default function CheckIn() {
   const t = useT();
   const navigate = useNavigate();
 
+  // Full touchscreen-scale spacing only applies in true kiosk mode (its own
+  // fullscreen header/footer, see below); embedded in the staff dashboard
+  // (Shell's sidebar layout) this same landing page instead uses a
+  // compact scale so the whole hero + both role cards fit within a normal
+  // laptop viewport without scrolling.
+  const compact = !kiosk;
+
   return (
-    <div className="kiosk-landing relative min-h-screen w-full overflow-hidden bg-[#F7F8FC]">
+    <div className={cn("kiosk-landing relative w-full overflow-hidden bg-[#F7F8FC]", compact ? "min-h-0" : "min-h-screen")}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute left-1/2 top-[-10%] h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-60"
@@ -94,19 +106,23 @@ export default function CheckIn() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pb-16 pt-14 sm:pt-20"
+        className={cn(
+          "relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6",
+          compact ? "pb-8 pt-6" : "pb-16 pt-14 sm:pt-20"
+        )}
       >
-        <p className="animate-[fadeIn_.5s_ease-out] text-lg font-bold uppercase tracking-wide text-accent">
+        <p className={cn("animate-[fadeIn_.5s_ease-out] font-bold uppercase tracking-wide text-accent", compact ? "text-sm" : "text-lg")}>
           {t("landingWelcomeTo")}
         </p>
-        <h1 className="mt-2 max-w-3xl text-center text-4xl font-extrabold leading-tight text-navy sm:text-5xl">
+        <h1 className={cn("max-w-3xl text-center font-extrabold leading-tight text-navy", compact ? "mt-1 text-2xl sm:text-3xl" : "mt-2 text-4xl sm:text-5xl")}>
           {ORG.name}
         </h1>
-        <p className="mt-4 text-xl text-muted">{t("landingHowCanWeHelp")}</p>
-        <span className="mt-5 h-1 w-16 rounded-full bg-accent" />
+        <p className={cn("text-muted", compact ? "mt-1.5 text-base" : "mt-4 text-xl")}>{t("landingHowCanWeHelp")}</p>
+        <span className={cn("rounded-full bg-accent", compact ? "mt-2.5 h-1 w-12" : "mt-5 h-1 w-16")} />
 
-        <div className="mt-14 flex w-full flex-col items-center gap-8 md:flex-row md:items-stretch md:justify-center">
+        <div className={cn("flex w-full flex-col items-center md:flex-row md:items-stretch md:justify-center", compact ? "mt-6 gap-4" : "mt-14 gap-8")}>
           <RoleCard
+            compact={compact}
             icon={(props) => <GraduationCap {...props} />}
             iconBg="var(--primary-tint)"
             iconColor="var(--primary)"
@@ -117,6 +133,7 @@ export default function CheckIn() {
             onClick={() => navigate("/checkin/student")}
           />
           <RoleCard
+            compact={compact}
             icon={(props) => <User {...props} />}
             iconBg="var(--gold-tint)"
             iconColor="var(--gold-dark)"
@@ -128,12 +145,12 @@ export default function CheckIn() {
           />
         </div>
 
-        <div className="mt-16 flex flex-col items-center gap-2 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-tint text-primary">
-            <Headset size={22} strokeWidth={2} />
+        <div className={cn("flex flex-col items-center gap-1.5 text-center", compact ? "mt-6" : "mt-16 gap-2")}>
+          <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-12 w-12")}>
+            <Headset size={compact ? 16 : 22} strokeWidth={2} />
           </span>
-          <h3 className="text-base font-bold text-navy">{t("landingNeedHelp")}</h3>
-          <p className="text-sm text-muted">{t("landingAskStaff")}</p>
+          <h3 className={cn("font-bold text-navy", compact ? "text-sm" : "text-base")}>{t("landingNeedHelp")}</h3>
+          <p className={cn("text-muted", compact ? "text-xs" : "text-sm")}>{t("landingAskStaff")}</p>
         </div>
       </main>
 

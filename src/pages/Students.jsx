@@ -11,29 +11,33 @@
 // like the mockup's bottom two-column grid, since the reference design has
 // no accordion affordance for them.
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  CalendarPlus, CalendarRange, CheckCircle2, ChevronDown, ChevronUp, Download, FileUp, Info, LogOut, Mail, Pencil, Phone,
-  TrendingUp, UserPlus, Upload, Users, X
+  CalendarPlus, CalendarRange, Check, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, FileUp, GraduationCap, Info,
+  LogOut, Mail, Pencil, Phone, Trash2, TrendingUp, UserPlus, Upload, Users, X
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CLASS_CAPACITY } from "../lib/constants.js";
-import { nrsLevelLabel, studentAssessmentStatus } from "../lib/assessments.js";
+import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
-import { addMonths, fmtDateLong, formatAddress, initialsOf, todayStr, uid } from "../lib/utils.js";
+import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
+import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr, uid } from "../lib/utils.js";
 import {
   buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
   sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount, waitingListStudents
 } from "../lib/students.js";
+import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
+import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import StudentCard, { avatarColorFor } from "../components/StudentCard.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 
 const WAITING_ACCENT = "#D99E32"; // gold -- matches columnAccentColor("waiting", ...)
 const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
@@ -79,6 +83,13 @@ function useStudentRosterActions() {
     setData((prev) => Object.assign({}, prev, { students: prev.students.filter((s) => s.id !== id) }));
   }
 
+  async function removeSelected(ids) {
+    const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(ids.size)), { danger: true });
+    if (!ok) return false;
+    setData((prev) => Object.assign({}, prev, { students: prev.students.filter((s) => !ids.has(s.id)) }));
+    return true;
+  }
+
   // "Dropped out" is a soft status, not a delete -- the record (and any
   // assessment scores already entered) stays intact, they're just moved
   // back to the waiting list/backlog and tagged so staff can tell them apart
@@ -113,7 +124,7 @@ function useStudentRosterActions() {
     return true;
   }
 
-  return { moveStudent, removeStudent, markDropout, setOutcome, saveEdit };
+  return { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit };
 }
 
 function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
@@ -176,13 +187,82 @@ function TextField({ id, label, required, invalid, icon: Icon, value, onChange, 
   );
 }
 
+// Rounded "pill" action button used in the detail header (Drop Out/Edit/
+// Remove) -- modeled on a reference "student profile" design the client
+// shared. Icon-over-label, equal-width, neutral border by default; `tone`
+// swaps in the danger tint for Drop Out/Remove.
+function DetailActionButton({ icon: Icon, label, onClick, tone }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-9 min-h-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-colors",
+        tone === "danger"
+          ? "border-accent/25 bg-tint-danger text-accent hover:bg-accent/10"
+          : "border-border bg-card text-card-foreground hover:bg-background"
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+// Classroom "move to" picker -- a DropdownMenu standing in for the plain
+// <select> everywhere else, so it can show each destination's accent color
+// and a check on the current one, matching the reference design. Same
+// move semantics as StudentCard/WaitingListRow's native <select> (onMove
+// with null = waiting list).
+function ClassroomPicker({ classKey, classes, onMove }) {
+  const t = useT();
+  const options = [{ key: null, name: t("waitingList"), accent: WAITING_ACCENT, icon: Clock3 }].concat(
+    classes.map((c, i) => ({ key: c.key, name: c.name, accent: columnAccentColor(c.key, i), icon: GraduationCap }))
+  );
+  const current = options.find((o) => o.key === classKey) || options[0];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary/40 data-[state=open]:border-primary"
+        >
+          <span className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: current.accent + "22", color: current.accent }}>
+              <current.icon className="h-4 w-4" />
+            </span>
+            <span className="truncate text-sm font-bold text-card-foreground">{current.name}</span>
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
+        {options.map((o) => (
+          <DropdownMenuItem key={o.key || "waiting"} onClick={() => onMove(o.key)} className="justify-between">
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: o.accent + "22", color: o.accent }}>
+                <o.icon className="h-3.5 w-3.5" />
+              </span>
+              {o.name}
+            </span>
+            {o.key === current.key ? <Check className="h-4 w-4 text-primary" /> : null}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // Full student detail (ID, contact info, assessment, outcome) now lives here
 // instead of inline on every Kanban card -- StudentCard's view mode is just
 // a clickable name + move select, and clicking the name opens this. Reuses
 // the app's existing .modal-overlay/.modal-box CSS (same pattern as
 // Search.jsx's visit-detail modal) rather than inventing a second modal look.
-function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout, onRemove, onSetOutcome }) {
-  const { lang } = useApp();
+// Header/action-row/classroom-picker redesigned per a reference "student
+// profile" mockup the client shared; the underlying edit/dropout/remove/move
+// handlers are unchanged, just re-laid-out.
+function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout, onRemove, onMove, onSetOutcome }) {
   const t = useT();
   if (!student) return null;
 
@@ -192,7 +272,7 @@ function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout,
 
   return (
     <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box" style={{ maxWidth: 440 }}>
+      <div className="modal-box" style={{ maxWidth: 460 }}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="m-0">{t("studentDetailsTitle")}</h3>
           <Button variant="ghost" size="icon" aria-label={t("closeLabel")} onClick={onClose} className="h-8 w-8 text-muted hover:bg-background">
@@ -200,31 +280,55 @@ function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout,
           </Button>
         </div>
 
-        <div className="mb-4 flex items-center gap-3">
-          <Avatar className="h-12 w-12"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
-          <div className="min-w-0">
-            <div className="text-base font-bold text-card-foreground">{name}</div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {student.studentId && <Badge>{student.studentId}</Badge>}
-              {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <Avatar className="h-14 w-14"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
+              {!student.droppedOut ? (
+                <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card bg-success" />
+              ) : null}
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-extrabold leading-tight text-card-foreground">{name}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+                {student.studentId && <Badge>{student.studentId}</Badge>}
+                <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{formatPhone(student.phone) || "—"}</span>
+                <span className="inline-flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" />{currentClass ? currentClass.name : t("waitingList")}</span>
+              </div>
             </div>
           </div>
+          <Badge variant={student.droppedOut ? "warn" : "success"} className="shrink-0 gap-1">
+            <span className={cn("h-1.5 w-1.5 rounded-full", student.droppedOut ? "bg-warn" : "bg-success")} />
+            {student.droppedOut ? t("droppedOutBadge") : t("activeLabel")}
+          </Badge>
         </div>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("classroomColumn")}</span><span className="text-right font-semibold">{currentClass ? currentClass.name : t("waitingList")}</span></div>
-          <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("phoneLabel")}</span><span className="text-right font-semibold">{student.phone || "—"}</span></div>
+        <div className="flex gap-2 border-y border-border py-3">
+          {student.classKey ? <DetailActionButton icon={LogOut} label={t("dropoutBtn")} tone="danger" onClick={onDropout} /> : null}
+          <DetailActionButton icon={Pencil} label={t("editStudentTitle")} onClick={onEditStart} />
+          <DetailActionButton icon={Trash2} label={t("deleteLabel")} tone="danger" onClick={onRemove} />
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs font-semibold text-muted">{t("classroomColumn")}</div>
+          <ClassroomPicker classKey={student.classKey} classes={classes} onMove={onMove} />
+        </div>
+
+        <div className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between gap-3 border-b border-border pb-2"><span className="text-muted">{t("emailLabel")}</span><span className="text-right font-semibold">{student.email || "—"}</span></div>
           <div className="flex justify-between gap-3"><span className="text-muted">{t("address")}</span><span className="text-right font-semibold">{formatAddress(student) || "—"}</span></div>
         </div>
 
         {assessment.status !== "noPretest" && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge variant="neutral">{t("pretestLabel")}: {nrsLevelLabel(assessment.pretestLevel, lang)}</Badge>
+            <Badge variant="neutral">{t("pretestLabel")}: {student.pretestReading}</Badge>
             {assessment.status === "posttestMissing" ? (
               <Badge variant="warn">{t("posttestNotCompletedFlag")}</Badge>
             ) : (
-              <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+              <>
+                <Badge variant="neutral">{t("posttestLabel")}: {student.posttestReading}</Badge>
+                <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+              </>
             )}
           </div>
         )}
@@ -247,12 +351,7 @@ function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout,
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          {student.classKey ? (
-            <Button variant="secondary" onClick={onDropout} className="gap-2"><LogOut className="h-4 w-4" />{t("dropoutBtn")}</Button>
-          ) : null}
-          <Button variant="secondary" onClick={onEditStart} className="gap-2"><Pencil className="h-4 w-4" />{t("editStudentTitle")}</Button>
-          <Button variant="destructive" onClick={onRemove} className="gap-2"><X className="h-4 w-4" />{t("deleteLabel")}</Button>
+        <div className="mt-5 flex justify-end">
           <Button onClick={onClose}>{t("closeLabel")}</Button>
         </div>
       </div>
@@ -268,10 +367,19 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
   // Stores the id, not the student object -- so the detail modal stays live
   // (e.g. the Outcome select inside it) as data.students changes underneath it.
   const [detailStudentId, setDetailStudentId] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
   const { moveStudent, removeStudent, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
 
   const activeClasses = (data.classes || []).filter((c) => c.active !== false);
-  const columns = activeClasses.map((c) => ({ key: c.key, name: c.name, students: studentsForClass(data.students, c.key) }));
+  const columns = activeClasses.map((c, idx) => {
+    const students = studentsForClass(data.students, c.key);
+    const searched = students.filter((s) => studentMatchesSearch(s, term));
+    const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
+    const filtered = sortStudentsList(withFilter, sortMode);
+    return { key: c.key, name: c.name, students, filtered, accent: columnAccentColor(c.key, idx) };
+  });
+  const totalStudents = columns.reduce((sum, c) => sum + c.students.length, 0);
+  const totalFiltered = columns.reduce((sum, c) => sum + c.filtered.length, 0);
   const detailStudent = detailStudentId ? (data.students || []).find((s) => s.id === detailStudentId) || null : null;
 
   function handleDrop(e, colKey) {
@@ -282,12 +390,28 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {columns.map((col, idx) => {
-        const accent = columnAccentColor(col.key, idx);
-        const searched = col.students.filter((s) => studentMatchesSearch(s, term));
-        const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
-        const filtered = sortStudentsList(withFilter, sortMode);
+    <Card className="mb-5">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-expanded={!collapsed}
+          className="flex min-h-0 items-center gap-2 border-0 bg-transparent p-0"
+        >
+          {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
+          <CardTitle className="m-0">{t("classroomsHeading")}</CardTitle>
+          <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
+            {totalFiltered}{(term || filterMode === "missingContact") ? "/" + totalStudents : ""}
+          </span>
+        </button>
+        <Link to="/manage"><Button type="button" variant="ghost" size="sm" className="font-semibold">{t("addClassroomShortcutBtn")}</Button></Link>
+      </CardHeader>
+      {collapsed ? null : (
+      <CardContent className="pt-0">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {columns.map((col) => {
+        const accent = col.accent;
+        const filtered = col.filtered;
         const emptyMsg = term || filterMode === "missingContact" ? t("noSearchResults") : t("noStudentsEnrolled");
         return (
           <div
@@ -301,7 +425,7 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
             onDragLeave={() => setDropHover((cur) => (cur === col.key ? null : cur))}
             onDrop={(e) => handleDrop(e, col.key)}
           >
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-primary-tint px-4 py-3">
               <h3 className="m-0 truncate text-sm font-bold text-card-foreground">{col.name}</h3>
               <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
                 {filtered.length}
@@ -343,6 +467,9 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
           </div>
         );
       })}
+      </div>
+      </CardContent>
+      )}
 
       <StudentDetailModal
         student={detailStudent}
@@ -351,9 +478,10 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
         onEditStart={() => { setEditingId(detailStudentId); setDetailStudentId(null); }}
         onDropout={() => { markDropout(detailStudentId); setDetailStudentId(null); }}
         onRemove={() => { removeStudent(detailStudentId); setDetailStudentId(null); }}
+        onMove={(classKey) => moveStudent(detailStudentId, classKey)}
         onSetOutcome={(outcome) => setOutcome(detailStudentId, outcome)}
       />
-    </div>
+    </Card>
   );
 }
 
@@ -364,8 +492,7 @@ const listEditInputClass = "h-10 min-h-0 w-full rounded-lg border border-border 
 // No dropout control here: a waiting-list student has no classKey to drop
 // out of by definition (waitingListStudents() below only returns students
 // with none), so that action is simply never applicable in this list.
-function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onViewDetails }) {
-  const { lang } = useApp();
+function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onViewDetails, selected, onToggleSelect }) {
   const t = useT();
   const [fields, setFields] = useState(() => ({
     firstName: student.firstName || "", lastName: student.lastName || "", phone: student.phone || "",
@@ -380,7 +507,7 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <input className={listEditInputClass} placeholder={t("firstName")} aria-label={t("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
           <input className={listEditInputClass} placeholder={t("lastName")} aria-label={t("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-          <input className={listEditInputClass} placeholder={t("phone")} aria-label={t("phone")} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
+          <input className={listEditInputClass} placeholder={t("phone")} aria-label={t("phone")} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
           <input className={listEditInputClass} placeholder={t("email")} aria-label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
           <input className={listEditInputClass} placeholder={t("address")} aria-label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
           <input className={listEditInputClass} placeholder={t("city")} aria-label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
@@ -407,32 +534,38 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
       draggable="true"
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", student.id); e.dataTransfer.effectAllowed = "move"; }}
     >
-      <button
-        type="button"
-        onClick={onViewDetails}
-        className="flex min-h-0 min-w-0 items-center gap-3 border-0 bg-transparent p-0 text-left"
-      >
-        <Avatar className="h-9 w-9 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
-        <div className="min-w-0">
-          <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {student.studentId && <Badge>{student.studentId}</Badge>}
-            {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+      <div className="flex min-w-0 items-center gap-3">
+        <input type="checkbox" checked={!!selected} onChange={onToggleSelect} onClick={(e) => e.stopPropagation()} aria-label={name} className="shrink-0" />
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="flex min-h-0 min-w-0 flex-1 items-center gap-3 border-0 bg-transparent p-0 text-left"
+        >
+          <Avatar className="h-9 w-9 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {student.studentId && <Badge>{student.studentId}</Badge>}
+              {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </div>
       <div className="pl-12 text-xs text-muted md:pl-0">
-        {student.phone && <div>{student.phone}</div>}
+        {student.phone && <div>{formatPhone(student.phone)}</div>}
         {formatAddress(student) && <div>{formatAddress(student)}</div>}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 pl-12 md:pl-0">
         {assessment.status !== "noPretest" && (
           <>
-            <Badge variant="neutral">{t("pretestLabel")}: {nrsLevelLabel(assessment.pretestLevel, lang)}</Badge>
+            <Badge variant="neutral">{t("pretestLabel")}: {student.pretestReading}</Badge>
             {assessment.status === "posttestMissing" ? (
               <Badge variant="warn">{t("posttestNotCompletedFlag")}</Badge>
             ) : (
-              <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+              <>
+                <Badge variant="neutral">{t("posttestLabel")}: {student.posttestReading}</Badge>
+                <Badge variant={assessment.gain ? "success" : "neutral"}>{assessment.gain ? t("gainLabel") : t("noGainLabel")}</Badge>
+              </>
             )}
           </>
         )}
@@ -462,7 +595,7 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
 // dense list reads better here than a column of tall cards. Still a drop
 // target for drag-and-drop (dropping a card back here un-places a student),
 // same as when it was a board column.
-function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
+function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selected, onToggleSelect, onClearSelected }) {
   const { data } = useApp();
   const t = useT();
   const [editingId, setEditingId] = useState(null);
@@ -473,7 +606,12 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
   // they're focused on the classroom board instead.
   const [collapsed, setCollapsed] = useState(false);
   const [detailStudentId, setDetailStudentId] = useState(null);
-  const { moveStudent, removeStudent, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
+  const { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
+
+  async function handleRemoveSelected() {
+    const ok = await removeSelected(selected);
+    if (ok) onClearSelected();
+  }
 
   const activeClasses = (data.classes || []).filter((c) => c.active !== false);
   const students = waitingListStudents(data.students);
@@ -507,7 +645,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
           className="flex min-h-0 items-center gap-2 border-0 bg-transparent p-0"
         >
           {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
-          <CardTitle>{t("waitingList")}</CardTitle>
+          <CardTitle className="m-0">{t("waitingList")}</CardTitle>
           <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
             {filtered.length}{(term || filterMode === "missingContact") ? "/" + students.length : ""}
           </span>
@@ -518,6 +656,9 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
       </CardHeader>
       {collapsed ? null : (
         <CardContent className="pt-0">
+          <BulkActionsBar count={selected.size} onClear={onClearSelected}>
+            <Button variant="destructive" size="sm" className="gap-1.5" onClick={handleRemoveSelected}><Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}</Button>
+          </BulkActionsBar>
           {filtered.length ? (
             <>
               <div className="divide-y divide-border">
@@ -533,6 +674,8 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
                     onSave={(fields) => { if (saveEdit(s, fields)) setEditingId(null); }}
                     onRemove={() => removeStudent(s.id)}
                     onViewDetails={() => setDetailStudentId(s.id)}
+                    selected={selected.has(s.id)}
+                    onToggleSelect={() => onToggleSelect(s.id)}
                   />
                 ))}
               </div>
@@ -563,6 +706,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
         onEditStart={() => { setEditingId(detailStudentId); setDetailStudentId(null); }}
         onDropout={() => { markDropout(detailStudentId); setDetailStudentId(null); }}
         onRemove={() => { removeStudent(detailStudentId); setDetailStudentId(null); }}
+        onMove={(classKey) => moveStudent(detailStudentId, classKey)}
         onSetOutcome={(outcome) => setOutcome(detailStudentId, outcome)}
       />
     </Card>
@@ -572,10 +716,21 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick }) {
 function EnrollStudentPanel() {
   const { data, setData, showToast } = useApp();
   const t = useT();
+  const navigate = useNavigate();
   const [fields, setFields] = useState({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
   const [errors, setErrors] = useState([]);
+  const [dupMatches, setDupMatches] = useState(null);
+  const [pendingResult, setPendingResult] = useState(null);
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  function finalizeCreate(result, matchedClient) {
+    setData((prev) => Object.assign({}, attachClientToProgram(prev, "student", result.student, matchedClient), { nextStudentNumber: result.nextStudentNumber }));
+    setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
+    setDupMatches(null);
+    setPendingResult(null);
+    showToast(t("studentEnrolled") + " " + result.student.studentId);
+  }
 
   function submit() {
     if (!fields.firstName.trim() || !fields.lastName.trim()) {
@@ -586,12 +741,13 @@ function EnrollStudentPanel() {
     setErrors([]);
     const result = enrollStudent(fields, data.nextStudentNumber || 1);
     if (!result) return;
-    setData((prev) => Object.assign({}, prev, {
-      students: (prev.students || []).concat([result.student]),
-      nextStudentNumber: result.nextStudentNumber
-    }));
-    setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
-    showToast(t("studentEnrolled") + " " + result.student.studentId);
+    const matches = findPossibleDuplicates(fields, data.clients || []);
+    if (matches.length) {
+      setPendingResult(result);
+      setDupMatches(matches);
+      return;
+    }
+    finalizeCreate(result, null);
   }
 
   return (
@@ -609,7 +765,7 @@ function EnrollStudentPanel() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <TextField id="enroll-first-name" label={t("firstName")} required invalid={errors.indexOf("firstName") !== -1} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} placeholder={t("enterFirstNamePlaceholder")} />
           <TextField id="enroll-last-name" label={t("lastName")} required invalid={errors.indexOf("lastName") !== -1} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} placeholder={t("enterLastNamePlaceholder")} />
-          <TextField id="enroll-phone" label={t("phone")} icon={Phone} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="(401) 123-4567" />
+          <TextField id="enroll-phone" label={t("phone")} icon={Phone} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder="(401) 123-4567" />
           <TextField id="enroll-email" label={t("email")} icon={Mail} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder="name@example.com" />
         </div>
         <TextField id="enroll-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("streetAddressPlaceholder")} />
@@ -620,6 +776,15 @@ function EnrollStudentPanel() {
         <p className="text-xs text-muted">{t("stateAlwaysRI")}</p>
         <Button size="lg" onClick={submit}>{t("enrollBtn")}</Button>
       </CardContent>
+      {dupMatches && (
+        <DuplicateClientWarning
+          matches={dupMatches}
+          onOpenExisting={(nbId) => { setDupMatches(null); setPendingResult(null); navigate("/clients/" + nbId); }}
+          onEnrollExisting={(matchedClient) => finalizeCreate(pendingResult, matchedClient)}
+          onCreateAnyway={() => finalizeCreate(pendingResult, null)}
+          onCancel={() => { setDupMatches(null); setPendingResult(null); }}
+        />
+      )}
     </Card>
   );
 }
@@ -633,10 +798,17 @@ function UploadStudentsPanel() {
   function importRows(rows) {
     const result = buildImportedStudents(rows, data.students, data.nextStudentNumber || 1);
     if (!result) { showToast(t("importError")); return; }
-    setData((prev) => Object.assign({}, prev, {
-      students: (prev.students || []).concat(result.added),
-      nextStudentNumber: result.nextStudentNumber
-    }));
+    // Bulk import has no UI for a per-row duplicate review -- silently
+    // attach each imported row to the best existing master-client match or
+    // create a new one, same as Case Management's CSV import.
+    setData((prev) => {
+      let next = Object.assign({}, prev, { nextStudentNumber: result.nextStudentNumber });
+      result.added.forEach((row) => {
+        const matches = findPossibleDuplicates(row, next.clients || []);
+        next = attachClientToProgram(next, "student", row, matches.length ? matches[0].client : null);
+      });
+      return next;
+    });
     showToast(result.added.length + " " + t("studentsImported"));
   }
 
@@ -742,11 +914,11 @@ function PastSessionsPanel() {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="field" style={{ marginBottom: 0 }}><label htmlFor="past-session-start">{t("pastSessionStart")}</label><DatePicker id="past-session-start" value={start} onChange={setStart} /></div>
           <div className="field" style={{ marginBottom: 0 }}><label htmlFor="past-session-end">{t("pastSessionEnd")}</label><DatePicker id="past-session-end" value={end} onChange={setEnd} /></div>
-          <div className="flex items-end"><Button className="w-full" onClick={addPastSession}>{t("addSession")}</Button></div>
         </div>
+        <Button className="mt-3 w-full sm:w-auto" onClick={addPastSession}>{t("addSession")}</Button>
 
         {!history.length ? (
           <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-tint px-4 py-3.5 text-sm text-primary">
@@ -783,7 +955,7 @@ function PastSessionsPanel() {
                           <tbody>
                             {rows.map((r) => (
                               <tr key={r.id}>
-                                <td>{r.firstName} {r.lastName}</td><td>{r.phone || ""}</td><td>{r.email || ""}</td>
+                                <td>{r.firstName} {r.lastName}</td><td>{formatPhone(r.phone)}</td><td>{r.email || ""}</td>
                                 <td>{formatAddress(r)}</td>
                                 <td>{r.className || ""}</td>
                               </tr>
@@ -835,7 +1007,16 @@ export default function Students() {
   const [search, setSearch] = useState(() => (location.state && location.state.presetSearch) || "");
   const [sortMode, setSortMode] = useState("name");
   const [filterMode, setFilterMode] = useState("all");
+  const [selected, setSelected] = useState(() => new Set());
   const enrollSectionRef = useRef(null);
+
+  function toggleSelect(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (location.state && typeof location.state.presetSearch === "string") {
@@ -916,7 +1097,10 @@ export default function Students() {
         </CardContent>
       </Card>
 
-      <WaitingListPanel term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} />
+      <WaitingListPanel
+        term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll}
+        selected={selected} onToggleSelect={toggleSelect} onClearSelected={() => setSelected(new Set())}
+      />
 
       <StudentsBoard term={search.trim().toLowerCase()} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} />
 

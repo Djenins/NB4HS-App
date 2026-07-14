@@ -6,6 +6,7 @@
 // keeps a hidden input in sync), so no surrounding form logic changes.
 import DatePicker from "./DatePicker.jsx";
 import Icon from "./Icon.jsx";
+import { formatPhone } from "../lib/utils.js";
 
 export default function FormField({ name, label, type = "text", required = false, invalid = false, icon, placeholder }) {
   const id = "checkin-field-" + name;
@@ -19,6 +20,7 @@ export default function FormField({ name, label, type = "text", required = false
       autoComplete="off"
       placeholder={placeholder}
       className={invalid ? "field-invalid" : ""}
+      onInput={type === "tel" ? (e) => { e.target.value = formatPhone(e.target.value); } : undefined}
     />
   );
   return (

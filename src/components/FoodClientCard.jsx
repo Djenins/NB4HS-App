@@ -4,11 +4,12 @@
 // distribution history instead of case notes.
 import { useT } from "../context/AppContext.jsx";
 import { clientDisplayName, lastDistributionDate } from "../lib/clients.js";
-import { formatAddress, fmtDateLong, initialsOf } from "../lib/utils.js";
+import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
 import FoodDistributionsPanel from "./FoodDistributionsPanel.jsx";
 import Icon from "./Icon.jsx";
+import NbIdBadge from "./NbIdBadge.jsx";
 
-export default function FoodClientCard({ client, open, onToggle, onRemove, onAddDistribution }) {
+export default function FoodClientCard({ client, open, onToggle, onRemove, onAddDistribution, selected, onToggleSelect }) {
   const t = useT();
   const lastDate = lastDistributionDate(client);
 
@@ -16,13 +17,17 @@ export default function FoodClientCard({ client, open, onToggle, onRemove, onAdd
     <>
       <tr>
         <td>
+          <input type="checkbox" checked={!!selected} onChange={onToggleSelect} aria-label={clientDisplayName(client)} />
+        </td>
+        <td>
           <button className="case-client-name-btn" onClick={onToggle} title={open ? t("hideDistributionsLabel") : t("viewDistributionsLabel")}>
             <span className="avatar-chip">{initialsOf(client)}</span>
             <span>{clientDisplayName(client)}</span>
             <span className="chevron-hint">{open ? "▾" : "▸"}</span>
           </button>
+          {client.nbId && <div style={{ marginTop: 4, marginLeft: 42 }}><NbIdBadge nbId={client.nbId} /></div>}
         </td>
-        <td>{client.phone || "—"}</td>
+        <td>{formatPhone(client.phone) || "—"}</td>
         <td>{client.householdSize || "—"}</td>
         <td>{formatAddress(client) || "—"}</td>
         <td>{lastDate ? fmtDateLong(lastDate) : "—"}</td>
@@ -34,7 +39,7 @@ export default function FoodClientCard({ client, open, onToggle, onRemove, onAdd
       </tr>
       {open && (
         <tr>
-          <td colSpan={6}>
+          <td colSpan={7}>
             <FoodDistributionsPanel client={client} onAddDistribution={onAddDistribution} />
           </td>
         </tr>

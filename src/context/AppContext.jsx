@@ -26,6 +26,7 @@ import {
   applyTheme, clearSession, getConfig, loadData, loadSession,
   saveData, saveSession, setConfig as persistConfig
 } from "../lib/storage.js";
+import { runUnifiedClientsMigration } from "../lib/masterClients.js";
 import { addMonths, genStudentId, todayStr, uid } from "../lib/utils.js";
 
 const AppContext = createContext(null);
@@ -99,7 +100,56 @@ function normalizeData(raw) {
     if (a2.meetingWith === undefined) a2.meetingWith = "case_manager";
     return a2;
   });
-  d.jobClients = d.jobClients || [];
+  // Job Developer client detail page fields -- additive backfill for
+  // records created before this feature existed, same defensive pattern
+  // as the students/caseClients backfills above.
+  d.jobClients = (d.jobClients || []).map(function (c) {
+    var c2 = Object.assign({}, c);
+    if (c2.employmentStatus === undefined) c2.employmentStatus = "not_started";
+    if (c2.pipelineStage === undefined) c2.pipelineStage = "resume";
+    if (c2.workAuthorization === undefined) c2.workAuthorization = "";
+    if (c2.workAuthorizationExpiration === undefined) c2.workAuthorizationExpiration = "";
+    if (c2.transportation === undefined) c2.transportation = "";
+    if (c2.preferredLanguage === undefined) c2.preferredLanguage = "";
+    if (c2.secondaryLanguage === undefined) c2.secondaryLanguage = "";
+    if (c2.barriers === undefined) c2.barriers = [];
+    if (c2.servicesProvided === undefined) c2.servicesProvided = [];
+    if (c2.skills === undefined) c2.skills = [];
+    if (c2.applications === undefined) c2.applications = [];
+    return c2;
+  });
+  d.foodClients = d.foodClients || [];
+
+  // Unified client identity layer (data.clients + data.programEnrollments)
+  // on top of caseClients/jobClients/students/foodClients -- see
+  // masterClients.js. Runs once, ever, per localStorage blob: guarded by
+  // d.migrationsRun.unifiedClientsV2 so reloading the app doesn't
+  // re-migrate (and doesn't create duplicate master records) on every load.
+  // V2 (not V1) because Phase 3 widened the migration to also cover
+  // Students/Food Distribution -- bumping the flag makes it re-run once
+  // more even for installs that already completed the V1 (case/job-only)
+  // pass, so those two programs get folded in too.
+  d.clients = d.clients || [];
+  d.programEnrollments = d.programEnrollments || [];
+  d.nextClientNumber = d.nextClientNumber || 1;
+  // Phase 4: unified (department-agnostic) Notes/Documents/Communications --
+  // separate from each program's own inline records (e.g. caseClients[].notes).
+  d.clientNotes = d.clientNotes || [];
+  d.clientDocuments = d.clientDocuments || [];
+  d.communications = d.communications || [];
+  d.migrationsRun = d.migrationsRun || {};
+  if (!d.migrationsRun.unifiedClientsV2) {
+    var migrated = runUnifiedClientsMigration(d);
+    d.clients = migrated.clients;
+    d.programEnrollments = migrated.programEnrollments;
+    d.caseClients = migrated.caseClients;
+    d.jobClients = migrated.jobClients;
+    d.students = migrated.students;
+    d.foodClients = migrated.foodClients;
+    d.nextClientNumber = migrated.nextClientNumber;
+    d.migrationsRun = Object.assign({}, d.migrationsRun, { unifiedClientsV1: true, unifiedClientsV2: true });
+  }
+
   if (!d.currentSession) {
     var sStart = todayStr();
     d.currentSession = { id: uid(), startDate: sStart, endDate: addMonths(sStart, 3) };
