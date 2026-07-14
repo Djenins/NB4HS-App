@@ -9,10 +9,11 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { US_STATES } from "../lib/constants.js";
 import { activeServiceList, activeStaffList, fmtTime, todayStr, uid } from "../lib/utils.js";
+import { createVisit } from "../lib/checkinData.js";
 import FormField from "../components/FormField.jsx";
 
 export default function CheckInVisitor() {
-  const { data, lang, setData, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -23,7 +24,7 @@ export default function CheckInVisitor() {
   const services = activeServiceList(data.customServices, data.disabledServices);
   const staffList = activeStaffList(data.customStaff, data.disabledStaff);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const form = formRef.current;
     const fd = new FormData(form);
@@ -57,8 +58,8 @@ export default function CheckInVisitor() {
       staff: v.staff, staffOther: v.staffOther || "",
       notes: v.notes || "", date: todayStr(), timeIn: now.toISOString(), timeOut: null
     };
-    setData((prev) => Object.assign({}, prev, { visits: prev.visits.concat([record]) }));
-    navigate("/checkin/success", { state: { lastCheckInId: record.id } });
+    const created = await createVisit(record);
+    navigate("/checkin/success", { state: { lastCheckInId: created.id } });
   }
 
   const isInvalid = (name) => errors.indexOf(name) !== -1;

@@ -1,47 +1,39 @@
-// StaffLogin.jsx -- email/password sign-in against the accounts stored in
-// data.users. UI-only redesign pass onto the same Tailwind/shadcn/Radix/
-// Lucide/Framer Motion system as Dashboard.jsx/Shell.jsx/Login.jsx --
-// AUTHENTICATION LOGIC IS UNCHANGED: handleSubmit below is byte-for-byte
-// the same lookup/validate/login()/navigate() flow as before (same
-// email/password/showPw state, same case-insensitive email match, same
-// exact-match password check, same pending-appointments toast). Only the
-// markup/styling changed.
+// StaffLogin.jsx -- email/password sign-in via Supabase Auth (Phase 1 of
+// the Supabase migration, see plans/wobbly-munching-rose.md). Used to be a
+// manual lookup + exact-match password compare against data.users in
+// localStorage; handleSubmit now calls supabase.auth.signInWithPassword and
+// reads the matching `profiles` row for role/active. AppContext's own
+// onAuthStateChange listener is what actually sets `session` -- this page
+// just needs the fresh profile synchronously to pick a landing page and
+// surface the pending-appointments toast.
 //
 // Two deliberate omissions from the reference mockup, both because adding
 // them would mean inventing functionality rather than restyling existing
 // functionality:
-//  - "Remember me" / "Forgot Password?": neither has any backing behavior
-//    anywhere in this app (sessions already always persist across
-//    refreshes today -- see AppContext.jsx's saveSession(); there's no
-//    password-reset flow at all, this being a fully client-side/localStorage
-//    prototype). A checkbox or link that does nothing would be misleading,
-//    so both are left out rather than added as dead controls.
+//  - "Remember me": Supabase Auth sessions already persist across
+//    refreshes by default, so there's nothing for this checkbox to toggle.
+//  - "Forgot Password?": no password-reset flow is wired up yet (a real
+//    Supabase Auth `resetPasswordForEmail` flow is Phase 2 scope, not
+//    invented here as a dead link).
 //  - The mockup's "Your information is encrypted and protected" line was
-//    replaced with the app's existing, more accurate disclaimer
-//    (passwordAuthCaution) -- this prototype's accounts are stored in
-//    localStorage, not actually encrypted, and that's an important,
-//    intentional honesty note from earlier in the project, not something
-//    to quietly overwrite with a rosier but false claim.
+//    replaced with the app's existing disclaimer (passwordAuthCaution).
 //
-// What IS real and newly added: a working copy-to-clipboard button on each
-// demo account (pure presentation, no auth logic touched), and the demo
-// accounts panel is now hidden automatically in a production build via
-// Vite's built-in `import.meta.env.PROD` -- no new dependency, and it
-// doesn't touch login/session logic, only what's rendered.
+// The demo-accounts credentials panel (a click-to-copy "email / password"
+// list) has been removed as of the Phase 1 Supabase migration: the 3 seed
+// accounts now belong to real staff (see plans/wobbly-munching-rose.md), so
+// displaying their passwords in the app's own UI -- even production-gated --
+// would mean leaking real credentials, not demo ones.
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, BarChart3, Calendar, ChevronDown, Copy, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
-import {
-  DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD, DEFAULT_CASE_MANAGER_EMAIL, DEFAULT_CASE_MANAGER_PASSWORD,
-  DEFAULT_JOB_DEVELOPER_EMAIL, DEFAULT_JOB_DEVELOPER_PASSWORD, ORG
-} from "../lib/constants.js";
+import { ORG } from "../lib/constants.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { navItemsForRole, navPath } from "../lib/nav.js";
 import { totalEnrolledCount } from "../lib/students.js";
-import { roleLabel } from "../lib/utils.js";
+import { fetchProfile, signIn, signOut } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -67,44 +59,41 @@ function Wordmark() {
 }
 
 export default function StaffLogin() {
-  const { data, lang, login, showToast } = useApp();
+  const { data, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // --- Unchanged from the previous version of this file ---
-  function handleSubmit(e) {
+  // Phase 1 Supabase migration: real auth (supabase.auth.signInWithPassword)
+  // instead of the old plaintext data.users lookup -- see supabaseAuth.js.
+  // AppContext's onAuthStateChange listener picks up the resulting session
+  // on its own; this just needs the fresh profile to decide where to
+  // navigate and whether there are pending appointment requests to flag.
+  async function handleSubmit(e) {
     e.preventDefault();
-    const emailLc = email.trim().toLowerCase();
-    const user = (data.users || []).find((u) => u.active !== false && u.email.toLowerCase() === emailLc);
-    if (!user || user.password !== password) {
+    setSubmitting(true);
+    const { data: authData, error } = await signIn(email.trim(), password);
+    if (error || !authData.user) {
+      setSubmitting(false);
       showToast(t("loginError"));
       return;
     }
-    login(user);
-    const items = navItemsForRole(user.role);
+    const profile = await fetchProfile(authData.user.id);
+    if (!profile || profile.active === false) {
+      await signOut();
+      setSubmitting(false);
+      showToast(t("loginError"));
+      return;
+    }
+    const items = navItemsForRole(profile.role);
     let pending = 0;
-    if (user.role === "case_manager" || user.role === "administrator") pending += pendingApptCount(data.appointments, "case_manager");
-    if (user.role === "job_developer" || user.role === "administrator") pending += pendingApptCount(data.appointments, "job_developer");
+    if (profile.role === "case_manager" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "case_manager");
+    if (profile.role === "job_developer" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "job_developer");
     navigate(navPath(items[0] || "dashboard"));
     if (pending > 0) showToast(t("pendingRequestsToast").replace("{n}", pending));
-  }
-  // --- end unchanged ---
-
-  const demoAccounts = [
-    { role: "administrator", email: DEFAULT_ADMIN_EMAIL, password: DEFAULT_ADMIN_PASSWORD },
-    { role: "case_manager", email: DEFAULT_CASE_MANAGER_EMAIL, password: DEFAULT_CASE_MANAGER_PASSWORD },
-    { role: "job_developer", email: DEFAULT_JOB_DEVELOPER_EMAIL, password: DEFAULT_JOB_DEVELOPER_PASSWORD }
-  ];
-
-  function copyCredential(acct) {
-    const text = acct.email + " / " + acct.password;
-    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => showToast(t("copiedToastLabel")));
-    }
   }
 
   const stats = [
@@ -274,7 +263,7 @@ export default function StaffLogin() {
                   <Button
                     type="submit"
                     size="lg"
-                    disabled={!email.trim() || !password}
+                    disabled={!email.trim() || !password || submitting}
                     className="mt-2 h-14 w-full text-base"
                   >
                     {t("loginBtn")} <ArrowRight className="h-4 w-4" />
@@ -282,52 +271,6 @@ export default function StaffLogin() {
                 </form>
 
                 <p className="mt-4 text-center text-xs leading-relaxed text-muted">{t("passwordAuthCaution")}</p>
-
-                {!import.meta.env.PROD && (
-                  <div className="mt-5 rounded-xl border border-border">
-                    <button
-                      type="button"
-                      onClick={() => setDemoOpen((v) => !v)}
-                      className="min-h-0 flex w-full items-center justify-between border-0 bg-transparent p-3 text-left text-sm font-semibold leading-none text-card-foreground"
-                    >
-                      {t("demoAccountsTitle")}
-                      <motion.span animate={{ rotate: demoOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
-                        <ChevronDown className="h-4 w-4 text-muted" />
-                      </motion.span>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {demoOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.18 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 border-t border-border p-3">
-                            {demoAccounts.map((acct) => (
-                              <div key={acct.role} className="flex items-center justify-between gap-3 rounded-lg bg-background p-2.5">
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-card-foreground">{roleLabel(acct.role, lang)}</div>
-                                  <div className="truncate text-[11px] text-muted">{acct.email} • {acct.password}</div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  className="shrink-0"
-                                  onClick={() => copyCredential(acct)}
-                                >
-                                  <Copy className="h-3.5 w-3.5" /> {t("copyLabel")}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </motion.div>

@@ -84,20 +84,21 @@ export var DEFAULT_CLASSES = [
   { key: "online", name: "Online", days: [], service: "adult_education", staff: "computer_instructor", active: true }
 ];
 
-/* Default staff account so there's a way to log in the first time this prototype
-   is opened. IMPORTANT (see README): this prototype stores accounts and passwords
-   in plain text in the browser's local storage -- fine for click-through demo
-   purposes, but this must be replaced with real authentication (e.g. Supabase
-   Auth) before any real account or password is used with it. */
+/* Default staff accounts. As of the Phase 1 Supabase migration these are
+   real Supabase Auth accounts for real people (created once, manually, via
+   the Supabase dashboard -- see plans/wobbly-munching-rose.md), not
+   plaintext entries in localStorage anymore. Deliberately NO password
+   constants here -- these are real accounts in a public repo, not demo
+   logins; passwords were shared with each person once, out of band, and
+   are never written to source control. Email/name stay here only because
+   normalizeData()'s data.users mirror (AppContext.jsx) and the Job
+   Developer/Case Management staff-assignment pickers still need them. */
 export var DEFAULT_ADMIN_EMAIL = "admin@nb4hs.org";
-export var DEFAULT_ADMIN_PASSWORD = "admin123";
-export var DEFAULT_ADMIN_NAME = "Alex Morgan";
-export var DEFAULT_CASE_MANAGER_EMAIL = "casemanager@nb4hs.org";
-export var DEFAULT_CASE_MANAGER_PASSWORD = "casemgr123";
-export var DEFAULT_CASE_MANAGER_NAME = "Jordan Casey";
-export var DEFAULT_JOB_DEVELOPER_EMAIL = "jobdeveloper@nb4hs.org";
-export var DEFAULT_JOB_DEVELOPER_PASSWORD = "jobdev123";
-export var DEFAULT_JOB_DEVELOPER_NAME = "Taylor Reyes";
+export var DEFAULT_ADMIN_NAME = "Bernard Georges";
+export var DEFAULT_CASE_MANAGER_EMAIL = "jdolcine@nb4hs.org";
+export var DEFAULT_CASE_MANAGER_NAME = "Jasmine Dolcine";
+export var DEFAULT_JOB_DEVELOPER_EMAIL = "mdelia@nb4hs.org";
+export var DEFAULT_JOB_DEVELOPER_NAME = "Marc Delia";
 export var ROLES = ["administrator", "staff", "receptionist", "case_manager", "job_developer"];
 
 export var DATE_LOCALE = { en: "en-US", ht: "en-US", es: "es-US", fr: "fr-FR" };

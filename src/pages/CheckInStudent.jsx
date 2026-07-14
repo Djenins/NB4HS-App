@@ -4,16 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { classByKey, classesMeetingToday, meetingDaysLabel, studentAlreadyCheckedInToday, studentsForClass } from "../lib/students.js";
 import { todayStr, uid } from "../lib/utils.js";
+import { createVisit } from "../lib/checkinData.js";
 import EmptyState from "../components/EmptyState.jsx";
 
 export default function CheckInStudent() {
-  const { data, lang, setData, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
 
   const today = classesMeetingToday(data.classes);
 
-  function checkInStudent(student) {
+  async function checkInStudent(student) {
     if (studentAlreadyCheckedInToday(data.visits, student.id, todayStr())) {
       showToast(t("alreadyCheckedInToday"));
       return;
@@ -28,8 +29,8 @@ export default function CheckInStudent() {
       notes: "", date: todayStr(), timeIn: now.toISOString(), timeOut: null,
       studentId: student.id, className: cls ? cls.name : ""
     };
-    setData((prev) => Object.assign({}, prev, { visits: prev.visits.concat([record]) }));
-    navigate("/checkin/success", { state: { lastCheckInId: record.id } });
+    const created = await createVisit(record);
+    navigate("/checkin/success", { state: { lastCheckInId: created.id } });
   }
 
   return (

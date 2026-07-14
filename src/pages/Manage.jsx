@@ -7,26 +7,26 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { classByKey, meetingDaysLabel, studentsForClass } from "../lib/students.js";
 import { fullServiceList, fullStaffList, slugify } from "../lib/utils.js";
+import { createClass, deleteClass, updateClass } from "../lib/checkinData.js";
 import ManageListCard from "../components/ManageListCard.jsx";
 
 function ClassManageCard({ c }) {
-  const { data, lang, setData, requestConfirm } = useApp();
+  const { data, lang, requestConfirm } = useApp();
   const t = useT();
   const roster = studentsForClass(data.students, c.key);
 
-  function toggleActive(checked) {
-    setData((prev) => Object.assign({}, prev, {
-      classes: prev.classes.map((cls) => (cls.key === c.key ? Object.assign({}, cls, { active: checked }) : cls))
-    }));
+  async function toggleActive(checked) {
+    await updateClass(c.key, { active: checked });
   }
 
+  // The `students.class_key` foreign key is `on delete set null`, so
+  // deleting the class row in Postgres automatically un-places every
+  // student who was in it -- no separate client-side sweep needed here
+  // (unlike the old localStorage version, which had to do that by hand).
   async function deleteClassroom() {
     const ok = await requestConfirm(t("deleteClassroomConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.classKey === c.key ? Object.assign({}, s, { classKey: null }) : s)),
-      classes: prev.classes.filter((cls) => cls.key !== c.key)
-    }));
+    await deleteClass(c.key);
   }
 
   return (
@@ -50,7 +50,7 @@ function ClassManageCard({ c }) {
 }
 
 export default function Manage() {
-  const { data, lang, setData, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const [newClassName, setNewClassName] = useState("");
   const [newClassDays, setNewClassDays] = useState([]);
@@ -61,18 +61,14 @@ export default function Manage() {
     setNewClassDays((prev) => (prev.indexOf(d) !== -1 ? prev.filter((x) => x !== d) : prev.concat([d])));
   }
 
-  function addClassroom() {
+  async function addClassroom() {
     const name = newClassName.trim();
     if (!name) { showToast(t("fixErrors")); return; }
-    setData((prev) => {
-      const existingKeys = (prev.classes || []).map((c) => c.key);
-      let key = "custom_" + slugify(name);
-      let suffix = 1;
-      while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(name) + "_" + suffix; suffix++; }
-      return Object.assign({}, prev, {
-        classes: (prev.classes || []).concat([{ key, name, days: newClassDays.slice(), service: "adult_education", staff: "esl_instructor", active: true, custom: true }])
-      });
-    });
+    const existingKeys = (data.classes || []).map((c) => c.key);
+    let key = "custom_" + slugify(name);
+    let suffix = 1;
+    while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(name) + "_" + suffix; suffix++; }
+    await createClass({ key, name, days: newClassDays.slice(), service: "adult_education", staff: "esl_instructor", active: true, custom: true });
     setNewClassName("");
     setNewClassDays([]);
     showToast(t("addClassroom") + " ✓");

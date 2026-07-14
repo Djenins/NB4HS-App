@@ -23,6 +23,7 @@ import { cn } from "../lib/cn.js";
 import { paginateList } from "../lib/pagination.js";
 import { classByKey, columnAccentColor, sortStudentsList, studentMatchesSearch } from "../lib/students.js";
 import { downloadBlob, formatPhone, initialsOf } from "../lib/utils.js";
+import { updateStudent } from "../lib/checkinData.js";
 import { avatarColorFor } from "../components/StudentCard.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
@@ -230,7 +231,7 @@ function AssessmentDetailModal({ row, onClose, onSetOutcome }) {
 }
 
 export default function Assessments() {
-  const { data, setData, showToast } = useApp();
+  const { data, showToast } = useApp();
   const t = useT();
   const [search, setSearch] = useState("");
   const [classroomFilter, setClassroomFilter] = useState("all");
@@ -287,10 +288,8 @@ export default function Assessments() {
     });
   }
 
-  function setOutcome(id, outcome) {
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.id === id ? Object.assign({}, s, { outcome: outcome }) : s))
-    }));
+  async function setOutcome(id, outcome) {
+    await updateStudent(id, { outcome });
   }
 
   function updateFilterMode(mode) { setFilterMode(mode); setPage(1); }

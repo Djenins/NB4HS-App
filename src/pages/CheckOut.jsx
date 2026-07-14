@@ -13,6 +13,7 @@ import {
 import { useApp, useT } from "../context/AppContext.jsx";
 import { serviceDisplay } from "../lib/students.js";
 import { fmtDateLong, fmtDuration, fmtTime, formatPhone, initialsOf, minutesBetween, todayStr } from "../lib/utils.js";
+import { checkOutVisit } from "../lib/checkinData.js";
 import { avatarColorFor } from "../components/StudentCard.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
@@ -42,7 +43,7 @@ function dateLabel(dateStr, lang, t) {
 }
 
 export default function CheckOut() {
-  const { data, lang, setData, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const [q, setQ] = useState("");
 
@@ -59,13 +60,11 @@ export default function CheckOut() {
     .sort((a, b) => new Date(b.timeOut) - new Date(a.timeOut))
     .slice(0, RECENT_CHECKOUTS_LIMIT);
 
-  function checkOut(id) {
+  async function checkOut(id) {
     const visit = data.visits.find((v) => v.id === id);
     if (!visit) return;
-    const timeOut = new Date().toISOString();
-    setData((prev) => Object.assign({}, prev, {
-      visits: prev.visits.map((v) => (v.id === id ? Object.assign({}, v, { timeOut }) : v))
-    }));
+    const updated = await checkOutVisit(id);
+    const timeOut = (updated && updated.timeOut) || new Date().toISOString();
     const dur = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
     showToast(t("checkedOutAt") + " " + fmtTime(timeOut) + " — " + t("visitLength") + ": " + dur);
   }

@@ -23,6 +23,7 @@ import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
 import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
 import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr, uid } from "../lib/utils.js";
+import { createStudent, createStudents, deleteStudent, updateStudent } from "../lib/checkinData.js";
 import {
   buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
@@ -48,7 +49,7 @@ const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
 // AppContext's setData, so the move/remove/dropout/outcome/edit logic stays
 // in one place rather than forking into two copies.
 function useStudentRosterActions() {
-  const { data, setData, requestConfirm, showToast } = useApp();
+  const { data, requestConfirm, showToast } = useApp();
   const t = useT();
 
   // Waiting List (the backlog) has no cap -- only real classrooms do. Moving
@@ -57,36 +58,32 @@ function useStudentRosterActions() {
   // own presence in the count. Placing a student into any real class also
   // clears a prior dropout flag -- coming back into a class is how staff
   // "un-drops" someone, no separate control needed for that.
-  function moveStudent(studentId, classKeyOrNull) {
-    if (classKeyOrNull) {
-      const student = (data.students || []).find((s) => s.id === studentId);
-      if (student && student.classKey !== classKeyOrNull) {
-        const currentCount = studentsForClass(data.students, classKeyOrNull).length;
-        if (currentCount >= CLASS_CAPACITY) {
-          showToast(t("classFullMessage"));
-          return;
-        }
+  async function moveStudent(studentId, classKeyOrNull) {
+    const student = (data.students || []).find((s) => s.id === studentId);
+    if (classKeyOrNull && student && student.classKey !== classKeyOrNull) {
+      const currentCount = studentsForClass(data.students, classKeyOrNull).length;
+      if (currentCount >= CLASS_CAPACITY) {
+        showToast(t("classFullMessage"));
+        return;
       }
     }
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.id === studentId ? Object.assign({}, s, {
-        classKey: classKeyOrNull,
-        droppedOut: classKeyOrNull ? false : s.droppedOut,
-        dropoutDate: classKeyOrNull ? "" : s.dropoutDate
-      }) : s))
-    }));
+    await updateStudent(studentId, {
+      classKey: classKeyOrNull,
+      droppedOut: classKeyOrNull ? false : (student && student.droppedOut),
+      dropoutDate: classKeyOrNull ? "" : (student && student.dropoutDate)
+    });
   }
 
   async function removeStudent(id) {
     const ok = await requestConfirm(t("removeStudentConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { students: prev.students.filter((s) => s.id !== id) }));
+    await deleteStudent(id);
   }
 
   async function removeSelected(ids) {
     const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(ids.size)), { danger: true });
     if (!ok) return false;
-    setData((prev) => Object.assign({}, prev, { students: prev.students.filter((s) => !ids.has(s.id)) }));
+    await Promise.all(Array.from(ids).map((id) => deleteStudent(id)));
     return true;
   }
 
@@ -97,29 +94,23 @@ function useStudentRosterActions() {
   async function markDropout(id) {
     const ok = await requestConfirm(t("dropoutConfirm"));
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.id === id ? Object.assign({}, s, { classKey: null, droppedOut: true, dropoutDate: todayStr() }) : s))
-    }));
+    await updateStudent(id, { classKey: null, droppedOut: true, dropoutDate: todayStr() });
     showToast(t("studentDroppedOut"));
   }
 
   // Manual half of the Outcome field (the "completed" half is computed
   // automatically from a gain -- see assessments.js -- and isn't settable
   // here since a real gain always wins over whatever was picked before).
-  function setOutcome(id, outcome) {
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.id === id ? Object.assign({}, s, { outcome: outcome }) : s))
-    }));
+  async function setOutcome(id, outcome) {
+    await updateStudent(id, { outcome });
   }
 
   // Returns true on success so callers can close their own local editingId
   // state -- that's per-section UI state, not something this shared hook owns.
-  function saveEdit(student, fields) {
+  async function saveEdit(student, fields) {
     const updated = buildUpdatedStudent(student, fields);
     if (!updated) { showToast(t("fixErrors")); return false; }
-    setData((prev) => Object.assign({}, prev, {
-      students: prev.students.map((s) => (s.id === student.id ? updated : s))
-    }));
+    await updateStudent(student.id, updated);
     showToast(t("studentUpdated"));
     return true;
   }
@@ -443,7 +434,7 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
                     onMove={(classKey) => moveStudent(s.id, classKey)}
                     onEditStart={() => setEditingId(s.id)}
                     onEditCancel={() => setEditingId(null)}
-                    onSave={(fields) => { if (saveEdit(s, fields)) setEditingId(null); }}
+                    onSave={async (fields) => { if (await saveEdit(s, fields)) setEditingId(null); }}
                     onRemove={() => removeStudent(s.id)}
                     onDropout={() => markDropout(s.id)}
                     onViewDetails={() => setDetailStudentId(s.id)}
@@ -671,7 +662,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selec
                     onMove={(classKey) => moveStudent(s.id, classKey)}
                     onEditStart={() => setEditingId(s.id)}
                     onEditCancel={() => setEditingId(null)}
-                    onSave={(fields) => { if (saveEdit(s, fields)) setEditingId(null); }}
+                    onSave={async (fields) => { if (await saveEdit(s, fields)) setEditingId(null); }}
                     onRemove={() => removeStudent(s.id)}
                     onViewDetails={() => setDetailStudentId(s.id)}
                     selected={selected.has(s.id)}
@@ -724,12 +715,13 @@ function EnrollStudentPanel() {
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
-  function finalizeCreate(result, matchedClient) {
-    setData((prev) => Object.assign({}, attachClientToProgram(prev, "student", result.student, matchedClient), { nextStudentNumber: result.nextStudentNumber }));
+  async function finalizeCreate(result, matchedClient) {
+    const created = await createStudent(result.student);
+    setData((prev) => Object.assign({}, attachClientToProgram(prev, "student", created, matchedClient), { nextStudentNumber: result.nextStudentNumber }));
     setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
     setDupMatches(null);
     setPendingResult(null);
-    showToast(t("studentEnrolled") + " " + result.student.studentId);
+    showToast(t("studentEnrolled") + " " + created.studentId);
   }
 
   function submit() {
@@ -795,21 +787,22 @@ function UploadStudentsPanel() {
   const fileRef = useRef(null);
   const [fileName, setFileName] = useState("");
 
-  function importRows(rows) {
+  async function importRows(rows) {
     const result = buildImportedStudents(rows, data.students, data.nextStudentNumber || 1);
     if (!result) { showToast(t("importError")); return; }
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported row to the best existing master-client match or
     // create a new one, same as Case Management's CSV import.
+    const created = await createStudents(result.added);
     setData((prev) => {
       let next = Object.assign({}, prev, { nextStudentNumber: result.nextStudentNumber });
-      result.added.forEach((row) => {
+      created.forEach((row) => {
         const matches = findPossibleDuplicates(row, next.clients || []);
         next = attachClientToProgram(next, "student", row, matches.length ? matches[0].client : null);
       });
       return next;
     });
-    showToast(result.added.length + " " + t("studentsImported"));
+    showToast(created.length + " " + t("studentsImported"));
   }
 
   function handleImportClick() {
@@ -1033,9 +1026,9 @@ export default function Students() {
     const start = todayStr();
     setData((prev) => Object.assign({}, prev, {
       sessionHistory: prev.currentSession ? (prev.sessionHistory || []).concat([prev.currentSession]) : (prev.sessionHistory || []),
-      currentSession: { id: uid(), startDate: start, endDate: addMonths(start, 3) },
-      students: (prev.students || []).map((s) => Object.assign({}, s, { classKey: null }))
+      currentSession: { id: uid(), startDate: start, endDate: addMonths(start, 3) }
     }));
+    await Promise.all((data.students || []).map((s) => updateStudent(s.id, { classKey: null })));
     showToast(t("newSessionStarted"));
   }
 

@@ -1,7 +1,7 @@
 // seed.js -- builds the demo dataset. Pure function now: returns the data
 // object instead of mutating a global App.data and calling save() itself.
 // The caller (AppContext's init effect) decides whether/when to persist it.
-import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_NAME, DEFAULT_ADMIN_PASSWORD, DEFAULT_CASE_MANAGER_EMAIL, DEFAULT_CASE_MANAGER_NAME, DEFAULT_CASE_MANAGER_PASSWORD, DEFAULT_CLASSES, DEFAULT_JOB_DEVELOPER_EMAIL, DEFAULT_JOB_DEVELOPER_NAME, DEFAULT_JOB_DEVELOPER_PASSWORD, SERVICES, STAFF } from "./constants.js";
+import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_NAME, DEFAULT_CASE_MANAGER_EMAIL, DEFAULT_CASE_MANAGER_NAME, DEFAULT_CLASSES, DEFAULT_JOB_DEVELOPER_EMAIL, DEFAULT_JOB_DEVELOPER_NAME, SERVICES, STAFF } from "./constants.js";
 import { addMonths, dateStrFromDate, todayStr, uid } from "./utils.js";
 
 export function buildSeedData() {
@@ -91,9 +91,9 @@ export function buildSeedData() {
   }
 
   var users = [
-    { id: uid(), name: DEFAULT_ADMIN_NAME, email: DEFAULT_ADMIN_EMAIL, password: DEFAULT_ADMIN_PASSWORD, role: "administrator", active: true },
-    { id: uid(), name: DEFAULT_CASE_MANAGER_NAME, email: DEFAULT_CASE_MANAGER_EMAIL, password: DEFAULT_CASE_MANAGER_PASSWORD, role: "case_manager", active: true },
-    { id: uid(), name: DEFAULT_JOB_DEVELOPER_NAME, email: DEFAULT_JOB_DEVELOPER_EMAIL, password: DEFAULT_JOB_DEVELOPER_PASSWORD, role: "job_developer", active: true }
+    { id: uid(), name: DEFAULT_ADMIN_NAME, email: DEFAULT_ADMIN_EMAIL, role: "administrator", active: true },
+    { id: uid(), name: DEFAULT_CASE_MANAGER_NAME, email: DEFAULT_CASE_MANAGER_EMAIL, role: "case_manager", active: true },
+    { id: uid(), name: DEFAULT_JOB_DEVELOPER_NAME, email: DEFAULT_JOB_DEVELOPER_EMAIL, role: "job_developer", active: true }
   ];
 
   var sessionStart = todayStr();
