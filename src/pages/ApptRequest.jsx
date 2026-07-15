@@ -4,18 +4,18 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { buildAppointment } from "../lib/appointments.js";
+import { createAppointment } from "../lib/clientsData.js";
 import FormField from "../components/FormField.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function ApptRequest() {
-  const { setData, setKiosk, showToast } = useApp();
+  const { setKiosk, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [errors, setErrors] = useState([]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const form = formRef.current;
     const val = (name) => (form.elements.namedItem(name)?.value || "").trim();
@@ -34,9 +34,7 @@ export default function ApptRequest() {
     }
     setErrors([]);
 
-    const appt = buildAppointment(fields, "client");
-    if (!appt) return;
-    setData((prev) => Object.assign({}, prev, { appointments: (prev.appointments || []).concat([appt]) }));
+    await createAppointment(Object.assign({}, fields, { source: "client" }));
     navigate("/appointments/request/success");
   }
 

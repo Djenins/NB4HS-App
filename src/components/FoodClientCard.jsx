@@ -9,7 +9,7 @@ import FoodDistributionsPanel from "./FoodDistributionsPanel.jsx";
 import Icon from "./Icon.jsx";
 import NbIdBadge from "./NbIdBadge.jsx";
 
-export default function FoodClientCard({ client, open, onToggle, onRemove, onAddDistribution, selected, onToggleSelect }) {
+export default function FoodClientCard({ client, open, onToggle, onRemove, selected, onToggleSelect }) {
   const t = useT();
   const lastDate = lastDistributionDate(client);
 
@@ -40,7 +40,7 @@ export default function FoodClientCard({ client, open, onToggle, onRemove, onAdd
       {open && (
         <tr>
           <td colSpan={7}>
-            <FoodDistributionsPanel client={client} onAddDistribution={onAddDistribution} />
+            <FoodDistributionsPanel client={client} />
           </td>
         </tr>
       )}

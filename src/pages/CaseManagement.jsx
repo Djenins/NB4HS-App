@@ -16,11 +16,12 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { CASE_SERVICES, IMMIGRATION_STATUSES } from "../lib/constants.js";
 import { activeCaseManagers } from "../lib/appointments.js";
 import { buildClient, buildImportedCaseClients, caseServiceLabel, clientMatchesSearch, downloadCaseClientTemplate, immigrationStatusLabel } from "../lib/clients.js";
-import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
+import { findPossibleDuplicates } from "../lib/masterClients.js";
+import { createCaseClient, deleteCaseClient } from "../lib/clientsData.js";
 import { paginateList } from "../lib/pagination.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
-import { formatPhone, todayStr, uid } from "../lib/utils.js";
+import { formatPhone, todayStr } from "../lib/utils.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import CaseClientCard from "../components/CaseClientCard.jsx";
@@ -104,7 +105,7 @@ function TextField({ id, label, required, invalid, value, onChange, placeholder,
 }
 
 function AddClientCard({ collapsed, onToggle, forwardRef }) {
-  const { data, lang, setData, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [fields, setFields] = useState(EMPTY_NEW_CLIENT);
@@ -118,8 +119,8 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
     setServices((prev) => (prev.indexOf(key) !== -1 ? prev.filter((k) => k !== key) : prev.concat([key])));
   }
 
-  function finalizeCreate(client, matchedClient) {
-    setData((prev) => attachClientToProgram(prev, "case", client, matchedClient));
+  async function finalizeCreate(client, matchedClient) {
+    await createCaseClient(client, client, matchedClient ? matchedClient.id : null);
     setFields(EMPTY_NEW_CLIENT);
     setServices([]);
     setDupMatches(null);
@@ -223,26 +224,22 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
 }
 
 function ImportContactsCard({ collapsed, onToggle, onImported }) {
-  const { setData, showToast } = useApp();
+  const { data, showToast } = useApp();
   const t = useT();
   const fileRef = useRef(null);
   const [fileName, setFileName] = useState("");
 
-  function importRows(rows) {
+  async function importRows(rows) {
     const result = buildImportedCaseClients(rows);
     if (!result) { showToast(t("importError")); return; }
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported row to the best existing master-client match
     // (same matcher the interactive add-client flow uses) or create a new
     // one, mirroring the one-time migration's approach.
-    setData((prev) => {
-      let next = prev;
-      result.added.forEach((row) => {
-        const matches = findPossibleDuplicates(row, next.clients || []);
-        next = attachClientToProgram(next, "case", row, matches.length ? matches[0].client : null);
-      });
-      return next;
-    });
+    for (const row of result.added) {
+      const matches = findPossibleDuplicates(row, data.clients || []);
+      await createCaseClient(row, row, matches.length ? matches[0].client.id : null);
+    }
     onImported(result.added.length);
     let msg = result.added.length + " " + t("clientsImported");
     const flags = [];
@@ -290,7 +287,7 @@ function ImportContactsCard({ collapsed, onToggle, onImported }) {
 }
 
 export default function CaseManagement() {
-  const { data, lang, setData, requestConfirm } = useApp();
+  const { data, lang, requestConfirm } = useApp();
   const t = useT();
   const [opens, setOpens] = useState({ addClient: true, importContacts: false, appointments: false });
   const [search, setSearch] = useState("");
@@ -326,20 +323,14 @@ export default function CaseManagement() {
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeClientConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { caseClients: (prev.caseClients || []).filter((c) => c.id !== id) }));
+    await deleteCaseClient(id);
   }
 
   async function removeSelected() {
     const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(selected.size)), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { caseClients: (prev.caseClients || []).filter((c) => !selected.has(c.id)) }));
+    await Promise.all(Array.from(selected).map((id) => deleteCaseClient(id)));
     setSelected(new Set());
-  }
-
-  function addNote(client, text) {
-    setData((prev) => Object.assign({}, prev, {
-      caseClients: (prev.caseClients || []).map((c) => (c.id === client.id ? Object.assign({}, c, { notes: (c.notes || []).concat([{ id: uid(), text, date: todayStr() }]) }) : c))
-    }));
   }
 
   function setOpen(key, val) { setOpens((prev) => Object.assign({}, prev, { [key]: val })); }
@@ -436,7 +427,6 @@ export default function CaseManagement() {
                       open={notesOpenId === c.id}
                       onToggle={() => setNotesOpenId((cur) => (cur === c.id ? null : c.id))}
                       onRemove={() => removeClient(c.id)}
-                      onAddNote={(text) => addNote(c, text)}
                       selected={selected.has(c.id)}
                       onToggleSelect={() => toggleSelect(c.id)}
                     />

@@ -5,8 +5,9 @@
 import { useState } from "react";
 import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { buildAppointment, sortedAppointments } from "../lib/appointments.js";
+import { sortedAppointments } from "../lib/appointments.js";
 import { clientDisplayName } from "../lib/clients.js";
+import { createAppointment, deleteAppointment, updateAppointmentStatus } from "../lib/clientsData.js";
 import { cn } from "../lib/cn.js";
 import { formatPhone } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
@@ -30,7 +31,7 @@ function Field({ id, label, required, invalid, children }) {
 }
 
 export default function AppointmentsSection({ open, onToggle, meetingWith, clientList, staffList, staffLabelKey }) {
-  const { data, session, setData, requestConfirm, showToast } = useApp();
+  const { data, session, requestConfirm, showToast } = useApp();
   const t = useT();
   // Defaults the staff-assignment dropdown to whoever's currently signed in,
   // if they're one of the eligible staff -- same as the original.
@@ -56,37 +57,39 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
     }));
   }
 
-  function schedule() {
+  // `form.clientId` is the picked *program row*'s id (matches the <select>
+  // options below) -- appointments now store the *master* clients.id
+  // directly (see plans/wobbly-munching-rose.md), so it's resolved via the
+  // program row's nbId only at submit time, not stashed in form state
+  // (which would break the controlled <select>'s displayed value).
+  async function schedule() {
     if (!form.firstName.trim() || !form.lastName.trim()) {
       setErrors(["firstName", "lastName"].filter((f) => !form[f].trim()));
       showToast(t("fixErrors"));
       return;
     }
     setErrors([]);
-    const appt = buildAppointment({
-      linkedClientId: form.clientId || null,
+    const selectedProgramClient = (clientList || []).find((c) => c.id === form.clientId);
+    const master = selectedProgramClient && selectedProgramClient.nbId
+      ? (data.clients || []).find((mc) => mc.nbId === selectedProgramClient.nbId) : null;
+    await createAppointment({
+      clientId: master ? master.id : null,
       firstName: form.firstName, lastName: form.lastName, phone: form.phone, email: form.email,
-      assignedEmail: form.staffEmail, meetingWith: meetingWith, date: form.date, time: form.time, reason: form.reason
-    }, "staff");
-    if (!appt) return;
-    setData((prev) => Object.assign({}, prev, { appointments: (prev.appointments || []).concat([appt]) }));
+      assignedEmail: form.staffEmail, meetingWith: meetingWith, date: form.date, time: form.time, reason: form.reason,
+      source: "staff"
+    });
     setForm(EMPTY_FORM);
     showToast(t("apptScheduled"));
   }
 
-  function updateStatus(id, status) {
-    setData((prev) => Object.assign({}, prev, {
-      appointments: (prev.appointments || []).map((a) => (a.id === id ? Object.assign({}, a, { status }) : a))
-    }));
-  }
   async function cancelAppt(id) {
     const ok = await requestConfirm(t("apptCancelConfirm"), { danger: true });
-    if (ok) updateStatus(id, "cancelled");
+    if (ok) await updateAppointmentStatus(id, "cancelled");
   }
   async function deleteAppt(id) {
     const ok = await requestConfirm(t("apptDeleteConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { appointments: (prev.appointments || []).filter((a) => a.id !== id) }));
+    await deleteAppointment(id);
   }
 
   return (
@@ -166,8 +169,8 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
                     <AppointmentRow
                       key={a.id}
                       appt={a}
-                      onConfirm={() => updateStatus(a.id, "scheduled")}
-                      onComplete={() => updateStatus(a.id, "completed")}
+                      onConfirm={() => updateAppointmentStatus(a.id, "scheduled")}
+                      onComplete={() => updateAppointmentStatus(a.id, "completed")}
                       onCancel={() => cancelAppt(a.id)}
                       onDelete={() => deleteAppt(a.id)}
                     />

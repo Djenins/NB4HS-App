@@ -28,7 +28,8 @@ function classToRow(fields) {
 
 function studentFromRow(row) {
   return {
-    id: row.id, studentId: row.student_display_id, firstName: row.first_name, lastName: row.last_name,
+    id: row.id, clientId: row.client_id, nbId: row.clients ? row.clients.nb_id : undefined,
+    studentId: row.student_display_id, firstName: row.first_name, lastName: row.last_name,
     phone: row.phone || "", email: row.email || "", street: row.street || "", city: row.city || "",
     zip: row.zip || "", state: row.state || "RI", classKey: row.class_key, active: row.active,
     pretestReading: row.pretest_reading || "", posttestReading: row.posttest_reading || "",
@@ -37,6 +38,7 @@ function studentFromRow(row) {
 }
 function studentToRow(fields) {
   const row = {};
+  if (fields.clientId !== undefined) row.client_id = fields.clientId;
   if (fields.studentId !== undefined) row.student_display_id = fields.studentId;
   if (fields.firstName !== undefined) row.first_name = fields.firstName;
   if (fields.lastName !== undefined) row.last_name = fields.lastName;
@@ -107,7 +109,7 @@ export async function deleteClass(key) {
 // ---------- students ----------
 
 export async function fetchStudents() {
-  const { data, error } = await supabase.from("students").select("*").order("last_name");
+  const { data, error } = await supabase.from("students").select("*, clients(nb_id)").order("last_name");
   if (error) { console.warn("fetchStudents failed", error); return []; }
   return data.map(studentFromRow);
 }
@@ -115,12 +117,12 @@ export async function fetchStudents() {
 // above) -- `students.id` is a real Postgres uuid, generated server-side;
 // callers must use the id on the row *returned* here.
 export async function createStudent(fields) {
-  const { data, error } = await supabase.from("students").insert(studentToRow(fields)).select().single();
+  const { data, error } = await supabase.from("students").insert(studentToRow(fields)).select("*, clients(nb_id)").single();
   if (error) throw error;
   return studentFromRow(data);
 }
 export async function updateStudent(id, patch) {
-  const { data, error } = await supabase.from("students").update(studentToRow(patch)).eq("id", id).select().single();
+  const { data, error } = await supabase.from("students").update(studentToRow(patch)).eq("id", id).select("*, clients(nb_id)").single();
   if (error) throw error;
   return studentFromRow(data);
 }

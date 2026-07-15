@@ -6,13 +6,14 @@
 // accordion became a collapsible Card, and legacy .field/.grid form markup
 // became Tailwind form-section layouts matching CaseManagement.jsx's
 // AddClientCard idiom.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, CalendarClock, ChevronDown, ChevronUp, FileCheck2, MoreHorizontal, Plus, Trash2, User, UserPlus, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient, clientMatchesSearch } from "../lib/clients.js";
-import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
+import { findPossibleDuplicates } from "../lib/masterClients.js";
+import { countApplicationsWithInterview, createJobClient, deleteJobClient, updateJobClient } from "../lib/clientsData.js";
 import { paginateList } from "../lib/pagination.js";
 import { sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
@@ -20,6 +21,7 @@ import { formatPhone } from "../lib/utils.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
+import { uploadClientFile } from "../lib/clientsData.js";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import JobClientCard from "../components/JobClientCard.jsx";
@@ -97,7 +99,7 @@ function TextField({ id, label, required, invalid, value, onChange, placeholder,
 }
 
 function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
-  const { data, setData, showToast } = useApp();
+  const { data, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [fields, setFields] = useState(EMPTY_NEW_CLIENT);
@@ -108,8 +110,16 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
-  function finalizeCreate(client, matchedClient) {
-    setData((prev) => attachClientToProgram(prev, "job", client, matchedClient));
+  // Resume upload is now a two-step process: the job client row has to
+  // exist first (Supabase Storage paths are prefixed by its id -- see
+  // clientsData.js), so a file picked in the form gets uploaded *after*
+  // createJobClient() returns, then patched onto the new row.
+  async function finalizeCreate(payload, matchedClient, file) {
+    const { row } = await createJobClient(payload, payload, matchedClient ? matchedClient.id : null);
+    if (file) {
+      const path = await uploadClientFile(row.id, file);
+      await updateJobClient(row.id, { hasResume: true, resumeStoragePath: path, resumeFileName: file.name });
+    }
     setFields(EMPTY_NEW_CLIENT);
     if (fileRef.current) fileRef.current.value = "";
     setDupMatches(null);
@@ -117,22 +127,22 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
     showToast(t("jobClientAdded"));
   }
 
-  function finishAdd(extra) {
+  function finishAdd(file) {
     const client = buildClient("job", {
       firstName: fields.firstName, lastName: fields.lastName, phone: fields.phone, email: fields.email, intakeDate: fields.intakeDate,
       street: fields.street, city: fields.city, zip: fields.zip,
       workPermit: fields.workPermit === "yes",
       workPermitExpiration: fields.workPermit === "yes" ? fields.workPermitExpiration : "",
-      hasResume: fields.hasResume === "yes"
-    }, extra || {});
+      hasResume: false
+    }, {});
     if (!client) return;
     const matches = findPossibleDuplicates(fields, data.clients || []);
     if (matches.length) {
-      setPendingClient(client);
+      setPendingClient({ payload: client, file: file || null });
       setDupMatches(matches);
       return;
     }
-    finalizeCreate(client, null);
+    finalizeCreate(client, null, file || null);
   }
 
   function submit() {
@@ -145,14 +155,7 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
     }
     setErrors([]);
     const file = fields.hasResume === "yes" && fileRef.current && fileRef.current.files && fileRef.current.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => finishAdd({ resumeDataUri: e.target.result, resumeFileName: file.name });
-      reader.onerror = () => finishAdd({});
-      reader.readAsDataURL(file);
-    } else {
-      finishAdd({});
-    }
+    finishAdd(file);
   }
 
   return (
@@ -234,8 +237,8 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
         <DuplicateClientWarning
           matches={dupMatches}
           onOpenExisting={(nbId) => { setDupMatches(null); setPendingClient(null); navigate("/clients/" + nbId); }}
-          onEnrollExisting={(matchedClient) => finalizeCreate(pendingClient, matchedClient)}
-          onCreateAnyway={() => finalizeCreate(pendingClient, null)}
+          onEnrollExisting={(matchedClient) => finalizeCreate(pendingClient.payload, matchedClient, pendingClient.file)}
+          onCreateAnyway={() => finalizeCreate(pendingClient.payload, null, pendingClient.file)}
           onCancel={() => { setDupMatches(null); setPendingClient(null); }}
         />
       )}
@@ -244,8 +247,14 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
 }
 
 export default function JobDeveloper() {
-  const { data, requestConfirm, setData } = useApp();
+  const { data, requestConfirm } = useApp();
   const t = useT();
+  const [interviewsScheduled, setInterviewsScheduled] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    countApplicationsWithInterview().then((n) => { if (!cancelled) setInterviewsScheduled(n); });
+    return () => { cancelled = true; };
+  }, [data.jobClients]);
   const [opens, setOpens] = useState({ addJobClient: true, appointments: false });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -291,20 +300,19 @@ export default function JobDeveloper() {
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeJobClientConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { jobClients: (prev.jobClients || []).filter((c) => c.id !== id) }));
+    await deleteJobClient(id);
   }
 
   async function removeSelected() {
     const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(selected.size)), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, { jobClients: (prev.jobClients || []).filter((c) => !selected.has(c.id)) }));
+    await Promise.all(Array.from(selected).map((id) => deleteJobClient(id)));
     setSelected(new Set());
   }
 
   const jobClients = data.jobClients || [];
   const totalClients = jobClients.length;
   const activelyLooking = jobClients.filter((c) => c.employmentStatus === "actively_looking").length;
-  const interviewsScheduled = jobClients.reduce((sum, c) => sum + (c.applications || []).filter((a) => a.interviewDate).length, 0);
   const employed = jobClients.filter((c) => c.employmentStatus === "employed").length;
   const resumesCompleted = jobClients.filter((c) => c.hasResume).length;
 

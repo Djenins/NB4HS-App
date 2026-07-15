@@ -4,19 +4,23 @@
 // detail). Notes/Documents reuse the unified data.clientNotes/
 // data.clientDocuments layer (masterClients.js, resolved via the record's
 // nbId) rather than inventing a third notes shape -- see the plan for why.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, Download, FileText, MessageSquarePlus, MoreHorizontal, Paperclip, Pencil, Plus, Trash2, UploadCloud, X
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
-  APPLICATION_STATUSES, applicationStatusLabel, BARRIERS_TO_EMPLOYMENT, barrierLabel, buildApplication,
+  APPLICATION_STATUSES, applicationStatusLabel, BARRIERS_TO_EMPLOYMENT, barrierLabel,
   computeJobReadinessScore, EMPLOYMENT_STATUSES, employmentStatusLabel, JOB_SERVICES_PROVIDED, jobServiceLabel,
   readinessBucket, WORK_AUTH_STATUSES, workAuthLabel
 } from "../lib/jobProfile.js";
-import { buildClientDocument, buildClientNote, findClientByNbId, resolveDocumentsForClient, resolveNotesForClient } from "../lib/masterClients.js";
-import { formatAddress, formatPhone, fmtDateLong, initialsOf, uid } from "../lib/utils.js";
+import { findClientByNbId } from "../lib/masterClients.js";
+import {
+  createApplication, createClientDocument, createClientNote, deleteApplication,
+  fetchApplications, fetchClientDocuments, fetchClientNotes, getFileSignedUrl, updateJobClient, uploadClientFile
+} from "../lib/clientsData.js";
+import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
 import CircularGauge from "../components/CircularGauge.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import JobPipelineTracker from "../components/JobPipelineTracker.jsx";
@@ -69,6 +73,30 @@ function Chip({ active, onClick, children }) {
     >
       {children}
     </button>
+  );
+}
+
+// Documents/resumes now live in Supabase Storage (private bucket), not as
+// inline base64 -- this resolves a short-lived signed URL on click instead
+// of an <a href> pointing straight at a data URI.
+function StorageDownloadLink({ path, fileName, children, className }) {
+  const [loading, setLoading] = useState(false);
+  async function handleClick(e) {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    const url = await getFileSignedUrl(path);
+    setLoading(false);
+    if (url) {
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName || "";
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+  return (
+    <a href="#" onClick={handleClick} className={className}>
+      {children}
+    </a>
   );
 }
 
@@ -191,9 +219,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
   function submit() {
     const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => onSave({ category: "other", fileName: file.name, dataUri: e.target.result, program: "job" });
-    reader.readAsDataURL(file);
+    onSave({ category: "other", fileName: file.name, file, program: "job" });
   }
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
@@ -214,7 +240,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
 
 export default function JobClientProfile() {
   const { clientId } = useParams();
-  const { data, requestConfirm, session, setData } = useApp();
+  const { data, requestConfirm } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
@@ -224,71 +250,93 @@ export default function JobClientProfile() {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [skillInput, setSkillInput] = useState("");
   const resumeFileRef = useRef(null);
+  // Applications/notes/documents are their own tables now (see
+  // plans/wobbly-munching-rose.md) -- fetched per-client on demand rather
+  // than embedded on the job_clients row or held in global AppContext state.
+  const [applications, setApplications] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [documents, setDocuments] = useState([]);
 
   const record = (data.jobClients || []).find((c) => c.id === clientId);
+  const masterClient = record && record.nbId ? findClientByNbId(record.nbId, data) : null;
+  const masterClientId = masterClient && masterClient.id;
+  const recordId = record && record.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!recordId) { setApplications([]); return; }
+    fetchApplications(recordId).then((rows) => { if (!cancelled) setApplications(rows); });
+    return () => { cancelled = true; };
+  }, [recordId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!masterClientId) { setNotes([]); setDocuments([]); return; }
+    fetchClientNotes(masterClientId).then((rows) => { if (!cancelled) setNotes(rows); });
+    fetchClientDocuments(masterClientId).then((rows) => { if (!cancelled) setDocuments(rows); });
+    return () => { cancelled = true; };
+  }, [masterClientId]);
 
   if (!record) {
     return <Card><CardContent className="p-10 text-center text-sm text-muted">{t("jobClientNotFoundMessage")}</CardContent></Card>;
   }
 
   const name = (record.firstName + " " + record.lastName).trim();
-  const masterClient = record.nbId ? findClientByNbId(record.nbId, data) : null;
-  const notes = record.nbId ? resolveNotesForClient(record.nbId, data) : [];
-  const documents = record.nbId ? resolveDocumentsForClient(record.nbId, data) : [];
-  const applications = record.applications || [];
   const interviews = applications.filter((a) => a.interviewDate);
   const score = computeJobReadinessScore(record);
   const bucket = readinessBucket(score);
 
-  function updateRecord(patch) {
-    setData((prev) => Object.assign({}, prev, {
-      jobClients: (prev.jobClients || []).map((c) => (c.id === clientId ? Object.assign({}, c, patch) : c))
-    }));
+  async function updateRecord(patch) {
+    await updateJobClient(clientId, patch);
   }
 
-  function toggleChip(field, key) {
+  async function toggleChip(field, key) {
     const cur = record[field] || [];
     const next = cur.indexOf(key) !== -1 ? cur.filter((k) => k !== key) : cur.concat([key]);
-    updateRecord({ [field]: next });
+    await updateRecord({ [field]: next });
   }
 
-  function addSkill() {
+  async function addSkill() {
     const v = skillInput.trim();
     if (!v) return;
-    updateRecord({ skills: (record.skills || []).concat([v]) });
+    await updateRecord({ skills: (record.skills || []).concat([v]) });
     setSkillInput("");
   }
-  function removeSkill(skill) {
-    updateRecord({ skills: (record.skills || []).filter((s) => s !== skill) });
+  async function removeSkill(skill) {
+    await updateRecord({ skills: (record.skills || []).filter((s) => s !== skill) });
   }
 
-  function addApplication(fields) {
-    updateRecord({ applications: (record.applications || []).concat([buildApplication(fields)]) });
+  async function addApplication(fields) {
+    const created = await createApplication(record.id, fields);
+    setApplications((prev) => [created].concat(prev));
     setAddingApplication(false);
   }
 
   async function removeApplication(id) {
     const ok = await requestConfirm(t("removeApplicationConfirm"), { danger: true });
     if (!ok) return;
-    updateRecord({ applications: (record.applications || []).filter((a) => a.id !== id) });
+    await deleteApplication(id);
+    setApplications((prev) => prev.filter((a) => a.id !== id));
   }
 
-  function uploadResume() {
+  async function uploadResume() {
     const file = resumeFileRef.current && resumeFileRef.current.files && resumeFileRef.current.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => updateRecord({ hasResume: true, resumeDataUri: e.target.result, resumeFileName: file.name });
-    reader.readAsDataURL(file);
+    const path = await uploadClientFile(record.id, file);
+    await updateRecord({ hasResume: true, resumeStoragePath: path, resumeFileName: file.name });
   }
 
-  function addNote(fields) {
+  async function addNote(fields) {
     if (!masterClient) return;
-    setData((prev) => Object.assign({}, prev, { clientNotes: (prev.clientNotes || []).concat([buildClientNote(masterClient.id, fields, session)]) }));
+    const created = await createClientNote(masterClient.id, fields);
+    setNotes((prev) => [created].concat(prev));
     setAddingNote(false);
   }
-  function uploadDocument(fields) {
+  async function uploadDocument(fields) {
     if (!masterClient) return;
-    setData((prev) => Object.assign({}, prev, { clientDocuments: (prev.clientDocuments || []).concat([buildClientDocument(masterClient.id, fields, session)]) }));
+    const path = await uploadClientFile(masterClient.id, fields.file);
+    const created = await createClientDocument(masterClient.id, { fileName: fields.fileName, category: fields.category, storagePath: path, program: fields.program });
+    setDocuments((prev) => [created].concat(prev));
     setUploadingDocument(false);
   }
 
@@ -379,10 +427,10 @@ export default function JobClientProfile() {
                   </SectionCard>
 
                   <SectionCard title={t("resumeLabel2")}>
-                    {record.hasResume && record.resumeDataUri ? (
-                      <a href={record.resumeDataUri} download={record.resumeFileName || "resume"} className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                    {record.hasResume && record.resumeStoragePath ? (
+                      <StorageDownloadLink path={record.resumeStoragePath} fileName={record.resumeFileName || "resume"} className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
                         <Download className="h-4 w-4" /> {t("viewDownloadBtn")}
-                      </a>
+                      </StorageDownloadLink>
                     ) : (
                       <p className="text-sm text-muted">{t("noResumeUploadedYet")}</p>
                     )}
@@ -493,9 +541,9 @@ export default function JobClientProfile() {
                               <div className="text-xs text-muted">{fmtDateLong(d.uploadedAt)}</div>
                             </div>
                           </div>
-                          <a href={d.dataUri} download={d.fileName} aria-label={t("downloadLabel")} className="shrink-0 text-muted hover:text-primary">
+                          <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="shrink-0 text-muted hover:text-primary">
                             <Download className="h-4 w-4" />
-                          </a>
+                          </StorageDownloadLink>
                         </div>
                       ))}
                     </div>
@@ -575,9 +623,9 @@ export default function JobClientProfile() {
                           <div className="text-xs text-muted">{t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
                         </div>
                       </div>
-                      <a href={d.dataUri} download={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                      <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
                         <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-                      </a>
+                      </StorageDownloadLink>
                     </CardContent></Card>
                   ))}
                 </div>

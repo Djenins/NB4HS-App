@@ -93,18 +93,24 @@ export function findClientByNbId(nbId, data) {
   return (data.clients || []).filter(function (c) { return c.nbId === nbId; })[0] || null;
 }
 
-// Resolves a master client's program enrollments into full records by
-// looking up caseClients/jobClients via programRecordId. Always reads live
-// from `data`, so it reflects whatever's currently in state.
+// Resolves a master client's program enrollments into full records.
+// Phase 2 Supabase migration: there's no separate program_enrollments join
+// table anymore (it only ever stored two fields nothing used -- status
+// always "active", assignedStaffId always null -- see
+// plans/wobbly-munching-rose.md) -- each program table carries its own
+// `nbId` (joined from `clients` server-side, see clientsData.js), so
+// "which programs is this person in" is just filtering each pool by nbId.
 export function resolveEnrollmentsForClient(nbId, data) {
   var client = findClientByNbId(nbId, data);
   if (!client) return [];
-  var enrollments = (data.programEnrollments || []).filter(function (e) { return e.clientId === client.id; });
-  return enrollments.map(function (enrollment) {
-    var pool = data[PROGRAM_DATA_KEY[enrollment.programType]] || [];
-    var record = pool.filter(function (r) { return r.id === enrollment.programRecordId; })[0] || null;
-    return { enrollment: enrollment, programType: enrollment.programType, record: record };
-  }).filter(function (e) { return e.record; });
+  var out = [];
+  ["case", "job", "student", "food"].forEach(function (programType) {
+    var pool = data[PROGRAM_DATA_KEY[programType]] || [];
+    pool.filter(function (r) { return r.nbId === nbId; }).forEach(function (record) {
+      out.push({ enrollment: { id: record.id, status: "active", enrolledAt: record.intakeDate || "" }, programType: programType, record: record });
+    });
+  });
+  return out;
 }
 
 // Atomic "create or attach" used by both pages' add-client flows: given an
@@ -197,17 +203,14 @@ export function resolveCommunicationsForClient(nbId, data) {
     .sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); });
 }
 
-// Appointments already exist as one shared data.appointments array
-// (see appointments.js) linked to a case/job program record via
-// linkedClientId -- resolve through this client's case/job enrollments
-// rather than adding a second, competing appointments model.
+// Phase 2 Supabase migration: appointments now carry a direct `clientId`
+// (the master clients.id) instead of the old linkedClientId -> program-
+// record-id -> programEnrollments resolution chain -- a real simplification
+// once you're not bound to replicating a JSON array's join limitations.
 export function resolveAppointmentsForClient(nbId, data) {
   var client = findClientByNbId(nbId, data);
   if (!client) return [];
-  var recordIds = (data.programEnrollments || [])
-    .filter(function (e) { return e.clientId === client.id && (e.programType === "case" || e.programType === "job"); })
-    .map(function (e) { return e.programRecordId; });
-  return (data.appointments || []).filter(function (a) { return recordIds.indexOf(a.linkedClientId) !== -1; })
+  return (data.appointments || []).filter(function (a) { return a.clientId === client.id; })
     .sort(function (a, b) { return ((b.date || "") + (b.time || "")).localeCompare((a.date || "") + (a.time || "")); });
 }
 

@@ -21,9 +21,12 @@ import {
 } from "../lib/constants.js";
 import { t } from "../lib/i18n.js";
 import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
-import { runUnifiedClientsMigration } from "../lib/masterClients.js";
 import { addMonths, todayStr, uid } from "../lib/utils.js";
 import { checkOutVisit, fetchClasses, fetchStudents, fetchVisits, subscribeTable } from "../lib/checkinData.js";
+import {
+  fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
+  fetchFoodClients, fetchJobClients, subscribeClientsTable
+} from "../lib/clientsData.js";
 import { fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 
 const AppContext = createContext(null);
@@ -35,20 +38,18 @@ const AppContext = createContext(null);
 // mutating App.data in place.
 function normalizeData(raw) {
   var d = Object.assign({}, raw);
-  d.customServices = d.customServices || [];
-  d.customStaff = d.customStaff || [];
-  d.disabledServices = d.disabledServices || [];
-  d.disabledStaff = d.disabledStaff || [];
-  // NOTE: `classes` and `students` are no longer normalized/backfilled here
-  // -- as of the Phase 1 Supabase migration they're fetched live from
-  // Supabase (see the visits/students/classes state + subscriptions in
-  // AppProvider below) and merged onto this object under the same keys, so
-  // any `classes`/`students` surviving in an old localStorage blob are
-  // simply ignored/overwritten.
-  // NOTE: no `password` field -- as of the Phase 1 Supabase migration this
-  // is just a mirror (name/email/role/active) kept so the still-local Case
-  // Management/Job Developer staff-assignment pickers keep working; real
-  // auth lives entirely in Supabase Auth + `profiles` now (see Users.jsx).
+  // NOTE: `classes`/`students` (Phase 1) and `clients`/`caseClients`/
+  // `jobClients`/`foodClients`/`appointments`/`clientNotes`/
+  // `clientDocuments`/`communications`/`customServices`/`customStaff`/
+  // `disabledServices`/`disabledStaff` (Phase 2) are no longer normalized/
+  // backfilled here -- they're all fetched live from Supabase now (see the
+  // state + subscriptions in AppProvider below) and merged onto this object
+  // under the same keys, so anything surviving in an old localStorage blob
+  // under those keys is simply ignored/overwritten.
+  // NOTE: no `password` field on `users` -- as of the Phase 1 Supabase
+  // migration this is just a mirror (name/email/role/active) kept so the
+  // still-local Case Management/Job Developer staff-assignment pickers
+  // keep working; real auth lives entirely in Supabase Auth + `profiles`.
   d.nextStudentNumber = d.nextStudentNumber || 1;
   d.users = (d.users && d.users.length) ? d.users.slice() : [
     { id: uid(), name: DEFAULT_ADMIN_NAME, email: DEFAULT_ADMIN_EMAIL, role: "administrator", active: true }
@@ -75,72 +76,6 @@ function normalizeData(raw) {
     r2.state = "RI";
     return r2;
   });
-  d.caseClients = (d.caseClients || []).map(function (c) {
-    var c2 = Object.assign({}, c);
-    c2.services = c2.services || [];
-    c2.notes = c2.notes || [];
-    if (c2.street === undefined) c2.street = "";
-    if (c2.city === undefined) c2.city = "";
-    if (c2.zip === undefined) c2.zip = "";
-    c2.state = "RI";
-    return c2;
-  });
-  d.appointments = (d.appointments || []).map(function (a) {
-    var a2 = Object.assign({}, a);
-    if (a2.caseManagerEmail !== undefined && a2.assignedEmail === undefined) { a2.assignedEmail = a2.caseManagerEmail; delete a2.caseManagerEmail; }
-    if (a2.assignedEmail === undefined) a2.assignedEmail = "";
-    if (a2.meetingWith === undefined) a2.meetingWith = "case_manager";
-    return a2;
-  });
-  // Job Developer client detail page fields -- additive backfill for
-  // records created before this feature existed, same defensive pattern
-  // as the students/caseClients backfills above.
-  d.jobClients = (d.jobClients || []).map(function (c) {
-    var c2 = Object.assign({}, c);
-    if (c2.employmentStatus === undefined) c2.employmentStatus = "not_started";
-    if (c2.pipelineStage === undefined) c2.pipelineStage = "resume";
-    if (c2.workAuthorization === undefined) c2.workAuthorization = "";
-    if (c2.workAuthorizationExpiration === undefined) c2.workAuthorizationExpiration = "";
-    if (c2.transportation === undefined) c2.transportation = "";
-    if (c2.preferredLanguage === undefined) c2.preferredLanguage = "";
-    if (c2.secondaryLanguage === undefined) c2.secondaryLanguage = "";
-    if (c2.barriers === undefined) c2.barriers = [];
-    if (c2.servicesProvided === undefined) c2.servicesProvided = [];
-    if (c2.skills === undefined) c2.skills = [];
-    if (c2.applications === undefined) c2.applications = [];
-    return c2;
-  });
-  d.foodClients = d.foodClients || [];
-
-  // Unified client identity layer (data.clients + data.programEnrollments)
-  // on top of caseClients/jobClients/students/foodClients -- see
-  // masterClients.js. Runs once, ever, per localStorage blob: guarded by
-  // d.migrationsRun.unifiedClientsV2 so reloading the app doesn't
-  // re-migrate (and doesn't create duplicate master records) on every load.
-  // V2 (not V1) because Phase 3 widened the migration to also cover
-  // Students/Food Distribution -- bumping the flag makes it re-run once
-  // more even for installs that already completed the V1 (case/job-only)
-  // pass, so those two programs get folded in too.
-  d.clients = d.clients || [];
-  d.programEnrollments = d.programEnrollments || [];
-  d.nextClientNumber = d.nextClientNumber || 1;
-  // Phase 4: unified (department-agnostic) Notes/Documents/Communications --
-  // separate from each program's own inline records (e.g. caseClients[].notes).
-  d.clientNotes = d.clientNotes || [];
-  d.clientDocuments = d.clientDocuments || [];
-  d.communications = d.communications || [];
-  d.migrationsRun = d.migrationsRun || {};
-  if (!d.migrationsRun.unifiedClientsV2) {
-    var migrated = runUnifiedClientsMigration(d);
-    d.clients = migrated.clients;
-    d.programEnrollments = migrated.programEnrollments;
-    d.caseClients = migrated.caseClients;
-    d.jobClients = migrated.jobClients;
-    d.students = migrated.students;
-    d.foodClients = migrated.foodClients;
-    d.nextClientNumber = migrated.nextClientNumber;
-    d.migrationsRun = Object.assign({}, d.migrationsRun, { unifiedClientsV1: true, unifiedClientsV2: true });
-  }
 
   if (!d.currentSession) {
     var sStart = todayStr();
@@ -181,12 +116,18 @@ export function AppProvider({ children }) {
   // the exact `{ role, currentUserEmail, currentUserName }` shape every
   // consumer (Shell.jsx's auth gate, nav role checks) already expects.
   const [session, setSession] = useState(null);
+  // Distinguishes "haven't checked Supabase for a restored session yet" from
+  // "checked, and there isn't one" -- without this, Shell.jsx's auth gate
+  // would see session===null on first render (before onAuthStateChange's
+  // async callback resolves) and redirect to the kiosk home even when a
+  // valid session is about to be restored from localStorage.
+  const [authLoading, setAuthLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     const unsubscribe = onAuthStateChange(async (authSession) => {
-      if (!authSession) { if (!cancelled) setSession(null); return; }
+      if (!authSession) { if (!cancelled) { setSession(null); setAuthLoading(false); } return; }
       const profile = await fetchProfile(authSession.user.id);
-      if (!cancelled) setSession(profileToSession(profile));
+      if (!cancelled) { setSession(profileToSession(profile)); setAuthLoading(false); }
     });
     return () => { cancelled = true; unsubscribe(); };
   }, []);
@@ -222,30 +163,97 @@ export function AppProvider({ children }) {
   // (`data.visits`/`data.students`/`data.classes`), just overlaid onto the
   // still-local rest of `data` -- see the plan's "keep the shape, swap the
   // source" strategy.
+  // ---- Phase 2 Supabase migration: clients/caseClients/jobClients/
+  // foodClients/appointments/customServices/customStaff/disabledServices/
+  // disabledStaff ----
+  // Same fetch-on-mount + postgres_changes-subscription pattern as Phase 1's
+  // visits/students/classes above. Per-client detail data (case client
+  // notes, job applications, food distributions, the unified client notes/
+  // documents/communications) is deliberately NOT held here -- those are
+  // fetched on demand by the profile pages that show them (see
+  // clientsData.js), since eagerly loading every client's entire history
+  // into global context doesn't scale the way a handful of list-level
+  // tables does.
+  const [clients, setClients] = useState([]);
+  const [caseClients, setCaseClients] = useState([]);
+  const [jobClients, setJobClients] = useState([]);
+  const [foodClients, setFoodClients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [customServices, setCustomServices] = useState([]);
+  const [customStaff, setCustomStaff] = useState([]);
+  const [disabledServices, setDisabledServices] = useState([]);
+  const [disabledStaff, setDisabledStaff] = useState([]);
+
+  useEffect(() => {
+    // These tables are authenticated-only (no anon RLS policy) -- fetching
+    // on plain mount (like Phase 1's visits/students/classes, which do have
+    // anon policies for kiosk mode) would race Supabase's async session
+    // restore: the initial REST calls fire before the auth token is
+    // attached, silently come back empty (fetchCaseClients etc. swallow
+    // errors and resolve to []), and nothing here ever retries once the
+    // session actually loads -- staff would only ever see this data via a
+    // live DB change, never on login. Depending on `session` re-runs the
+    // fetch once sign-in actually completes.
+    if (!session) return undefined;
+    let cancelled = false;
+    const refetchers = [
+      [fetchClients, setClients],
+      [fetchCaseClients, setCaseClients],
+      [fetchJobClients, setJobClients],
+      [fetchFoodClients, setFoodClients],
+      [fetchAppointments, setAppointments],
+      [() => fetchCustomOptions("service"), setCustomServices],
+      [() => fetchCustomOptions("staff"), setCustomStaff],
+      [() => fetchDisabledOptionKeys("service"), setDisabledServices],
+      [() => fetchDisabledOptionKeys("staff"), setDisabledStaff]
+    ];
+    refetchers.forEach(([fetcher, setter]) => { fetcher().then((rows) => { if (!cancelled) setter(rows); }); });
+
+    const tables = ["clients", "case_clients", "job_clients", "food_clients", "appointments", "custom_options", "disabled_options"];
+    const unsubs = tables.map((table) => subscribeClientsTable(table, () => {
+      refetchers.forEach(([fetcher, setter]) => { fetcher().then((rows) => { if (!cancelled) setter(rows); }); });
+    }));
+    return () => { cancelled = true; unsubs.forEach((u) => u()); };
+  }, [session]);
+
   const data = useMemo(
-    () => Object.assign({}, localData, { visits, students, classes }),
-    [localData, visits, students, classes]
+    () => Object.assign({}, localData, {
+      visits, students, classes,
+      clients, caseClients, jobClients, foodClients, appointments,
+      customServices, customStaff, disabledServices, disabledStaff
+    }),
+    [localData, visits, students, classes, clients, caseClients, jobClients, foodClients, appointments, customServices, customStaff, disabledServices, disabledStaff]
   );
 
   // Every data mutation persists immediately, same as the original's
   // "mutate App.data, then call save()" pattern -- just funneled through
   // one place instead of repeated at every call site. Only touches the
-  // still-local part of `data`; visits/students/classes writes go through
-  // checkinData.js's Supabase functions instead (called directly by the
-  // pages that mutate them -- see the plan).
+  // still-local part of `data`; everything Supabase-backed (Phase 1's
+  // visits/students/classes, Phase 2's clients/caseClients/jobClients/
+  // foodClients/appointments/customServices/customStaff/disabledServices/
+  // disabledStaff) writes through checkinData.js/clientsData.js functions
+  // instead (called directly by the pages that mutate them).
   const setData = useCallback((updater) => {
     setDataRaw((prev) => {
-      const prevMerged = Object.assign({}, prev, { visits, students, classes });
+      const prevMerged = Object.assign({}, prev, {
+        visits, students, classes,
+        clients, caseClients, jobClients, foodClients, appointments,
+        customServices, customStaff, disabledServices, disabledStaff
+      });
       const nextMerged = typeof updater === "function" ? updater(prevMerged) : updater;
       // Strip the Supabase-backed keys back out before persisting to
       // localStorage -- they have their own home now.
       const next = Object.assign({}, nextMerged);
-      delete next.visits; delete next.students; delete next.classes;
+      [
+        "visits", "students", "classes",
+        "clients", "caseClients", "jobClients", "foodClients", "appointments",
+        "customServices", "customStaff", "disabledServices", "disabledStaff"
+      ].forEach((key) => delete next[key]);
       saveData(next);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visits, students, classes]);
+  }, [visits, students, classes, clients, caseClients, jobClients, foodClients, appointments, customServices, customStaff, disabledServices, disabledStaff]);
 
   useEffect(() => { applyTheme(config.theme); }, [config.theme]);
 
@@ -321,11 +329,11 @@ export function AppProvider({ children }) {
     data, setData,
     config, updateConfig, toggleTheme,
     lang, setLang,
-    session, logout,
+    session, logout, authLoading,
     kiosk, setKiosk,
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm
-  }), [data, setData, config, updateConfig, toggleTheme, lang, session, logout, kiosk, toast, showToast, confirmState, requestConfirm, resolveConfirm]);
+  }), [data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast, confirmState, requestConfirm, resolveConfirm]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

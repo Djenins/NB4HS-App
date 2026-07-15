@@ -1,24 +1,25 @@
 // ClientProfile.jsx -- the unified "one person, one record" Client Profile
-// page. Reads/writes the master data.clients record + data.programEnrollments
-// (see src/lib/masterClients.js); Case Management/Job Developer program
-// detail stays on data.caseClients/data.jobClients exactly as before,
-// resolved here for display via resolveEnrollmentsForClient(). Only
-// Overview and Programs tabs are wired up this phase -- the rest of the
-// spec's tabs (Appointments/Services/Notes/Documents/Communications/
-// Activity History) are visible but intentionally show a "not yet
-// available" placeholder rather than fabricated data.
-import { useRef, useState } from "react";
+// page, fully on Supabase as of Phase 2 (see plans/wobbly-munching-rose.md).
+// Reads/writes the master `clients` table; Case Management/Job Developer/
+// Food Distribution program detail stays in their own tables (case_clients/
+// job_clients/food_clients), each carrying the master's `nbId` directly
+// (no separate join table -- see resolveEnrollmentsForClient() in
+// masterClients.js). Services and Activity History tabs still show a "not
+// yet available" placeholder rather than fabricated data.
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Briefcase, Download, GraduationCap, Paperclip, ShoppingBasket, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
 import { immigrationStatusLabel } from "../lib/clients.js";
 import { IMMIGRATION_STATUSES } from "../lib/constants.js";
+import { findClientByNbId, resolveAppointmentsForClient, resolveEnrollmentsForClient } from "../lib/masterClients.js";
+import { createStudent } from "../lib/checkinData.js";
 import {
-  buildClientDocument, buildClientNote, buildCommunication, buildEnrollment, findClientByNbId, PROGRAM_DATA_KEY,
-  resolveAppointmentsForClient, resolveCommunicationsForClient, resolveDocumentsForClient, resolveEnrollmentsForClient, resolveNotesForClient
-} from "../lib/masterClients.js";
-import { fmtDateLong, genStudentId, uid } from "../lib/utils.js";
+  createCaseClient, createClientDocument, createClientNote, createCommunication, createFoodClient, createJobClient,
+  fetchClientDocuments, fetchClientNotes, fetchCommunications, getFileSignedUrl, updateClientRecord, uploadClientFile
+} from "../lib/clientsData.js";
+import { fmtDateLong } from "../lib/utils.js";
 import ClientHeader from "../components/ClientHeader.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import { Badge } from "../components/ui/badge.jsx";
@@ -208,9 +209,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
   function submit() {
     const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => onSave({ category: category, fileName: file.name, dataUri: e.target.result });
-    reader.readAsDataURL(file);
+    onSave({ category: category, fileName: file.name, file });
   }
 
   return (
@@ -290,6 +289,21 @@ function LogCommunicationModal({ onSave, onCancel }) {
   );
 }
 
+// Documents now live in Supabase Storage (private bucket), not inline
+// base64 -- resolves a short-lived signed URL on click.
+function StorageDownloadLink({ path, fileName, children, className }) {
+  async function handleClick(e) {
+    e.preventDefault();
+    const url = await getFileSignedUrl(path);
+    if (url) {
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName || "";
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+  return <a href="#" onClick={handleClick} className={className}>{children}</a>;
+}
+
 function AppointmentsTab({ appointments, lang }) {
   const t = useT();
   if (!appointments.length) return <p className="py-8 text-center text-sm text-muted">{t("noAppointmentsYet")}</p>;
@@ -345,9 +359,9 @@ function DocumentsTab({ documents }) {
               <div className="text-xs text-muted">{t(DOCUMENT_CATEGORY_KEY[d.category] || "documentCategoryOther")} · {t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
             </div>
           </div>
-          <a href={d.dataUri} download={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
             <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-          </a>
+          </StorageDownloadLink>
         </CardContent></Card>
       ))}
     </div>
@@ -432,7 +446,7 @@ function ProgramsTab({ enrollments, lang }) {
 
 export default function ClientProfile() {
   const { nbId } = useParams();
-  const { data, lang, session, setData } = useApp();
+  const { data, lang } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
@@ -441,8 +455,24 @@ export default function ClientProfile() {
   const [addingNote, setAddingNote] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [loggingCommunication, setLoggingCommunication] = useState(false);
+  // Notes/documents/communications are fetched per-client on demand now
+  // (their own tables -- see plans/wobbly-munching-rose.md) rather than
+  // held in global AppContext state.
+  const [notes, setNotes] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [communications, setCommunications] = useState([]);
 
   const client = findClientByNbId(nbId, data);
+  const clientId = client && client.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!clientId) { setNotes([]); setDocuments([]); setCommunications([]); return; }
+    fetchClientNotes(clientId).then((rows) => { if (!cancelled) setNotes(rows); });
+    fetchClientDocuments(clientId).then((rows) => { if (!cancelled) setDocuments(rows); });
+    fetchCommunications(clientId).then((rows) => { if (!cancelled) setCommunications(rows); });
+    return () => { cancelled = true; };
+  }, [clientId]);
 
   if (!client) {
     return (
@@ -454,62 +484,47 @@ export default function ClientProfile() {
   const name = (client.firstName + " " + client.lastName).trim();
   const existingTypes = enrollments.map((e) => e.programType);
   const appointments = resolveAppointmentsForClient(nbId, data);
-  const notes = resolveNotesForClient(nbId, data);
-  const documents = resolveDocumentsForClient(nbId, data);
-  const communications = resolveCommunicationsForClient(nbId, data);
   const schedulingProgram = enrollments.find((e) => e.programType === "case" || e.programType === "job");
 
-  function saveProfile(fields) {
-    setData((prev) => Object.assign({}, prev, {
-      clients: (prev.clients || []).map((c) => (c.id === client.id ? Object.assign({}, c, fields, { updatedAt: new Date().toISOString() }) : c))
-    }));
+  async function saveProfile(fields) {
+    await updateClientRecord(client.id, fields);
     setEditing(false);
   }
 
-  function toggleStatus() {
-    setData((prev) => Object.assign({}, prev, {
-      clients: (prev.clients || []).map((c) => (c.id === client.id ? Object.assign({}, c, { status: c.status === "inactive" ? "active" : "inactive" }) : c))
-    }));
+  async function toggleStatus() {
+    await updateClientRecord(client.id, { status: client.status === "inactive" ? "active" : "inactive" });
   }
 
-  function enrollInProgram(programType, extra) {
-    // Builds the minimal program row the same shape each program's own
-    // constructor produces (clients.js's buildClient() for case/job/food,
-    // students.js's enrollStudent() shape for student), carrying over the
-    // master record's shared fields, then links it back to this master
-    // client via an enrollment -- same shape attachClientToProgram() uses,
-    // just with the master client already known (this page, not an
-    // add-client form).
-    setData((prev) => {
-      const base = { firstName: client.firstName, lastName: client.lastName, phone: client.phone, email: client.email, intakeDate: client.intakeDate, street: client.street, city: client.city, zip: client.zip, state: "RI" };
-      const dataKey = PROGRAM_DATA_KEY[programType];
-      let extraFields;
-      if (programType === "case") extraFields = { immigrationStatus: extra.immigrationStatus || "", dob: client.dob || "", services: [], notes: [] };
-      else if (programType === "job") extraFields = { workPermit: !!extra.workPermit, workPermitExpiration: "", hasResume: false, resumeDataUri: "", resumeFileName: "" };
-      else if (programType === "student") extraFields = { studentId: genStudentId(prev.nextStudentNumber || 1), classKey: null, active: true };
-      else extraFields = { householdSize: "", distributions: [] };
-      const row = Object.assign({}, base, { id: uid(), nbId: client.nbId }, extraFields);
-      const enrollment = buildEnrollment(client.id, programType, row.id, {});
-      const patch = { programEnrollments: (prev.programEnrollments || []).concat([enrollment]) };
-      patch[dataKey] = (prev[dataKey] || []).concat([row]);
-      if (programType === "student") patch.nextStudentNumber = (prev.nextStudentNumber || 1) + 1;
-      return Object.assign({}, prev, patch);
-    });
+  async function enrollInProgram(programType, extra) {
+    const base = { firstName: client.firstName, lastName: client.lastName, phone: client.phone, email: client.email, intakeDate: client.intakeDate, street: client.street, city: client.city, zip: client.zip };
+    if (programType === "case") {
+      await createCaseClient(base, Object.assign({}, base, { immigrationStatus: extra.immigrationStatus || "", dob: client.dob || "" }), client.id);
+    } else if (programType === "job") {
+      await createJobClient(base, Object.assign({}, base, { workPermit: !!extra.workPermit, hasResume: false }), client.id);
+    } else if (programType === "food") {
+      await createFoodClient(base, base, client.id);
+    } else if (programType === "student") {
+      await createStudent(Object.assign({}, base, { clientId: client.id, classKey: null, active: true }));
+    }
     setAddingToProgram(false);
   }
 
-  function addNote(fields) {
-    setData((prev) => Object.assign({}, prev, { clientNotes: (prev.clientNotes || []).concat([buildClientNote(client.id, fields, session)]) }));
+  async function addNote(fields) {
+    const created = await createClientNote(client.id, fields);
+    setNotes((prev) => [created].concat(prev));
     setAddingNote(false);
   }
 
-  function uploadDocument(fields) {
-    setData((prev) => Object.assign({}, prev, { clientDocuments: (prev.clientDocuments || []).concat([buildClientDocument(client.id, fields, session)]) }));
+  async function uploadDocument(fields) {
+    const path = await uploadClientFile(client.id, fields.file);
+    const created = await createClientDocument(client.id, { fileName: fields.fileName, category: fields.category, storagePath: path });
+    setDocuments((prev) => [created].concat(prev));
     setUploadingDocument(false);
   }
 
-  function logCommunication(fields) {
-    setData((prev) => Object.assign({}, prev, { communications: (prev.communications || []).concat([buildCommunication(client.id, fields, session)]) }));
+  async function logCommunication(fields) {
+    const created = await createCommunication(client.id, fields);
+    setCommunications((prev) => [created].concat(prev));
     setLoggingCommunication(false);
   }
 

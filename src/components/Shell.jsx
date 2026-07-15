@@ -216,10 +216,14 @@ function SidebarThemeToggle({ collapsed }) {
 }
 
 export default function Shell() {
-  const { data, session, kiosk, logout, lang, config, updateConfig } = useApp();
+  const { data, session, authLoading, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
   const location = useLocation();
 
+  // Wait for Supabase to finish restoring any existing session before
+  // deciding to redirect -- otherwise a valid session in localStorage loses
+  // the race against this render and gets bounced to the kiosk home.
+  if (authLoading) return null;
   if (!session && !kiosk) return <Navigate to="/" replace />;
 
   // The kiosk landing page (CheckIn.jsx) is a full-bleed self-service

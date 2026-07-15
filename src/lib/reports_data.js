@@ -165,6 +165,37 @@ export function fmtHour(h) {
   return h12 + ":00 " + ampm;
 }
 
+// Immediately-preceding period of the same length as `range`, used to
+// compute the KPI cards' "vs previous period" trend badges (e.g. a 7-day
+// range compares against the 7 days before it).
+export function previousRange(range) {
+  var from = new Date(range.from + "T00:00:00"), to = new Date(range.to + "T00:00:00");
+  var days = Math.round((to - from) / 86400000) + 1;
+  var prevTo = new Date(from); prevTo.setDate(prevTo.getDate() - 1);
+  var prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate() - (days - 1));
+  return { from: dateStrFromDate(prevFrom), to: dateStrFromDate(prevTo) };
+}
+
+// Percent change from `prev` to `cur`, with the "brand-new activity"/"no
+// change" edge cases the raw formula can't express (division by zero).
+export function trendPct(cur, prev) {
+  if (prev === 0) return cur === 0 ? { pct: 0, none: true } : { pct: 100, none: false };
+  return { pct: Math.round(((cur - prev) / prev) * 100), none: false };
+}
+
+// The single calendar date (within `range`) with the most visits, plus its
+// count -- for the Reports page's "Most Active Day" card. Ties keep the
+// earliest date. Returns null for an empty range.
+export function computeMostActiveDay(visits, range) {
+  var trend = computeDailyTrend(visits, range);
+  var bestIdx = -1, bestCount = -1;
+  trend.data.forEach(function (c, i) { if (c > bestCount) { bestCount = c; bestIdx = i; } });
+  if (bestIdx === -1 || bestCount <= 0) return null;
+  var d = new Date(range.from + "T00:00:00");
+  d.setDate(d.getDate() + bestIdx);
+  return { date: dateStrFromDate(d), count: bestCount };
+}
+
 export function computeDailyTrend(visits, range) {
   var counts = {};
   (visits || []).forEach(function (v) { if (inRange(v, range.from, range.to)) counts[v.date] = (counts[v.date] || 0) + 1; });

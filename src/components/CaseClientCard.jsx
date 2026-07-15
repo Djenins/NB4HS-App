@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 
-export default function CaseClientCard({ client, open, onToggle, onRemove, onAddNote, selected, onToggleSelect }) {
+export default function CaseClientCard({ client, open, onToggle, onRemove, selected, onToggleSelect }) {
   const { lang } = useApp();
   const t = useT();
   const name = clientDisplayName(client);
@@ -54,7 +54,7 @@ export default function CaseClientCard({ client, open, onToggle, onRemove, onAdd
             <div className="mb-3 flex flex-wrap gap-1.5">
               {(client.services || []).map((key) => <Badge key={key} variant="neutral">{caseServiceLabel(key, lang)}</Badge>)}
             </div>
-            <CaseNotesPanel client={client} onAddNote={onAddNote} />
+            <CaseNotesPanel client={client} />
           </td>
         </tr>
       )}

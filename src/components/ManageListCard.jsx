@@ -4,44 +4,31 @@
 import { useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { slugify } from "../lib/utils.js";
+import { createCustomOption, deleteCustomOption, setOptionDisabled } from "../lib/clientsData.js";
 
 export default function ManageListCard({ kind, title, list, disabled, placeholder }) {
-  const { data, setData, lang, showToast } = useApp();
+  const { lang, showToast } = useApp();
   const t = useT();
   const [input, setInput] = useState("");
 
-  const listKey = kind === "service" ? "customServices" : "customStaff";
-  const disabledKey = kind === "service" ? "disabledServices" : "disabledStaff";
-
-  function toggle(key, checked) {
-    setData((prev) => {
-      const arr = prev[disabledKey] || [];
-      const idx = arr.indexOf(key);
-      let next = arr;
-      if (checked && idx !== -1) next = arr.filter((k) => k !== key);
-      if (!checked && idx === -1) next = arr.concat([key]);
-      return Object.assign({}, prev, { [disabledKey]: next });
-    });
+  async function toggle(key, checked) {
+    // `checked` means "active" here (see the checkbox below) -- disabled
+    // when unchecked.
+    await setOptionDisabled(kind, key, !checked);
   }
 
-  function remove(key) {
-    setData((prev) => Object.assign({}, prev, {
-      [listKey]: (prev[listKey] || []).filter((i) => i.key !== key)
-    }));
+  async function remove(key) {
+    await deleteCustomOption(kind, key);
   }
 
-  function addNew() {
+  async function addNew() {
     const label = input.trim();
     if (!label) return;
-    setData((prev) => {
-      const existingKeys = list.map((i) => i.key);
-      let key = "custom_" + slugify(label);
-      let suffix = 1;
-      while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(label) + "_" + suffix; suffix++; }
-      return Object.assign({}, prev, {
-        [listKey]: (prev[listKey] || []).concat([{ key, en: label, ht: label, es: label, fr: label, custom: true }])
-      });
-    });
+    const existingKeys = list.map((i) => i.key);
+    let key = "custom_" + slugify(label);
+    let suffix = 1;
+    while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(label) + "_" + suffix; suffix++; }
+    await createCustomOption(kind, { key, en: label, ht: label, es: label, fr: label });
     setInput("");
     showToast(t("addNew") + " ✓");
   }
