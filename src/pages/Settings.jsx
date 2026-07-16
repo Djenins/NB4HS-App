@@ -58,7 +58,6 @@ export default function Settings() {
             <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletOnLoad")}</span></div>
             <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletEveryMinute")}</span></div>
             <div className="field" style={{ maxWidth: 220, marginTop: 16 }}>
-              <label>{t("closingTimeLabel")}</label>
               <input type="time" aria-label={t("closingTimeLabel")} value={closingTime} onChange={(e) => setClosingTime(e.target.value)} />
             </div>
             <button className="btn-primary" onClick={saveClosingTime}>{t("saveUrl")}</button>
