@@ -6,7 +6,7 @@
 // Layout mirrors the org's paper form: numbered sections in a two-column
 // masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
 // width at the end.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertTriangle, Briefcase, ChevronDown, ChevronUp, ClipboardList, FileText,
   Home, MapPin, Phone, Printer, ShieldCheck, Users, UsersRound,
@@ -123,50 +123,6 @@ function esc(v) {
   return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function buildPrintHtml(f) {
-  const row = (label, value) => "<div class=\"row\"><span class=\"lbl\">" + esc(label) + ":</span> <span class=\"val\">" + esc(value) + "</span></div>";
-  const list = (arr) => (arr && arr.length ? arr.map(esc).join(", ") : "—");
-  const childrenRows = f.children
-    .filter((c) => c.name.trim())
-    .map((c, i) => "<div class=\"row\">Child " + (i + 1) + ": " + esc(c.name) + " &mdash; Age " + esc(c.age) + ", " + esc(c.gender) + ", School: " + esc(c.school) + ", Grade: " + esc(c.grade) + ", Custody: " + esc(c.custody) + "</div>")
-    .join("");
-
-  return "<!doctype html><html><head><meta charset=\"utf-8\"><title>Client Intake Form - " + esc(f.fullName || "Unnamed") + "</title>" +
-    "<style>body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;padding:32px;max-width:800px;margin:0 auto}" +
-    "h1{font-size:18px;margin:0 0 4px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#2a5;margin:20px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px}" +
-    ".row{margin:3px 0}.lbl{font-weight:bold}@media print{body{padding:0}}</style></head><body>" +
-    "<h1>Case Manager / Client Intake Form</h1>" +
-    row("Intake Date", f.intakeDate) + row("U.S Entry Date", f.usEntryDate) +
-    "<h2>Personal Information</h2>" +
-    row("Name", f.fullName) + row("DOB", f.dob) + row("Gender", f.gender) +
-    row("Address", f.address) + row("City", f.city) + row("State", f.state) + row("Zip", f.zip) +
-    row("Telephone", f.phone) + row("Email", f.email) +
-    "<h2>Emergency Contact</h2>" +
-    row("Name", f.ecName) + row("Telephone", f.ecPhone) + row("Primary Language", f.primaryLanguage) +
-    row("Need Translator?", f.needTranslator) + row("Education", f.education) +
-    "<h2>Employment</h2>" +
-    row("Social Security Number", f.ssn) + row("Working?", f.working) +
-    row("Immigration Status", f.immigrationStatus + (f.immigrationStatusOther ? " (" + f.immigrationStatusOther + ")" : "")) +
-    row("Job Looking For", f.jobLookingFor) + row("Job Type", f.jobType) + row("Skills", f.skills) +
-    row("Owns a Car?", f.ownCar) + row("License Type", f.licenseType) +
-    "<h2>Additional Details</h2>" +
-    row("Marital Status", f.maritalStatus) + row("Identity Verification", f.identityVerification) +
-    row("Benefit", list(f.benefits)) + row("Medical Insurance?", f.medicalInsurance) +
-    row("Medical Health Condition", f.medicalHealthCondition + (f.medicalHealthOther ? " (" + f.medicalHealthOther + ")" : "")) +
-    row("Mental Health Condition", f.mentalHealthCondition + (f.mentalHealthOther ? " (" + f.mentalHealthOther + ")" : "")) +
-    "<h2>Barriers</h2>" + row("", list(f.barriers)) +
-    "<h2>Referral</h2>" + row("", list(f.referrals)) +
-    "<h2>Family Composition</h2>" + row("How many Children?", f.numChildren) + childrenRows +
-    row("Head of Household?", f.headOfHousehold) +
-    "<h2>Housing</h2>" + row("Housing Type", list(f.housingType)) + row("Bedrooms Needed", f.bedroomsNeeded) +
-    row("Preferred Location", f.preferredLocation) + row("Monthly Rent/Utilities Budget", f.monthlyBudget) +
-    row("Need Furniture?", f.needFurniture) +
-    "<h2>Authorization for Release of Information</h2>" + row("Authorized?", f.authorizeRelease) +
-    row("Client Name (Print)", f.clientName) + row("Client Signature", f.clientSignature) + row("Client Date", f.clientDate) +
-    row("Case Manager Name (Print)", f.caseManagerName) + row("Case Manager Signature", f.caseManagerSignature) + row("Case Manager Date", f.caseManagerDate) +
-    "</body></html>";
-}
-
 function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
   return (
     <button
@@ -200,6 +156,7 @@ function initialIntake(client) {
 
 export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [f, setF] = useState(() => initialIntake(client));
+  const printRef = useRef(null);
 
   function set(name, value) { setF((prev) => Object.assign({}, prev, { [name]: value })); }
   function toggleIn(name, opt) {
@@ -220,10 +177,49 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     setF((prev) => Object.assign({}, prev, { children: prev.children.concat([Object.assign({}, EMPTY_CHILD)]) }));
   }
 
+  // downloadFilledForm -- prints the form as it actually looks on screen
+  // (same section cards/badges/layout), not a plain label:value dump. React
+  // controlled inputs don't keep their live value in the DOM's `value`
+  // attribute, so it's copied over explicitly onto the clone before it's
+  // handed to the print window; everything else (classes, structure) is a
+  // straight clone, and the app's own stylesheet is copied into the print
+  // window's <head> so the Tailwind utility classes still resolve there.
   function downloadFilledForm() {
+    const source = printRef.current;
+    if (!source) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(buildPrintHtml(f));
+
+    const clone = source.cloneNode(true);
+    const originalFields = source.querySelectorAll("input, textarea, select");
+    const clonedFields = clone.querySelectorAll("input, textarea, select");
+    originalFields.forEach((orig, i) => {
+      const el = clonedFields[i];
+      if (!el) return;
+      if (orig.type === "checkbox" || orig.type === "radio") {
+        if (orig.checked) el.setAttribute("checked", "checked");
+        el.checked = orig.checked;
+      } else {
+        el.setAttribute("value", orig.value);
+        el.value = orig.value;
+      }
+      el.setAttribute("disabled", "disabled");
+    });
+
+    const headHtml = Array.from(document.querySelectorAll("head style, head link[rel='stylesheet']"))
+      .map((n) => n.outerHTML)
+      .join("");
+    const theme = document.documentElement.getAttribute("data-theme") || "";
+
+    win.document.write(
+      "<!doctype html><html data-theme=\"" + theme + "\"><head><meta charset=\"utf-8\">" +
+      "<title>Client Intake Form - " + esc(f.fullName || "Unnamed") + "</title>" +
+      headHtml +
+      "<style>body{background:var(--bg);padding:24px}@media print{body{padding:0}}</style>" +
+      "</head><body class=\"" + document.body.className + "\">" +
+      "<div class=\"mx-auto max-w-5xl space-y-5\">" + clone.innerHTML + "</div>" +
+      "</body></html>"
+    );
     win.document.close();
     win.focus();
     win.print();
@@ -244,6 +240,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       )}
       {showContent && (
         <CardContent className={bare ? "space-y-5" : "space-y-5 pt-0"}>
+          <div ref={printRef} className="space-y-5">
           <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Intake Date" type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
@@ -376,6 +373,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
               <Field label="Case Manager Date" type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
             </div>
           </Section>
+          </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button
