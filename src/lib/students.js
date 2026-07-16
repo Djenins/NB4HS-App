@@ -6,7 +6,7 @@
 // the Students page applies it via AppContext's setData.
 import { COLUMN_ACCENTS, WEEKDAYS } from "./constants.js";
 import { t } from "./i18n.js";
-import { downloadBlob, fullServiceList, genStudentId, labelFor, parseCSVText, uid } from "./utils.js";
+import { downloadBlob, fullServiceList, labelFor, parseCSVText } from "./utils.js";
 
 export function studentDisplayName(s) { return (s.lastName || "") + ", " + (s.firstName || ""); }
 // mode: "name" (default, A-Z by last/first) | "id" (Student ID ascending --
@@ -54,17 +54,17 @@ export function waitingListStudents(students) {
   return (students || []).filter(function (s) { return !s.classKey && s.active !== false; });
 }
 
-// Pure version of enrollStudent(): returns { student, nextStudentNumber } or
-// null if required fields are missing. The caller (Students.jsx, via
-// setData) appends `student` to data.students and stores the incremented
-// counter, same two things the original did to App.data directly.
-export function enrollStudent(fields, nextStudentNumber) {
+// Pure version of enrollStudent(): returns the fields to insert, or null if
+// required fields are missing. No `id`/`studentId` here anymore -- both are
+// assigned server-side on insert (a real Postgres uuid and the
+// next_student_display_id() sequence, respectively -- see checkinData.js's
+// createStudent()), so the caller just inserts and reads the assigned ids
+// back off the returned row.
+export function enrollStudent(fields) {
   var firstName = (fields.firstName || "").trim();
   var lastName = (fields.lastName || "").trim();
   if (!firstName || !lastName) return null;
-  var student = {
-    id: uid(),
-    studentId: genStudentId(nextStudentNumber),
+  return {
     firstName: firstName,
     lastName: lastName,
     phone: (fields.phone || "").trim(),
@@ -76,7 +76,6 @@ export function enrollStudent(fields, nextStudentNumber) {
     classKey: null,
     active: true
   };
-  return { student: student, nextStudentNumber: nextStudentNumber + 1 };
 }
 
 // Pure version of updateStudent(): returns the updated student object (or
@@ -133,19 +132,19 @@ export function downloadPastSessionTemplate() {
   downloadBlob(pastRosterCsvTemplateContent(), "NB4HS-Past-Session-Roster-Template.csv", "text/csv;charset=utf-8;");
 }
 
-// Pure version of importStudentRows(): given parsed CSV/Excel rows, the
-// existing roster, and the next student-id counter, returns the students to
-// append plus the new counter value and how many were added (duplicates --
-// same first/last/phone as an existing student -- are skipped, same as the
-// original).
-export function buildImportedStudents(rows, existingStudents, nextStudentNumber) {
+// Pure version of importStudentRows(): given parsed CSV/Excel rows and the
+// existing roster, returns the rows to insert (duplicates -- same
+// first/last/phone as an existing student -- are skipped, same as the
+// original). No `id`/`studentId` generation here anymore -- see
+// enrollStudent()'s comment above; the caller bulk-inserts via
+// createStudents() (checkinData.js) and both ids come back assigned.
+export function buildImportedStudents(rows, existingStudents) {
   if (!rows || rows.length < 2) return null;
   var existingKey = {};
   (existingStudents || []).forEach(function (s) {
     existingKey[(s.firstName + "|" + s.lastName + "|" + (s.phone || "")).toLowerCase()] = true;
   });
   var added = [];
-  var counter = nextStudentNumber;
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i];
     if (!r || !r.length) continue;
@@ -159,16 +158,18 @@ export function buildImportedStudents(rows, existingStudents, nextStudentNumber)
     if (!firstName && !lastName) continue;
     var key = (firstName + "|" + lastName + "|" + phone).toLowerCase();
     if (existingKey[key]) continue;
-    added.push({ id: uid(), studentId: genStudentId(counter), firstName: firstName, lastName: lastName, phone: phone, email: email, street: street, city: city, zip: zip, state: "RI", classKey: null, active: true });
-    counter += 1;
+    added.push({ firstName: firstName, lastName: lastName, phone: phone, email: email, street: street, city: city, zip: zip, state: "RI", classKey: null, active: true });
     existingKey[key] = true;
   }
-  return { added: added, nextStudentNumber: counter };
+  return { added: added };
 }
 
 // Pure version of importPastSessionRows(): returns the past-roster rows to
 // append plus how many classroom names in the sheet didn't match a real
-// classroom (still imported, just without a linked classKey).
+// classroom (still imported, just without a linked classKey). No `id`
+// generation here anymore -- the caller bulk-inserts via
+// createPastSessionStudents() (sessionsData.js), which gets a real
+// Postgres uuid back per row.
 export function buildImportedPastRoster(sessionId, rows, classes) {
   if (!rows || rows.length < 2) return null;
   var added = [];
@@ -188,7 +189,7 @@ export function buildImportedPastRoster(sessionId, rows, classes) {
     var matchedClass = (classes || []).filter(function (c) { return c.name.toLowerCase() === classroomText.toLowerCase(); })[0];
     if (classroomText && !matchedClass) unmatched++;
     added.push({
-      id: uid(), sessionId: sessionId, firstName: firstName, lastName: lastName, phone: phone, email: email,
+      sessionId: sessionId, firstName: firstName, lastName: lastName, phone: phone, email: email,
       street: street, city: city, zip: zip, state: "RI",
       classKey: matchedClass ? matchedClass.key : null, className: matchedClass ? matchedClass.name : classroomText
     });

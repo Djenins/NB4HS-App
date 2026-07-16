@@ -362,7 +362,7 @@ export default function JobDeveloper() {
           onToggle={(v) => setOpen("appointments", v)}
           meetingWith="job_developer"
           clientList={jobClients}
-          staffList={activeJobDevelopers(data.users)}
+          staffList={activeJobDevelopers(data.profiles)}
           staffLabelKey="apptJobDeveloperLabel"
         />
       </div>

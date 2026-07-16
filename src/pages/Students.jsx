@@ -22,8 +22,11 @@ import { CLASS_CAPACITY } from "../lib/constants.js";
 import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
 import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
-import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr, uid } from "../lib/utils.js";
+import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr } from "../lib/utils.js";
 import { createStudent, createStudents, deleteStudent, updateStudent } from "../lib/checkinData.js";
+import {
+  createPastSession, createPastSessionStudents, deleteSession as deleteSessionRow, startNewSession as startNewSessionRpc
+} from "../lib/sessionsData.js";
 import {
   buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
@@ -716,8 +719,8 @@ function EnrollStudentPanel() {
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   async function finalizeCreate(result, matchedClient) {
-    const created = await createStudent(result.student);
-    setData((prev) => Object.assign({}, attachClientToProgram(prev, "student", created, matchedClient), { nextStudentNumber: result.nextStudentNumber }));
+    const created = await createStudent(result);
+    setData((prev) => attachClientToProgram(prev, "student", created, matchedClient));
     setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
     setDupMatches(null);
     setPendingResult(null);
@@ -731,7 +734,7 @@ function EnrollStudentPanel() {
       return;
     }
     setErrors([]);
-    const result = enrollStudent(fields, data.nextStudentNumber || 1);
+    const result = enrollStudent(fields);
     if (!result) return;
     const matches = findPossibleDuplicates(fields, data.clients || []);
     if (matches.length) {
@@ -788,14 +791,14 @@ function UploadStudentsPanel() {
   const [fileName, setFileName] = useState("");
 
   async function importRows(rows) {
-    const result = buildImportedStudents(rows, data.students, data.nextStudentNumber || 1);
+    const result = buildImportedStudents(rows, data.students);
     if (!result) { showToast(t("importError")); return; }
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported row to the best existing master-client match or
     // create a new one, same as Case Management's CSV import.
     const created = await createStudents(result.added);
     setData((prev) => {
-      let next = Object.assign({}, prev, { nextStudentNumber: result.nextStudentNumber });
+      let next = prev;
       created.forEach((row) => {
         const matches = findPossibleDuplicates(row, next.clients || []);
         next = attachClientToProgram(next, "student", row, matches.length ? matches[0].client : null);
@@ -845,7 +848,7 @@ function UploadStudentsPanel() {
 }
 
 function PastSessionsPanel() {
-  const { data, setData, requestConfirm, showToast } = useApp();
+  const { data, requestConfirm, showToast } = useApp();
   const t = useT();
   const [expandedSessionId, setExpandedSessionId] = useState(null);
   const [start, setStart] = useState("");
@@ -862,29 +865,22 @@ function PastSessionsPanel() {
   async function deleteSession(id) {
     const ok = await requestConfirm(t("deleteSessionConfirm"), { danger: true });
     if (!ok) return;
-    setData((prev) => Object.assign({}, prev, {
-      sessionHistory: (prev.sessionHistory || []).filter((s) => s.id !== id),
-      pastSessionStudents: (prev.pastSessionStudents || []).filter((r) => r.sessionId !== id)
-    }));
+    await deleteSessionRow(id);
     setExpandedSessionId((cur) => (cur === id ? null : cur));
   }
 
-  function addPastSession() {
+  async function addPastSession() {
     if (!start || !end) { showToast(t("fixErrors")); return; }
     if (end <= start) { showToast(t("invalidDateRange")); return; }
-    setData((prev) => Object.assign({}, prev, {
-      sessionHistory: (prev.sessionHistory || []).concat([{ id: uid(), startDate: start, endDate: end }])
-    }));
+    await createPastSession({ startDate: start, endDate: end });
     setStart(""); setEnd("");
     showToast(t("pastSessionAdded"));
   }
 
-  function importPastRoster(rows) {
+  async function importPastRoster(rows) {
     const result = buildImportedPastRoster(pastSessionId, rows, data.classes);
     if (!result) { showToast(t("importError")); return; }
-    setData((prev) => Object.assign({}, prev, {
-      pastSessionStudents: (prev.pastSessionStudents || []).concat(result.added)
-    }));
+    await createPastSessionStudents(result.added);
     showToast(result.added.length + " " + t("pastStudentsImported") + (result.unmatched ? " (" + result.unmatched + " " + t("unmatchedClassroom") + ")" : ""));
   }
 
@@ -991,7 +987,7 @@ function PastSessionsPanel() {
 }
 
 export default function Students() {
-  const { data, lang, requestConfirm, setData, showToast } = useApp();
+  const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const location = useLocation();
   // Sidebar's "search a student" shortcut (Shell.jsx) hands its query here
@@ -1024,11 +1020,9 @@ export default function Students() {
     const ok = await requestConfirm(t("startNewSessionConfirm"));
     if (!ok) return;
     const start = todayStr();
-    setData((prev) => Object.assign({}, prev, {
-      sessionHistory: prev.currentSession ? (prev.sessionHistory || []).concat([prev.currentSession]) : (prev.sessionHistory || []),
-      currentSession: { id: uid(), startDate: start, endDate: addMonths(start, 3) }
-    }));
-    await Promise.all((data.students || []).map((s) => updateStudent(s.id, { classKey: null })));
+    // start_new_session() RPC does the archive-old/insert-new/clear-rosters
+    // sequence atomically server-side now -- see sessionsData.js.
+    await startNewSessionRpc(start, addMonths(start, 3));
     showToast(t("newSessionStarted"));
   }
 

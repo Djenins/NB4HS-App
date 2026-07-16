@@ -50,18 +50,6 @@ export async function updateProfile(id, patch) {
   return data;
 }
 
-// Users.jsx's local `data.users` mirror (kept only so the still-local
-// Case Management/Job Developer staff-assignment pickers keep working --
-// see the Phase 1 migration plan) can have `id`s that don't match the real
-// Supabase Auth id for the 3 hand-created seed accounts. Matching by email
-// instead sidesteps that mismatch for both the seed accounts and any new
-// ones created through Users.jsx's "Add User" (which does use the real id).
-export async function updateProfileByEmail(email, patch) {
-  const { data, error } = await supabase.from("profiles").update(patch).eq("email", email).select().maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 export function profileToSession(profile) {
   if (!profile) return null;
   return { role: profile.role, currentUserEmail: profile.email, currentUserName: profile.name };

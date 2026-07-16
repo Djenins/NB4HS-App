@@ -1,23 +1,23 @@
-// Users.jsx -- Administrator's staff-account management screen. Phase 1 of
-// the Supabase migration (see plans/wobbly-munching-rose.md): real login now
-// comes from a Supabase Auth account + `profiles` row, not a plaintext
-// `data.users` entry. `data.users` is kept as a *mirror* (name/email/role/
-// active, no password) purely so the still-local Case Management/Job
-// Developer "assign to staff member" pickers (activeCaseManagers/
-// activeJobDevelopers in lib/appointments.js) keep working unchanged --
-// full migration of those pickers to read `profiles` directly is Phase 2.
+// Users.jsx -- Administrator's staff-account management screen. Phase 3 of
+// the Supabase migration: reads the real `profiles` table live (via
+// AppContext's `data.profiles`, fetched + realtime-subscribed the same way
+// as the Phase 2 client lists) instead of a hand-synced local mirror --
+// the mirror only ever existed so the Case Management/Job Developer
+// "assign to staff member" pickers had something to read before `profiles`
+// was wired into AppContext; both now read `data.profiles` directly too
+// (see CaseManagement.jsx/JobDeveloper.jsx).
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ROLES } from "../lib/constants.js";
 import { paginateList } from "../lib/pagination.js";
 import { roleLabel } from "../lib/utils.js";
-import { signUpStaff, updateProfileByEmail } from "../lib/supabaseAuth.js";
+import { signUpStaff, updateProfile } from "../lib/supabaseAuth.js";
 import EmptyState from "../components/EmptyState.jsx";
 import Pagination from "../components/Pagination.jsx";
 
 export default function Users() {
-  const { data, lang, session, setData, showToast } = useApp();
+  const { data, lang, session, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -27,25 +27,22 @@ export default function Users() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState(ROLES[0]);
 
-  const paged = paginateList(data.users || [], page, pageSize);
+  const paged = paginateList(data.profiles || [], page, pageSize);
   const currentEmail = (session && session.currentUserEmail || "").toLowerCase();
 
   async function toggleActive(id, checked) {
-    const target = (data.users || []).find((u) => u.id === id);
-    setData((prev) => Object.assign({}, prev, {
-      users: prev.users.map((u) => (u.id === id ? Object.assign({}, u, { active: checked }) : u))
-    }));
-    if (target) await updateProfileByEmail(target.email, { active: checked }).catch(() => {});
+    await updateProfile(id, { active: checked }).catch(() => {});
   }
 
   // Deactivates rather than deletes the Supabase Auth account -- actually
   // deleting an auth user needs the Admin API (service-role key), which is
   // out of scope for this client-side app. Deactivating in `profiles` is
-  // enough: StaffLogin.jsx refuses to sign in an inactive profile.
+  // enough: StaffLogin.jsx refuses to sign in an inactive profile. (There's
+  // no local mirror row left to remove -- the realtime subscription on
+  // `profiles` picks the change up on its own.)
   async function deleteUser(u) {
     if (u.email.toLowerCase() === currentEmail) { showToast(t("cannotDeleteSelf")); return; }
-    setData((prev) => Object.assign({}, prev, { users: prev.users.filter((x) => x.id !== u.id) }));
-    await updateProfileByEmail(u.email, { active: false }).catch(() => {});
+    await updateProfile(u.id, { active: false }).catch(() => {});
   }
 
   // Self-service supabase.auth.signUp() doesn't need admin/service-role
@@ -59,13 +56,10 @@ export default function Users() {
     const trimmedEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { showToast(t("invalidEmail")); return; }
     if (!password) { showToast(t("fixErrors")); return; }
-    const exists = (data.users || []).some((u) => u.email.toLowerCase() === trimmedEmail);
+    const exists = (data.profiles || []).some((u) => u.email.toLowerCase() === trimmedEmail);
     if (exists) { showToast(t("duplicateEmail")); return; }
-    const { data: authData, error } = await signUpStaff(trimmedEmail, password, trimmedName, role);
+    const { error } = await signUpStaff(trimmedEmail, password, trimmedName, role);
     if (error) { showToast(error.message || t("fixErrors")); return; }
-    setData((prev) => Object.assign({}, prev, {
-      users: (prev.users || []).concat([{ id: authData.user.id, name: trimmedName, email: trimmedEmail, role, active: true }])
-    }));
     setName(""); setEmail(""); setPassword(""); setRole(ROLES[0]);
     showToast(t("newUserCreatedSignInAgain"));
     navigate("/staff-login");

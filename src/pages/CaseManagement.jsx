@@ -371,7 +371,7 @@ export default function CaseManagement() {
         onToggle={(v) => setOpen("appointments", v)}
         meetingWith="case_manager"
         clientList={data.caseClients || []}
-        staffList={activeCaseManagers(data.users)}
+        staffList={activeCaseManagers(data.profiles)}
         staffLabelKey="apptCaseManagerLabel"
       />
 

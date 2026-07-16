@@ -1,8 +1,8 @@
 // seed.js -- builds the demo dataset. Pure function now: returns the data
 // object instead of mutating a global App.data and calling save() itself.
 // The caller (AppContext's init effect) decides whether/when to persist it.
-import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_NAME, DEFAULT_CASE_MANAGER_EMAIL, DEFAULT_CASE_MANAGER_NAME, DEFAULT_CLASSES, DEFAULT_JOB_DEVELOPER_EMAIL, DEFAULT_JOB_DEVELOPER_NAME, SERVICES, STAFF } from "./constants.js";
-import { addMonths, dateStrFromDate, todayStr, uid } from "./utils.js";
+import { DEFAULT_CLASSES, SERVICES, STAFF } from "./constants.js";
+import { dateStrFromDate, todayStr, uid } from "./utils.js";
 
 export function buildSeedData() {
   var firstNames = ["Jean","Marie","Pierre","Wideline","Roseline","Fabiola","Jimmy","Nadège","Emmanuel","Guerline","Sherley","Wilkenson","Darlene","Ronald","Stephanie","Junior","Yolette","Frantz","Carline","Kettly","Michel","Rosemène","Wilson","Naomie","Djems"];
@@ -90,18 +90,18 @@ export function buildSeedData() {
     });
   }
 
-  var users = [
-    { id: uid(), name: DEFAULT_ADMIN_NAME, email: DEFAULT_ADMIN_EMAIL, role: "administrator", active: true },
-    { id: uid(), name: DEFAULT_CASE_MANAGER_NAME, email: DEFAULT_CASE_MANAGER_EMAIL, role: "case_manager", active: true },
-    { id: uid(), name: DEFAULT_JOB_DEVELOPER_NAME, email: DEFAULT_JOB_DEVELOPER_EMAIL, role: "job_developer", active: true }
-  ];
-
-  var sessionStart = todayStr();
-  var currentSession = { id: uid(), startDate: sessionStart, endDate: addMonths(sessionStart, 3) };
-
+  // NOTE: `users`/`currentSession`/`sessionHistory`/`pastSessionStudents`/
+  // `nextStudentNumber` used to be seeded here too, but as of the Phase 3
+  // Supabase migration all five are real Supabase-backed state (see
+  // AppContext.jsx) -- there's nothing left for a "demo data" blob to seed
+  // for them. Same is true of every other key returned below: visits/
+  // classes/students/customServices/customStaff/disabledServices/
+  // disabledStaff/caseClients/jobClients/appointments are all Supabase-backed
+  // too (Phase 1/2), so Settings.jsx's "Reset Demo Data" button, which feeds
+  // this straight into setData(), doesn't actually change anything anymore --
+  // setData strips every Supabase-backed key back out before persisting.
   return {
     visits: visits, customServices: [], customStaff: [], disabledServices: [], disabledStaff: [],
-    classes: classes, students: students, nextStudentNumber: 1, users: users, currentSession: currentSession,
-    sessionHistory: [], pastSessionStudents: [], caseClients: [], jobClients: [], appointments: []
+    classes: classes, students: students, caseClients: [], jobClients: [], appointments: []
   };
 }

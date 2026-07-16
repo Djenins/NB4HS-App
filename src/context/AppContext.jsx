@@ -14,20 +14,15 @@
 // mode itself (a flag that changes what the header/nav show) is simple
 // enough to seed here rather than block on routing.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import {
-  DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_NAME,
-  DEFAULT_CASE_MANAGER_EMAIL, DEFAULT_CASE_MANAGER_NAME,
-  DEFAULT_JOB_DEVELOPER_EMAIL, DEFAULT_JOB_DEVELOPER_NAME
-} from "../lib/constants.js";
 import { t } from "../lib/i18n.js";
 import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
-import { addMonths, todayStr, uid } from "../lib/utils.js";
 import { checkOutVisit, fetchClasses, fetchStudents, fetchVisits, subscribeTable } from "../lib/checkinData.js";
 import {
   fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
   fetchFoodClients, fetchJobClients, subscribeClientsTable
 } from "../lib/clientsData.js";
-import { fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
+import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } from "../lib/sessionsData.js";
+import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 
 const AppContext = createContext(null);
 
@@ -38,58 +33,27 @@ const AppContext = createContext(null);
 // mutating App.data in place.
 function normalizeData(raw) {
   var d = Object.assign({}, raw);
-  // NOTE: `classes`/`students` (Phase 1) and `clients`/`caseClients`/
+  // NOTE: `classes`/`students` (Phase 1), `clients`/`caseClients`/
   // `jobClients`/`foodClients`/`appointments`/`clientNotes`/
   // `clientDocuments`/`communications`/`customServices`/`customStaff`/
-  // `disabledServices`/`disabledStaff` (Phase 2) are no longer normalized/
-  // backfilled here -- they're all fetched live from Supabase now (see the
-  // state + subscriptions in AppProvider below) and merged onto this object
-  // under the same keys, so anything surviving in an old localStorage blob
-  // under those keys is simply ignored/overwritten.
-  // NOTE: no `password` field on `users` -- as of the Phase 1 Supabase
-  // migration this is just a mirror (name/email/role/active) kept so the
-  // still-local Case Management/Job Developer staff-assignment pickers
-  // keep working; real auth lives entirely in Supabase Auth + `profiles`.
-  d.nextStudentNumber = d.nextStudentNumber || 1;
-  d.users = (d.users && d.users.length) ? d.users.slice() : [
-    { id: uid(), name: DEFAULT_ADMIN_NAME, email: DEFAULT_ADMIN_EMAIL, role: "administrator", active: true }
-  ];
-  if (!d.users.some(function (u) { return u.role === "case_manager"; })) {
-    d.users.push({ id: uid(), name: DEFAULT_CASE_MANAGER_NAME, email: DEFAULT_CASE_MANAGER_EMAIL, role: "case_manager", active: true });
-  }
-  if (!d.users.some(function (u) { return u.role === "job_developer"; })) {
-    d.users.push({ id: uid(), name: DEFAULT_JOB_DEVELOPER_NAME, email: DEFAULT_JOB_DEVELOPER_EMAIL, role: "job_developer", active: true });
-  }
-  d.users = d.users.map(function (u) {
-    if (u.name) return u;
-    var local = (u.email || "").split("@")[0].replace(/[._-]+/g, " ").trim();
-    var name = local ? local.replace(/\w\S*/g, function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }) : "";
-    return Object.assign({}, u, { name: name });
-  });
-  d.sessionHistory = d.sessionHistory || [];
-  d.pastSessionStudents = (d.pastSessionStudents || []).map(function (r) {
-    var r2 = Object.assign({}, r);
-    if (r2.address !== undefined && r2.street === undefined) { r2.street = r2.address; delete r2.address; }
-    if (r2.street === undefined) r2.street = "";
-    if (r2.city === undefined) r2.city = "";
-    if (r2.zip === undefined) r2.zip = "";
-    r2.state = "RI";
-    return r2;
-  });
-
-  if (!d.currentSession) {
-    var sStart = todayStr();
-    d.currentSession = { id: uid(), startDate: sStart, endDate: addMonths(sStart, 3) };
-  }
+  // `disabledServices`/`disabledStaff` (Phase 2), and `users`/
+  // `currentSession`/`sessionHistory`/`pastSessionStudents`/
+  // `nextStudentNumber` (Phase 3) are no longer normalized/backfilled here --
+  // they're all fetched live from Supabase now (see the state + subscriptions
+  // in AppProvider below) and merged onto this object under the same keys,
+  // so anything surviving in an old localStorage blob under those keys is
+  // simply ignored/overwritten.
   return d;
 }
 
 function initialData() {
-  // `visits`/`students`/`classes` no longer come from here (Supabase is the
-  // source of truth for those, live-loaded in AppProvider below) -- so there's
-  // no more "is this a fresh browser that needs demo data seeded" question
-  // for them. Whatever's left in an existing blob (caseClients/jobClients/
-  // etc.) just gets normalized as before.
+  // `visits`/`students`/`classes`/`clients`/`caseClients`/`jobClients`/
+  // `foodClients`/`appointments`/`users`/`currentSession`/`sessionHistory`/
+  // `pastSessionStudents` no longer come from here (Supabase is the source of
+  // truth for all of them, live-loaded in AppProvider below) -- there's no
+  // "is this a fresh browser that needs demo data seeded" question left for
+  // the local blob at all; whatever's left in an existing one just gets
+  // normalized as before.
   var loaded = loadData();
   return normalizeData(loaded || {});
 }
@@ -184,6 +148,18 @@ export function AppProvider({ children }) {
   const [disabledServices, setDisabledServices] = useState([]);
   const [disabledStaff, setDisabledStaff] = useState([]);
 
+  // ---- Phase 3 Supabase migration: sessions/pastSessionStudents/profiles ----
+  // Same authenticated-only fetch-on-mount + subscription pattern as Phase 2
+  // above (the Students page and Users page are both staff-only, unreachable
+  // by the kiosk's anon session -- see src/lib/nav.js). `profiles` replaces
+  // the old `data.users` local mirror entirely: Users.jsx/CaseManagement.jsx/
+  // JobDeveloper.jsx now read real Supabase Auth profiles directly instead of
+  // a hand-synced copy.
+  const [currentSession, setCurrentSession] = useState(null);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [pastSessionStudents, setPastSessionStudents] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+
   useEffect(() => {
     // These tables are authenticated-only (no anon RLS policy) -- fetching
     // on plain mount (like Phase 1's visits/students/classes, which do have
@@ -205,11 +181,18 @@ export function AppProvider({ children }) {
       [() => fetchCustomOptions("service"), setCustomServices],
       [() => fetchCustomOptions("staff"), setCustomStaff],
       [() => fetchDisabledOptionKeys("service"), setDisabledServices],
-      [() => fetchDisabledOptionKeys("staff"), setDisabledStaff]
+      [() => fetchDisabledOptionKeys("staff"), setDisabledStaff],
+      [fetchCurrentSession, setCurrentSession],
+      [fetchSessionHistory, setSessionHistory],
+      [fetchPastSessionStudents, setPastSessionStudents],
+      [fetchAllProfiles, setProfiles]
     ];
     refetchers.forEach(([fetcher, setter]) => { fetcher().then((rows) => { if (!cancelled) setter(rows); }); });
 
-    const tables = ["clients", "case_clients", "job_clients", "food_clients", "appointments", "custom_options", "disabled_options"];
+    const tables = [
+      "clients", "case_clients", "job_clients", "food_clients", "appointments", "custom_options", "disabled_options",
+      "sessions", "past_session_students", "profiles"
+    ];
     const unsubs = tables.map((table) => subscribeClientsTable(table, () => {
       refetchers.forEach(([fetcher, setter]) => { fetcher().then((rows) => { if (!cancelled) setter(rows); }); });
     }));
@@ -220,9 +203,14 @@ export function AppProvider({ children }) {
     () => Object.assign({}, localData, {
       visits, students, classes,
       clients, caseClients, jobClients, foodClients, appointments,
-      customServices, customStaff, disabledServices, disabledStaff
+      customServices, customStaff, disabledServices, disabledStaff,
+      currentSession, sessionHistory, pastSessionStudents, profiles
     }),
-    [localData, visits, students, classes, clients, caseClients, jobClients, foodClients, appointments, customServices, customStaff, disabledServices, disabledStaff]
+    [
+      localData, visits, students, classes, clients, caseClients, jobClients, foodClients, appointments,
+      customServices, customStaff, disabledServices, disabledStaff,
+      currentSession, sessionHistory, pastSessionStudents, profiles
+    ]
   );
 
   // Every data mutation persists immediately, same as the original's
@@ -231,14 +219,17 @@ export function AppProvider({ children }) {
   // still-local part of `data`; everything Supabase-backed (Phase 1's
   // visits/students/classes, Phase 2's clients/caseClients/jobClients/
   // foodClients/appointments/customServices/customStaff/disabledServices/
-  // disabledStaff) writes through checkinData.js/clientsData.js functions
-  // instead (called directly by the pages that mutate them).
+  // disabledStaff, Phase 3's currentSession/sessionHistory/
+  // pastSessionStudents/profiles) writes through checkinData.js/
+  // clientsData.js/sessionsData.js/supabaseAuth.js functions instead (called
+  // directly by the pages that mutate them).
   const setData = useCallback((updater) => {
     setDataRaw((prev) => {
       const prevMerged = Object.assign({}, prev, {
         visits, students, classes,
         clients, caseClients, jobClients, foodClients, appointments,
-        customServices, customStaff, disabledServices, disabledStaff
+        customServices, customStaff, disabledServices, disabledStaff,
+        currentSession, sessionHistory, pastSessionStudents, profiles
       });
       const nextMerged = typeof updater === "function" ? updater(prevMerged) : updater;
       // Strip the Supabase-backed keys back out before persisting to
@@ -247,13 +238,18 @@ export function AppProvider({ children }) {
       [
         "visits", "students", "classes",
         "clients", "caseClients", "jobClients", "foodClients", "appointments",
-        "customServices", "customStaff", "disabledServices", "disabledStaff"
+        "customServices", "customStaff", "disabledServices", "disabledStaff",
+        "currentSession", "sessionHistory", "pastSessionStudents", "profiles"
       ].forEach((key) => delete next[key]);
       saveData(next);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visits, students, classes, clients, caseClients, jobClients, foodClients, appointments, customServices, customStaff, disabledServices, disabledStaff]);
+  }, [
+    visits, students, classes, clients, caseClients, jobClients, foodClients, appointments,
+    customServices, customStaff, disabledServices, disabledStaff,
+    currentSession, sessionHistory, pastSessionStudents, profiles
+  ]);
 
   useEffect(() => { applyTheme(config.theme); }, [config.theme]);
 

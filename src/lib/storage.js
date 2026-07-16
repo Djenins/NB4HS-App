@@ -2,7 +2,7 @@
 // functions (no global singleton, no HTML-string building -- the theme
 // toggle button is now a real component, see components/ThemeToggle.jsx).
 // AppContext calls these; nothing else needs to touch localStorage directly.
-import { CFG_KEY, DEFAULT_CHECKIN_URL, SESSION_KEY, STORE_KEY } from "./constants.js";
+import { CFG_KEY, DEFAULT_CHECKIN_URL, STORE_KEY } from "./constants.js";
 
 export function saveData(data) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { console.warn("save failed", e); }
@@ -31,25 +31,4 @@ export function setConfig(cfg) {
 export function applyTheme(theme) {
   if (theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
   else document.documentElement.removeAttribute("data-theme");
-}
-// Session persistence: who's logged in survives a page refresh. Still
-// client-side-only (see README) -- it just remembers the last signed-in
-// staff member so a refresh doesn't silently boot them back to the login
-// screen. Returns the raw saved session or null; AppContext + the router
-// are responsible for validating the user still exists/is active and for
-// deciding which route to land on.
-export function saveSession(session) {
-  try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) { console.warn("session save failed", e); }
-}
-export function loadSession() {
-  try {
-    var raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    var sess = JSON.parse(raw);
-    if (!sess || !sess.role || !sess.currentUserEmail) return null;
-    return sess;
-  } catch (e) { console.warn("session load failed", e); return null; }
-}
-export function clearSession() {
-  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
 }
