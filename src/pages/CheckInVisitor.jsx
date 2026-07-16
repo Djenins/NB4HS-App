@@ -11,6 +11,7 @@ import { US_STATES } from "../lib/constants.js";
 import { activeServiceList, activeStaffList, fmtTime, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
 import FormField from "../components/FormField.jsx";
+import Icon from "../components/Icon.jsx";
 
 export default function CheckInVisitor() {
   const { data, lang, showToast } = useApp();
@@ -69,12 +70,21 @@ export default function CheckInVisitor() {
     <div className="kiosk-wrap">
       <div className="card">
         <button className="btn-ghost no-print" style={{ marginBottom: 14 }} onClick={() => navigate("/checkin")}>&larr; {t("back")}</button>
-        <h1>{t("checkInFormTitle")}</h1>
+        <div className="page-header">
+          <div className="icon-badge round"><Icon name="user" /></div>
+          <div>
+            <h1>{t("checkInFormTitle")}</h1>
+            <p className="muted">{t("checkInFormSubtitle")}</p>
+          </div>
+        </div>
         <form ref={formRef} onSubmit={handleSubmit} noValidate>
           <div className="form-section">
-            <div className="form-section-head">
-              <h3>{t("sectionVisitorInfo")}</h3>
-              <p>{t("sectionVisitorInfoDesc")}</p>
+            <div className="form-section-head-row">
+              <div className="icon-badge round"><Icon name="user" /></div>
+              <div className="form-section-head">
+                <h3>{t("sectionVisitorInfo")}</h3>
+                <p>{t("sectionVisitorInfoDesc")}</p>
+              </div>
             </div>
             <div className="form-section-body">
               <div className="grid grid-2">
@@ -93,9 +103,12 @@ export default function CheckInVisitor() {
           </div>
 
           <div className="form-section">
-            <div className="form-section-head">
-              <h3>{t("sectionAddress")}</h3>
-              <p>{t("sectionAddressDesc")}</p>
+            <div className="form-section-head-row">
+              <div className="icon-badge round accent"><Icon name="mappin" /></div>
+              <div className="form-section-head">
+                <h3>{t("sectionAddress")}</h3>
+                <p>{t("sectionAddressDesc")}</p>
+              </div>
             </div>
             <div className="form-section-body">
               <FormField name="address" label={t("address")} required invalid={isInvalid("address")} />
@@ -113,9 +126,12 @@ export default function CheckInVisitor() {
           </div>
 
           <div className="form-section">
-            <div className="form-section-head">
-              <h3>{t("sectionVisitDetails")}</h3>
-              <p>{t("sectionVisitDetailsDesc")}</p>
+            <div className="form-section-head-row">
+              <div className="icon-badge round violet"><Icon name="reports" /></div>
+              <div className="form-section-head">
+                <h3>{t("sectionVisitDetails")}</h3>
+                <p>{t("sectionVisitDetailsDesc")}</p>
+              </div>
             </div>
             <div className="form-section-body">
               <div className="field">
@@ -149,7 +165,18 @@ export default function CheckInVisitor() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary btn-lg">{t("submit")}</button>
+          <div className="form-section checkin-footer">
+            <div className="form-section-head-row">
+              <div className="icon-badge round success"><Icon name="check" /></div>
+              <div className="form-section-head">
+                <h3>{t("thankYou")}</h3>
+                <p>{t("thankYouDesc")}</p>
+              </div>
+            </div>
+            <div className="form-section-body">
+              <button type="submit" className="btn-primary btn-lg">{t("submit")}</button>
+            </div>
+          </div>
         </form>
       </div>
     </div>

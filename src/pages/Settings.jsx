@@ -5,6 +5,7 @@
 // auto-checkout sweep immediately, same as the original, so changing the
 // closing time to something already in the past checks people out right away.
 import { useState } from "react";
+import { AlertTriangle, Briefcase, Building2, CheckCircle2, ChevronRight, Clock, Info, ShieldCheck, Trash2, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { buildSeedData } from "../lib/seed.js";
 
@@ -14,11 +15,11 @@ export default function Settings() {
   const [closingTime, setClosingTime] = useState(config.closingTime || "17:00");
 
   const rolePermissionRows = [
-    [t("roleAdmin"), t("roleAdminDesc")],
-    [t("roleStaff"), t("roleStaffDesc")],
-    [t("roleReceptionist"), t("roleReceptionistDesc")],
-    [t("roleCaseManager"), t("roleCaseManagerDesc")],
-    [t("roleJobDeveloper"), t("roleJobDeveloperDesc")]
+    [t("roleAdmin"), t("roleAdminDesc"), <Users className="icon" />, "accent"],
+    [t("roleStaff"), t("roleStaffDesc"), <UserRound className="icon" />, "violet"],
+    [t("roleReceptionist"), t("roleReceptionistDesc"), <Building2 className="icon" />, "success"],
+    [t("roleCaseManager"), t("roleCaseManagerDesc"), <Briefcase className="icon" />, "warn"],
+    [t("roleJobDeveloper"), t("roleJobDeveloperDesc"), <Briefcase className="icon" />, ""]
   ];
 
   function saveClosingTime() {
@@ -39,30 +40,76 @@ export default function Settings() {
 
   return (
     <>
-      <h1>{t("settingsTitle")}</h1>
+      <div>
+        <h1>{t("settingsTitle")}</h1>
+        <p className="muted" style={{ marginTop: -8 }}>{t("settingsSubtitle")}</p>
+      </div>
+
       <div className="card">
         <div className="form-section" style={{ padding: 0, border: "none" }}>
-          <div className="form-section-head">
-            <h3>{t("closingTimeLabel")}</h3>
-            <p>{t("closingTimeDesc")}</p>
+          <div className="form-section-head-row">
+            <div className="icon-badge"><Clock className="icon" /></div>
+            <div className="form-section-head">
+              <h3>{t("closingTimeLabel")}</h3>
+              <p>{t("closingTimeDesc")}</p>
+            </div>
           </div>
           <div className="form-section-body">
-            <div className="field" style={{ maxWidth: 220 }}>
+            <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletOnLoad")}</span></div>
+            <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletEveryMinute")}</span></div>
+            <div className="field" style={{ maxWidth: 220, marginTop: 16 }}>
+              <label>{t("closingTimeLabel")}</label>
               <input type="time" aria-label={t("closingTimeLabel")} value={closingTime} onChange={(e) => setClosingTime(e.target.value)} />
             </div>
             <button className="btn-primary" onClick={saveClosingTime}>{t("saveUrl")}</button>
+            <p className="muted" style={{ fontSize: ".82rem", marginTop: 10 }}>{t("closingTimeSavedAuto")}</p>
           </div>
         </div>
       </div>
+
       <div className="card">
-        <h3>{t("rolePermissions")}</h3>
-        {rolePermissionRows.map(([label, desc]) => (
-          <div className="kv" key={label}><strong>{label}</strong><span className="muted">{desc}</span></div>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
+          <div className="icon-badge"><ShieldCheck className="icon" /></div>
+          <div>
+            <h3 style={{ margin: 0 }}>{t("rolePermissions")}</h3>
+          </div>
+        </div>
+        {rolePermissionRows.map(([label, desc, icon, variant]) => (
+          <div className="role-row" key={label}>
+            <div className={"icon-badge round" + (variant ? " " + variant : "")}>{icon}</div>
+            <div className="role-row-body">
+              <strong>{label}</strong>
+              <p>{desc}</p>
+            </div>
+            <ChevronRight className="icon icon-chevron" />
+          </div>
         ))}
       </div>
-      <div className="card">
-        <h3>{t("prototypeNotice")}</h3>
-        <button className="btn-accent" onClick={resetDemoData}>{t("resetDemoData")}</button>
+
+      <div className="card card-danger">
+        <div className="flex-between" style={{ alignItems: "flex-start", gap: 20 }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+            <div className="icon-badge accent"><AlertTriangle className="icon" /></div>
+            <div>
+              <h3 style={{ margin: 0, color: "var(--accent-dark)" }}>{t("developmentModeTitle")}</h3>
+              <p className="muted" style={{ margin: "4px 0 0", fontSize: ".9rem", maxWidth: 480 }}>{t("prototypeNotice")}</p>
+            </div>
+          </div>
+          <div style={{ textAlign: "right", flex: "0 0 auto" }}>
+            <button className="btn-outline-danger" onClick={resetDemoData}>
+              <Trash2 className="icon" style={{ marginRight: 6 }} /> {t("resetDemoData")}
+            </button>
+            <p className="muted" style={{ fontSize: ".8rem", marginTop: 8 }}>{t("resetDemoDataDesc")}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="info-callout">
+        <Info className="icon" />
+        <div>
+          <strong>{t("aboutPrototypeTitle")}</strong>
+          <p>{t("aboutPrototypeDesc")}</p>
+        </div>
       </div>
     </>
   );

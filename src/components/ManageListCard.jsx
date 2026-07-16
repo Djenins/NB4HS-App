@@ -2,19 +2,42 @@
 // active, delete a custom entry, add a new custom entry). Ported from
 // manage.js's manageListCard(). Used twice on the Manage page, once per kind.
 import { useState } from "react";
+import { CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { slugify } from "../lib/utils.js";
 import { createCustomOption, deleteCustomOption, setOptionDisabled } from "../lib/clientsData.js";
 
-export default function ManageListCard({ kind, title, list, disabled, placeholder }) {
+export default function ManageListCard({ kind, icon, title, description, list, disabled, placeholder }) {
   const { lang, showToast } = useApp();
   const t = useT();
   const [input, setInput] = useState("");
+  // Local overrides so a click flips the pill immediately instead of
+  // waiting on the round trip + realtime refetch (which can lag enough to
+  // read as "the toggle doesn't do anything").  Cleared once the refetched
+  // `disabled` prop agrees; reverted if the write fails.
+  const [overrides, setOverrides] = useState({});
+
+  const isKeyDisabled = (key) => (key in overrides ? overrides[key] : disabled.indexOf(key) !== -1);
+  const activeCount = list.filter((item) => !isKeyDisabled(item.key)).length;
 
   async function toggle(key, checked) {
-    // `checked` means "active" here (see the checkbox below) -- disabled
-    // when unchecked.
-    await setOptionDisabled(kind, key, !checked);
+    // `checked` means "active" here -- disabled when unchecked.
+    const nextDisabled = !checked;
+    setOverrides((prev) => Object.assign({}, prev, { [key]: nextDisabled }));
+    try {
+      await setOptionDisabled(kind, key, nextDisabled);
+      // Leave the override in place (rather than clearing it right away) so
+      // the pill doesn't flicker back to the stale prop value while the
+      // realtime refetch is still in flight -- it'll agree once it lands.
+    } catch (err) {
+      setOverrides((prev) => {
+        const next = Object.assign({}, prev);
+        delete next[key];
+        return next;
+      });
+      showToast(t("manageToggleError"));
+      throw err;
+    }
   }
 
   async function remove(key) {
@@ -35,28 +58,47 @@ export default function ManageListCard({ kind, title, list, disabled, placeholde
 
   return (
     <div className="card">
-      <h3>{title}</h3>
-      {list.map((item) => {
-        const isDisabled = disabled.indexOf(item.key) !== -1;
-        return (
-          <div className="kv" key={item.key}>
-            <span>
-              {item[lang] || item.en}
-              {item.custom && <span className="badge badge-in" style={{ marginLeft: 6 }}>{t("customLabel")}</span>}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 500, margin: 0 }}>
-                <input type="checkbox" checked={!isDisabled} onChange={(e) => toggle(item.key, e.target.checked)} />
-                {isDisabled ? t("inactiveLabel") : t("activeLabel")}
-              </label>
-              {item.custom && (
-                <button className="btn-ghost btn-sm btn-outline-danger" onClick={() => remove(item.key)}>{t("deleteLabel")}</button>
-              )}
-            </span>
+      <div className="flex-between" style={{ marginBottom: 6 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div className="icon-badge">{icon}</div>
+          <div>
+            <h3 style={{ margin: 0 }}>{title}</h3>
+            <p className="muted" style={{ margin: "4px 0 0", fontSize: ".88rem" }}>{description}</p>
           </div>
-        );
-      })}
-      <div className="field" style={{ marginTop: 14, display: "flex", gap: 10, alignItems: "flex-end" }}>
+        </div>
+        <span className="badge badge-in">{activeCount} {t("activeCountLabel")}</span>
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        {list.map((item) => {
+          const isDisabled = isKeyDisabled(item.key);
+          return (
+            <div className="kv" key={item.key}>
+              <span>
+                {item[lang] || item.en}
+                {item.custom && <span className="badge badge-in" style={{ marginLeft: 6 }}>{t("customLabel")}</span>}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  className={"btn-icon status-toggle" + (isDisabled ? " status-toggle-off" : " status-toggle-on")}
+                  onClick={() => toggle(item.key, isDisabled)}
+                >
+                  {isDisabled ? <Circle className="icon" /> : <CheckCircle2 className="icon" />}
+                  {isDisabled ? t("inactiveLabel") : t("activeLabel")}
+                </button>
+                {item.custom && (
+                  <button type="button" className="btn-icon btn-icon-danger" onClick={() => remove(item.key)} aria-label={t("deleteLabel")}>
+                    <Trash2 className="icon" />
+                  </button>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="field" style={{ marginTop: 14, marginBottom: 0, display: "flex", gap: 10, alignItems: "center" }}>
         <div style={{ flex: 1 }}>
           <input type="text" placeholder={placeholder} aria-label={placeholder} value={input} onChange={(e) => setInput(e.target.value)} />
         </div>
