@@ -5,7 +5,7 @@
 // calendar_events actually stores.
 import { AnimatePresence, motion } from "framer-motion";
 import { Copy, FileText, Link2, Pencil, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KIND_STYLE } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
@@ -22,7 +22,7 @@ function Field({ label, value }) {
   );
 }
 
-export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDuplicate }) {
+export default function EventDrawer({ block, t, openInEditMode, onClose, onSave, onDelete, onDuplicate }) {
   const [editing, setEditing] = useState(false);
   const [fields, setFields] = useState(null);
 
@@ -33,6 +33,7 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
 
   function startEdit() {
     setFields({
+      type: block.kind,
       title: block.title,
       personName: block.event?.personName || "",
       notes: block.event?.notes || "",
@@ -44,6 +45,18 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
     setEditing(true);
   }
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+  const canSave = editing && fields.title.trim() && fields.date && fields.startTime;
+
+  // The pencil icon on an EventCard opens the drawer straight into edit
+  // mode (openInEditMode); clicking the card body opens it read-only. Runs
+  // per block so switching to a different event while the drawer is
+  // already open resets edit state instead of leaking the previous one.
+  useEffect(() => {
+    if (!block) return;
+    if (openInEditMode && editable) startEdit();
+    else setEditing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [block?.key, openInEditMode]);
 
   return (
     <AnimatePresence onExitComplete={() => setEditing(false)}>
@@ -110,11 +123,20 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
 
             {block && editing && (
               <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")}</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} /></div>
+                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} /></div>
                 <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarPersonName")}</label><input className={inputClass} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} /></div>
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDate")}</label><input type="date" className={inputClass} value={fields.date} onChange={(e) => setField("date", e.target.value)} /></div>
+                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDate")} *</label><input type="date" className={inputClass} value={fields.date} onChange={(e) => setField("date", e.target.value)} /></div>
+                {fields.type === "appointment" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarAvailability")}</label>
+                    <select className={inputClass} value={fields.availability} onChange={(e) => setField("availability", e.target.value)}>
+                      <option value="busy">{t("calendarBusy")}</option>
+                      <option value="available">{t("calendarAvailable")}</option>
+                    </select>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarStartTime")}</label><input type="time" className={inputClass} value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} /></div>
+                  <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarStartTime")} *</label><input type="time" className={inputClass} value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} /></div>
                   <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEndTime")}</label><input type="time" className={inputClass} value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} /></div>
                 </div>
                 <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label><input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} /></div>
@@ -126,7 +148,7 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
                 {editing ? (
                   <>
                     <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>{t("calendarCancel")}</Button>
-                    <Button size="sm" onClick={() => { onSave(block.event.id, fields); setEditing(false); }}>{t("calendarSave")}</Button>
+                    <Button size="sm" disabled={!canSave} onClick={() => { onSave(block.event.id, fields); setEditing(false); }}>{t("calendarSave")}</Button>
                   </>
                 ) : editable ? (
                   <>
