@@ -15,7 +15,11 @@ export function loadData() {
   return null;
 }
 export function getConfig() {
-  var defaults = { checkInUrl: DEFAULT_CHECKIN_URL, closingTime: "17:00", theme: "light", sidebarCollapsed: false };
+  var defaults = {
+    checkInUrl: DEFAULT_CHECKIN_URL, closingTime: "17:00", theme: "light", sidebarCollapsed: false,
+    calendarDefaultView: "week", calendarWeekStartsMonday: false, calendarDefaultFilter: "all",
+    calendarClassStartTime: "09:30", calendarClassEndTime: "12:30"
+  };
   try {
     var raw = localStorage.getItem(CFG_KEY);
     if (raw) return Object.assign({}, defaults, JSON.parse(raw));

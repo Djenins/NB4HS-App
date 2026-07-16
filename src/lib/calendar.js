@@ -6,11 +6,13 @@
 export var CLASS_START_TIME = "09:30";
 export var CLASS_END_TIME = "12:30";
 
-// Sunday-first week (matches WEEKDAYS in constants.js / Date.getDay()).
-export function startOfWeek(date) {
+// Week start defaults to Sunday (matches WEEKDAYS in constants.js /
+// Date.getDay()); pass startDay=1 for a Monday-first week (Calendar Settings).
+export function startOfWeek(date, startDay) {
+  var start = startDay || 0;
   var d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay());
+  d.setDate(d.getDate() - ((d.getDay() - start + 7) % 7));
   return d;
 }
 
@@ -29,11 +31,13 @@ export function weekDays(weekStart) {
 // Every active, in-person class (Online has no fixed days -- see
 // DEFAULT_CLASSES in constants.js) that meets on the given JS weekday
 // (0=Sun..6=Sat), as a calendar block.
-export function classBlocksForDay(classes, weekday) {
+export function classBlocksForDay(classes, weekday, startTime, endTime) {
+  var start = startTime || CLASS_START_TIME;
+  var end = endTime || CLASS_END_TIME;
   return (classes || [])
     .filter(function (c) { return c.active !== false && (c.days || []).indexOf(weekday) !== -1; })
     .map(function (c) {
-      return { key: "class_" + c.key, kind: "class", title: c.name, startTime: CLASS_START_TIME, endTime: CLASS_END_TIME };
+      return { key: "class_" + c.key, kind: "class", title: c.name, startTime: start, endTime: end };
     });
 }
 

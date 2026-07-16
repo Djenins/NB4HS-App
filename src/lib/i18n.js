@@ -831,7 +831,15 @@ export var STR = {
   calendarQuickAddTitle: { en: "Quick Add", ht: "Ajoute Rapid", es: "Agregar Rápido", fr: "Ajout Rapide" },
   calendarQuickAddBody: { en: "Add a new office visit or appointment quickly.", ht: "Ajoute yon vizit biwo oswa randevou rapidman.", es: "Agregue rápidamente una nueva visita a la oficina o cita.", fr: "Ajoutez rapidement une nouvelle visite au bureau ou un rendez-vous." },
   calendarSummaryTitle: { en: "Calendar Summary", ht: "Rezime Kalandriye", es: "Resumen del Calendario", fr: "Résumé du Calendrier" },
-  calendarSummaryDays: { en: "Days", ht: "Jou", es: "Días", fr: "Jours" }
+  calendarSummaryDays: { en: "Days", ht: "Jou", es: "Días", fr: "Jours" },
+  calendarSettingsDesc: { en: "Configure defaults for this shared calendar.", ht: "Konfigire paramèt pa defo pou kalandriye pataje sa a.", es: "Configure los valores predeterminados de este calendario compartido.", fr: "Configurez les paramètres par défaut de ce calendrier partagé." },
+  calendarDefaultViewLabel: { en: "Default view", ht: "Vi pa defo", es: "Vista predeterminada", fr: "Vue par défaut" },
+  calendarWeekStartsLabel: { en: "Week starts on", ht: "Semèn kòmanse", es: "La semana comienza el", fr: "La semaine commence le" },
+  calendarStartsSunday: { en: "Sunday", ht: "Dimanch", es: "Domingo", fr: "Dimanche" },
+  calendarStartsMonday: { en: "Monday", ht: "Lendi", es: "Lunes", fr: "Lundi" },
+  calendarDefaultFilterLabel: { en: "Default event filter", ht: "Filtè evènman pa defo", es: "Filtro de eventos predeterminado", fr: "Filtre d'événements par défaut" },
+  calendarClassTimesLabel: { en: "Class time block", ht: "Blòk lè klas", es: "Bloque de horario de clases", fr: "Plage horaire des cours" },
+  calendarClassTimesDesc: { en: "Applies to every class shown on the calendar.", ht: "Aplike a chak klas ki montre sou kalandriye a.", es: "Se aplica a todas las clases mostradas en el calendario.", fr: "S'applique à tous les cours affichés dans le calendrier." }
 };
 
 export function t(key, lang) {

@@ -75,8 +75,69 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
           <input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
         </div>
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("calendarCancel")}</button>
+          <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
           <Button disabled={!fields.title.trim() || !fields.date || !fields.startTime} onClick={() => onSave(Object.assign({}, fields, { type, createdByName }))}>{t("calendarSave")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarSettingsModal({ config, onSave, onCancel }) {
+  const t = useT();
+  const [defaultView, setDefaultView] = useState(config.calendarDefaultView || "week");
+  const [weekStartsMonday, setWeekStartsMonday] = useState(!!config.calendarWeekStartsMonday);
+  const [defaultFilter, setDefaultFilter] = useState(config.calendarDefaultFilter || "all");
+  const [classStartTime, setClassStartTime] = useState(config.calendarClassStartTime || "09:30");
+  const [classEndTime, setClassEndTime] = useState(config.calendarClassEndTime || "12:30");
+
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal-box max-w-md" role="dialog" aria-modal="true">
+        <p className="mb-1 text-base font-bold text-card-foreground">{t("calendarSettings")}</p>
+        <p className="mb-4 text-xs text-muted">{t("calendarSettingsDesc")}</p>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDefaultViewLabel")}</label>
+          <select className={inputClass} value={defaultView} onChange={(e) => setDefaultView(e.target.value)}>
+            <option value="week">{t("calendarWeekView")}</option>
+            <option value="list">{t("calendarListView")}</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarWeekStartsLabel")}</label>
+          <select className={inputClass} value={weekStartsMonday ? "monday" : "sunday"} onChange={(e) => setWeekStartsMonday(e.target.value === "monday")}>
+            <option value="sunday">{t("calendarStartsSunday")}</option>
+            <option value="monday">{t("calendarStartsMonday")}</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDefaultFilterLabel")}</label>
+          <select className={inputClass} value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)}>
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{t(f.label)}</option>)}
+          </select>
+        </div>
+
+        <div className="mb-1">
+          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarClassTimesLabel")}</label>
+          <p className="mb-1.5 text-xs text-muted">{t("calendarClassTimesDesc")}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="time" className={inputClass} value={classStartTime} onChange={(e) => setClassStartTime(e.target.value)} />
+            <input type="time" className={inputClass} value={classEndTime} onChange={(e) => setClassEndTime(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
+          <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
+          <Button onClick={() => onSave({
+            calendarDefaultView: defaultView,
+            calendarWeekStartsMonday: weekStartsMonday,
+            calendarDefaultFilter: defaultFilter,
+            calendarClassStartTime: classStartTime,
+            calendarClassEndTime: classEndTime
+          })}>{t("calendarSave")}</Button>
         </div>
       </div>
     </div>
@@ -122,14 +183,18 @@ function EventCard({ block, onDelete, t }) {
 }
 
 export default function CalendarPage() {
-  const { data, session, requestConfirm, showToast } = useApp();
+  const { data, session, config, updateConfig, requestConfirm, showToast } = useApp();
   const t = useT();
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const weekStartDay = config.calendarWeekStartsMonday ? 1 : 0;
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), weekStartDay));
   const [events, setEvents] = useState([]);
-  const [filter, setFilter] = useState("all");
-  const [view, setView] = useState("week");
+  const [filter, setFilter] = useState(config.calendarDefaultFilter || "all");
+  const [view, setView] = useState(config.calendarDefaultView || "week");
   const [addModalType, setAddModalType] = useState(null);
   const [addModalDate, setAddModalDate] = useState(todayStr());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => { setWeekStart((prev) => startOfWeek(prev, weekStartDay)); }, [weekStartDay]);
 
   const days = weekDays(weekStart);
   const rangeStart = dateStrFromDate(days[0]);
@@ -165,14 +230,14 @@ export default function CalendarPage() {
   const dayBlocks = useMemo(() => {
     return days.map((d) => {
       const dateStr = dateStrFromDate(d);
-      const classBlocks = classBlocksForDay(data.classes, d.getDay());
+      const classBlocks = classBlocksForDay(data.classes, d.getDay(), config.calendarClassStartTime, config.calendarClassEndTime);
       const dayEvents = events.filter((e) => e.date === dateStr);
       const blocks = sortDayBlocks(
         classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, event: e })))
       );
       return { date: d, dateStr, blocks: filter === "all" ? blocks : blocks.filter((b) => b.kind === filter) };
     });
-  }, [days, data.classes, events, filter]);
+  }, [days, data.classes, events, filter, config.calendarClassStartTime, config.calendarClassEndTime]);
 
   const summary = useMemo(() => {
     let classes = 0, visits = 0, appointments = 0;
@@ -192,7 +257,7 @@ export default function CalendarPage() {
           <p className="text-sm text-muted">{t("calendarSubtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setWeekStart(startOfWeek(new Date()))}>
+          <Button variant="secondary" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), weekStartDay))}>
             <CalendarDays className="mr-1.5 h-4 w-4" />{t("calendarToday")}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label={t("calendarPrevWeek")}>
@@ -219,7 +284,7 @@ export default function CalendarPage() {
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "flex min-h-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                   active
                     ? f.key === "all" ? "border-primary bg-primary text-primary-foreground" : cn("border-transparent", f.style.chipBg, f.style.chipFg)
                     : "border-border bg-background text-muted hover:text-card-foreground"
@@ -232,10 +297,10 @@ export default function CalendarPage() {
           })}
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
-          <button type="button" onClick={() => setView("week")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold", view === "week" ? "bg-primary text-primary-foreground" : "text-muted hover:text-card-foreground")}>
+          <button type="button" onClick={() => setView("week")} className={cn("flex min-h-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold", view === "week" ? "bg-primary text-primary-foreground" : "text-muted hover:text-card-foreground")}>
             <LayoutGrid className="h-3.5 w-3.5" />{t("calendarWeekView")}
           </button>
-          <button type="button" onClick={() => setView("list")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold", view === "list" ? "bg-primary text-primary-foreground" : "text-muted hover:text-card-foreground")}>
+          <button type="button" onClick={() => setView("list")} className={cn("flex min-h-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold", view === "list" ? "bg-primary text-primary-foreground" : "text-muted hover:text-card-foreground")}>
             <List className="h-3.5 w-3.5" />{t("calendarListView")}
           </button>
         </div>
@@ -299,7 +364,7 @@ export default function CalendarPage() {
             <p className="text-sm text-muted">{t("calendarAboutBody")}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="shrink-0">
+        <Button variant="outline" size="sm" className="shrink-0" onClick={() => setSettingsOpen(true)}>
           <Settings className="mr-1.5 h-4 w-4" />{t("calendarSettings")}
         </Button>
       </div>
@@ -343,6 +408,21 @@ export default function CalendarPage() {
           createdByName={session?.currentUserName || ""}
           onSave={handleSave}
           onCancel={() => setAddModalType(null)}
+        />
+      )}
+
+      {settingsOpen && (
+        <CalendarSettingsModal
+          config={config}
+          onCancel={() => setSettingsOpen(false)}
+          onSave={(patch) => {
+            updateConfig(patch);
+            setView(patch.calendarDefaultView);
+            setFilter(patch.calendarDefaultFilter);
+            setWeekStart((prev) => startOfWeek(prev, patch.calendarWeekStartsMonday ? 1 : 0));
+            setSettingsOpen(false);
+            showToast(t("calendarSave") + " ✓");
+          }}
         />
       )}
     </div>
