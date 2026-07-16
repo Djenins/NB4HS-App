@@ -42,9 +42,9 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
         )}
       >
         <div className="flex items-start justify-between gap-1">
-          <div className="flex min-w-0 items-center gap-1">
-            <Icon className={cn("h-3 w-3 shrink-0", style.chipFg)} />
-            <p className={cn("truncate text-[11px] font-bold leading-none", style.chipFg)}>{block.title}</p>
+          <div className="flex min-w-0 flex-row flex-nowrap items-center gap-1">
+            <Icon className={cn("shrink-0", style.chipFg)} style={{ width: 12, height: 12 }} />
+            <p className={cn("min-w-0 flex-1 truncate text-[11px] font-bold leading-none", style.chipFg)} style={{ whiteSpace: "nowrap" }}>{block.title}</p>
           </div>
           <div className="hidden shrink-0 items-center gap-0.5 group-hover:flex">
             {editable && (
