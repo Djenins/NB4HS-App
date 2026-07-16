@@ -1,10 +1,10 @@
 // ApptRequest.jsx -- client-facing "request an appointment" form (no login
 // required, reached from the Login page or the kiosk). Ported from
 // checkin_checkout.js's renderApptRequest()/attachApptRequestHandlers().
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { createAppointment } from "../lib/clientsData.js";
+import { createAppointment, fetchStaffDirectory } from "../lib/clientsData.js";
 import FormField from "../components/FormField.jsx";
 import Icon from "../components/Icon.jsx";
 
@@ -14,16 +14,21 @@ export default function ApptRequest() {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [errors, setErrors] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [staffId, setStaffId] = useState("");
+
+  useEffect(() => { fetchStaffDirectory().then(setStaffList); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     const form = formRef.current;
     const val = (name) => (form.elements.namedItem(name)?.value || "").trim();
+    const picked = staffList.find((s) => s.id === staffId);
 
     const fields = {
       firstName: val("firstName"), lastName: val("lastName"), phone: val("phone"), email: val("email"),
       date: val("date"), time: val("time"), reason: val("reason"),
-      assignedEmail: "", meetingWith: val("meetingWith") || "case_manager"
+      assignedEmail: picked ? picked.email : "", meetingWith: picked ? picked.role : (val("meetingWith") || "case_manager")
     };
     const requiredNames = ["firstName", "lastName", "phone", "date", "time"];
     const errs = requiredNames.filter((f) => !fields[f]);
@@ -82,15 +87,36 @@ export default function ApptRequest() {
             </div>
             <div className="form-section-body">
               <div className="field">
-                <label className="required" htmlFor="appt-req-meeting-with">{t("apptMeetingWithLabel")}</label>
+                <label className="required" htmlFor="appt-req-meeting-with">{t("apptStaffPickerLabel")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="users" />
-                  <select name="meetingWith" id="appt-req-meeting-with" defaultValue="case_manager">
-                    <option value="case_manager">{t("roleCaseManager")}</option>
-                    <option value="job_developer">{t("roleJobDeveloper")}</option>
+                  <select
+                    name="staffId"
+                    id="appt-req-meeting-with"
+                    value={staffId}
+                    onChange={(e) => setStaffId(e.target.value)}
+                  >
+                    <option value="">{t("apptStaffPickerAnyOption")}</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — {s.role === "job_developer" ? t("roleJobDeveloper") : t("roleCaseManager")}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
+              {!staffId && (
+                <div className="field">
+                  <label htmlFor="appt-req-meeting-with-role">{t("apptMeetingWithLabel")}</label>
+                  <div className="field-icon-wrap">
+                    <Icon name="users" />
+                    <select name="meetingWith" id="appt-req-meeting-with-role" defaultValue="case_manager">
+                      <option value="case_manager">{t("roleCaseManager")}</option>
+                      <option value="job_developer">{t("roleJobDeveloper")}</option>
+                    </select>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-2">
                 <FormField name="date" label={t("apptPreferredDateLabel")} type="date" required invalid={isInvalid("date")} />
                 <FormField name="time" label={t("apptPreferredTimeLabel")} type="time" required invalid={isInvalid("time")} />

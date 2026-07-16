@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.jsx";
 import LangSelect from "./LangSelect.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
 
 function NavIcon({ name, className }) {
@@ -311,7 +312,10 @@ export default function Shell() {
               </nav>
 
               <div className={cn("flex flex-col gap-3 border-t border-sidebar-border p-3", collapsed && "items-center")}>
-                <SidebarThemeToggle collapsed={collapsed} />
+                <div className={cn("flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
+                  <SidebarThemeToggle collapsed={collapsed} />
+                  <div className="text-sidebar-text"><NotificationBell /></div>
+                </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -357,6 +361,7 @@ export default function Shell() {
                   </div>
                 )}
                 <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
+                  {session && !showSidebar && <NotificationBell />}
                   {!showSidebar && <ThemeToggle compact />}
                   <LangSelect />
                 </div>

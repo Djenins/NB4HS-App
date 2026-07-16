@@ -23,6 +23,7 @@ import {
 } from "../lib/clientsData.js";
 import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } from "../lib/sessionsData.js";
 import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
+import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
 
 const AppContext = createContext(null);
 
@@ -159,6 +160,30 @@ export function AppProvider({ children }) {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [pastSessionStudents, setPastSessionStudents] = useState([]);
   const [profiles, setProfiles] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+  // Per-signed-in-user notification feed (new-appointment alerts) -- fetched
+  // and kept live the same way as the rest of the auth-gated Phase 2/3
+  // tables above, scoped to just this user's rows via session.id.
+  useEffect(() => {
+    if (!session || !session.id) { setNotifications([]); return undefined; }
+    let cancelled = false;
+    fetchNotifications(session.id).then((rows) => { if (!cancelled) setNotifications(rows); });
+    const unsubscribe = subscribeNotifications(session.id, () => {
+      fetchNotifications(session.id).then((rows) => { if (!cancelled) setNotifications(rows); });
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, [session]);
+
+  const markNotifRead = useCallback((id) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
+    return markNotificationRead(id);
+  }, []);
+  const markAllNotifsRead = useCallback(() => {
+    if (!session || !session.id) return Promise.resolve();
+    setNotifications((prev) => prev.map((n) => Object.assign({}, n, { read: true })));
+    return markAllNotificationsRead(session.id);
+  }, [session]);
 
   useEffect(() => {
     // These tables are authenticated-only (no anon RLS policy) -- fetching
@@ -328,8 +353,12 @@ export function AppProvider({ children }) {
     session, logout, authLoading,
     kiosk, setKiosk,
     toast, showToast,
-    confirmState, requestConfirm, resolveConfirm
-  }), [data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast, confirmState, requestConfirm, resolveConfirm]);
+    confirmState, requestConfirm, resolveConfirm,
+    notifications, markNotifRead, markAllNotifsRead
+  }), [
+    data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
+    confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -356,19 +356,48 @@ export async function fetchAppointments() {
   if (error) { console.warn("fetchAppointments failed", error); return []; }
   return data.map(appointmentFromRow);
 }
+// No .select() chained here -- the anon kiosk appointment-request flow
+// inserts as an unauthenticated client, and the `appointments_select` RLS
+// policy is authenticated-only, so a chained .select().single() would fail
+// to read the just-inserted row back and Postgrest reports that as an RLS
+// violation on the whole request even though the insert itself succeeded.
+// Neither caller (ApptRequest.jsx, AppointmentsSection.jsx) uses the
+// returned row, so skipping the read-back avoids the false failure.
 export async function createAppointment(fields) {
-  const { data, error } = await supabase.from("appointments").insert(appointmentToRow(fields)).select().single();
+  const { error } = await supabase.from("appointments").insert(appointmentToRow(fields));
   if (error) throw error;
-  return appointmentFromRow(data);
 }
 export async function updateAppointmentStatus(id, status) {
   const { data, error } = await supabase.from("appointments").update({ status }).eq("id", id).select().single();
   if (error) throw error;
   return appointmentFromRow(data);
 }
+// Reschedule (new date/time) and/or reassign (new assignedEmail) an existing
+// appointment -- re-setting assigned_email re-fires the DB trigger that
+// notifies whoever it's newly assigned to (see notify_appointment_assignment
+// in the notifications migration).
+export async function updateAppointment(id, patch) {
+  const row = {};
+  if (patch.date !== undefined) row.appt_date = patch.date || null;
+  if (patch.time !== undefined) row.appt_time = patch.time || null;
+  if (patch.assignedEmail !== undefined) row.assigned_email = patch.assignedEmail || "";
+  if (patch.status !== undefined) row.status = patch.status;
+  const { data, error } = await supabase.from("appointments").update(row).eq("id", id).select().single();
+  if (error) throw error;
+  return appointmentFromRow(data);
+}
 export async function deleteAppointment(id) {
   const { error } = await supabase.from("appointments").delete().eq("id", id);
   if (error) throw error;
+}
+
+// Public-safe staff picker for the kiosk/client-facing appointment request
+// form (no login) -- reads the `staff_directory` view (name/email/role only,
+// active case managers + job developers), not the full `profiles` table.
+export async function fetchStaffDirectory() {
+  const { data, error } = await supabase.from("staff_directory").select("*").order("name");
+  if (error) { console.warn("fetchStaffDirectory failed", error); return []; }
+  return data;
 }
 
 // ---------- unified notes / documents / communications ----------

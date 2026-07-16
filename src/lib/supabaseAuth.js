@@ -52,5 +52,5 @@ export async function updateProfile(id, patch) {
 
 export function profileToSession(profile) {
   if (!profile) return null;
-  return { role: profile.role, currentUserEmail: profile.email, currentUserName: profile.name };
+  return { id: profile.id, role: profile.role, currentUserEmail: profile.email, currentUserName: profile.name };
 }
