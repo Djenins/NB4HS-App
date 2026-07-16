@@ -68,7 +68,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
                 </div>
 
                 {holiday && (
-                  <p className="truncate rounded bg-accent/10 px-1 py-0.5 text-[10px] font-semibold text-accent" title={holiday.name}>
+                  <p className="m-0 truncate rounded bg-accent/10 px-1 py-0.5 text-[10px] font-semibold text-accent" title={holiday.name}>
                     {holiday.name}
                   </p>
                 )}
@@ -88,7 +88,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
                       </button>
                     );
                   })}
-                  {overflow > 0 && <p className="px-1 text-[10px] font-semibold text-muted">+{overflow} more</p>}
+                  {overflow > 0 && <p className="m-0 px-1 text-[10px] font-semibold text-muted">+{overflow} more</p>}
                 </div>
               </div>
             );

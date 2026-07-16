@@ -10,7 +10,7 @@ export default function CalendarHeader({ t, rangeLabel, onToday, onPrev, onNext 
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-xl font-bold text-card-foreground">{t("calendarTitle")}</h1>
-        <p className="text-sm text-muted">{t("calendarSubtitle")}</p>
+        <p className="m-0 text-sm text-muted">{t("calendarSubtitle")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" size="sm" onClick={onToday}>

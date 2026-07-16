@@ -16,8 +16,8 @@ const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-backg
 function Field({ label, value }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-0.5 text-sm text-card-foreground">{value || "—"}</p>
+      <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="m-0 mt-0.5 text-sm text-card-foreground">{value || "—"}</p>
     </div>
   );
 }
@@ -76,7 +76,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-2">
                 {Icon && <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", style.chipBg, style.chipFg)}><Icon className="h-4 w-4" /></span>}
-                <p className="text-sm font-bold leading-none text-card-foreground">{t("calendarEventDetails")}</p>
+                <p className="m-0 text-sm font-bold leading-none text-card-foreground">{t("calendarEventDetails")}</p>
               </div>
               <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("calendarCancel")}>
                 <X className="h-4 w-4" />
@@ -86,8 +86,8 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
             {block && !editing && (
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
                 <div>
-                  <p className={cn("text-xs font-bold uppercase tracking-wide", style.chipFg)}>{t(style.label)}</p>
-                  <p className="mt-0.5 text-lg font-bold text-card-foreground">{block.title}</p>
+                  <p className={cn("m-0 text-xs font-bold uppercase tracking-wide", style.chipFg)}>{t(style.label)}</p>
+                  <p className="m-0 mt-0.5 text-lg font-bold text-card-foreground">{block.title}</p>
                 </div>
 
                 <div className="flex flex-col gap-3 border-t border-border pt-3">
@@ -106,8 +106,8 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                 </div>
 
                 <div className="border-t border-border pt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
-                  <p className="mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
+                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
+                  <p className="m-0 mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
                 </div>
 
                 <div className="flex flex-col gap-2 border-t border-border pt-3">
@@ -157,7 +157,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                     <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(block)}><Trash2 className="mr-1.5 h-3.5 w-3.5" />{t("calendarDelete")}</Button>
                   </>
                 ) : (
-                  <p className="text-xs text-muted">Recurring class schedule — edited from Manage.</p>
+                  <p className="m-0 text-xs text-muted">Recurring class schedule — edited from Manage.</p>
                 )}
               </div>
             )}

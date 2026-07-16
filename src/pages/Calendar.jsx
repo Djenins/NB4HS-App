@@ -326,7 +326,7 @@ export default function CalendarPage() {
             return (
               <div key={dateStr} className={cn("rounded-xl border p-3", dateStr === todayStr() ? "border-primary bg-primary-tint/30" : "border-border bg-card")}>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-card-foreground">{WEEKDAYS.en[d.getDay()]}, {fmtMonthDay(d)}</p>
+                  <p className="m-0 text-sm font-bold text-card-foreground">{WEEKDAYS.en[d.getDay()]}, {fmtMonthDay(d)}</p>
                   {holiday && (
                     <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
                       <KIND_STYLE.holiday.icon className="h-3 w-3" />{holiday.name}
@@ -366,8 +366,8 @@ export default function CalendarPage() {
         <div className="flex items-start gap-3">
           <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
-            <p className="text-sm font-bold text-card-foreground">{t("calendarAboutTitle")}</p>
-            <p className="text-sm text-muted">{t("calendarAboutBody")}</p>
+            <p className="m-0 text-sm font-bold text-card-foreground">{t("calendarAboutTitle")}</p>
+            <p className="m-0 text-sm text-muted">{t("calendarAboutBody")}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" className="shrink-0" onClick={() => setSettingsOpen(true)}>
@@ -379,12 +379,12 @@ export default function CalendarPage() {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary">
           <CalendarPlus className="h-5 w-5" />
         </span>
-        <p className="shrink-0 text-sm font-bold text-card-foreground">{t("calendarSummaryTitle")}</p>
+        <p className="m-0 shrink-0 text-sm font-bold text-card-foreground">{t("calendarSummaryTitle")}</p>
         <div className="flex divide-x divide-border">
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-card-foreground">{summary.days}</p><p className="text-[11px] text-muted">{t("calendarSummaryDays")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-primary">{summary.classes}</p><p className="text-[11px] text-muted">{t("calendarClassLabel")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-success">{summary.visits}</p><p className="text-[11px] text-muted">{t("calendarVisitLabel")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-[#6b21a8]">{summary.appointments}</p><p className="text-[11px] text-muted">{t("calendarAppointmentLabel")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-card-foreground">{summary.days}</p><p className="m-0 text-[11px] text-muted">{t("calendarSummaryDays")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-primary">{summary.classes}</p><p className="m-0 text-[11px] text-muted">{t("calendarClassLabel")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-success">{summary.visits}</p><p className="m-0 text-[11px] text-muted">{t("calendarVisitLabel")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-[#6b21a8]">{summary.appointments}</p><p className="m-0 text-[11px] text-muted">{t("calendarAppointmentLabel")}</p></div>
         </div>
       </div>
 

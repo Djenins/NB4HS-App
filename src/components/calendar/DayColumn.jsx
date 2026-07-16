@@ -17,8 +17,8 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, t, onOp
   return (
     <div className={cn("flex min-w-0 flex-1 flex-col border-l border-border first:border-l-0", isToday && "bg-primary-tint/30")}>
       <div className={cn("sticky top-0 z-20 flex flex-col items-center gap-0.5 border-b border-border bg-card py-2", isToday && "bg-primary-tint/60")}>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{weekdayLabel}</p>
-        <p className={cn("flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold", isToday ? "bg-primary text-primary-foreground" : "text-card-foreground")}>
+        <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{weekdayLabel}</p>
+        <p className={cn("m-0 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold", isToday ? "bg-primary text-primary-foreground" : "text-card-foreground")}>
           {day.date.getDate()}
         </p>
       </div>
