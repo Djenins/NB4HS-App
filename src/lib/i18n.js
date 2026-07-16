@@ -686,6 +686,7 @@ export var STR = {
   clientTabDocuments: { en: "Documents", ht: "Dokiman", fr: "Documents" },
   clientTabCommunications: { en: "Communications", ht: "Kominikasyon", fr: "Communications" },
   clientTabActivity: { en: "Activity History", ht: "Istorik Aktivite", fr: "Historique d'Activité" },
+  clientTabIntakeForm: { en: "Intake Form", ht: "Fòm Enskripsyon", fr: "Formulaire d'Admission" },
   clientTabComingSoon: { en: "Not yet available — coming in a future update.", ht: "Poko disponib — ap vini nan yon pwochen mizajou.", fr: "Pas encore disponible — à venir dans une prochaine mise à jour." },
   clientActionComingSoon: { en: "Coming in a future update", ht: "Ap vini nan yon pwochen mizajou", fr: "À venir dans une prochaine mise à jour" },
   editProfileBtn: { en: "Edit Profile", ht: "Modifye Pwofil", fr: "Modifier le Profil" },

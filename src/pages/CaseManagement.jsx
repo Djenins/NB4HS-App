@@ -28,6 +28,7 @@ import CaseClientCard from "../components/CaseClientCard.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
+import IntakeFormCard from "../components/IntakeFormCard.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
@@ -287,9 +288,10 @@ function ImportContactsCard({ collapsed, onToggle, onImported }) {
 }
 
 export default function CaseManagement() {
-  const { data, lang, requestConfirm } = useApp();
+  const { data, lang, requestConfirm, session } = useApp();
   const t = useT();
-  const [opens, setOpens] = useState({ addClient: true, importContacts: false, appointments: false });
+  const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
+  const [opens, setOpens] = useState({ addClient: true, importContacts: false, intakeForm: false, appointments: false });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -366,6 +368,9 @@ export default function CaseManagement() {
 
       <AddClientCard forwardRef={addClientRef} collapsed={!opens.addClient} onToggle={() => setOpen("addClient", !opens.addClient)} />
       <ImportContactsCard collapsed={!opens.importContacts} onToggle={() => setOpen("importContacts", !opens.importContacts)} onImported={(n) => setImportedCount((c) => c + n)} />
+      {canUseIntakeForm && (
+        <IntakeFormCard collapsed={!opens.intakeForm} onToggle={() => setOpen("intakeForm", !opens.intakeForm)} />
+      )}
       <AppointmentsSection
         open={opens.appointments}
         onToggle={(v) => setOpen("appointments", v)}

@@ -22,6 +22,7 @@ import {
 import { fmtDateLong } from "../lib/utils.js";
 import ClientHeader from "../components/ClientHeader.jsx";
 import DatePicker from "../components/DatePicker.jsx";
+import IntakeFormCard from "../components/IntakeFormCard.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
@@ -446,9 +447,12 @@ function ProgramsTab({ enrollments, lang }) {
 
 export default function ClientProfile() {
   const { nbId } = useParams();
-  const { data, lang } = useApp();
+  const { data, lang, session } = useApp();
   const t = useT();
   const navigate = useNavigate();
+  const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
+  const tabKeys = canUseIntakeForm ? TAB_KEYS.concat(["intake"]) : TAB_KEYS;
+  const tabLabels = canUseIntakeForm ? TABS.concat(["clientTabIntakeForm"]) : TABS;
   const [tab, setTab] = useState("overview");
   const [editing, setEditing] = useState(false);
   const [addingToProgram, setAddingToProgram] = useState(false);
@@ -542,7 +546,7 @@ export default function ClientProfile() {
 
       <Card className="mt-5">
         <div className="flex flex-wrap gap-1 overflow-x-auto border-b border-border px-3 pt-2">
-          {TAB_KEYS.map((key, i) => (
+          {tabKeys.map((key, i) => (
             <button
               key={key}
               type="button"
@@ -552,7 +556,7 @@ export default function ClientProfile() {
                 (tab === key ? "border-b-2 border-primary text-primary" : "text-muted hover:text-card-foreground")
               }
             >
-              {t(TABS[i])}
+              {t(tabLabels[i])}
             </button>
           ))}
         </div>
@@ -563,6 +567,7 @@ export default function ClientProfile() {
           {tab === "notes" && <NotesTab notes={notes} />}
           {tab === "documents" && <DocumentsTab documents={documents} />}
           {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
+          {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
           {(tab === "services" || tab === "activity") && (
             <p className="py-10 text-center text-sm text-muted">{t("clientTabComingSoon")}</p>
           )}
