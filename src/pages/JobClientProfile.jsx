@@ -1,9 +1,10 @@
 // JobClientProfile.jsx -- rich Job Developer client detail page (mockup
 // parity). Route: /jobdeveloper/:clientId, where clientId is the raw
 // jobClients[].id (this page is fundamentally about one program record's
-// detail). Notes/Documents reuse the unified data.clientNotes/
-// data.clientDocuments layer (masterClients.js, resolved via the record's
-// nbId) rather than inventing a third notes shape -- see the plan for why.
+// detail). Notes/Documents reuse the unified client_notes/client_documents
+// tables (masterClients.js, resolved via the record's nbId), but notes are
+// scoped to department "job" so they stay separate from Case Manager's
+// department "case" notes on the same client -- see fetchClientNotes().
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -272,7 +273,7 @@ export default function JobClientProfile() {
   useEffect(() => {
     let cancelled = false;
     if (!masterClientId) { setNotes([]); setDocuments([]); return; }
-    fetchClientNotes(masterClientId).then((rows) => { if (!cancelled) setNotes(rows); });
+    fetchClientNotes(masterClientId, "job").then((rows) => { if (!cancelled) setNotes(rows); });
     fetchClientDocuments(masterClientId).then((rows) => { if (!cancelled) setDocuments(rows); });
     return () => { cancelled = true; };
   }, [masterClientId]);

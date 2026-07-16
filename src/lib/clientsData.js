@@ -402,8 +402,14 @@ export async function fetchStaffDirectory() {
 
 // ---------- unified notes / documents / communications ----------
 
-export async function fetchClientNotes(clientId) {
-  const { data, error } = await supabase.from("client_notes").select("*, profiles(name)").eq("client_id", clientId).order("created_at", { ascending: false });
+// department scopes a client's notes to the program that wrote them --
+// "case" (Case Manager) and "job" (Job Developer) are kept as two separate
+// note streams even though both live in the same client_notes table, since
+// a client can be enrolled in both programs at once.
+export async function fetchClientNotes(clientId, department) {
+  let query = supabase.from("client_notes").select("*, profiles(name)").eq("client_id", clientId);
+  if (department) query = query.eq("department", department);
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) { console.warn("fetchClientNotes failed", error); return []; }
   return data.map(noteFromRow);
 }

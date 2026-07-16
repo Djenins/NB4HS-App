@@ -472,7 +472,7 @@ export default function ClientProfile() {
   useEffect(() => {
     let cancelled = false;
     if (!clientId) { setNotes([]); setDocuments([]); setCommunications([]); return; }
-    fetchClientNotes(clientId).then((rows) => { if (!cancelled) setNotes(rows); });
+    fetchClientNotes(clientId, "case").then((rows) => { if (!cancelled) setNotes(rows); });
     fetchClientDocuments(clientId).then((rows) => { if (!cancelled) setDocuments(rows); });
     fetchCommunications(clientId).then((rows) => { if (!cancelled) setCommunications(rows); });
     return () => { cancelled = true; };
@@ -514,7 +514,7 @@ export default function ClientProfile() {
   }
 
   async function addNote(fields) {
-    const created = await createClientNote(client.id, fields);
+    const created = await createClientNote(client.id, Object.assign({}, fields, { department: "case" }));
     setNotes((prev) => [created].concat(prev));
     setAddingNote(false);
   }
