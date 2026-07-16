@@ -5,7 +5,7 @@
 // auto-checkout sweep immediately, same as the original, so changing the
 // closing time to something already in the past checks people out right away.
 import { useState } from "react";
-import { AlertTriangle, Briefcase, Building2, CheckCircle2, ChevronDown, Clock, Info, ShieldCheck, Trash2, UserRound, Users } from "lucide-react";
+import { AlertTriangle, Briefcase, Building2, CheckCircle2, Clock, Info, ShieldCheck, Trash2, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { buildSeedData } from "../lib/seed.js";
 
@@ -74,14 +74,13 @@ export default function Settings() {
           </div>
         </div>
         {rolePermissionRows.map(([label, desc, icon, variant]) => (
-          <details className="role-row" key={label}>
-            <summary>
-              <div className={"icon-badge round" + (variant ? " " + variant : "")}>{icon}</div>
+          <div className="role-row" key={label}>
+            <div className={"icon-badge round" + (variant ? " " + variant : "")}>{icon}</div>
+            <div className="role-row-body">
               <strong>{label}</strong>
-              <ChevronDown className="icon icon-chevron" />
-            </summary>
-            <p>{desc}</p>
-          </details>
+              <p>{desc}</p>
+            </div>
+          </div>
         ))}
       </div>
 

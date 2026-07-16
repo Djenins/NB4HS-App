@@ -487,16 +487,13 @@
   .info-callout strong{display:block; color:var(--primary-dark); margin-bottom:2px;}
   .info-callout p{margin:0; color:var(--text); font-size:.9rem; line-height:1.5;}
   .card-danger{background:var(--tint-danger); border-color:var(--accent);}
-  .role-row{border-bottom:1px solid var(--border);}
-  .role-row:last-child{border-bottom:none;}
-  .role-row > summary{
-    display:flex; align-items:center; gap:14px; padding:14px 4px; cursor:pointer; list-style:none;
+  .role-row{
+    display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid var(--border);
   }
-  .role-row > summary::-webkit-details-marker{display:none;}
-  .role-row > summary strong{flex:1; min-width:0;}
-  .role-row > summary .icon-chevron{color:var(--muted); flex:0 0 auto; transition:transform .15s ease;}
-  .role-row[open] > summary .icon-chevron{transform:rotate(180deg);}
-  .role-row > p{margin:0 0 14px 52px; color:var(--muted); font-size:.85rem; line-height:1.5;}
+  .role-row:last-child{border-bottom:none;}
+  .role-row .role-row-body{flex:1; min-width:0;}
+  .role-row .role-row-body strong{display:block; margin-bottom:2px;}
+  .role-row .role-row-body p{margin:0; color:var(--muted); font-size:.85rem; line-height:1.5;}
   /* =========================================================
      DATE PICKER -- components/DatePicker.jsx. Replaces native
      <input type="date"> app-wide with a popover calendar (Today/Tomorrow
