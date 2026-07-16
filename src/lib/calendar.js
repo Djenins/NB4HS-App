@@ -30,15 +30,22 @@ export function weekDays(weekStart) {
 
 // Every active, in-person class (Online has no fixed days -- see
 // DEFAULT_CLASSES in constants.js) that meets on the given JS weekday
-// (0=Sun..6=Sat), as a calendar block.
+// (0=Sun..6=Sat), as a calendar block. All classes share one fixed
+// start/end (the whole point of the class time-block setting), so any
+// classes meeting the same day -- e.g. Level 1 & Level 2, both Mon/Wed/Fri
+// -- are combined into a single calendar card instead of one per class.
 export function classBlocksForDay(classes, weekday, startTime, endTime) {
   var start = startTime || CLASS_START_TIME;
   var end = endTime || CLASS_END_TIME;
-  return (classes || [])
-    .filter(function (c) { return c.active !== false && (c.days || []).indexOf(weekday) !== -1; })
-    .map(function (c) {
-      return { key: "class_" + c.key, kind: "class", title: c.name, startTime: start, endTime: end };
-    });
+  var active = (classes || []).filter(function (c) { return c.active !== false && (c.days || []).indexOf(weekday) !== -1; });
+  if (!active.length) return [];
+  return [{
+    key: "class_" + active.map(function (c) { return c.key; }).join("_"),
+    kind: "class",
+    title: active.map(function (c) { return c.name; }).join(" & "),
+    startTime: start,
+    endTime: end
+  }];
 }
 
 export function startOfMonth(date) {

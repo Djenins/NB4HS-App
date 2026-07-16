@@ -84,7 +84,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
                         className={cn(BTN_RESET, "flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] font-semibold", style.chipBg, style.chipFg)}
                       >
                         <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
-                        <span className="truncate">{b.title}</span>
+                        <span className="truncate leading-none">{b.title}</span>
                       </button>
                     );
                   })}

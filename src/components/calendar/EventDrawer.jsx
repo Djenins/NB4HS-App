@@ -76,7 +76,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-2">
                 {Icon && <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", style.chipBg, style.chipFg)}><Icon className="h-4 w-4" /></span>}
-                <p className="text-sm font-bold text-card-foreground">{t("calendarEventDetails")}</p>
+                <p className="text-sm font-bold leading-none text-card-foreground">{t("calendarEventDetails")}</p>
               </div>
               <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("calendarCancel")}>
                 <X className="h-4 w-4" />

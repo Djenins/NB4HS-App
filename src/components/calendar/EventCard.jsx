@@ -44,7 +44,7 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
         <div className="flex items-start justify-between gap-1">
           <div className="flex min-w-0 items-center gap-1">
             <Icon className={cn("h-3 w-3 shrink-0", style.chipFg)} />
-            <p className={cn("truncate text-[11px] font-bold", style.chipFg)}>{block.title}</p>
+            <p className={cn("truncate text-[11px] font-bold leading-none", style.chipFg)}>{block.title}</p>
           </div>
           <div className="hidden shrink-0 items-center gap-0.5 group-hover:flex">
             {editable && (
