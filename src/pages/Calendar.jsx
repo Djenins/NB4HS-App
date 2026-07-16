@@ -381,11 +381,11 @@ export default function CalendarPage() {
           <CalendarPlus className="h-5 w-5" />
         </span>
         <p className="shrink-0 text-sm font-bold text-card-foreground">{t("calendarSummaryTitle")}</p>
-        <div className="flex gap-4">
-          <div className="text-center"><p className="text-lg font-bold text-card-foreground">{summary.days}</p><p className="text-[11px] text-muted">{t("calendarSummaryDays")}</p></div>
-          <div className="text-center"><p className="text-lg font-bold text-primary">{summary.classes}</p><p className="text-[11px] text-muted">{t("calendarClassLabel")}</p></div>
-          <div className="text-center"><p className="text-lg font-bold text-success">{summary.visits}</p><p className="text-[11px] text-muted">{t("calendarVisitLabel")}</p></div>
-          <div className="text-center"><p className="text-lg font-bold text-[#6b21a8]">{summary.appointments}</p><p className="text-[11px] text-muted">{t("calendarAppointmentLabel")}</p></div>
+        <div className="flex divide-x divide-border">
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-card-foreground">{summary.days}</p><p className="text-[11px] text-muted">{t("calendarSummaryDays")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-primary">{summary.classes}</p><p className="text-[11px] text-muted">{t("calendarClassLabel")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-success">{summary.visits}</p><p className="text-[11px] text-muted">{t("calendarVisitLabel")}</p></div>
+          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="text-lg font-bold text-[#6b21a8]">{summary.appointments}</p><p className="text-[11px] text-muted">{t("calendarAppointmentLabel")}</p></div>
         </div>
       </div>
 

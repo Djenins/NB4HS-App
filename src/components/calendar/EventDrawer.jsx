@@ -77,25 +77,33 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
                   <p className="mt-0.5 text-lg font-bold text-card-foreground">{block.title}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={t("calendarPersonName")} value={block.event?.personName} />
-                  <Field label={t("calendarStaffMember")} value={block.event?.createdByName} />
-                  <Field label={t("calendarCategory")} value={t(style.label)} />
-                  <Field label={t("calendarStatus")} value={t("calendarConfirmed")} />
-                  <Field label={t("calendarDate")} value={block.event?.date} />
-                  <Field label={t("calendarStartTime")} value={block.startTime + (block.endTime ? " – " + block.endTime : "")} />
+                <div className="flex flex-col gap-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label={t("calendarPersonName")} value={block.event?.personName} />
+                    <Field label={t("calendarStaffMember")} value={block.event?.createdByName} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                    <Field label={t("calendarCategory")} value={t(style.label)} />
+                    <Field label={t("calendarStatus")} value={t("calendarConfirmed")} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                    <Field label={t("calendarDate")} value={block.event?.date} />
+                    <Field label={t("calendarStartTime")} value={block.startTime + (block.endTime ? " – " + block.endTime : "")} />
+                  </div>
                 </div>
 
-                <div>
+                <div className="border-t border-border pt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
                   <p className="mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
-                  <Link2 className="h-3.5 w-3.5 shrink-0" /> No related case linked
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
-                  <FileText className="h-3.5 w-3.5 shrink-0" /> No documents attached
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
+                    <Link2 className="h-3.5 w-3.5 shrink-0" /> No related case linked
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
+                    <FileText className="h-3.5 w-3.5 shrink-0" /> No documents attached
+                  </div>
                 </div>
               </div>
             )}
