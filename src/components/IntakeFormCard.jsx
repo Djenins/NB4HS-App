@@ -4,7 +4,7 @@
 // the full intake in local state and can render a print-ready copy of the
 // filled form in a new tab, so staff can "Save as PDF" or print it.
 import { useState } from "react";
-import { ClipboardList, Printer } from "lucide-react";
+import { ChevronDown, ChevronUp, ClipboardList, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Button } from "./ui/button.jsx";
 import { cn } from "../lib/cn.js";
@@ -140,6 +140,7 @@ function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
       aria-expanded={!collapsed}
       className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
     >
+      {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
         <Icon className="h-4.5 w-4.5" />
       </span>
