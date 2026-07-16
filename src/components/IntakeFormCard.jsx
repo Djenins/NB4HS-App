@@ -3,8 +3,14 @@
 // AddClientCard/ImportContactsCard (same collapsible-Card idiom). Captures
 // the full intake in local state and can render a print-ready copy of the
 // filled form in a new tab, so staff can "Save as PDF" or print it.
+// Layout mirrors the org's paper form: numbered sections in a two-column
+// masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
+// width at the end.
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ClipboardList, Printer } from "lucide-react";
+import {
+  AlertTriangle, Briefcase, ChevronDown, ChevronUp, ClipboardList, FileText,
+  Home, MapPin, Phone, Printer, ShieldCheck, Users, UsersRound,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Button } from "./ui/button.jsx";
 import { cn } from "../lib/cn.js";
@@ -18,7 +24,7 @@ const EMPTY_INTAKE = {
   ssn: "", working: "", immigrationStatus: "", immigrationStatusOther: "", jobLookingFor: "", jobType: "", skills: "", ownCar: "", licenseType: "",
   maritalStatus: "", identityVerification: "", medicalInsurance: "", medicalHealthCondition: "", medicalHealthOther: "", mentalHealthCondition: "", mentalHealthOther: "",
   barriers: [], benefits: [], referrals: [],
-  numChildren: "", children: [EMPTY_CHILD, EMPTY_CHILD, EMPTY_CHILD, EMPTY_CHILD, EMPTY_CHILD], headOfHousehold: "",
+  numChildren: "", children: [EMPTY_CHILD, EMPTY_CHILD], headOfHousehold: "",
   housingType: [], bedroomsNeeded: "", preferredLocation: "", monthlyBudget: "", needFurniture: "",
   authorizeRelease: "", clientName: "", clientSignature: "", clientDate: "", caseManagerName: "", caseManagerSignature: "", caseManagerDate: "",
 };
@@ -28,29 +34,47 @@ const REFERRAL_OPTIONS = ["Counseling", "Primary Care Physician", "Shelter", "Ho
 const HOUSING_OPTIONS = ["Apartment Rental", "Housing Authority", "Voucher"];
 const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", "CBP1", "Humanitarian parole", "Pending Case"];
 
-function Field({ label, value, onChange, type, placeholder, className }) {
+function Field({ label, value, onChange, type, placeholder, className, inputMode }) {
   return (
     <div className={className}>
       <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
       <input
         type={type || "text"}
+        inputMode={inputMode}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+        className="h-11 min-h-0 w-full rounded-lg border border-border bg-transparent px-4 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
       />
     </div>
   );
 }
 
-function RadioGroup({ label, name, value, onChange, options }) {
+// InlineField -- label to the left, input filling the rest of the row.
+// Matches the Housing Information section's "question: [box]" layout.
+function InlineField({ label, value, onChange, placeholder, className }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <label className="text-xs font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-11 min-h-0 w-full rounded-lg border border-border bg-transparent px-4 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 sm:w-48"
+      />
+    </div>
+  );
+}
+
+function RadioGroup({ label, name, value, onChange, options, className }) {
+  return (
+    <div className={className}>
+      {label ? <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label> : null}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {options.map((opt) => (
           <label key={opt} className="flex items-center gap-1.5 text-sm text-card-foreground">
-            <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className="h-3.5 w-3.5" />
+            <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className="h-3.5 w-3.5 accent-primary" />
             {opt}
           </label>
         ))}
@@ -59,14 +83,15 @@ function RadioGroup({ label, name, value, onChange, options }) {
   );
 }
 
-function CheckboxGroup({ label, values, onToggle, options }) {
+function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
+  const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
   return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 md:grid-cols-3">
+    <div className={className}>
+      {label ? <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label> : null}
+      <div className={cn("grid grid-cols-1 gap-1.5", colsClass)}>
         {options.map((opt) => (
           <label key={opt} className="flex items-center gap-1.5 text-sm text-card-foreground">
-            <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className="h-3.5 w-3.5" />
+            <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className="h-3.5 w-3.5 accent-primary" />
             {opt}
           </label>
         ))}
@@ -75,11 +100,21 @@ function CheckboxGroup({ label, values, onToggle, options }) {
   );
 }
 
-function Section({ title, children }) {
+// Section -- a standalone numbered card (number badge + icon chip + title),
+// matching the reference form's per-section card treatment.
+function Section({ number, icon: Icon, title, children, className }) {
   return (
-    <div className="border-b border-border pb-5 last:border-b-0 last:pb-0">
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-primary">{title}</h3>
-      <div className="space-y-3">{children}</div>
+    <div className={cn("rounded-2xl border border-border bg-card p-6 shadow-card", className)}>
+      <div className="mb-5 flex items-center gap-3 rounded-lg bg-primary-tint px-3 py-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+          {number}
+        </span>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-primary">
+          <Icon className="h-4.5 w-4.5" />
+        </span>
+        <span className="m-0 text-sm font-bold uppercase leading-none tracking-wide text-primary">{title}</span>
+      </div>
+      <div className="space-y-5">{children}</div>
     </div>
   );
 }
@@ -181,6 +216,9 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       return Object.assign({}, prev, { children });
     });
   }
+  function addChild() {
+    setF((prev) => Object.assign({}, prev, { children: prev.children.concat([Object.assign({}, EMPTY_CHILD)]) }));
+  }
 
   function downloadFilledForm() {
     const win = window.open("", "_blank");
@@ -189,6 +227,10 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     win.document.close();
     win.focus();
     win.print();
+  }
+
+  function clearForm() {
+    setF(initialIntake(client));
   }
 
   const showContent = bare || !collapsed;
@@ -202,121 +244,155 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       )}
       {showContent && (
         <CardContent className={bare ? "space-y-5" : "space-y-5 pt-0"}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Intake Date" type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
-            <Field label="U.S Entry Date" type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Intake Date" type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
+              <Field label="U.S Entry Date" type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
+            </div>
           </div>
 
-          <Section title="Personal Information">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="First and Last Name" value={f.fullName} onChange={(v) => set("fullName", v)} />
-              <Field label="DOB" type="date" value={f.dob} onChange={(v) => set("dob", v)} />
-            </div>
-            <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="Address" value={f.address} onChange={(v) => set("address", v)} className="sm:col-span-1" />
-              <Field label="City" value={f.city} onChange={(v) => set("city", v)} />
-              <Field label="State" value={f.state} onChange={(v) => set("state", v)} />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="Zip Code" value={f.zip} onChange={(v) => set("zip", v)} />
-              <Field label="Telephone" value={f.phone} onChange={(v) => set("phone", v)} />
-              <Field label="Email" value={f.email} onChange={(v) => set("email", v)} />
-            </div>
-            <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
-          </Section>
-
-          <Section title="Emergency Contact">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Name" value={f.ecName} onChange={(v) => set("ecName", v)} />
-              <Field label="Telephone" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
-            </div>
-            <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
-            <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
-          </Section>
-
-          <Section title="Employment">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Social Security Number" value={f.ssn} onChange={(v) => set("ssn", v)} />
-              <RadioGroup label="Are you Working?" name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
-            </div>
-            <RadioGroup label="Immigration Status" name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
-            {f.immigrationStatus === "Pending Case" && (
-              <Field label="Pending Case Detail" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
-            )}
-            <Field label="What kind of job are you looking for?" value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
-            <RadioGroup label="Job Type" name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
-            <Field label="Skills" value={f.skills} onChange={(v) => set("skills", v)} />
-            <RadioGroup label="Do you own a car?" name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
-            <RadioGroup label="License Type" name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
-          </Section>
-
-          <Section title="Additional Details">
-            <RadioGroup label="Marital Status" name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
-            <Field label="Identity Verification" value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
-            <CheckboxGroup label="Benefit" values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} />
-            <RadioGroup label="Medical Insurance?" name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
-            <RadioGroup label="Medical Health Condition" name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-            {f.medicalHealthCondition === "Other" && <Field label="Medical Health Condition (Other)" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
-            <RadioGroup label="Mental Health Condition" name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-            {f.mentalHealthCondition === "Other" && <Field label="Mental Health Condition (Other)" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
-          </Section>
-
-          <Section title="Barrier">
-            <CheckboxGroup label="" values={f.barriers} onToggle={(o) => toggleIn("barriers", o)} options={BARRIER_OPTIONS} />
-          </Section>
-
-          <Section title="Referral">
-            <CheckboxGroup label="" values={f.referrals} onToggle={(o) => toggleIn("referrals", o)} options={REFERRAL_OPTIONS} />
-          </Section>
-
-          <Section title="Family Composition">
-            <Field label="How many Children?" type="text" inputMode="numeric" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
-            {f.children.map((c, i) => (
-              <div key={i} className="rounded-lg border border-border p-3">
-                <div className="mb-2 text-xs font-semibold text-muted">Child {i + 1}</div>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
-                    <Field label="Age" type="text" inputMode="numeric" value={c.age} onChange={(v) => setChild(i, "age", v)} />
-                  </div>
-                  <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
-                    <Field label="Grade" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
-                  </div>
-                  <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+            {/* Left column: 1 Personal, 2 Emergency Contact, 5 Barrier, 6 Referral, 8 Housing */}
+            <div className="space-y-5">
+              <Section number={1} icon={MapPin} title="Personal Information">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="First and Last Name" value={f.fullName} onChange={(v) => set("fullName", v)} />
+                  <Field label="DOB" type="date" value={f.dob} onChange={(v) => set("dob", v)} />
                 </div>
-              </div>
-            ))}
-            <RadioGroup label="Are you the head of Household?" name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
-          </Section>
+                <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Address" value={f.address} onChange={(v) => set("address", v)} />
+                  <Field label="City" value={f.city} onChange={(v) => set("city", v)} />
+                  <Field label="State" value={f.state} onChange={(v) => set("state", v)} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Zip Code" value={f.zip} onChange={(v) => set("zip", v)} />
+                  <Field label="Telephone" value={f.phone} onChange={(v) => set("phone", v)} />
+                  <Field label="Email" value={f.email} onChange={(v) => set("email", v)} />
+                </div>
+                <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
+              </Section>
 
-          <Section title="Housing">
-            <CheckboxGroup label="Housing Type" values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} />
-            <Field label="How many bedrooms are you looking for?" value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} />
-            <Field label="Where would you prefer to be located?" value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} />
-            <Field label="How much can you afford for monthly rent and utilities?" value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} />
-            <RadioGroup label="Do you need furniture?" name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
-          </Section>
+              <Section number={2} icon={Phone} title="Emergency Contact">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Name" value={f.ecName} onChange={(v) => set("ecName", v)} />
+                  <Field label="Telephone" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
+                </div>
+                <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
+                <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
+              </Section>
 
-          <Section title="Authorization for Release of Information">
+              <Section number={5} icon={AlertTriangle} title="Barrier (Check all that apply)">
+                <CheckboxGroup values={f.barriers} onToggle={(o) => toggleIn("barriers", o)} options={BARRIER_OPTIONS} />
+              </Section>
+
+              <Section number={6} icon={Users} title="Referral (Check all that apply)">
+                <CheckboxGroup values={f.referrals} onToggle={(o) => toggleIn("referrals", o)} options={REFERRAL_OPTIONS} />
+              </Section>
+
+              <Section number={8} icon={Home} title="Housing Information">
+                <CheckboxGroup label="Housing Type" values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
+                <InlineField label="How many bedrooms are you looking for?" value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder="e.g. 2" />
+                <InlineField label="Where would you prefer to be located?" value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder="e.g. Providence, Warwick, Cranston" />
+                <InlineField label="How much can you afford for monthly rent and utilities?" value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} placeholder="e.g. $1,200" />
+                <RadioGroup label="Do you need furniture?" name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
+              </Section>
+            </div>
+
+            {/* Right column: 3 Employment, 4 Additional Details, 7 Family Composition */}
+            <div className="space-y-5">
+              <Section number={3} icon={Briefcase} title="Employment Information">
+                <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
+                  <Field label="Social Security Number" placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
+                  <RadioGroup label="Are you Working?" name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
+                </div>
+                <RadioGroup label="Immigration Status" name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
+                {f.immigrationStatus === "Pending Case" && (
+                  <Field label="Pending Case Detail" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
+                )}
+                <Field label="What kind of job are you looking for?" placeholder="e.g. Customer Service, Office Assistant, Driver" value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <RadioGroup label="Job Type" name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
+                </div>
+                <Field label="Skills" placeholder="e.g. Microsoft Office, Cleaning, Cooking, etc." value={f.skills} onChange={(v) => set("skills", v)} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <RadioGroup label="Do you own a car?" name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
+                  <RadioGroup label="License Type" name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
+                </div>
+              </Section>
+
+              <Section number={4} icon={FileText} title="Additional Details">
+                <RadioGroup label="Marital Status" name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
+                <Field label="Identity Verification" placeholder="e.g. Passport, State ID, etc." value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <CheckboxGroup label="Benefit" values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} cols={1} />
+                  <RadioGroup label="Medical Insurance?" name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
+                </div>
+                <RadioGroup label="Medical Health Condition" name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.medicalHealthCondition === "Other" && <Field label="Medical Health Condition (Other)" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
+                <RadioGroup label="Mental Health Condition" name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.mentalHealthCondition === "Other" && <Field label="Mental Health Condition (Other)" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
+              </Section>
+
+              <Section number={7} icon={UsersRound} title="Family Composition">
+                <Field label="How many Children?" type="text" inputMode="numeric" placeholder="e.g. 3" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
+                {f.children.map((c, i) => (
+                  <div key={i} className="overflow-hidden rounded-lg border border-border">
+                    <div className="border-b border-border bg-primary-tint px-3 py-2 text-xs font-semibold text-primary">Child {i + 1}</div>
+                    <div className="space-y-3 p-3">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                        <Field label="Age" type="text" inputMode="numeric" placeholder="e.g. 8" value={c.age} onChange={(v) => setChild(i, "age", v)} />
+                        <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                        <Field label="Grade" placeholder="e.g. 3rd" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
+                        <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-center">
+                  <button type="button" onClick={addChild} className="text-sm font-semibold text-primary hover:underline">
+                    + Add Another Child
+                  </button>
+                </div>
+                <RadioGroup label="Are you the head of Household?" name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
+              </Section>
+            </div>
+          </div>
+
+          <Section number={9} icon={ShieldCheck} title="Authorization for Release of Information">
             <RadioGroup label="I authorize the release of my information" name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="Client Name (Print)" value={f.clientName} onChange={(v) => set("clientName", v)} />
               <Field label="Client Signature" value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder="Type full name to sign" />
               <Field label="Client Date" type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="Case Manager Name (Print)" value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
               <Field label="Case Manager Signature" value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder="Type full name to sign" />
               <Field label="Case Manager Date" type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
             </div>
           </Section>
 
-          <Button onClick={downloadFilledForm} className="gap-2">
-            <Printer className="h-4 w-4" /> Download Filled Form (PDF)
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button
+              onClick={downloadFilledForm}
+              variant="secondary"
+              className="gap-2 rounded-full border-navy bg-navy px-6 text-navy-foreground hover:bg-navy-dark"
+            >
+              <Printer className="h-4 w-4" /> Download Filled Form (PDF)
+            </Button>
+            <button
+              type="button"
+              onClick={clearForm}
+              className="h-10 flex-1 rounded-full border border-border bg-background text-sm font-semibold text-primary hover:bg-primary-tint"
+            >
+              Clear Form
+            </button>
+          </div>
         </CardContent>
       )}
     </Card>
