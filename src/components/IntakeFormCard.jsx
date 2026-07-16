@@ -44,7 +44,7 @@ function Field({ label, value, onChange, type, placeholder, className, inputMode
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-4 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+        className="h-9 min-h-0 w-full rounded-md border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
       />
     </div>
   );
@@ -61,7 +61,7 @@ function InlineField({ label, value, onChange, placeholder, className }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-4 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 sm:w-48"
+        className="h-9 min-h-0 w-full rounded-md border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 sm:w-48"
       />
     </div>
   );
