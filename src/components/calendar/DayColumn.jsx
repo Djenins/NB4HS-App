@@ -27,7 +27,7 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, t, onOp
         {holiday && <span className="truncate text-[10px] font-bold text-accent" title={holiday.name}>{holiday.name}</span>}
       </div>
 
-      <div className="relative" style={{ height: GRID_HEIGHT }}>
+      <div className="relative overflow-hidden" style={{ height: GRID_HEIGHT }}>
         {HOURS.map((h) => <TimeSlot key={h} isToday={isToday} onAdd={() => onAddEvent(day.dateStr)} />)}
 
         {blocks.length === 0 && (
