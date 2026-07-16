@@ -840,7 +840,26 @@ export var STR = {
   calendarStartsMonday: { en: "Monday", ht: "Lendi", fr: "Lundi" },
   calendarDefaultFilterLabel: { en: "Default event filter", ht: "Filtè evènman pa defo", fr: "Filtre d'événements par défaut" },
   calendarClassTimesLabel: { en: "Class time block", ht: "Blòk lè klas", fr: "Plage horaire des cours" },
-  calendarClassTimesDesc: { en: "Applies to every class shown on the calendar.", ht: "Aplike a chak klas ki montre sou kalandriye a.", fr: "S'applique à tous les cours affichés dans le calendrier." }
+  calendarClassTimesDesc: { en: "Applies to every class shown on the calendar.", ht: "Aplike a chak klas ki montre sou kalandriye a.", fr: "S'applique à tous les cours affichés dans le calendrier." },
+  calendarSearchPlaceholder: { en: "Search events...", ht: "Chèche evènman...", fr: "Rechercher des événements..." },
+  calendarFilterLabel: { en: "Filter", ht: "Filtè", fr: "Filtrer" },
+  calendarDayView: { en: "Day", ht: "Jou", fr: "Jour" },
+  calendarMonthView: { en: "Month", ht: "Mwa", fr: "Mois" },
+  calendarAgendaView: { en: "Agenda", ht: "Ajanda", fr: "Agenda" },
+  calendarViewComingSoon: { en: "This view is coming soon.", ht: "Vi sa a ap vini talè.", fr: "Cette vue arrive bientôt." },
+  calendarNewEvent: { en: "New Event", ht: "Nouvo Evènman", fr: "Nouvel Événement" },
+  calendarView: { en: "View", ht: "Gade", fr: "Voir" },
+  calendarEdit: { en: "Edit", ht: "Modifye", fr: "Modifier" },
+  calendarDuplicate: { en: "Duplicate", ht: "Duplike", fr: "Dupliquer" },
+  calendarEventDetails: { en: "Event Details", ht: "Detay Evènman", fr: "Détails de l'Événement" },
+  calendarCategory: { en: "Category", ht: "Kategori", fr: "Catégorie" },
+  calendarStaffMember: { en: "Staff Member", ht: "Manm Anplwaye", fr: "Membre du Personnel" },
+  calendarStatus: { en: "Status", ht: "Estati", fr: "Statut" },
+  calendarConfirmed: { en: "Confirmed", ht: "Konfime", fr: "Confirmé" },
+  calendarNoNotes: { en: "No notes added.", ht: "Pa gen nòt.", fr: "Aucune note ajoutée." },
+  calendarLegendTitle: { en: "Event Types", ht: "Kalite Evènman", fr: "Types d'Événements" },
+  calendarDuplicated: { en: "Event duplicated ✓", ht: "Evènman duplike ✓", fr: "Événement dupliqué ✓" },
+  calendarUpdated: { en: "Event updated ✓", ht: "Evènman mete ajou ✓", fr: "Événement mis à jour ✓" }
 };
 
 export function t(key, lang) {

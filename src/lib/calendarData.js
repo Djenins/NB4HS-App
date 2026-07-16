@@ -58,6 +58,35 @@ export async function deleteCalendarEvent(id) {
   if (error) throw error;
 }
 
+export async function updateCalendarEvent(id, fields) {
+  const row = {
+    title: fields.title,
+    person_name: fields.personName || null,
+    notes: fields.notes || null,
+    event_date: fields.date,
+    start_time: fields.startTime,
+    end_time: fields.endTime || null,
+    availability: fields.type === "appointment" ? (fields.availability || "busy") : null
+  };
+  const { data, error } = await supabase.from("calendar_events").update(row).eq("id", id).select().single();
+  if (error) throw error;
+  return calendarEventFromRow(data);
+}
+
+export async function duplicateCalendarEvent(event) {
+  return createCalendarEvent({
+    type: event.type,
+    title: event.title,
+    personName: event.personName,
+    notes: event.notes,
+    date: event.date,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    availability: event.availability,
+    createdByName: event.createdByName
+  });
+}
+
 export function subscribeCalendarEvents(onChange) {
   const channel = supabase
     .channel("calendar_events-changes")
