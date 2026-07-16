@@ -34,6 +34,7 @@ import Manage from "./pages/Manage.jsx";
 import Students from "./pages/Students.jsx";
 import Assessments from "./pages/Assessments.jsx";
 import FoodDistribution from "./pages/FoodDistribution.jsx";
+import CalendarPage from "./pages/Calendar.jsx";
 import CaseManagement from "./pages/CaseManagement.jsx";
 import JobDeveloper from "./pages/JobDeveloper.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/fooddistribution" element={<FoodDistribution />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/qrcode" element={<QRCode />} />
           <Route path="/manage" element={<Manage />} />
           <Route path="/students" element={<Students />} />

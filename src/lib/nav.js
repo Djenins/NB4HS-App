@@ -7,11 +7,11 @@ import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
 
 export function navItemsForRole(role) {
-  if (role === "administrator") return ["dashboard", "checkin", "checkout", "search", "reports", "fooddistribution", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
-  if (role === "staff") return ["dashboard", "checkout", "search", "reports", "fooddistribution"];
-  if (role === "receptionist") return ["checkin", "checkout"];
-  if (role === "case_manager") return ["dashboard", "checkin", "checkout", "search", "reports", "qrcode", "manage", "students", "assessments", "casemanagement"];
-  if (role === "job_developer") return ["dashboard", "checkin", "checkout", "search", "reports", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
+  if (role === "administrator") return ["dashboard", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
+  if (role === "staff") return ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
+  if (role === "receptionist") return ["checkin", "checkout", "calendar"];
+  if (role === "case_manager") return ["dashboard", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
+  if (role === "job_developer") return ["dashboard", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
   return [];
 }
 
@@ -23,6 +23,7 @@ export function navLabel(v, lang) {
     search: t("navSearch", lang),
     reports: t("navReports", lang),
     fooddistribution: t("navFoodDistribution", lang),
+    calendar: t("navCalendar", lang),
     qrcode: t("navQR", lang),
     manage: t("navManage", lang),
     students: t("navStudents", lang),

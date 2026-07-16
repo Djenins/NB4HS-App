@@ -3,7 +3,7 @@
 // of the app keeps using components/Icon.jsx + lib/icons.js (its inline
 // SVG set) -- this file doesn't replace that, it's scoped to the sidebar.
 import {
-  BarChart3, Briefcase, ClipboardCheck, FolderKanban, GraduationCap,
+  BarChart3, Briefcase, CalendarDays, ClipboardCheck, FolderKanban, GraduationCap,
   LayoutDashboard, ListChecks, LogIn, LogOut, QrCode, Search, Settings, ShoppingBasket, Users
 } from "lucide-react";
 
@@ -14,6 +14,7 @@ export var NAV_ICONS = {
   search: Search,
   reports: BarChart3,
   fooddistribution: ShoppingBasket,
+  calendar: CalendarDays,
   qrcode: QrCode,
   manage: ListChecks,
   students: GraduationCap,

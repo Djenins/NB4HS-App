@@ -90,7 +90,7 @@ export var PAGE_SIZE = 25;
 // NB4HS Design System accent set: Blue/Green/Gold/Purple, cycled for however
 // many classroom columns exist -- no random hues, and no non-error red.
 export var COLUMN_ACCENTS = ["#2563EB", "#1a7f37", "#D99E32", "#6b21a8"];
-export var NAV_GROUP = { dashboard: "core", checkin: "core", checkout: "core", search: "core", reports: "core", fooddistribution: "core", qrcode: "admin", manage: "admin", students: "admin", casemanagement: "admin", jobdeveloper: "admin", users: "admin", settings: "admin", assessments: "admin" };
+export var NAV_GROUP = { dashboard: "core", checkin: "core", checkout: "core", search: "core", reports: "core", fooddistribution: "core", calendar: "core", qrcode: "admin", manage: "admin", students: "admin", casemanagement: "admin", jobdeveloper: "admin", users: "admin", settings: "admin", assessments: "admin" };
 
 // Finer-grained sidebar grouping for the Tailwind/shadcn redesign pass
 // (Shell.jsx) -- a 5-bucket taxonomy inspired by the client's reference
@@ -102,7 +102,7 @@ export var NAV_GROUP = { dashboard: "core", checkin: "core", checkout: "core", s
 // showDividerBefore() (a leftover from the old flat tab-bar layout).
 export var NAV_SECTION = {
   dashboard: "overview",
-  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps",
+  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps",
   students: "programs", assessments: "programs", casemanagement: "programs", jobdeveloper: "programs", fooddistribution: "programs",
   reports: "operations", qrcode: "operations", manage: "operations",
   users: "administration", settings: "administration"
