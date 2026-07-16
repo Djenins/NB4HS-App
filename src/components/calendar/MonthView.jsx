@@ -21,7 +21,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="grid grid-cols-5 border-b border-border">
         {weekdayLabels.map((label) => (
-          <div key={label} className="border-l border-border py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted first:border-l-0">
+          <div key={label} className="border-l border-blue-200 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted first:border-l-0">
             {label}
           </div>
         ))}
@@ -40,7 +40,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
               <div
                 key={dateStr}
                 className={cn(
-                  "group/cell flex min-h-[112px] flex-col gap-1 border-l border-t border-border p-1.5 first:border-l-0",
+                  "group/cell flex min-h-[112px] flex-col gap-1 border-l border-t border-blue-200 p-1.5 first:border-l-0",
                   !inMonth && "bg-background/60",
                   isToday && "bg-primary-tint/30"
                 )}
