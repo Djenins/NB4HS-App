@@ -41,6 +41,31 @@ export function classBlocksForDay(classes, weekday, startTime, endTime) {
     });
 }
 
+export function startOfMonth(date) {
+  var d = new Date(date);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Sets date-of-month to 1 first so e.g. Jan 31 + 1 month lands on Feb 1,
+// not rolling over into March the way `setMonth` would on a 31-day source.
+export function addMonths(date, n) {
+  var d = new Date(date);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  return d;
+}
+
+// Always 42 cells (6 full weeks) so the month grid never reflows height as
+// the user navigates between shorter/longer months.
+export function monthGridDays(monthAnchor, weekStartDay) {
+  var gridStart = startOfWeek(startOfMonth(monthAnchor), weekStartDay);
+  var out = [];
+  for (var i = 0; i < 42; i++) out.push(addDays(gridStart, i));
+  return out;
+}
+
 export function sortDayBlocks(blocks) {
   return (blocks || []).slice().sort(function (a, b) {
     return (a.startTime || "").localeCompare(b.startTime || "");

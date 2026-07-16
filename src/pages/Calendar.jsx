@@ -13,12 +13,16 @@
 // class/visit/appointment; no client/staff/status/case-link columns), so
 // per explicit product decision this pass is UI-only for the 3 real
 // categories: no fabricated data, no controls that silently do nothing.
-// Month/Day views and the richer category set are left as future work.
+//
+// Week/Day/Month/Agenda all share one `anchor` date and one `days` array
+// (see visibleDays() below) so there's a single source of truth for what
+// range is on screen -- Day view reuses WeekView/DayColumn with a 1-day
+// array rather than a separate component, since the time grid is identical.
 import { CalendarPlus, Info, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { addDays, classBlocksForDay, sortDayBlocks, startOfWeek, weekDays } from "../lib/calendar.js";
+import { addDays, addMonths, classBlocksForDay, monthGridDays, sortDayBlocks, startOfMonth, startOfWeek, weekDays } from "../lib/calendar.js";
 import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetchCalendarEvents, subscribeCalendarEvents, updateCalendarEvent } from "../lib/calendarData.js";
 import { dateStrFromDate, todayStr } from "../lib/utils.js";
 import { holidaysByDate } from "../lib/holidays.js";
@@ -27,6 +31,7 @@ import { FILTERS, KIND_STYLE } from "../components/calendar/kindStyle.js";
 import CalendarHeader from "../components/calendar/CalendarHeader.jsx";
 import CalendarToolbar from "../components/calendar/CalendarToolbar.jsx";
 import WeekView from "../components/calendar/WeekView.jsx";
+import MonthView from "../components/calendar/MonthView.jsx";
 import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
@@ -147,7 +152,7 @@ export default function CalendarPage() {
   const { data, session, config, updateConfig, requestConfirm, showToast } = useApp();
   const t = useT();
   const weekStartDay = config.calendarWeekStartsMonday ? 1 : 0;
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), weekStartDay));
+  const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState([]);
   const [filter, setFilter] = useState(config.calendarDefaultFilter || "all");
   const [search, setSearch] = useState("");
@@ -157,11 +162,32 @@ export default function CalendarPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeBlock, setActiveBlock] = useState(null);
 
-  useEffect(() => { setWeekStart((prev) => startOfWeek(prev, weekStartDay)); }, [weekStartDay]);
+  const days = useMemo(() => {
+    if (view === "day") return [anchor];
+    if (view === "month") return monthGridDays(anchor, weekStartDay);
+    return weekDays(startOfWeek(anchor, weekStartDay));
+  }, [view, anchor, weekStartDay]);
 
-  const days = weekDays(weekStart);
   const rangeStart = dateStrFromDate(days[0]);
-  const rangeEnd = dateStrFromDate(days[6]);
+  const rangeEnd = dateStrFromDate(days[days.length - 1]);
+
+  function goToday() { setAnchor(new Date()); }
+  function goPrev() {
+    if (view === "day") setAnchor((d) => addDays(d, -1));
+    else if (view === "month") setAnchor((d) => addMonths(d, -1));
+    else setAnchor((d) => addDays(d, -7));
+  }
+  function goNext() {
+    if (view === "day") setAnchor((d) => addDays(d, 1));
+    else if (view === "month") setAnchor((d) => addMonths(d, 1));
+    else setAnchor((d) => addDays(d, 7));
+  }
+
+  const rangeLabel = useMemo(() => {
+    if (view === "day") return days[0].toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    if (view === "month") return startOfMonth(anchor).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    return fmtMonthDay(days[0]) + " – " + fmtMonthDay(days[days.length - 1]) + ", " + days[days.length - 1].getFullYear();
+  }, [view, days, anchor]);
 
   useEffect(() => {
     let cancelled = false;
@@ -237,7 +263,9 @@ export default function CalendarPage() {
     return { days: days.length, classes, visits, appointments };
   }, [dayBlocks, days.length]);
 
-  const weekdayLabels = days.map((d) => WEEKDAYS.en[d.getDay()].slice(0, 3).toUpperCase());
+  const weekdayLabels = view === "day"
+    ? [days[0].toLocaleDateString("en-US", { weekday: "long" }).toUpperCase()]
+    : days.map((d) => WEEKDAYS.en[d.getDay()].slice(0, 3).toUpperCase());
 
   const weekHolidays = useMemo(() => {
     if (filter !== "all" && filter !== "holiday") return {};
@@ -249,10 +277,10 @@ export default function CalendarPage() {
     <div className="flex flex-col gap-4">
       <CalendarHeader
         t={t}
-        days={days}
-        onToday={() => setWeekStart(startOfWeek(new Date(), weekStartDay))}
-        onPrev={() => setWeekStart(addDays(weekStart, -7))}
-        onNext={() => setWeekStart(addDays(weekStart, 7))}
+        rangeLabel={rangeLabel}
+        onToday={goToday}
+        onPrev={goPrev}
+        onNext={goNext}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -264,12 +292,22 @@ export default function CalendarPage() {
           onFilterChange={setFilter}
           view={view}
           onViewChange={setView}
-          onUnavailableView={() => showToast(t("calendarViewComingSoon"))}
         />
         <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />
       </div>
 
-      {view === "week" ? (
+      {view === "month" ? (
+        <MonthView
+          dayBlocks={dayBlocks}
+          monthAnchor={anchor}
+          todayStr={todayStr()}
+          holidaysByDate={weekHolidays}
+          t={t}
+          onSelectDay={(dateStr) => { setAnchor(new Date(dateStr + "T00:00:00")); setView("day"); }}
+          onOpenEvent={setActiveBlock}
+          onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
+        />
+      ) : view === "week" || view === "day" ? (
         <WeekView
           dayBlocks={dayBlocks}
           weekdayLabels={weekdayLabels}
@@ -378,7 +416,6 @@ export default function CalendarPage() {
             updateConfig(patch);
             setView(patch.calendarDefaultView === "list" ? "list" : "week");
             setFilter(patch.calendarDefaultFilter);
-            setWeekStart((prev) => startOfWeek(prev, patch.calendarWeekStartsMonday ? 1 : 0));
             setSettingsOpen(false);
             showToast(t("calendarSave") + " ✓");
           }}

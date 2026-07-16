@@ -1,20 +1,20 @@
 // CalendarToolbar.jsx -- search + filter chips (left/center) and the
-// Week/Month/Day/Agenda view switch (right). Month/Day aren't built yet
-// (only Week and Agenda have real data views), so they're wired to a
-// "coming soon" toast instead of silently doing nothing.
+// Week/Month/Day/Agenda view switch (right). Day view reuses WeekView with
+// a single day column; Month view has its own MonthView grid -- see
+// Calendar.jsx for how `view` drives which one renders.
 import { CalendarRange, LayoutGrid, List, Search, SlidersHorizontal } from "lucide-react";
 import CalendarFilters from "./CalendarFilters.jsx";
 import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
 const VIEWS = [
-  { key: "week", label: "calendarWeekView", icon: LayoutGrid, enabled: true },
-  { key: "month", label: "calendarMonthView", icon: CalendarRange, enabled: false },
-  { key: "day", label: "calendarDayView", icon: SlidersHorizontal, enabled: false },
-  { key: "list", label: "calendarAgendaView", icon: List, enabled: true }
+  { key: "week", label: "calendarWeekView", icon: LayoutGrid },
+  { key: "month", label: "calendarMonthView", icon: CalendarRange },
+  { key: "day", label: "calendarDayView", icon: SlidersHorizontal },
+  { key: "list", label: "calendarAgendaView", icon: List }
 ];
 
-export default function CalendarToolbar({ t, search, onSearchChange, filter, onFilterChange, view, onViewChange, onUnavailableView }) {
+export default function CalendarToolbar({ t, search, onSearchChange, filter, onFilterChange, view, onViewChange }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -38,11 +38,11 @@ export default function CalendarToolbar({ t, search, onSearchChange, filter, onF
             <button
               key={v.key}
               type="button"
-              onClick={() => (v.enabled ? onViewChange(v.key) : onUnavailableView())}
+              onClick={() => onViewChange(v.key)}
               className={cn(
                 BTN_RESET,
                 "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                active ? "bg-primary text-primary-foreground" : v.enabled ? "text-muted hover:text-card-foreground" : "text-muted/50"
+                active ? "bg-primary text-primary-foreground" : "text-muted hover:text-card-foreground"
               )}
             >
               <Icon className="h-3.5 w-3.5" />{t(v.label)}
