@@ -4,6 +4,7 @@
 // "coming soon" toast instead of silently doing nothing.
 import { CalendarRange, LayoutGrid, List, Search, SlidersHorizontal } from "lucide-react";
 import CalendarFilters from "./CalendarFilters.jsx";
+import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
 const VIEWS = [
@@ -39,7 +40,8 @@ export default function CalendarToolbar({ t, search, onSearchChange, filter, onF
               type="button"
               onClick={() => (v.enabled ? onViewChange(v.key) : onUnavailableView())}
               className={cn(
-                "flex min-h-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                BTN_RESET,
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
                 active ? "bg-primary text-primary-foreground" : v.enabled ? "text-muted hover:text-card-foreground" : "text-muted/50"
               )}
             >

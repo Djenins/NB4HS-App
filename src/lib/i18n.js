@@ -859,7 +859,10 @@ export var STR = {
   calendarNoNotes: { en: "No notes added.", ht: "Pa gen nòt.", fr: "Aucune note ajoutée." },
   calendarLegendTitle: { en: "Event Types", ht: "Kalite Evènman", fr: "Types d'Événements" },
   calendarDuplicated: { en: "Event duplicated ✓", ht: "Evènman duplike ✓", fr: "Événement dupliqué ✓" },
-  calendarUpdated: { en: "Event updated ✓", ht: "Evènman mete ajou ✓", fr: "Événement mis à jour ✓" }
+  calendarUpdated: { en: "Event updated ✓", ht: "Evènman mete ajou ✓", fr: "Événement mis à jour ✓" },
+  calendarHolidayLabel: { en: "Holiday", ht: "Jou Ferye", fr: "Jour Férié" },
+  calendarFilterHolidays: { en: "Holidays", ht: "Jou Ferye", fr: "Jours Fériés" },
+  calendarOfficeClosed: { en: "Office closed", ht: "Biwo fèmen", fr: "Bureau fermé" }
 };
 
 export function t(key, lang) {

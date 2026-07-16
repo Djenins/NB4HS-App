@@ -21,6 +21,7 @@ import { WEEKDAYS } from "../lib/constants.js";
 import { addDays, classBlocksForDay, sortDayBlocks, startOfWeek, weekDays } from "../lib/calendar.js";
 import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetchCalendarEvents, subscribeCalendarEvents, updateCalendarEvent } from "../lib/calendarData.js";
 import { dateStrFromDate, todayStr } from "../lib/utils.js";
+import { holidaysByDate } from "../lib/holidays.js";
 import { Button } from "../components/ui/button.jsx";
 import { FILTERS, KIND_STYLE } from "../components/calendar/kindStyle.js";
 import CalendarHeader from "../components/calendar/CalendarHeader.jsx";
@@ -29,6 +30,7 @@ import WeekView from "../components/calendar/WeekView.jsx";
 import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
+import { BTN_RESET } from "../components/calendar/btnReset.js";
 import { cn } from "../lib/cn.js";
 
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
@@ -237,6 +239,12 @@ export default function CalendarPage() {
 
   const weekdayLabels = days.map((d) => WEEKDAYS.en[d.getDay()].slice(0, 3).toUpperCase());
 
+  const weekHolidays = useMemo(() => {
+    if (filter !== "all" && filter !== "holiday") return {};
+    const years = Array.from(new Set(days.map((d) => d.getFullYear())));
+    return holidaysByDate(years);
+  }, [days, filter]);
+
   return (
     <div className="flex flex-col gap-4">
       <CalendarHeader
@@ -266,6 +274,7 @@ export default function CalendarPage() {
           dayBlocks={dayBlocks}
           weekdayLabels={weekdayLabels}
           todayStr={todayStr()}
+          holidaysByDate={weekHolidays}
           t={t}
           onOpen={setActiveBlock}
           onEdit={setActiveBlock}
@@ -275,32 +284,42 @@ export default function CalendarPage() {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {dayBlocks.map(({ date: d, dateStr, blocks }) => (
-            <div key={dateStr} className={cn("rounded-xl border p-3", dateStr === todayStr() ? "border-primary bg-primary-tint/30" : "border-border bg-card")}>
-              <p className="mb-2 text-sm font-bold text-card-foreground">{WEEKDAYS.en[d.getDay()]}, {fmtMonthDay(d)}</p>
-              {blocks.length === 0 ? (
-                <button type="button" className="w-full rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-muted hover:border-primary hover:text-primary" onClick={() => { setAddModalDate(dateStr); setAddModalType("visit"); }}>
-                  {t("calendarNewEvent")}
-                </button>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {blocks.map((b) => {
-                    const style = KIND_STYLE[b.kind];
-                    const Icon = style.icon;
-                    return (
-                      <button key={b.key} type="button" onClick={() => setActiveBlock(b)} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left hover:border-primary/40">
-                        <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md", style.chipBg, style.chipFg)}><Icon className="h-3.5 w-3.5" /></span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-card-foreground">{b.title}</span>
-                          <span className="block text-xs text-muted">{b.startTime}{b.endTime ? " – " + b.endTime : ""}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
+          {dayBlocks.map(({ date: d, dateStr, blocks }) => {
+            const holiday = weekHolidays[dateStr];
+            return (
+              <div key={dateStr} className={cn("rounded-xl border p-3", dateStr === todayStr() ? "border-primary bg-primary-tint/30" : "border-border bg-card")}>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-card-foreground">{WEEKDAYS.en[d.getDay()]}, {fmtMonthDay(d)}</p>
+                  {holiday && (
+                    <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                      <KIND_STYLE.holiday.icon className="h-3 w-3" />{holiday.name}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+                {blocks.length === 0 ? (
+                  <button type="button" className={cn(BTN_RESET, "w-full rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-muted hover:border-primary hover:text-primary")} onClick={() => { setAddModalDate(dateStr); setAddModalType("visit"); }}>
+                    {t("calendarNewEvent")}
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {blocks.map((b) => {
+                      const style = KIND_STYLE[b.kind];
+                      const Icon = style.icon;
+                      return (
+                        <button key={b.key} type="button" onClick={() => setActiveBlock(b)} className={cn(BTN_RESET, "flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left hover:border-primary/40")}>
+                          <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md", style.chipBg, style.chipFg)}><Icon className="h-3.5 w-3.5" /></span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-card-foreground">{b.title}</span>
+                            <span className="block text-xs text-muted">{b.startTime}{b.endTime ? " – " + b.endTime : ""}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Copy, FileText, Link2, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { KIND_STYLE } from "./kindStyle.js";
+import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
 import { cn } from "../../lib/cn.js";
 
@@ -64,7 +65,7 @@ export default function EventDrawer({ block, t, onClose, onSave, onDelete, onDup
                 {Icon && <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", style.chipBg, style.chipFg)}><Icon className="h-4 w-4" /></span>}
                 <p className="text-sm font-bold text-card-foreground">{t("calendarEventDetails")}</p>
               </div>
-              <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground" aria-label={t("calendarCancel")}>
+              <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("calendarCancel")}>
                 <X className="h-4 w-4" />
               </button>
             </div>

@@ -1,5 +1,6 @@
 // CalendarFilters.jsx -- category filter pill row.
 import { FILTERS } from "./kindStyle.js";
+import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
 export default function CalendarFilters({ t, filter, onChange }) {
@@ -14,7 +15,8 @@ export default function CalendarFilters({ t, filter, onChange }) {
             type="button"
             onClick={() => onChange(f.key)}
             className={cn(
-              "flex min-h-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              BTN_RESET,
+              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
               active
                 ? f.key === "all" ? "border-primary bg-primary text-primary-foreground" : cn("border-transparent", f.style.chipBg, f.style.chipFg)
                 : "border-border bg-background text-muted hover:text-card-foreground"

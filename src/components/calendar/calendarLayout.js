@@ -27,3 +27,49 @@ export function fmtHour(hour) {
   var h = hour % 12 === 0 ? 12 : hour % 12;
   return h + (hour < 12 ? " AM" : " PM");
 }
+
+// Side-by-side column assignment for same-day blocks that overlap in time
+// (e.g. Level 1 & Level 2 both meet 09:30-12:30) -- without this, later
+// blocks silently render on top of earlier ones at the same position.
+// Classic calendar-grid sweep: walk blocks sorted by start time, reuse a
+// column slot once its previous occupant has ended, and give every block in
+// a connected overlap cluster the same `cols` count so they render as equal-
+// width side-by-side slices instead of full width.
+export function layoutOverlaps(blocks) {
+  var sorted = blocks.slice().sort(function (a, b) {
+    var byStart = toMinutes(a.startTime) - toMinutes(b.startTime);
+    if (byStart !== 0) return byStart;
+    return toMinutes(a.endTime || a.startTime) - toMinutes(b.endTime || b.startTime);
+  });
+
+  var result = [];
+  var cluster = [];
+  var columnEnds = [];
+  var clusterEnd = -Infinity;
+
+  function flush() {
+    var cols = columnEnds.length;
+    cluster.forEach(function (item) {
+      result.push(Object.assign({}, item.block, { layout: { col: item.col, cols: cols } }));
+    });
+    cluster = [];
+    columnEnds = [];
+    clusterEnd = -Infinity;
+  }
+
+  sorted.forEach(function (block) {
+    var start = toMinutes(block.startTime);
+    var end = block.endTime ? toMinutes(block.endTime) : start + 60;
+    if (cluster.length && start >= clusterEnd) flush();
+
+    var col = columnEnds.findIndex(function (endMin) { return endMin <= start; });
+    if (col === -1) { col = columnEnds.length; columnEnds.push(end); }
+    else columnEnds[col] = end;
+
+    cluster.push({ block: block, col: col });
+    clusterEnd = Math.max(clusterEnd, end);
+  });
+  flush();
+
+  return result;
+}
