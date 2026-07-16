@@ -6,7 +6,7 @@
 // same idiom as Search.jsx/Students.jsx -- the filtering/checkout logic
 // below is unchanged, only the presentation layer changed.
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Calendar, CheckCircle2, Clock, GraduationCap, HelpCircle, History, Info, LogOut, Phone, Search as SearchIcon, X
 } from "lucide-react";
@@ -43,8 +43,9 @@ function dateLabel(dateStr, lang, t) {
 }
 
 export default function CheckOut() {
-  const { data, lang, showToast } = useApp();
+  const { data, lang, kiosk, showToast } = useApp();
   const t = useT();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
 
   let list = data.visits.filter((v) => !v.timeOut);
@@ -67,6 +68,60 @@ export default function CheckOut() {
     const timeOut = (updated && updated.timeOut) || new Date().toISOString();
     const dur = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
     showToast(t("checkedOutAt") + " " + fmtTime(timeOut) + " — " + t("visitLength") + ": " + dur);
+  }
+
+  // Self-service kiosk flow: clients tap their own name to check out
+  // (instead of staff searching for them), then land on the same
+  // scan-success screen the personal QR-code checkout flow already uses.
+  async function selfCheckOut(id) {
+    const visit = data.visits.find((v) => v.id === id);
+    if (!visit) return;
+    const updated = await checkOutVisit(id);
+    const timeOut = (updated && updated.timeOut) || new Date().toISOString();
+    const duration = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
+    const scanResult = { status: "ok", name: visit.firstName + " " + visit.lastName, duration };
+    navigate("/checkout/scan-success", { state: { scanResult } });
+  }
+
+  if (kiosk) {
+    return (
+      <div className="kiosk-wrap">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-tint text-primary">
+            <LogOut className="h-7 w-7" />
+          </div>
+          <h1 className="mb-1">{t("checkOutTitle")}</h1>
+          <p className="m-0 text-base text-muted">{t("checkOutKioskSubtitle")}</p>
+        </div>
+
+        {list.length ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {list.map((v) => {
+              const name = v.firstName + " " + v.lastName;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => selfCheckOut(v.id)}
+                  className="flex min-h-[76px] items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left shadow-card transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:-translate-y-0.5 focus-visible:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                >
+                  <Avatar className="h-12 w-12 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(v)}</AvatarFallback></Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-lg font-bold text-card-foreground">{name}</div>
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
+                      <Clock className="h-3.5 w-3.5" />{t("timeIn")}: {fmtTime(v.timeIn)}
+                    </div>
+                  </div>
+                  <LogOut className="h-5 w-5 shrink-0 text-muted" />
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="card"><EmptyState icon="search" message={t("noOneFound")} /></div>
+        )}
+      </div>
+    );
   }
 
   return (
