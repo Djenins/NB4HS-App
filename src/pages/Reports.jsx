@@ -110,7 +110,7 @@ export default function Reports() {
   const householdsTrendPct = trendPct(householdsServedCount, householdsServedPrevCount);
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="m-0 text-2xl font-extrabold tracking-tight text-card-foreground">{t("reportsTitle")}</h1>
@@ -174,7 +174,7 @@ export default function Reports() {
       {/* Flat NRS/grant-reporting credit for the currently selected range --
           4 hours per completed student check-in, see reports_data.js. Also
           included as a summary line above the CSV/Excel export table. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard icon={GraduationCap} tint="bg-primary-tint" iconColor="text-primary" value={s.studentHours} label={t("studentInstructionalHoursLabel")} pct={studentHoursTrend.pct} none={studentHoursTrend.none} t={t} />
       </div>
 
@@ -310,6 +310,6 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   );
 }
