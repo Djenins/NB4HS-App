@@ -223,6 +223,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
               <Field label="Telephone" value={f.phone} onChange={(v) => set("phone", v)} />
               <Field label="Email" value={f.email} onChange={(v) => set("email", v)} />
             </div>
+            <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
           </Section>
 
           <Section title="Emergency Contact">
@@ -232,7 +233,6 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             </div>
             <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
             <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
-            <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
           </Section>
 
           <Section title="Employment">
@@ -271,18 +271,20 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
           </Section>
 
           <Section title="Family Composition">
-            <Field label="How many Children?" type="number" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
+            <Field label="How many Children?" type="text" inputMode="numeric" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
             {f.children.map((c, i) => (
               <div key={i} className="rounded-lg border border-border p-3">
                 <div className="mb-2 text-xs font-semibold text-muted">Child {i + 1}</div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
-                  <Field label="Age" type="number" value={c.age} onChange={(v) => setChild(i, "age", v)} />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                    <Field label="Age" type="text" inputMode="numeric" value={c.age} onChange={(v) => setChild(i, "age", v)} />
+                  </div>
                   <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
-                  <Field label="Grade" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                    <Field label="Grade" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
+                  </div>
                   <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
                 </div>
               </div>
