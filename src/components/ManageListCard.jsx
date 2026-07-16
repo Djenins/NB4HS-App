@@ -51,7 +51,7 @@ export default function ManageListCard({ kind, icon, title, description, list, d
     let key = "custom_" + slugify(label);
     let suffix = 1;
     while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(label) + "_" + suffix; suffix++; }
-    await createCustomOption(kind, { key, en: label, ht: label, es: label, fr: label });
+    await createCustomOption(kind, { key, en: label, ht: label, fr: label });
     setInput("");
     showToast(t("addNew") + " ✓");
   }

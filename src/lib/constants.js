@@ -7,64 +7,62 @@ export var DEFAULT_CHECKIN_URL = "https://checkin.nb4hs.org";
 export var LANGS = [
   { code: "en", label: "English" },
   { code: "ht", label: "Kreyòl Ayisyen" },
-  { code: "es", label: "Español" },
   { code: "fr", label: "Français" }
 ];
 
 export var SERVICES = [
-  { key: "adult_education", en: "Adult Education", ht: "Edikasyon pou Adilt", es: "Educación para Adultos", fr: "Éducation des Adultes" },
-  { key: "workforce_development", en: "Workforce Development", ht: "Devlopman Mendèv", es: "Desarrollo Laboral", fr: "Développement de la Main-d'Œuvre" },
-  { key: "immigration", en: "Immigration", ht: "Imigrasyon", es: "Inmigración", fr: "Immigration" },
-  { key: "case_manager", en: "Case Management", ht: "Jesyon Ka", es: "Gestión de Casos", fr: "Gestion de Cas" },
-  { key: "food_distribution", en: "Food Distribution", ht: "Distribisyon Manje", es: "Distribución de Alimentos", fr: "Distribution de Nourriture" },
-  { key: "workshop", en: "Workshop", ht: "Atelye", es: "Taller", fr: "Atelier" },
-  { key: "community_event", en: "Community Event", ht: "Evènman Kominotè", es: "Evento Comunitario", fr: "Événement Communautaire" },
-  { key: "housing_assistance", en: "Housing Assistance", ht: "Èd Lojman", es: "Asistencia de Vivienda", fr: "Aide au Logement" },
-  { key: "benefits_assistance", en: "Benefits Assistance", ht: "Èd pou Benefis", es: "Asistencia de Beneficios", fr: "Aide aux Prestations" },
-  { key: "volunteer", en: "Volunteer", ht: "Volontè", es: "Voluntariado", fr: "Bénévolat" },
-  { key: "other", en: "Other", ht: "Lòt", es: "Otro", fr: "Autre" }
+  { key: "adult_education", en: "Adult Education", ht: "Edikasyon pou Adilt", fr: "Éducation des Adultes" },
+  { key: "workforce_development", en: "Workforce Development", ht: "Devlopman Mendèv", fr: "Développement de la Main-d'Œuvre" },
+  { key: "immigration", en: "Immigration", ht: "Imigrasyon", fr: "Immigration" },
+  { key: "case_manager", en: "Case Management", ht: "Jesyon Ka", fr: "Gestion de Cas" },
+  { key: "food_distribution", en: "Food Distribution", ht: "Distribisyon Manje", fr: "Distribution de Nourriture" },
+  { key: "workshop", en: "Workshop", ht: "Atelye", fr: "Atelier" },
+  { key: "community_event", en: "Community Event", ht: "Evènman Kominotè", fr: "Événement Communautaire" },
+  { key: "housing_assistance", en: "Housing Assistance", ht: "Èd Lojman", fr: "Aide au Logement" },
+  { key: "benefits_assistance", en: "Benefits Assistance", ht: "Èd pou Benefis", fr: "Aide aux Prestations" },
+  { key: "volunteer", en: "Volunteer", ht: "Volontè", fr: "Bénévolat" },
+  { key: "other", en: "Other", ht: "Lòt", fr: "Autre" }
 ];
 
 export var STAFF = [
-  { key: "bernard_georges", en: "Bernard Georges", ht: "Bernard Georges", es: "Bernard Georges", fr: "Bernard Georges" },
-  { key: "case_manager", en: "Case Manager", ht: "Jesyon Ka", es: "Gestor de Casos", fr: "Gestionnaire de Cas" },
-  { key: "job_developer", en: "Job Developer", ht: "Devlopè Travay", es: "Desarrollador de Empleo", fr: "Développeur d'Emploi" },
-  { key: "immigration_specialist", en: "Immigration Specialist", ht: "Espesyalis Imigrasyon", es: "Especialista en Inmigración", fr: "Spécialiste en Immigration" },
-  { key: "computer_instructor", en: "Computer Instructor", ht: "Enstriktè Òdinatè", es: "Instructor de Informática", fr: "Instructeur en Informatique" },
-  { key: "esl_instructor", en: "ESL Instructor", ht: "Enstriktè ESL", es: "Instructor de ESL", fr: "Instructeur ESL" },
-  { key: "other", en: "Other", ht: "Lòt", es: "Otro", fr: "Autre" }
+  { key: "bernard_georges", en: "Bernard Georges", ht: "Bernard Georges", fr: "Bernard Georges" },
+  { key: "case_manager", en: "Case Manager", ht: "Jesyon Ka", fr: "Gestionnaire de Cas" },
+  { key: "job_developer", en: "Job Developer", ht: "Devlopè Travay", fr: "Développeur d'Emploi" },
+  { key: "immigration_specialist", en: "Immigration Specialist", ht: "Espesyalis Imigrasyon", fr: "Spécialiste en Immigration" },
+  { key: "computer_instructor", en: "Computer Instructor", ht: "Enstriktè Òdinatè", fr: "Instructeur en Informatique" },
+  { key: "esl_instructor", en: "ESL Instructor", ht: "Enstriktè ESL", fr: "Instructeur ESL" },
+  { key: "other", en: "Other", ht: "Lòt", fr: "Autre" }
 ];
 
 export var US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 
 /* Case Management service categories (multi-select per client). */
 export var CASE_SERVICES = [
-  { key: "referrals", en: "Referrals", ht: "Referans", es: "Referencias", fr: "Références" },
-  { key: "benefits", en: "Benefits", ht: "Benefis", es: "Beneficios", fr: "Prestations" },
-  { key: "childcare", en: "Childcare", ht: "Gadri Timoun", es: "Cuidado Infantil", fr: "Garde d'Enfants" },
-  { key: "education", en: "Education", ht: "Edikasyon", es: "Educación", fr: "Éducation" },
-  { key: "employment", en: "Employment", ht: "Travay", es: "Empleo", fr: "Emploi" },
-  { key: "housing", en: "Housing", ht: "Lojman", es: "Vivienda", fr: "Logement" },
-  { key: "immigration", en: "Immigration", ht: "Imigrasyon", es: "Inmigración", fr: "Immigration" },
-  { key: "primary_care", en: "Primary Care", ht: "Swen Primè", es: "Atención Primaria", fr: "Soins Primaires" },
-  { key: "transportation", en: "Transportation", ht: "Transpò", es: "Transporte", fr: "Transport" },
-  { key: "insurance", en: "Insurance", ht: "Asirans", es: "Seguro", fr: "Assurance" }
+  { key: "referrals", en: "Referrals", ht: "Referans", fr: "Références" },
+  { key: "benefits", en: "Benefits", ht: "Benefis", fr: "Prestations" },
+  { key: "childcare", en: "Childcare", ht: "Gadri Timoun", fr: "Garde d'Enfants" },
+  { key: "education", en: "Education", ht: "Edikasyon", fr: "Éducation" },
+  { key: "employment", en: "Employment", ht: "Travay", fr: "Emploi" },
+  { key: "housing", en: "Housing", ht: "Lojman", fr: "Logement" },
+  { key: "immigration", en: "Immigration", ht: "Imigrasyon", fr: "Immigration" },
+  { key: "primary_care", en: "Primary Care", ht: "Swen Primè", fr: "Soins Primaires" },
+  { key: "transportation", en: "Transportation", ht: "Transpò", fr: "Transport" },
+  { key: "insurance", en: "Insurance", ht: "Asirans", fr: "Assurance" }
 ];
 
 /* Case Management immigration status options (single-select per client). */
 export var IMMIGRATION_STATUSES = [
-  { key: "tps", en: "TPS", ht: "TPS", es: "TPS", fr: "TPS" },
-  { key: "humanitarian_parole", en: "Humanitarian Parole", ht: "Parol Imanitè", es: "Permiso Humanitario", fr: "Libération Conditionnelle Humanitaire" },
-  { key: "permanent_resident", en: "Permanent Resident", ht: "Rezidan Pèmanan", es: "Residente Permanente", fr: "Résident Permanent" },
-  { key: "citizen", en: "Citizen", ht: "Sitwayen", es: "Ciudadano", fr: "Citoyen" },
-  { key: "no_legal_status", en: "No Legal Status", ht: "Pa Gen Estati Legal", es: "Sin Estatus Legal", fr: "Aucun Statut Légal" },
-  { key: "pending_case", en: "Pending Case", ht: "Ka an Atant", es: "Caso Pendiente", fr: "Dossier en Attente" }
+  { key: "tps", en: "TPS", ht: "TPS", fr: "TPS" },
+  { key: "humanitarian_parole", en: "Humanitarian Parole", ht: "Parol Imanitè", fr: "Libération Conditionnelle Humanitaire" },
+  { key: "permanent_resident", en: "Permanent Resident", ht: "Rezidan Pèmanan", fr: "Résident Permanent" },
+  { key: "citizen", en: "Citizen", ht: "Sitwayen", fr: "Citoyen" },
+  { key: "no_legal_status", en: "No Legal Status", ht: "Pa Gen Estati Legal", fr: "Aucun Statut Légal" },
+  { key: "pending_case", en: "Pending Case", ht: "Ka an Atant", fr: "Dossier en Attente" }
 ];
 
 export var WEEKDAYS = {
   en: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
   ht: ["Dimanch","Lendi","Madi","Mèkredi","Jedi","Vandredi","Samdi"],
-  es: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
   fr: ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"]
 };
 
@@ -85,7 +83,7 @@ export var DEFAULT_CLASSES = [
 
 export var ROLES = ["administrator", "staff", "receptionist", "case_manager", "job_developer"];
 
-export var DATE_LOCALE = { en: "en-US", ht: "en-US", es: "es-US", fr: "fr-FR" };
+export var DATE_LOCALE = { en: "en-US", ht: "en-US", fr: "fr-FR" };
 export var PAGE_SIZE = 25;
 // NB4HS Design System accent set: Blue/Green/Gold/Purple, cycled for however
 // many classroom columns exist -- no random hues, and no non-error red.
@@ -124,11 +122,11 @@ export var STUDENT_VISIT_HOURS = 4;
 // and Listening STEPS score ranges -- ported from the client's reference
 // chart. `min`/`max` are inclusive; use Infinity/-Infinity for open ends.
 export var NRS_LEVELS = [
-  { key: "beginning_literacy", order: 1, en: "Beginning ESL Literacy", ht: "ESL Alfabetizasyon Debitan", es: "ESL de Alfabetización Principiante", fr: "ESL Alphabétisation Débutant", readingMin: -Infinity, readingMax: 183, listeningMin: -Infinity, listeningMax: 181 },
-  { key: "low_beginning", order: 2, en: "Low Beginning ESL", ht: "ESL Debitan Ba", es: "ESL Principiante Bajo", fr: "ESL Débutant Faible", readingMin: 184, readingMax: 196, listeningMin: 182, listeningMax: 191 },
-  { key: "high_beginning", order: 3, en: "High Beginning ESL", ht: "ESL Debitan Wo", es: "ESL Principiante Alto", fr: "ESL Débutant Avancé", readingMin: 197, readingMax: 206, listeningMin: 192, listeningMax: 201 },
-  { key: "low_intermediate", order: 4, en: "Low Intermediate ESL", ht: "ESL Entèmedyè Ba", es: "ESL Intermedio Bajo", fr: "ESL Intermédiaire Faible", readingMin: 207, readingMax: 216, listeningMin: 202, listeningMax: 211 },
-  { key: "high_intermediate", order: 5, en: "High Intermediate ESL", ht: "ESL Entèmedyè Wo", es: "ESL Intermedio Alto", fr: "ESL Intermédiaire Avancé", readingMin: 217, readingMax: 227, listeningMin: 212, listeningMax: 221 },
-  { key: "advanced", order: 6, en: "Advanced ESL", ht: "ESL Avanse", es: "ESL Avanzado", fr: "ESL Avancé", readingMin: 228, readingMax: 238, listeningMin: 222, listeningMax: 231 },
-  { key: "exit_advanced", order: 7, en: "Exit Advanced ESL", ht: "ESL Avanse pou Sòti", es: "ESL Avanzado de Salida", fr: "ESL Avancé de Sortie", readingMin: 239, readingMax: Infinity, listeningMin: 232, listeningMax: Infinity }
+  { key: "beginning_literacy", order: 1, en: "Beginning ESL Literacy", ht: "ESL Alfabetizasyon Debitan", fr: "ESL Alphabétisation Débutant", readingMin: -Infinity, readingMax: 183, listeningMin: -Infinity, listeningMax: 181 },
+  { key: "low_beginning", order: 2, en: "Low Beginning ESL", ht: "ESL Debitan Ba", fr: "ESL Débutant Faible", readingMin: 184, readingMax: 196, listeningMin: 182, listeningMax: 191 },
+  { key: "high_beginning", order: 3, en: "High Beginning ESL", ht: "ESL Debitan Wo", fr: "ESL Débutant Avancé", readingMin: 197, readingMax: 206, listeningMin: 192, listeningMax: 201 },
+  { key: "low_intermediate", order: 4, en: "Low Intermediate ESL", ht: "ESL Entèmedyè Ba", fr: "ESL Intermédiaire Faible", readingMin: 207, readingMax: 216, listeningMin: 202, listeningMax: 211 },
+  { key: "high_intermediate", order: 5, en: "High Intermediate ESL", ht: "ESL Entèmedyè Wo", fr: "ESL Intermédiaire Avancé", readingMin: 217, readingMax: 227, listeningMin: 212, listeningMax: 221 },
+  { key: "advanced", order: 6, en: "Advanced ESL", ht: "ESL Avanse", fr: "ESL Avancé", readingMin: 228, readingMax: 238, listeningMin: 222, listeningMax: 231 },
+  { key: "exit_advanced", order: 7, en: "Exit Advanced ESL", ht: "ESL Avanse pou Sòti", fr: "ESL Avancé de Sortie", readingMin: 239, readingMax: Infinity, listeningMin: 232, listeningMax: Infinity }
 ];

@@ -207,7 +207,7 @@ function communicationFromRow(row) {
 }
 
 function customOptionFromRow(row) {
-  return { key: row.key, en: row.en, ht: row.ht, es: row.es, fr: row.fr, custom: true };
+  return { key: row.key, en: row.en, ht: row.ht, fr: row.fr, custom: true };
 }
 
 // ---------- clients (master) ----------
@@ -459,7 +459,7 @@ export async function fetchCustomOptions(optionType) {
 }
 export async function createCustomOption(optionType, fields) {
   const { data, error } = await supabase.from("custom_options").insert({
-    option_type: optionType, key: fields.key, en: fields.en, ht: fields.ht, es: fields.es, fr: fields.fr
+    option_type: optionType, key: fields.key, en: fields.en, ht: fields.ht, fr: fields.fr
   }).select().single();
   if (error) throw error;
   return customOptionFromRow(data);
