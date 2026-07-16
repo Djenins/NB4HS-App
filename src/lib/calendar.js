@@ -66,6 +66,56 @@ export function monthGridDays(monthAnchor, weekStartDay) {
   return out;
 }
 
+// NB4HS is closed Sat/Sun, so the calendar only shows the Mon-Fri work
+// week -- these variants replace weekDays()/monthGridDays() everywhere the
+// page renders a grid; the weekend-inclusive versions above are kept only
+// because startOfWeek()/monthGridDays() are still handy building blocks.
+export function workWeekDays(anchorDate) {
+  var monday = startOfWeek(anchorDate, 1);
+  var out = [];
+  for (var i = 0; i < 5; i++) out.push(addDays(monday, i));
+  return out;
+}
+
+// 6 work-weeks (30 cells) covering the month, Monday-anchored regardless of
+// the (now-unused) week-starts-on setting since there's no weekend column
+// to disagree about.
+export function workMonthGridDays(monthAnchor) {
+  var gridStart = startOfWeek(startOfMonth(monthAnchor), 1);
+  var out = [];
+  for (var week = 0; week < 6; week++) {
+    for (var i = 0; i < 5; i++) out.push(addDays(gridStart, week * 7 + i));
+  }
+  return out;
+}
+
+export function isWeekend(date) {
+  var day = date.getDay();
+  return day === 0 || day === 6;
+}
+
+// Steps by calendar day, skipping Sat/Sun, so Day view's Prev/Next always
+// lands on a real work day.
+export function addWorkdays(date, n) {
+  var d = new Date(date);
+  var step = n < 0 ? -1 : 1;
+  var remaining = Math.abs(n);
+  while (remaining > 0) {
+    d.setDate(d.getDate() + step);
+    if (!isWeekend(d)) remaining--;
+  }
+  return d;
+}
+
+// Sat -> following Monday, Sun -> following Monday -- used when "Today" or
+// a saved default lands Day view on a non-work day.
+export function nearestWorkday(date) {
+  var d = new Date(date);
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  return d;
+}
+
 export function sortDayBlocks(blocks) {
   return (blocks || []).slice().sort(function (a, b) {
     return (a.startTime || "").localeCompare(b.startTime || "");

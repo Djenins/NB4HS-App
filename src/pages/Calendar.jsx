@@ -22,7 +22,7 @@ import { CalendarPlus, Info, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { addDays, addMonths, classBlocksForDay, monthGridDays, sortDayBlocks, startOfMonth, startOfWeek, weekDays } from "../lib/calendar.js";
+import { addDays, addMonths, addWorkdays, classBlocksForDay, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
 import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetchCalendarEvents, subscribeCalendarEvents, updateCalendarEvent } from "../lib/calendarData.js";
 import { dateStrFromDate, todayStr } from "../lib/utils.js";
 import { holidaysByDate } from "../lib/holidays.js";
@@ -86,7 +86,6 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
 function CalendarSettingsModal({ config, onSave, onCancel }) {
   const t = useT();
   const [defaultView, setDefaultView] = useState(config.calendarDefaultView || "week");
-  const [weekStartsMonday, setWeekStartsMonday] = useState(!!config.calendarWeekStartsMonday);
   const [defaultFilter, setDefaultFilter] = useState(config.calendarDefaultFilter || "all");
   const [classStartTime, setClassStartTime] = useState(config.calendarClassStartTime || "09:30");
   const [classEndTime, setClassEndTime] = useState(config.calendarClassEndTime || "12:30");
@@ -102,14 +101,6 @@ function CalendarSettingsModal({ config, onSave, onCancel }) {
           <select className={inputClass} value={defaultView} onChange={(e) => setDefaultView(e.target.value)}>
             <option value="week">{t("calendarWeekView")}</option>
             <option value="list">{t("calendarListView")}</option>
-          </select>
-        </div>
-
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarWeekStartsLabel")}</label>
-          <select className={inputClass} value={weekStartsMonday ? "monday" : "sunday"} onChange={(e) => setWeekStartsMonday(e.target.value === "monday")}>
-            <option value="sunday">{t("calendarStartsSunday")}</option>
-            <option value="monday">{t("calendarStartsMonday")}</option>
           </select>
         </div>
 
@@ -133,7 +124,6 @@ function CalendarSettingsModal({ config, onSave, onCancel }) {
           <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
           <Button onClick={() => onSave({
             calendarDefaultView: defaultView,
-            calendarWeekStartsMonday: weekStartsMonday,
             calendarDefaultFilter: defaultFilter,
             calendarClassStartTime: classStartTime,
             calendarClassEndTime: classEndTime
@@ -151,7 +141,6 @@ function fmtMonthDay(d) {
 export default function CalendarPage() {
   const { data, session, config, updateConfig, requestConfirm, showToast } = useApp();
   const t = useT();
-  const weekStartDay = config.calendarWeekStartsMonday ? 1 : 0;
   const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState([]);
   const [filter, setFilter] = useState(config.calendarDefaultFilter || "all");
@@ -162,23 +151,29 @@ export default function CalendarPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeBlock, setActiveBlock] = useState(null);
 
+  // Office is closed Sat/Sun, so every view is Mon-Fri only -- see
+  // workWeekDays()/workMonthGridDays() in lib/calendar.js.
   const days = useMemo(() => {
-    if (view === "day") return [anchor];
-    if (view === "month") return monthGridDays(anchor, weekStartDay);
-    return weekDays(startOfWeek(anchor, weekStartDay));
-  }, [view, anchor, weekStartDay]);
+    if (view === "day") return [nearestWorkday(anchor)];
+    if (view === "month") return workMonthGridDays(anchor);
+    return workWeekDays(anchor);
+  }, [view, anchor]);
 
   const rangeStart = dateStrFromDate(days[0]);
   const rangeEnd = dateStrFromDate(days[days.length - 1]);
 
-  function goToday() { setAnchor(new Date()); }
+  function handleViewChange(nextView) {
+    if (nextView === "day") setAnchor((d) => nearestWorkday(d));
+    setView(nextView);
+  }
+  function goToday() { setAnchor(view === "day" ? nearestWorkday(new Date()) : new Date()); }
   function goPrev() {
-    if (view === "day") setAnchor((d) => addDays(d, -1));
+    if (view === "day") setAnchor((d) => addWorkdays(d, -1));
     else if (view === "month") setAnchor((d) => addMonths(d, -1));
     else setAnchor((d) => addDays(d, -7));
   }
   function goNext() {
-    if (view === "day") setAnchor((d) => addDays(d, 1));
+    if (view === "day") setAnchor((d) => addWorkdays(d, 1));
     else if (view === "month") setAnchor((d) => addMonths(d, 1));
     else setAnchor((d) => addDays(d, 7));
   }
@@ -291,7 +286,7 @@ export default function CalendarPage() {
           filter={filter}
           onFilterChange={setFilter}
           view={view}
-          onViewChange={setView}
+          onViewChange={handleViewChange}
         />
         <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />
       </div>
