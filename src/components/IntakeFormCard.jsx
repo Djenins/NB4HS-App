@@ -37,7 +37,7 @@ const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", 
 function Field({ label, value, onChange, type, placeholder, className, inputMode }) {
   return (
     <div className={className}>
-      <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
+      <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label>
       <input
         type={type || "text"}
         inputMode={inputMode}
@@ -55,7 +55,7 @@ function Field({ label, value, onChange, type, placeholder, className, inputMode
 function InlineField({ label, value, onChange, placeholder, className }) {
   return (
     <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <label className="text-xs font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
+      <label className="text-sm font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
       <input
         type="text"
         value={value}
@@ -67,13 +67,13 @@ function InlineField({ label, value, onChange, placeholder, className }) {
   );
 }
 
-function RadioGroup({ label, name, value, onChange, options, className }) {
+function RadioGroup({ label, name, value, onChange, options, className, vertical }) {
   return (
     <div className={className}>
-      {label ? <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label> : null}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      {label ? <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label> : null}
+      <div className={vertical ? "flex flex-col gap-1.5" : "flex flex-wrap gap-x-4 gap-y-1.5"}>
         {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-1.5 text-sm text-card-foreground">
+          <label key={opt} className="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
             <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className="h-3.5 w-3.5 accent-primary" />
             {opt}
           </label>
@@ -87,10 +87,10 @@ function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
   const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
   return (
     <div className={className}>
-      {label ? <label className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label> : null}
+      {label ? <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label> : null}
       <div className={cn("grid grid-cols-1 gap-1.5", colsClass)}>
         {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-1.5 text-sm text-card-foreground">
+          <label key={opt} className="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
             <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className="h-3.5 w-3.5 accent-primary" />
             {opt}
           </label>
@@ -338,15 +338,15 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 <Field label="How many Children?" type="text" inputMode="numeric" placeholder="e.g. 3" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
                 {f.children.map((c, i) => (
                   <div key={i} className="overflow-hidden rounded-lg border border-border">
-                    <div className="border-b border-border bg-primary-tint px-3 py-2 text-xs font-semibold text-primary">Child {i + 1}</div>
+                    <div className="border-b border-border bg-primary-tint px-3 py-2 text-sm font-semibold text-primary">Child {i + 1}</div>
                     <div className="space-y-3 p-3">
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                      <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                      <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
                         <Field label="Age" type="text" inputMode="numeric" placeholder="e.g. 8" value={c.age} onChange={(v) => setChild(i, "age", v)} />
                         <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
                       </div>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                      <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                      <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
                         <Field label="Grade" placeholder="e.g. 3rd" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
                         <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
                       </div>
