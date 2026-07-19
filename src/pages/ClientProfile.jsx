@@ -447,7 +447,7 @@ function ProgramsTab({ enrollments, lang }) {
 
 export default function ClientProfile() {
   const { nbId } = useParams();
-  const { data, lang, session } = useApp();
+  const { data, lang, session, refetchStudents } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
@@ -509,6 +509,7 @@ export default function ClientProfile() {
       await createFoodClient(base, base, client.id);
     } else if (programType === "student") {
       await createStudent(Object.assign({}, base, { clientId: client.id, classKey: null, active: true }));
+      refetchStudents();
     }
     setAddingToProgram(false);
   }

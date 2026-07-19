@@ -52,7 +52,7 @@ const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
 // AppContext's setData, so the move/remove/dropout/outcome/edit logic stays
 // in one place rather than forking into two copies.
 function useStudentRosterActions() {
-  const { data, requestConfirm, showToast } = useApp();
+  const { data, requestConfirm, showToast, refetchStudents } = useApp();
   const t = useT();
 
   // Waiting List (the backlog) has no cap -- only real classrooms do. Moving
@@ -75,18 +75,21 @@ function useStudentRosterActions() {
       droppedOut: classKeyOrNull ? false : (student && student.droppedOut),
       dropoutDate: classKeyOrNull ? "" : (student && student.dropoutDate)
     });
+    refetchStudents();
   }
 
   async function removeStudent(id) {
     const ok = await requestConfirm(t("removeStudentConfirm"), { danger: true });
     if (!ok) return;
     await deleteStudent(id);
+    refetchStudents();
   }
 
   async function removeSelected(ids) {
     const ok = await requestConfirm(t("bulkDeleteConfirm").replace("{n}", String(ids.size)), { danger: true });
     if (!ok) return false;
     await Promise.all(Array.from(ids).map((id) => deleteStudent(id)));
+    refetchStudents();
     return true;
   }
 
@@ -98,6 +101,7 @@ function useStudentRosterActions() {
     const ok = await requestConfirm(t("dropoutConfirm"));
     if (!ok) return;
     await updateStudent(id, { classKey: null, droppedOut: true, dropoutDate: todayStr() });
+    refetchStudents();
     showToast(t("studentDroppedOut"));
   }
 
@@ -106,6 +110,7 @@ function useStudentRosterActions() {
   // here since a real gain always wins over whatever was picked before).
   async function setOutcome(id, outcome) {
     await updateStudent(id, { outcome });
+    refetchStudents();
   }
 
   // Returns true on success so callers can close their own local editingId
@@ -114,6 +119,7 @@ function useStudentRosterActions() {
     const updated = buildUpdatedStudent(student, fields);
     if (!updated) { showToast(t("fixErrors")); return false; }
     await updateStudent(student.id, updated);
+    refetchStudents();
     showToast(t("studentUpdated"));
     return true;
   }
@@ -708,7 +714,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selec
 }
 
 function EnrollStudentPanel() {
-  const { data, setData, showToast } = useApp();
+  const { data, setData, showToast, refetchStudents } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [fields, setFields] = useState({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
@@ -721,6 +727,7 @@ function EnrollStudentPanel() {
   async function finalizeCreate(result, matchedClient) {
     const created = await createStudent(result);
     setData((prev) => attachClientToProgram(prev, "student", created, matchedClient));
+    refetchStudents();
     setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
     setDupMatches(null);
     setPendingResult(null);
@@ -785,7 +792,7 @@ function EnrollStudentPanel() {
 }
 
 function UploadStudentsPanel() {
-  const { data, setData, showToast } = useApp();
+  const { data, setData, showToast, refetchStudents } = useApp();
   const t = useT();
   const fileRef = useRef(null);
   const [fileName, setFileName] = useState("");
@@ -805,6 +812,7 @@ function UploadStudentsPanel() {
       });
       return next;
     });
+    refetchStudents();
     showToast(created.length + " " + t("studentsImported"));
   }
 

@@ -124,6 +124,13 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; unsubVisits(); unsubStudents(); unsubClasses(); };
   }, []);
 
+  // Callers that just inserted/updated/deleted a student (Students.jsx's
+  // enroll/import/edit/remove flows) await this right after the write so the
+  // new row shows up immediately, instead of waiting on the realtime
+  // subscription's refetch (which can lag enough that it looks like the UI
+  // needs a hard refresh to pick up a just-added student).
+  const refetchStudents = useCallback(() => fetchStudents().then((rows) => setStudents(rows)), []);
+
   // The merged view every page actually reads: same key names as before
   // (`data.visits`/`data.students`/`data.classes`), just overlaid onto the
   // still-local rest of `data` -- see the plan's "keep the shape, swap the
@@ -354,10 +361,11 @@ export function AppProvider({ children }) {
     kiosk, setKiosk,
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
-    notifications, markNotifRead, markAllNotifsRead
+    notifications, markNotifRead, markAllNotifsRead,
+    refetchStudents
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
-    confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead
+    confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
