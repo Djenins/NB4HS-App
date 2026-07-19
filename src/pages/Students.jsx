@@ -73,7 +73,7 @@ function useStudentRosterActions() {
     await updateStudent(studentId, {
       classKey: classKeyOrNull,
       droppedOut: classKeyOrNull ? false : (student && student.droppedOut),
-      dropoutDate: classKeyOrNull ? "" : (student && student.dropoutDate)
+      dropoutDate: classKeyOrNull ? null : (student && student.dropoutDate)
     });
     refetchStudents();
   }
