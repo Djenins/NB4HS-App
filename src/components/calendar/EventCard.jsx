@@ -37,7 +37,7 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
         onClick={() => onOpen(block)}
         onKeyDown={(e) => { if (e.key === "Enter") onOpen(block); }}
         className={cn(
-          "flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-l-4 border-slate-200 bg-slate-50 px-2 py-1 text-left shadow-sm transition-shadow group-hover:shadow-md",
+          "flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-l-4 border-slate-200 bg-slate-50 px-2 py-1 text-left shadow-sm outline outline-2 outline-primary transition-shadow group-hover:shadow-md",
           style.border
         )}
       >
