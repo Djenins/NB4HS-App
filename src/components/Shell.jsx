@@ -128,7 +128,7 @@ function SidebarSearch({ students, classes, t }) {
           aria-label={t("sidebarSearchPlaceholder")}
           value={term}
           onChange={(e) => setTerm(e.target.value)}
-          className="min-h-0 w-full border-none bg-transparent p-0 text-sm text-white placeholder:text-sidebar-text focus:outline-none focus:ring-0"
+          className="!min-h-0 w-full !border-none !bg-transparent !p-0 text-sm !text-white placeholder:!text-sidebar-text focus:!outline-none focus:!ring-0"
         />
       </div>
       <AnimatePresence>
