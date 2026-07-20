@@ -18,6 +18,7 @@ import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import MyCaseload from "./pages/MyCaseload.jsx";
+import RequireRoute from "./components/RequireRoute.jsx";
 import CheckIn from "./pages/CheckIn.jsx";
 import CheckInStudent from "./pages/CheckInStudent.jsx";
 import CheckInVisitor from "./pages/CheckInVisitor.jsx";
@@ -85,15 +86,15 @@ export default function App() {
           <Route path="/fooddistribution" element={<FoodDistribution />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/qrcode" element={<QRCode />} />
-          <Route path="/manage" element={<Manage />} />
+          <Route path="/manage" element={<RequireRoute routeKey="manage"><Manage /></RequireRoute>} />
           <Route path="/students" element={<Students />} />
           <Route path="/assessments" element={<Assessments />} />
           <Route path="/casemanagement" element={<CaseManagement />} />
           <Route path="/jobdeveloper" element={<JobDeveloper />} />
           <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
           <Route path="/clients/:nbId" element={<ClientProfile />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/users" element={<RequireRoute routeKey="users"><Users /></RequireRoute>} />
+          <Route path="/settings" element={<RequireRoute routeKey="settings"><Settings /></RequireRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
