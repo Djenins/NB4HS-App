@@ -27,6 +27,7 @@ import CheckOut from "./pages/CheckOut.jsx";
 import CheckOutScanSuccess from "./pages/CheckOutScanSuccess.jsx";
 import ApptRequest from "./pages/ApptRequest.jsx";
 import ApptRequestSuccess from "./pages/ApptRequestSuccess.jsx";
+import AppointmentLookup from "./pages/AppointmentLookup.jsx";
 import Search from "./pages/Search.jsx";
 import Reports from "./pages/Reports.jsx";
 import QRCode from "./pages/QRCode.jsx";
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/checkout/scan-success" element={<CheckOutScanSuccess />} />
           <Route path="/appointments/request" element={<ApptRequest />} />
           <Route path="/appointments/request/success" element={<ApptRequestSuccess />} />
+          <Route path="/appointments/lookup" element={<AppointmentLookup />} />
           <Route path="/search" element={<Search />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/fooddistribution" element={<FoodDistribution />} />

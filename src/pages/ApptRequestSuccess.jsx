@@ -19,6 +19,9 @@ export default function ApptRequestSuccess() {
         <button className="btn-primary btn-lg" style={{ marginTop: 8 }} onClick={() => { setKiosk(false); navigate("/"); }}>
           {t("backToHomeBtn")}
         </button>
+        <button className="btn-ghost" style={{ marginTop: 10 }} onClick={() => navigate("/appointments/lookup")}>
+          {t("apptLookupLink")}
+        </button>
       </div>
     </div>
   );

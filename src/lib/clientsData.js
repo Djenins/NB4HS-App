@@ -413,6 +413,19 @@ export async function cancelAppointmentSeries(seriesId, fromDate) {
     .neq("status", "completed");
   if (error) throw error;
 }
+// Public self-service lookup (no client accounts exist -- see
+// lookup_client_appointments migration). Two-factor: last name plus either
+// email or phone, whichever the client used when requesting.
+export async function lookupClientAppointments(lastName, email, phone) {
+  const { data, error } = await supabase.rpc("lookup_client_appointments", {
+    p_last_name: lastName, p_email: email || "", p_phone: phone || ""
+  });
+  if (error) { console.warn("lookupClientAppointments failed", error); return []; }
+  return (data || []).map((row) => ({
+    date: row.appt_date || "", time: row.appt_time || "", meetingWith: row.meeting_with,
+    status: row.status, reason: row.reason || ""
+  }));
+}
 export async function updateAppointmentStatus(id, status) {
   const { data, error } = await supabase.from("appointments").update({ status }).eq("id", id).select().single();
   if (error) throw error;

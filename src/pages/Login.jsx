@@ -64,6 +64,10 @@ export default function Login() {
     setKiosk(true);
     navigate("/appointments/request");
   }
+  function lookupAppt() {
+    setKiosk(true);
+    navigate("/appointments/lookup");
+  }
 
   const stats = [
     { icon: Calendar, num: (data.classes || []).length, label: t("landingClassesOfferedLabel") },
@@ -207,6 +211,17 @@ export default function Login() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            <div className="mt-4 text-sm text-muted">
+              {t("alreadyRequestedApptLabel")}{" "}
+              <Button
+                variant="ghost"
+                className="inline-flex h-auto gap-1 px-1 py-0 text-sm font-semibold text-primary underline-offset-4 hover:bg-transparent hover:underline"
+                onClick={lookupAppt}
+              >
+                {t("apptLookupLink")} <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
 
             <div className="mt-8 text-sm text-muted">
               {t("alreadyStaffLabel")}{" "}
