@@ -5,9 +5,9 @@
 // new reports_data.js helpers (previousRange/trendPct/computeMostActiveDay)
 // to drive the KPI cards' "vs previous period" badges and the new "Most
 // Active Day"/"Peak Visit Time" card, both taken from the requested design.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Calendar, Clock, FileSpreadsheet, FileText, GraduationCap, Home,
+  Award, Calendar, Clock, FileSpreadsheet, FileText, GraduationCap, Home,
   Printer, Repeat, TrendingDown, TrendingUp, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -18,6 +18,8 @@ import {
   computeDailyTrend, computeGeoBreakdown, computeMostActiveDay, computeStats, exportCSV,
   exportExcel, fmtHour, inRange, previousRange, rangeForPreset, trendPct
 } from "../lib/reports_data.js";
+import { fetchGrants } from "../lib/grants.js";
+import { fetchCaseNoteIdsInRange, fetchGrantTagsForRecords } from "../lib/serviceGrantTags.js";
 import { fmtDuration, fullServiceList, fullStaffList, labelFor, todayStr } from "../lib/utils.js";
 import { cn } from "../lib/cn.js";
 import BarList from "../components/BarList.jsx";
@@ -80,6 +82,34 @@ export default function Reports() {
   const zipTop8 = geo.zipSorted.slice(0, 8);
   const mostActiveDay = computeMostActiveDay(data.visits, range);
   const peakHour = s.hourSorted[0];
+
+  const [grantBreakdown, setGrantBreakdown] = useState([]);
+  const [grantTotals, setGrantTotals] = useState({ tagged: 0, untagged: 0 });
+  const visitIdsKey = s.inRangeVisits.map((v) => v.id).join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    const visitIds = visitIdsKey ? visitIdsKey.split(",") : [];
+    (async () => {
+      const [grants, noteIds] = await Promise.all([fetchGrants(), fetchCaseNoteIdsInRange(range.from, range.to)]);
+      const [visitTags, noteTags] = await Promise.all([
+        fetchGrantTagsForRecords("visits", visitIds),
+        fetchGrantTagsForRecords("case_client_notes", noteIds),
+      ]);
+      if (cancelled) return;
+      const counts = {};
+      Object.values(visitTags).concat(Object.values(noteTags)).forEach((gid) => { counts[gid] = (counts[gid] || 0) + 1; });
+      const taggedTotal = Object.values(counts).reduce((a, b) => a + b, 0);
+      const totalServices = visitIds.length + noteIds.length;
+      const rows = grants
+        .map((g) => ({ label: g.name, count: counts[g.id] || 0 }))
+        .filter((r) => r.count > 0)
+        .sort((a, b) => b.count - a.count);
+      setGrantBreakdown(rows);
+      setGrantTotals({ tagged: taggedTotal, untagged: Math.max(0, totalServices - taggedTotal) });
+    })();
+    return () => { cancelled = true; };
+  }, [visitIdsKey, range.from, range.to]);
 
   // Food Distribution is Administrator/Staff only -- only show its numbers
   // here to roles that actually have that nav item, same gate as the nav.
@@ -187,6 +217,28 @@ export default function Reports() {
             datasets={[{ data: trend.data, fill: true, tension: 0.3 }]}
             fallback={<Sparkline labels={trend.labels} data={trend.data} />}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+          <CardTitle>Grant Attribution</CardTitle>
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-muted">
+            <Award className="h-4 w-4 text-primary" />
+            {grantTotals.tagged} tagged &middot; {grantTotals.untagged} untagged
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {grantBreakdown.length ? (
+            <DashChart
+              type="bar"
+              labels={grantBreakdown.map((x) => x.label)}
+              datasets={[{ data: grantBreakdown.map((x) => x.count) }]}
+              fallback={<BarList items={grantBreakdown} />}
+            />
+          ) : (
+            <p className="text-sm text-muted">No services in this range are tagged to a grant yet. Tag visits from Search and case notes from Case Management to see a breakdown here.</p>
+          )}
         </CardContent>
       </Card>
 

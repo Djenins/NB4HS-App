@@ -23,6 +23,7 @@ const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", cust
 const EMPTY_INTAKE = {
   intakeDate: "", usEntryDate: "",
   fullName: "", dob: "", gender: "", address: "", city: "", state: "RI", zip: "", phone: "", email: "",
+  raceEthnicity: "", householdIncomeBracket: "", householdSize: "",
   ecName: "", ecPhone: "", primaryLanguage: "", needTranslator: "", education: "",
   ssn: "", working: "", immigrationStatus: "", immigrationStatusOther: "", jobLookingFor: "", jobType: "", skills: "", ownCar: "", licenseType: "",
   maritalStatus: "", identityVerification: "", medicalInsurance: "", medicalHealthCondition: "", medicalHealthOther: "", mentalHealthCondition: "", mentalHealthOther: "",
@@ -36,6 +37,8 @@ const BARRIER_OPTIONS = ["Income", "Housing", "Transportation", "Employment", "L
 const REFERRAL_OPTIONS = ["Counseling", "Primary Care Physician", "Shelter", "Housing", "Job Search", "Education", "Training", "Medical", "Immigration Services", "Childcare", "Parenting/Parenting Aid", "Domestic Violence Specialist", "Food Resources", "Benefits", "DHS", "Healthsource RI", "Other"];
 const HOUSING_OPTIONS = ["Apartment Rental", "Housing Authority", "Voucher"];
 const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", "CBP1", "Humanitarian parole", "Pending Case"];
+const RACE_ETHNICITY_OPTIONS = ["American Indian/Alaska Native", "Asian", "Black/African American", "Hispanic/Latino", "Native Hawaiian/Pacific Islander", "White", "Two or More Races", "Prefer not to say"];
+const INCOME_BRACKET_OPTIONS = ["Under $15,000", "$15,000-$29,999", "$30,000-$44,999", "$45,000-$59,999", "$60,000+", "Prefer not to say"];
 
 function Field({ label, value, onChange, type, placeholder, className, inputMode }) {
   return (
@@ -292,7 +295,11 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     setSaving(true);
     setSaveError("");
     try {
-      const updated = await updateClientRecord(client.id, { intakeForm: f, intakeFormSavedAt: new Date().toISOString() });
+      const updated = await updateClientRecord(client.id, {
+        intakeForm: f, intakeFormSavedAt: new Date().toISOString(),
+        raceEthnicity: f.raceEthnicity, gender: f.gender,
+        householdIncomeBracket: f.householdIncomeBracket, householdSize: f.householdSize,
+      });
       setSavedAt(updated.intakeFormSavedAt);
     } catch (err) {
       console.warn("saveForm failed", err);
@@ -341,6 +348,11 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                   <Field label="Email" value={f.email} onChange={(v) => set("email", v)} />
                 </div>
                 <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
+                <RadioGroup label="Race/Ethnicity" name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <RadioGroup label="Household Income" name="householdIncomeBracket" value={f.householdIncomeBracket} onChange={(v) => set("householdIncomeBracket", v)} options={INCOME_BRACKET_OPTIONS} vertical />
+                  <Field label="Household Size" type="text" inputMode="numeric" placeholder="e.g. 4" value={f.householdSize} onChange={(v) => set("householdSize", v)} />
+                </div>
               </Section>
 
               <Section number={2} icon={Phone} title="Emergency Contact">

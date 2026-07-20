@@ -2,14 +2,15 @@
 // Ported from manage.js's renderManage()/renderClassManageCard()/
 // attachManageHandlers(). Classroom deletion uses AppContext's promise-based
 // requestConfirm() in place of the original's callback-based showConfirmModal().
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, Plus, Users } from "lucide-react";
+import { Award, Briefcase, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, Plus, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { meetingDaysLabel, studentsForClass } from "../lib/students.js";
 import { fullServiceList, fullStaffList, slugify } from "../lib/utils.js";
-import { createClass, deleteClass, updateClass } from "../lib/checkinData.js";
+import { createClass, deleteClass, subscribeTable, updateClass } from "../lib/checkinData.js";
+import { createGrant, deleteGrant, fetchGrants, updateGrant } from "../lib/grants.js";
 import ManageListCard from "../components/ManageListCard.jsx";
 
 function ClassManageCard({ c }) {
@@ -78,6 +79,146 @@ function ClassManageCard({ c }) {
         <Users className="icon" style={{ marginRight: 6 }} /> {t("viewStudentsLabel")}
       </button>
     </div>
+  );
+}
+
+function GrantRow({ g }) {
+  const { requestConfirm, showToast } = useApp();
+  const t = useT();
+  const [activeOverride, setActiveOverride] = useState(null);
+  const isActive = activeOverride !== null ? activeOverride : g.active !== false;
+
+  async function toggleActive() {
+    const next = !isActive;
+    setActiveOverride(next);
+    try {
+      await updateGrant(g.id, { active: next });
+    } catch (err) {
+      setActiveOverride(null);
+      showToast(t("manageToggleError"));
+      throw err;
+    }
+  }
+
+  async function removeGrant() {
+    const ok = await requestConfirm("Delete this grant? Any service tags linked to it will also be removed.", { danger: true });
+    if (!ok) return;
+    await deleteGrant(g.id);
+  }
+
+  const period = [g.periodStart, g.periodEnd].filter(Boolean).join(" – ");
+
+  return (
+    <div className="card">
+      <div className="flex-between">
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div className="icon-badge"><Award className="icon" /></div>
+          <div>
+            <h3 style={{ margin: 0 }}>{g.name}</h3>
+            {g.funder && <p className="muted" style={{ margin: "4px 0 0", fontSize: ".85rem" }}>{g.funder}</p>}
+            {period && <p className="muted" style={{ margin: "2px 0 0", fontSize: ".8rem" }}>{period}</p>}
+          </div>
+        </div>
+        <button className="btn-ghost btn-sm btn-outline-danger" onClick={removeGrant}>
+          <Trash2 className="icon" />
+        </button>
+      </div>
+      <button
+        type="button"
+        className={"btn-icon status-toggle" + (isActive ? " status-toggle-on" : " status-toggle-off")}
+        style={{ marginTop: 12 }}
+        onClick={toggleActive}
+      >
+        {isActive ? <CheckCircle2 className="icon" /> : <Circle className="icon" />}
+        {isActive ? t("activeLabel") : t("inactiveLabel")}
+      </button>
+    </div>
+  );
+}
+
+function GrantsManageCard() {
+  const { showToast } = useApp();
+  const [grants, setGrants] = useState([]);
+  const [name, setName] = useState("");
+  const [funder, setFunder] = useState("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGrants().then((rows) => { if (!cancelled) setGrants(rows); });
+    const unsub = subscribeTable("grants", () => { fetchGrants().then((rows) => { if (!cancelled) setGrants(rows); }); });
+    return () => { cancelled = true; unsub(); };
+  }, []);
+
+  async function addGrant() {
+    const trimmed = name.trim();
+    if (!trimmed) { showToast("Enter a grant name."); return; }
+    await createGrant({ name: trimmed, funder: funder.trim(), periodStart, periodEnd, active: true });
+    setName(""); setFunder(""); setPeriodStart(""); setPeriodEnd("");
+    showToast("Grant added ✓");
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", margin: "28px 0 14px" }}>
+        <div className="icon-badge"><Award className="icon" /></div>
+        <div>
+          <h2 style={{ margin: 0 }}>Grants</h2>
+          <p className="muted" style={{ margin: "4px 0 0" }}>Track funder grants so services can be tagged for reporting.</p>
+        </div>
+      </div>
+      <div className="grid grid-3">
+        {grants.map((g) => <GrantRow g={g} key={g.id} />)}
+      </div>
+
+      <div className="card">
+        <div className="form-section">
+          <div className="form-section-head-row">
+            <div className="icon-badge"><Plus className="icon" /></div>
+            <div className="form-section-head">
+              <h3>Add a Grant</h3>
+              <p>Name it after the funder/program so staff can pick it when tagging a service.</p>
+            </div>
+          </div>
+          <div className="form-section-body">
+            <div className="field">
+              <label>Grant Name</label>
+              <input
+                type="text"
+                placeholder="e.g. RI DOL Workforce Development FY26"
+                aria-label="Grant name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Funder</label>
+              <input
+                type="text"
+                placeholder="e.g. RI Department of Labor and Training"
+                aria-label="Funder"
+                value={funder}
+                onChange={(e) => setFunder(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-2">
+              <div className="field">
+                <label>Period Start</label>
+                <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Period End</label>
+                <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+              </div>
+            </div>
+            <button className="btn-primary" onClick={addGrant}>
+              <Plus className="icon" style={{ marginRight: 6 }} /> Add Grant
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -196,6 +337,8 @@ export default function Manage() {
           </div>
         </div>
       </div>
+
+      <GrantsManageCard />
 
       <div className="grid grid-2">
         <div className="card">

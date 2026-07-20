@@ -11,17 +11,19 @@
 // modal (and Print reuses it via window.print()); there is no edit-visit
 // feature anywhere in the app yet, so Edit surfaces an honest "not
 // available yet" toast instead of pretending to save something.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ChevronDown, ChevronUp, Clock, Columns3, Copy, DoorOpen, Download,
+  Award, ChevronDown, ChevronUp, Clock, Columns3, Copy, DoorOpen, Download,
   Eye, LogIn, MoreHorizontal, Pencil, Printer, RefreshCw, Search as SearchIcon,
   Users, X
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { serviceDisplay } from "../lib/students.js";
 import { computeDailyTrend, computeStats, exportCSV, exportExcel, rangeForPreset } from "../lib/reports_data.js";
+import { fetchGrants } from "../lib/grants.js";
+import { fetchGrantTagsForRecords, setRecordGrantTag } from "../lib/serviceGrantTags.js";
 import {
   dateStrFromDate, fmtDuration, fmtTime, formatPhone, fullServiceList, fullStaffList,
   initialsOf, labelFor, minutesBetween, todayStr
@@ -161,6 +163,14 @@ export default function Search() {
   const [selected, setSelected] = useState(() => new Set());
   const [visibleCols, setVisibleCols] = useState({ staff: true, actions: true });
   const [detailVisit, setDetailVisit] = useState(null);
+  const [grants, setGrants] = useState([]);
+  const [grantTags, setGrantTags] = useState({});
+  const [grantTagVisit, setGrantTagVisit] = useState(null);
+  const [pendingGrantId, setPendingGrantId] = useState("");
+
+  useEffect(() => {
+    fetchGrants().then((rows) => setGrants(rows.filter((g) => g.active)));
+  }, []);
 
   function setFilter(key, value) {
     setFilters((prev) => Object.assign({}, prev, { [key]: value }));
@@ -209,6 +219,25 @@ export default function Search() {
   const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
   const rows = list.slice((safePage - 1) * pageSize, (safePage - 1) * pageSize + pageSize);
+  const rowIds = rows.map((v) => v.id).join(",");
+
+  useEffect(() => {
+    const ids = rowIds ? rowIds.split(",") : [];
+    let cancelled = false;
+    fetchGrantTagsForRecords("visits", ids).then((map) => { if (!cancelled) setGrantTags((prev) => Object.assign({}, prev, map)); });
+    return () => { cancelled = true; };
+  }, [rowIds]);
+
+  function openGrantTag(v) {
+    setGrantTagVisit(v);
+    setPendingGrantId(grantTags[v.id] || "");
+  }
+  async function saveGrantTag() {
+    await setRecordGrantTag("visits", grantTagVisit.id, pendingGrantId || null);
+    setGrantTags((prev) => Object.assign({}, prev, { [grantTagVisit.id]: pendingGrantId || undefined }));
+    setGrantTagVisit(null);
+  }
+  const grantNameFor = (id) => { const g = grants.find((x) => x.id === id); return g ? g.name : ""; };
 
   const allOnPageSelected = rows.length > 0 && rows.every((v) => selected.has(v.id));
   function toggleAllOnPage() {
@@ -430,6 +459,7 @@ export default function Search() {
                             <div className="text-xs text-muted">
                               {fmtDateShort(v.date, lang)} · {fmtTime(v.timeIn)} – {v.timeOut ? fmtTime(v.timeOut) : "—"} · {dur}
                             </div>
+                            {grantTags[v.id] ? <div className="badge badge-in" style={{ marginTop: 4 }}>{grantNameFor(grantTags[v.id])}</div> : null}
                           </td>
                           {visibleCols.staff ? (
                             <td className="px-3 py-3.5 align-top">
@@ -453,6 +483,7 @@ export default function Search() {
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => handleCopyPhone(v.phone)}><Copy className="mr-2 h-3.5 w-3.5" />{t("copyPhone")}</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handlePrint(v)}><Printer className="mr-2 h-3.5 w-3.5" />{t("printVisit")}</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openGrantTag(v)}><Award className="mr-2 h-3.5 w-3.5" />Tag Grant</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -486,11 +517,13 @@ export default function Search() {
                         <div className="font-semibold text-card-foreground">{serviceDisplay(v, data.customServices, lang)}</div>
                         <div className="text-xs text-muted">{fmtDateShort(v.date, lang)} · {fmtTime(v.timeIn)} – {v.timeOut ? fmtTime(v.timeOut) : "—"} · {dur}</div>
                         <div className="mt-1 text-xs text-muted">{t("staffMember")}: {labelFor(staffList, v.staff, lang)}</div>
+                        {grantTags[v.id] ? <div className="badge badge-in" style={{ marginTop: 4 }}>{grantNameFor(grantTags[v.id])}</div> : null}
                       </div>
                       <div className="flex items-center gap-1 border-t border-border pt-2">
                         <button title={t("viewDetails")} onClick={() => setDetailVisit(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Eye className="h-4 w-4" /></button>
                         <button title={t("editVisit")} onClick={() => showToast(t("editComingSoon"))} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Pencil className="h-4 w-4" /></button>
                         <button title={t("printVisit")} onClick={() => handlePrint(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Printer className="h-4 w-4" /></button>
+                        <button title="Tag Grant" onClick={() => openGrantTag(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Award className="h-4 w-4" /></button>
                       </div>
                     </div>
                   );
@@ -533,6 +566,29 @@ export default function Search() {
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => window.print()} className="gap-2"><Printer className="h-4 w-4" />{t("printVisit")}</Button>
               <Button onClick={() => setDetailVisit(null)}>{t("closeLabel")}</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {grantTagVisit ? (
+        <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) setGrantTagVisit(null); }}>
+          <div className="modal-box" style={{ maxWidth: 420 }}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="m-0">Tag Grant</h3>
+              <button onClick={() => setGrantTagVisit(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="muted" style={{ marginTop: 0 }}>{grantTagVisit.firstName} {grantTagVisit.lastName} · {fmtDateShort(grantTagVisit.date, lang)}</p>
+            <div className="field">
+              <label>Grant</label>
+              <select aria-label="Grant" value={pendingGrantId} onChange={(e) => setPendingGrantId(e.target.value)}>
+                <option value="">No grant</option>
+                {grants.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setGrantTagVisit(null)}>{t("closeLabel")}</Button>
+              <Button onClick={saveGrantTag}>Save</Button>
             </div>
           </div>
         </div>

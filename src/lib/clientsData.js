@@ -35,6 +35,8 @@ function masterFromRow(row) {
     phone: row.phone || "", email: row.email || "", dob: row.dob || "", street: row.street || "",
     city: row.city || "", zip: row.zip || "", state: row.state || "RI", intakeDate: row.intake_date || "",
     status: row.status, createdAt: row.created_at, updatedAt: row.updated_at,
+    raceEthnicity: row.race_ethnicity || "", gender: row.gender || "",
+    householdIncomeBracket: row.household_income_bracket || "", householdSize: row.household_size || "",
     intakeForm: row.intake_form || null, intakeFormSavedAt: row.intake_form_saved_at || null
   };
 }
@@ -50,6 +52,10 @@ export function masterToRow(fields) {
   if (fields.zip !== undefined) row.zip = fields.zip;
   if (fields.intakeDate !== undefined) row.intake_date = fields.intakeDate || null;
   if (fields.status !== undefined) row.status = fields.status;
+  if (fields.raceEthnicity !== undefined) row.race_ethnicity = fields.raceEthnicity;
+  if (fields.gender !== undefined) row.gender = fields.gender;
+  if (fields.householdIncomeBracket !== undefined) row.household_income_bracket = fields.householdIncomeBracket;
+  if (fields.householdSize !== undefined) row.household_size = fields.householdSize ? Number(fields.householdSize) || null : null;
   if (fields.intakeForm !== undefined) row.intake_form = fields.intakeForm;
   if (fields.intakeFormSavedAt !== undefined) row.intake_form_saved_at = fields.intakeFormSavedAt;
   return row;
