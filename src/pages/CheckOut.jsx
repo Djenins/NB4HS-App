@@ -43,7 +43,7 @@ function dateLabel(dateStr, lang, t) {
 }
 
 export default function CheckOut() {
-  const { data, lang, kiosk, showToast } = useApp();
+  const { data, lang, kiosk, showToast, refetchVisits } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -65,6 +65,7 @@ export default function CheckOut() {
     const visit = data.visits.find((v) => v.id === id);
     if (!visit) return;
     const updated = await checkOutVisit(id);
+    await refetchVisits();
     const timeOut = (updated && updated.timeOut) || new Date().toISOString();
     const dur = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
     showToast(t("checkedOutAt") + " " + fmtTime(timeOut) + " — " + t("visitLength") + ": " + dur);
@@ -77,6 +78,7 @@ export default function CheckOut() {
     const visit = data.visits.find((v) => v.id === id);
     if (!visit) return;
     const updated = await checkOutVisit(id);
+    await refetchVisits();
     const timeOut = (updated && updated.timeOut) || new Date().toISOString();
     const duration = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
     const scanResult = { status: "ok", name: visit.firstName + " " + visit.lastName, duration };

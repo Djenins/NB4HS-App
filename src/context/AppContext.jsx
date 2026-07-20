@@ -130,6 +130,13 @@ export function AppProvider({ children }) {
   // subscription's refetch (which can lag enough that it looks like the UI
   // needs a hard refresh to pick up a just-added student).
   const refetchStudents = useCallback(() => fetchStudents().then((rows) => setStudents(rows)), []);
+  // Same idea as refetchStudents above, for CheckOut.jsx's checkOut()/
+  // selfCheckOut() -- the realtime subscription is the only other thing that
+  // would pick up a just-recorded checkout, and this project's Supabase
+  // instance has no tables in its `supabase_realtime` publication, so
+  // without this the checked-out visit keeps showing in the kiosk list
+  // until something else happens to trigger a refetch.
+  const refetchVisits = useCallback(() => fetchVisits().then((rows) => setVisits(rows)), []);
 
   // The merged view every page actually reads: same key names as before
   // (`data.visits`/`data.students`/`data.classes`), just overlaid onto the
@@ -362,10 +369,11 @@ export function AppProvider({ children }) {
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
-    refetchStudents
+    refetchStudents, refetchVisits
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
-    confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents
+    confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
+    refetchVisits
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
