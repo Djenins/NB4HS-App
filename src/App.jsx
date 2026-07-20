@@ -17,6 +17,7 @@ import Shell from "./components/Shell.jsx";
 import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import MyCaseload from "./pages/MyCaseload.jsx";
 import CheckIn from "./pages/CheckIn.jsx";
 import CheckInStudent from "./pages/CheckInStudent.jsx";
 import CheckInVisitor from "./pages/CheckInVisitor.jsx";
@@ -70,6 +71,7 @@ export default function App() {
 
         <Route element={<Shell />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/mycaseload" element={<MyCaseload />} />
           <Route path="/checkin" element={<CheckIn />} />
           <Route path="/checkin/student" element={<CheckInStudent />} />
           <Route path="/checkin/visitor" element={<CheckInVisitor />} />

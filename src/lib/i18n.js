@@ -46,6 +46,7 @@ export var STR = {
   navSearch: { en: "Search", ht: "Chèche", fr: "Rechercher" },
   navReports: { en: "Reports", ht: "Rapò", fr: "Rapports" },
   navQR: { en: "QR Code", ht: "Kòd QR", fr: "Code QR" },
+  navMyCaseload: { en: "My Caseload", ht: "Ka Mwen yo", fr: "Mes Dossiers" },
   navCaseManagement: { en: "Case Management", ht: "Jesyon Ka", fr: "Gestion de Cas" },
   navJobDeveloper: { en: "Workforce", ht: "Travay", fr: "Main-d'œuvre" },
   navSettings: { en: "Settings", ht: "Paramèt", fr: "Paramètres" },
