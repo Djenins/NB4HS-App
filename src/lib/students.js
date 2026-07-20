@@ -53,6 +53,14 @@ export function totalEnrolledCount(students) {
 export function waitingListStudents(students) {
   return (students || []).filter(function (s) { return !s.classKey && s.active !== false; });
 }
+// Waiting List students who've additionally flagged which specific class
+// they want a seat in (vs. just sitting in the generic backlog), oldest
+// request first so promotion is FIFO.
+export function waitlistForClass(students, classKey) {
+  return (students || [])
+    .filter(function (s) { return !s.classKey && s.active !== false && s.waitlistedForClassKey === classKey; })
+    .sort(function (a, b) { return (a.waitlistedAt || "").localeCompare(b.waitlistedAt || ""); });
+}
 
 // Pure version of enrollStudent(): returns the fields to insert, or null if
 // required fields are missing. No `id`/`studentId` here anymore -- both are

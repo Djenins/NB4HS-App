@@ -34,7 +34,8 @@ function studentFromRow(row) {
     phone: row.phone || "", email: row.email || "", street: row.street || "", city: row.city || "",
     zip: row.zip || "", state: row.state || "RI", classKey: row.class_key, active: row.active,
     pretestReading: row.pretest_reading || "", posttestReading: row.posttest_reading || "",
-    droppedOut: row.dropped_out, dropoutDate: row.dropout_date, outcome: row.outcome
+    droppedOut: row.dropped_out, dropoutDate: row.dropout_date, outcome: row.outcome,
+    waitlistedForClassKey: row.waitlisted_for_class_key || null, waitlistedAt: row.waitlisted_at || null
   };
 }
 function studentToRow(fields) {
@@ -56,6 +57,8 @@ function studentToRow(fields) {
   if (fields.droppedOut !== undefined) row.dropped_out = fields.droppedOut;
   if (fields.dropoutDate !== undefined) row.dropout_date = fields.dropoutDate;
   if (fields.outcome !== undefined) row.outcome = fields.outcome;
+  if (fields.waitlistedForClassKey !== undefined) row.waitlisted_for_class_key = fields.waitlistedForClassKey;
+  if (fields.waitlistedAt !== undefined) row.waitlisted_at = fields.waitlistedAt;
   return row;
 }
 

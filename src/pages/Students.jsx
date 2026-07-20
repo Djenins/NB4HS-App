@@ -30,7 +30,8 @@ import {
 import {
   buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
-  sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount, waitingListStudents
+  sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount,
+  waitingListStudents, waitlistForClass
 } from "../lib/students.js";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
@@ -66,16 +67,53 @@ function useStudentRosterActions() {
     if (classKeyOrNull && student && student.classKey !== classKeyOrNull) {
       const currentCount = studentsForClass(data.students, classKeyOrNull).length;
       if (currentCount >= CLASS_CAPACITY) {
-        showToast(t("classFullMessage"));
+        // Waitlisting only makes sense coming from the Waiting List itself
+        // (no current class) -- a student already placed in another class
+        // who tries to switch into a full one isn't a "waiting list" case,
+        // just a blocked move.
+        if (!student.classKey) {
+          const className = (data.classes || []).find((c) => c.key === classKeyOrNull);
+          const ok = await requestConfirm(
+            t("classFullJoinWaitlistConfirm").replace("{class}", className ? className.name : classKeyOrNull)
+          );
+          if (ok) await joinClassWaitlist(studentId, classKeyOrNull);
+        } else {
+          showToast(t("classFullMessage"));
+        }
         return;
       }
     }
     await updateStudent(studentId, {
       classKey: classKeyOrNull,
+      waitlistedForClassKey: null, waitlistedAt: null,
       droppedOut: classKeyOrNull ? false : (student && student.droppedOut),
       dropoutDate: classKeyOrNull ? null : (student && student.dropoutDate)
     });
     refetchStudents();
+  }
+
+  // Records that a Waiting List student specifically wants a seat in
+  // `classKey`, without moving them out of the generic backlog (class_key
+  // stays null) -- so the column header can surface "N waiting" and the
+  // waiting-list row can offer a one-click Promote once a seat opens up.
+  async function joinClassWaitlist(studentId, classKey) {
+    await updateStudent(studentId, { waitlistedForClassKey: classKey, waitlistedAt: new Date().toISOString() });
+    refetchStudents();
+    showToast(t("addedToClassWaitlist"));
+  }
+  async function leaveClassWaitlist(studentId) {
+    await updateStudent(studentId, { waitlistedForClassKey: null, waitlistedAt: null });
+    refetchStudents();
+  }
+  async function promoteFromWaitlist(studentId, classKey) {
+    const currentCount = studentsForClass(data.students, classKey).length;
+    if (currentCount >= CLASS_CAPACITY) {
+      showToast(t("classFullMessage"));
+      return;
+    }
+    await updateStudent(studentId, { classKey, waitlistedForClassKey: null, waitlistedAt: null, droppedOut: false, dropoutDate: null });
+    refetchStudents();
+    showToast(t("promotedFromWaitlist"));
   }
 
   async function removeStudent(id) {
@@ -124,7 +162,7 @@ function useStudentRosterActions() {
     return true;
   }
 
-  return { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit };
+  return { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit, joinClassWaitlist, leaveClassWaitlist, promoteFromWaitlist };
 }
 
 function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
@@ -376,7 +414,8 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
     const searched = students.filter((s) => studentMatchesSearch(s, term));
     const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
     const filtered = sortStudentsList(withFilter, sortMode);
-    return { key: c.key, name: c.name, students, filtered, accent: columnAccentColor(c.key, idx) };
+    const waiting = waitlistForClass(data.students, c.key);
+    return { key: c.key, name: c.name, students, filtered, accent: columnAccentColor(c.key, idx), waiting };
   });
   const totalStudents = columns.reduce((sum, c) => sum + c.students.length, 0);
   const totalFiltered = columns.reduce((sum, c) => sum + c.filtered.length, 0);
@@ -427,10 +466,17 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
           >
             <div className="flex items-center justify-between gap-2 border-b border-border bg-primary-tint px-4 py-3">
               <h3 className="m-0 truncate text-sm font-bold text-card-foreground">{col.name}</h3>
-              <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
-                {filtered.length}
-                {(term || filterMode === "missingContact") ? "/" + col.students.length : "/" + CLASS_CAPACITY}
-              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {col.waiting.length ? (
+                  <span className="whitespace-nowrap rounded-full border border-border px-2.5 py-0.5 text-xs font-bold" style={{ color: WAITING_ACCENT, borderColor: WAITING_ACCENT }}>
+                    {t("waitingCountBadge").replace("{n}", String(col.waiting.length))}
+                  </span>
+                ) : null}
+                <span className="whitespace-nowrap rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-bold text-muted">
+                  {filtered.length}
+                  {(term || filterMode === "missingContact") ? "/" + col.students.length : "/" + CLASS_CAPACITY}
+                </span>
+              </div>
             </div>
             <div className="flex-1 space-y-2.5 overflow-y-auto p-3" style={{ maxHeight: 560 }}>
               {filtered.length ? (
@@ -492,7 +538,7 @@ const listEditInputClass = "h-10 min-h-0 w-full rounded-lg border border-border 
 // No dropout control here: a waiting-list student has no classKey to drop
 // out of by definition (waitingListStudents() below only returns students
 // with none), so that action is simply never applicable in this list.
-function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onViewDetails, selected, onToggleSelect }) {
+function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onViewDetails, selected, onToggleSelect, onLeaveWaitlist, onPromote, seatAvailable }) {
   const t = useT();
   const [fields, setFields] = useState(() => ({
     firstName: student.firstName || "", lastName: student.lastName || "", phone: student.phone || "",
@@ -527,6 +573,7 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
 
   const assessment = studentAssessmentStatus(student);
   const name = student.firstName + " " + student.lastName;
+  const waitlistedClass = student.waitlistedForClassKey ? classes.find((c) => c.key === student.waitlistedForClassKey) : null;
 
   return (
     <div
@@ -547,6 +594,14 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {student.studentId && <Badge>{student.studentId}</Badge>}
               {student.droppedOut && <Badge variant="warn">{t("droppedOutBadge")}</Badge>}
+              {waitlistedClass && (
+                <Badge variant="warn" className="gap-1">
+                  {t("waitingForClassBadge").replace("{class}", waitlistedClass.name)}
+                  <button type="button" title={t("leaveWaitlistBtn")} aria-label={t("leaveWaitlistBtn")} onClick={(e) => { e.stopPropagation(); onLeaveWaitlist(); }} className="ml-0.5 border-0 bg-transparent p-0 leading-none">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
             </div>
           </div>
         </button>
@@ -579,6 +634,9 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
         {classes.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
       </select>
       <div className="flex shrink-0 items-center justify-end gap-0.5">
+        {waitlistedClass && seatAvailable ? (
+          <Button size="sm" onClick={onPromote} className="mr-1">{t("promoteFromWaitlistBtn")}</Button>
+        ) : null}
         <Button variant="ghost" size="icon" title={t("editStudentTitle")} aria-label={t("editStudentTitle")} onClick={onEditStart} className="h-9 w-9 text-muted hover:bg-background hover:text-card-foreground">
           <Pencil className="h-4 w-4" />
         </Button>
@@ -606,7 +664,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selec
   // they're focused on the classroom board instead.
   const [collapsed, setCollapsed] = useState(false);
   const [detailStudentId, setDetailStudentId] = useState(null);
-  const { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
+  const { moveStudent, removeStudent, removeSelected, markDropout, setOutcome, saveEdit, leaveClassWaitlist, promoteFromWaitlist } = useStudentRosterActions();
 
   async function handleRemoveSelected() {
     const ok = await removeSelected(selected);
@@ -676,6 +734,9 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selec
                     onViewDetails={() => setDetailStudentId(s.id)}
                     selected={selected.has(s.id)}
                     onToggleSelect={() => onToggleSelect(s.id)}
+                    onLeaveWaitlist={() => leaveClassWaitlist(s.id)}
+                    onPromote={() => promoteFromWaitlist(s.id, s.waitlistedForClassKey)}
+                    seatAvailable={!s.waitlistedForClassKey || studentsForClass(data.students, s.waitlistedForClassKey).length < CLASS_CAPACITY}
                   />
                 ))}
               </div>
