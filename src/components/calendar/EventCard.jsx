@@ -37,14 +37,14 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
         onClick={() => onOpen(block)}
         onKeyDown={(e) => { if (e.key === "Enter") onOpen(block); }}
         className={cn(
-          "flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-l-4 border-slate-200 bg-slate-50 px-2 py-1 text-left shadow-sm outline outline-2 outline-primary transition-shadow group-hover:shadow-md",
+          "flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-l-4 border-slate-200 bg-slate-50 px-2 py-1 text-left shadow-sm transition-shadow group-hover:shadow-md",
           style.border
         )}
       >
         <div className="flex items-start justify-between gap-1">
           <div className="flex min-w-0 flex-row flex-nowrap items-center gap-1">
             <Icon className={cn("shrink-0", style.chipFg)} style={{ width: 12, height: 12 }} />
-            <p className={cn("m-0 min-w-0 flex-1 truncate text-[11px] font-bold leading-none", style.chipFg)} style={{ whiteSpace: "nowrap" }}>{block.title}</p>
+            <p className={cn("m-0 min-w-0 flex-1 truncate text-xs font-bold leading-none", style.chipFg)} style={{ whiteSpace: "nowrap" }}>{block.title}</p>
           </div>
           <div className="hidden shrink-0 items-center gap-0.5 group-hover:flex">
             {editable && (
@@ -64,8 +64,8 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
         </div>
         {!compact && (
           <>
-            <p className="m-0 truncate text-[10px] leading-tight text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
-            {block.event?.personName && <p className="m-0 truncate text-[10px] leading-tight text-muted">{block.event.personName}</p>}
+            <p className="m-0 truncate text-[11px] leading-tight text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
+            {block.event?.personName && <p className="m-0 truncate text-[11px] leading-tight text-muted">{block.event.personName}</p>}
           </>
         )}
       </div>
