@@ -8,13 +8,11 @@
 // see task #105 for the final cross-check before delivery.
 //
 // Also owns one bit of bootstrap logic that used to live at the top of the
-// original's init() (lines 3882-3903): reading a `?checkoutId=` query param
-// (from someone scanning their personal check-out QR code) and the
-// `?kiosk=1`/`#checkin` kiosk entry points. This only runs once, on mount.
+// original's init() (lines 3882-3903): the `?kiosk=1`/`#checkin` kiosk entry
+// point. This only runs once, on mount.
 import { useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
-import { fmtDuration, minutesBetween } from "./lib/utils.js";
 import Shell from "./components/Shell.jsx";
 import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
@@ -43,7 +41,7 @@ import Users from "./pages/Users.jsx";
 import Settings from "./pages/Settings.jsx";
 
 function BootstrapEntry() {
-  const { data, lang, setData, setKiosk } = useApp();
+  const { setKiosk } = useApp();
   const navigate = useNavigate();
   const ran = useRef(false);
 
@@ -52,27 +50,6 @@ function BootstrapEntry() {
     ran.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const checkoutId = params.get("checkoutId");
-    if (checkoutId) {
-      const visit = data.visits.find((v) => v.id === checkoutId);
-      let scanResult;
-      if (!visit) {
-        scanResult = { status: "notfound" };
-      } else if (visit.timeOut) {
-        scanResult = { status: "already" };
-      } else {
-        const timeOut = new Date().toISOString();
-        setData((prev) => Object.assign({}, prev, {
-          visits: prev.visits.map((v) => (v.id === checkoutId ? Object.assign({}, v, { timeOut }) : v))
-        }));
-        const duration = fmtDuration(minutesBetween(visit.timeIn, timeOut), lang);
-        scanResult = { status: "ok", name: visit.firstName + " " + visit.lastName, duration: duration };
-      }
-      setKiosk(true);
-      navigate("/checkout/scan-success", { replace: true, state: { scanResult } });
-      return;
-    }
-
     if (params.get("kiosk") === "1" || window.location.hash === "#checkin") {
       setKiosk(true);
       navigate("/checkin", { replace: true });

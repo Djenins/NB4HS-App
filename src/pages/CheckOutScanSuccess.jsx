@@ -1,6 +1,5 @@
-// CheckOutScanSuccess.jsx -- shown after someone scans their personal
-// check-out QR code (App.jsx's bootstrap effect processes the ?checkoutId=
-// query param and navigates here with the result). Ported from
+// CheckOutScanSuccess.jsx -- shown after a kiosk self-checkout (CheckOut.jsx's
+// selfCheckOut() navigates here with the result). Ported from
 // checkin_checkout.js's renderCheckOutScanSuccess().
 import { useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
