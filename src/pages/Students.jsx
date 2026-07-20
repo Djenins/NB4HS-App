@@ -21,9 +21,9 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { CLASS_CAPACITY } from "../lib/constants.js";
 import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
-import { attachClientToProgram, findPossibleDuplicates } from "../lib/masterClients.js";
+import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr } from "../lib/utils.js";
-import { createStudent, createStudents, deleteStudent, updateStudent } from "../lib/checkinData.js";
+import { createStudentWithClient, deleteStudent, updateStudent } from "../lib/checkinData.js";
 import {
   createPastSession, createPastSessionStudents, deleteSession as deleteSessionRow, startNewSession as startNewSessionRpc
 } from "../lib/sessionsData.js";
@@ -714,7 +714,7 @@ function WaitingListPanel({ term, sortMode, filterMode, onAddStudentClick, selec
 }
 
 function EnrollStudentPanel() {
-  const { data, setData, showToast, refetchStudents } = useApp();
+  const { data, showToast, refetchStudents } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [fields, setFields] = useState({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
@@ -725,8 +725,7 @@ function EnrollStudentPanel() {
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   async function finalizeCreate(result, matchedClient) {
-    const created = await createStudent(result);
-    setData((prev) => attachClientToProgram(prev, "student", created, matchedClient));
+    const { row: created } = await createStudentWithClient(result, result, matchedClient ? matchedClient.id : null);
     refetchStudents();
     setFields({ firstName: "", lastName: "", phone: "", email: "", street: "", city: "", zip: "" });
     setDupMatches(null);
@@ -792,7 +791,7 @@ function EnrollStudentPanel() {
 }
 
 function UploadStudentsPanel() {
-  const { data, setData, showToast, refetchStudents } = useApp();
+  const { data, showToast, refetchStudents } = useApp();
   const t = useT();
   const fileRef = useRef(null);
   const [fileName, setFileName] = useState("");
@@ -803,17 +802,12 @@ function UploadStudentsPanel() {
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported row to the best existing master-client match or
     // create a new one, same as Case Management's CSV import.
-    const created = await createStudents(result.added);
-    setData((prev) => {
-      let next = prev;
-      created.forEach((row) => {
-        const matches = findPossibleDuplicates(row, next.clients || []);
-        next = attachClientToProgram(next, "student", row, matches.length ? matches[0].client : null);
-      });
-      return next;
-    });
+    for (const row of result.added) {
+      const matches = findPossibleDuplicates(row, data.clients || []);
+      await createStudentWithClient(row, row, matches.length ? matches[0].client.id : null);
+    }
     refetchStudents();
-    showToast(created.length + " " + t("studentsImported"));
+    showToast(result.added.length + " " + t("studentsImported"));
   }
 
   function handleImportClick() {

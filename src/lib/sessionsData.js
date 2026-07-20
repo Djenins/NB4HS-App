@@ -71,8 +71,7 @@ export async function fetchPastSessionStudents() {
   if (error) { console.warn("fetchPastSessionStudents failed", error); return []; }
   return data.map(pastSessionStudentFromRow);
 }
-// Bulk insert for the past-session-roster CSV/Excel importer -- mirrors
-// createStudents()'s bulk pattern in checkinData.js.
+// Bulk insert for the past-session-roster CSV/Excel importer.
 export async function createPastSessionStudents(rowsList) {
   if (!rowsList.length) return [];
   const { data, error } = await supabase.from("past_session_students").insert(rowsList.map(pastSessionStudentToRow)).select();

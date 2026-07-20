@@ -37,7 +37,7 @@ function masterFromRow(row) {
     status: row.status, createdAt: row.created_at, updatedAt: row.updated_at
   };
 }
-function masterToRow(fields) {
+export function masterToRow(fields) {
   const row = {};
   if (fields.firstName !== undefined) row.first_name = fields.firstName;
   if (fields.lastName !== undefined) row.last_name = fields.lastName;

@@ -136,8 +136,8 @@ export function downloadPastSessionTemplate() {
 // existing roster, returns the rows to insert (duplicates -- same
 // first/last/phone as an existing student -- are skipped, same as the
 // original). No `id`/`studentId` generation here anymore -- see
-// enrollStudent()'s comment above; the caller bulk-inserts via
-// createStudents() (checkinData.js) and both ids come back assigned.
+// enrollStudent()'s comment above; the caller enrolls each row via
+// createStudentWithClient() (checkinData.js) and both ids come back assigned.
 export function buildImportedStudents(rows, existingStudents) {
   if (!rows || rows.length < 2) return null;
   var existingKey = {};

@@ -8,6 +8,7 @@
 // etc. unchanged -- only their *write* call sites change, from
 // `setData(prev => ...)` patches to calling the functions below.
 import { supabase } from "./supabase.js";
+import { masterToRow } from "./clientsData.js";
 
 // ---------- mapping: DB row (snake_case) <-> app shape (camelCase) ----------
 
@@ -121,6 +122,22 @@ export async function createStudent(fields) {
   if (error) throw error;
   return studentFromRow(data);
 }
+// Same "match an existing master client, or create a new one" shape as
+// createCaseClient()/createJobClient()/createFoodClient() (clientsData.js) --
+// used by Students.jsx's enroll form when the duplicate-match dialog fires.
+// Unlike plain createStudent() above (which expects fields.clientId to
+// already be resolved, e.g. ClientProfile.jsx's "add to program" flow), this
+// one does the clients-row lookup/insert itself via the create_student()
+// RPC, since student enrollment previously had no server-side path for that
+// at all -- it only ever patched local React state, which the Supabase
+// migration silently turned into a no-op.
+export async function createStudentWithClient(masterFields, programFields, matchedClientId) {
+  const { data, error } = await supabase.rpc("create_student", {
+    master_fields: masterToRow(masterFields), program_fields: studentToRow(programFields), matched_client_id: matchedClientId || null
+  });
+  if (error) throw error;
+  return { clientId: data.client_id, row: studentFromRow(data.row) };
+}
 export async function updateStudent(id, patch) {
   const { data, error } = await supabase.from("students").update(studentToRow(patch)).eq("id", id).select("*, clients(nb_id)").single();
   if (error) throw error;
@@ -130,17 +147,6 @@ export async function deleteStudent(id) {
   const { error } = await supabase.from("students").delete().eq("id", id);
   if (error) throw error;
 }
-// Bulk insert for the CSV/Excel roster importer -- one round-trip instead
-// of N, same "skip duplicates already handled by the caller" contract
-// buildImportedStudents() already has.
-export async function createStudents(fieldsList) {
-  if (!fieldsList.length) return [];
-  const rows = fieldsList.map(studentToRow);
-  const { data, error } = await supabase.from("students").insert(rows).select();
-  if (error) throw error;
-  return data.map(studentFromRow);
-}
-
 // ---------- visits ----------
 
 export async function fetchVisits() {

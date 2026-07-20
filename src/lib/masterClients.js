@@ -7,52 +7,11 @@
 // record), and the matching/lookup helpers both pages and the Client
 // Profile page need. Never merges records automatically -- matching
 // functions only ever return candidates for a human to act on.
-import { genClientId, todayStr, uid } from "./utils.js";
-
 // Which data[] array holds each program's detail records. Extending to a
 // new program (Phase 3: "student" -> data.students, "food" -> data.foodClients)
 // is just one more entry here plus a PROGRAM_META entry on the Client
 // Profile page -- everything else in this file is generic over `kind`.
 export var PROGRAM_DATA_KEY = { case: "caseClients", job: "jobClients", student: "students", food: "foodClients" };
-
-// Pure constructor for a data.clients row. Kept intentionally minimal --
-// only fields something in this phase actually reads/writes. Fields like
-// emergency contact/preferred language have no consumer yet and are left
-// for a future phase rather than guessed at now.
-export function buildMasterClient(fields, nbId) {
-  var now = new Date().toISOString();
-  return {
-    id: uid(),
-    nbId: nbId,
-    firstName: (fields.firstName || "").trim(),
-    lastName: (fields.lastName || "").trim(),
-    phone: (fields.phone || "").trim(),
-    email: (fields.email || "").trim(),
-    dob: fields.dob || "",
-    street: (fields.street || "").trim(),
-    city: (fields.city || "").trim(),
-    zip: (fields.zip || "").trim(),
-    state: "RI",
-    intakeDate: fields.intakeDate || "",
-    status: "active",
-    createdAt: now,
-    updatedAt: now
-  };
-}
-
-// Pure constructor for a data.programEnrollments row.
-export function buildEnrollment(clientId, programType, programRecordId, extra) {
-  extra = extra || {};
-  return {
-    id: uid(),
-    clientId: clientId,
-    programType: programType, // "case" | "job"
-    programRecordId: programRecordId,
-    status: "active",
-    enrolledAt: todayStr(),
-    assignedStaffId: extra.assignedStaffId || null
-  };
-}
 
 function normalizedPhone(v) { return String(v || "").replace(/\D/g, ""); }
 function normalizedText(v) { return String(v || "").trim().toLowerCase(); }
@@ -111,29 +70,6 @@ export function resolveEnrollmentsForClient(nbId, data) {
     });
   });
   return out;
-}
-
-// Atomic "create or attach" used by both pages' add-client flows: given an
-// already-built program row (from clients.js's buildClient()) and an
-// optional already-matched master client (from the duplicate-warning flow's
-// "Enroll Existing Client" action), returns the new `data` with the program
-// row (+nbId), the master client (new or reused), and the enrollment all
-// applied together in one update.
-export function attachClientToProgram(prev, kind, programRow, matchedClient) {
-  var dataKey = PROGRAM_DATA_KEY[kind];
-  var clients = prev.clients || [];
-  var nextClientNumber = prev.nextClientNumber || 1;
-  var master = matchedClient;
-  if (!master) {
-    master = buildMasterClient(programRow, genClientId(nextClientNumber));
-    nextClientNumber += 1;
-    clients = clients.concat([master]);
-  }
-  var rowWithNb = Object.assign({}, programRow, { nbId: master.nbId });
-  var enrollment = buildEnrollment(master.id, kind, rowWithNb.id, {});
-  var patch = { clients: clients, programEnrollments: (prev.programEnrollments || []).concat([enrollment]), nextClientNumber: nextClientNumber };
-  patch[dataKey] = (prev[dataKey] || []).concat([rowWithNb]);
-  return Object.assign({}, prev, patch);
 }
 
 // Phase 2 Supabase migration: appointments now carry a direct `clientId`
