@@ -8,7 +8,7 @@
 // yet available" placeholder rather than fabricated data.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Briefcase, Download, GraduationCap, Paperclip, ShoppingBasket, Users } from "lucide-react";
+import { Briefcase, Download, GraduationCap, Paperclip, ShoppingBasket, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
 import { immigrationStatusLabel } from "../lib/clients.js";
@@ -17,7 +17,7 @@ import { findClientByNbId, resolveAppointmentsForClient, resolveEnrollmentsForCl
 import { createStudent } from "../lib/checkinData.js";
 import {
   createCaseClient, createClientDocument, createClientNote, createCommunication, createFoodClient, createJobClient,
-  fetchClientDocuments, fetchClientNotes, fetchCommunications, getFileSignedUrl, updateClientRecord, uploadClientFile
+  deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchCommunications, getFileSignedUrl, updateClientRecord, uploadClientFile
 } from "../lib/clientsData.js";
 import { fmtDateLong } from "../lib/utils.js";
 import ClientHeader from "../components/ClientHeader.jsx";
@@ -350,7 +350,7 @@ function NotesTab({ notes }) {
   );
 }
 
-function DocumentsTab({ documents }) {
+function DocumentsTab({ documents, onDelete }) {
   const t = useT();
   if (!documents.length) return <p className="py-8 text-center text-sm text-muted">{t("noDocumentsYet")}</p>;
   return (
@@ -364,9 +364,19 @@ function DocumentsTab({ documents }) {
               <div className="text-xs text-muted">{t(DOCUMENT_CATEGORY_KEY[d.category] || "documentCategoryOther")} · {t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
             </div>
           </div>
-          <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-            <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-          </StorageDownloadLink>
+          <div className="flex items-center gap-3">
+            <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+              <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
+            </StorageDownloadLink>
+            <button
+              type="button"
+              title={t("deleteLabel")}
+              onClick={() => onDelete(d)}
+              className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-accent"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </CardContent></Card>
       ))}
     </div>
@@ -451,7 +461,7 @@ function ProgramsTab({ enrollments, lang }) {
 
 export default function ClientProfile() {
   const { nbId } = useParams();
-  const { data, lang, session, refetchStudents } = useApp();
+  const { data, lang, session, refetchStudents, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
@@ -535,6 +545,18 @@ export default function ClientProfile() {
     setUploadingDocument(false);
   }
 
+  async function deleteDocument(doc) {
+    const ok = await requestConfirm(t("deleteDocumentConfirm"), { danger: true });
+    if (!ok) return;
+    try {
+      await deleteClientDocument(doc.id, doc.storagePath);
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+    } catch (err) {
+      console.warn("deleteDocument failed", err);
+      showToast(t("deleteDocumentError"));
+    }
+  }
+
   async function logCommunication(fields) {
     const created = await createCommunication(client.id, fields);
     setCommunications((prev) => [created].concat(prev));
@@ -574,7 +596,7 @@ export default function ClientProfile() {
           {tab === "programs" && <ProgramsTab enrollments={enrollments} lang={lang} />}
           {tab === "appointments" && <AppointmentsTab appointments={appointments} lang={lang} />}
           {tab === "notes" && <NotesTab notes={notes} />}
-          {tab === "documents" && <DocumentsTab documents={documents} />}
+          {tab === "documents" && <DocumentsTab documents={documents} onDelete={deleteDocument} />}
           {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
           {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
           {(tab === "services" || tab === "activity") && (

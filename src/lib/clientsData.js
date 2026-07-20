@@ -448,6 +448,11 @@ export async function createClientDocument(clientId, fields) {
   if (error) throw error;
   return documentFromRow(data);
 }
+export async function deleteClientDocument(id, storagePath) {
+  await deleteClientFile(storagePath);
+  const { error } = await supabase.from("client_documents").delete().eq("id", id);
+  if (error) throw error;
+}
 
 export async function fetchCommunications(clientId) {
   const { data, error } = await supabase.from("communications").select("*, profiles(name)").eq("client_id", clientId).order("created_at", { ascending: false });

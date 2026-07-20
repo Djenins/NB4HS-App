@@ -18,7 +18,7 @@ import {
 } from "../lib/jobProfile.js";
 import { findClientByNbId } from "../lib/masterClients.js";
 import {
-  createApplication, createClientDocument, createClientNote, deleteApplication,
+  createApplication, createClientDocument, createClientNote, deleteApplication, deleteClientDocument,
   fetchApplications, fetchClientDocuments, fetchClientNotes, getFileSignedUrl, updateJobClient, uploadClientFile
 } from "../lib/clientsData.js";
 import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
@@ -241,7 +241,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
 
 export default function JobClientProfile() {
   const { clientId } = useParams();
-  const { data, requestConfirm } = useApp();
+  const { data, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
@@ -339,6 +339,18 @@ export default function JobClientProfile() {
     const created = await createClientDocument(masterClient.id, { fileName: fields.fileName, category: fields.category, storagePath: path, program: fields.program });
     setDocuments((prev) => [created].concat(prev));
     setUploadingDocument(false);
+  }
+
+  async function deleteDocument(doc) {
+    const ok = await requestConfirm(t("deleteDocumentConfirm"), { danger: true });
+    if (!ok) return;
+    try {
+      await deleteClientDocument(doc.id, doc.storagePath);
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+    } catch (err) {
+      console.warn("deleteDocument failed", err);
+      showToast(t("deleteDocumentError"));
+    }
   }
 
   const historyItems = []
@@ -624,9 +636,19 @@ export default function JobClientProfile() {
                           <div className="text-xs text-muted">{t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
                         </div>
                       </div>
-                      <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-                        <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-                      </StorageDownloadLink>
+                      <div className="flex items-center gap-3">
+                        <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                          <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
+                        </StorageDownloadLink>
+                        <button
+                          type="button"
+                          title={t("deleteLabel")}
+                          onClick={() => deleteDocument(d)}
+                          className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-accent"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </CardContent></Card>
                   ))}
                 </div>

@@ -715,6 +715,8 @@ export var STR = {
   noAppointmentsYet: { en: "No appointments on file.", ht: "Pa gen randevou anrejistre.", fr: "Aucun rendez-vous enregistré." },
   noNotesYet: { en: "No notes yet.", ht: "Poko gen nòt.", fr: "Pas encore de notes." },
   noDocumentsYet: { en: "No documents uploaded yet.", ht: "Poko gen dokiman telechaje.", fr: "Aucun document téléversé pour l'instant." },
+  deleteDocumentConfirm: { en: "Delete this document? This can't be undone.", ht: "Efase dokiman sa a? Aksyon sa a pa ka anile.", fr: "Supprimer ce document ? Cette action est irréversible." },
+  deleteDocumentError: { en: "Couldn't delete that document. Please try again.", ht: "Nou pa t kapab efase dokiman sa a. Tanpri eseye ankò.", fr: "Impossible de supprimer ce document. Veuillez réessayer." },
   noCommunicationsYet: { en: "No communications logged yet.", ht: "Poko gen kominikasyon anrejistre.", fr: "Aucune communication enregistrée pour l'instant." },
   noteContentLabel: { en: "Note", ht: "Nòt", fr: "Note" },
   noteTypeLabel: { en: "Type", ht: "Kalite", fr: "Type" },
