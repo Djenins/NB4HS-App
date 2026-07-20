@@ -181,16 +181,18 @@ function appointmentFromRow(row) {
     id: row.id, clientId: row.client_id, firstName: row.first_name || "", lastName: row.last_name || "",
     phone: row.phone || "", email: row.email || "", date: row.appt_date || "", time: row.appt_time || "",
     reason: row.reason || "", assignedEmail: row.assigned_email || "", meetingWith: row.meeting_with,
-    status: row.status, source: row.source, createdAt: row.created_at
+    status: row.status, source: row.source, createdAt: row.created_at, seriesId: row.series_id || null
   };
 }
 function appointmentToRow(fields) {
-  return {
+  const row = {
     client_id: fields.clientId || null, first_name: fields.firstName, last_name: fields.lastName,
     phone: fields.phone, email: fields.email, appt_date: fields.date || null, appt_time: fields.time || null,
     reason: fields.reason || "", assigned_email: fields.assignedEmail || "", meeting_with: fields.meetingWith,
     status: fields.status || (fields.source === "client" ? "requested" : "scheduled"), source: fields.source || "staff"
   };
+  if (fields.seriesId !== undefined) row.series_id = fields.seriesId;
+  return row;
 }
 
 function noteFromRow(row) {
@@ -374,6 +376,33 @@ export async function fetchAppointments() {
 // returned row, so skipping the read-back avoids the false failure.
 export async function createAppointment(fields) {
   const { error } = await supabase.from("appointments").insert(appointmentToRow(fields));
+  if (error) throw error;
+}
+// Recurring appointments: no RRULE/cron -- just insert one concrete row per
+// occurrence up front (weekly/biweekly/monthly, `count` times starting from
+// fields.date), all sharing a freshly generated series_id so the UI can
+// label them and cancel the rest of the series in one action.
+export async function createAppointmentSeries(fields, intervalDays, count) {
+  const seriesId = crypto.randomUUID();
+  const startDate = new Date(fields.date + "T00:00:00");
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i * intervalDays);
+    const dateStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    rows.push(appointmentToRow(Object.assign({}, fields, { date: dateStr, seriesId })));
+  }
+  const { error } = await supabase.from("appointments").insert(rows);
+  if (error) throw error;
+}
+// Cancels every not-yet-completed occurrence in a series from today onward,
+// leaving past/completed occurrences as history.
+export async function cancelAppointmentSeries(seriesId, fromDate) {
+  const { error } = await supabase.from("appointments")
+    .update({ status: "cancelled" })
+    .eq("series_id", seriesId)
+    .gte("appt_date", fromDate)
+    .neq("status", "completed");
   if (error) throw error;
 }
 export async function updateAppointmentStatus(id, status) {

@@ -7,7 +7,9 @@ import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { sortedAppointments } from "../lib/appointments.js";
 import { clientDisplayName } from "../lib/clients.js";
-import { createAppointment, deleteAppointment, updateAppointmentStatus } from "../lib/clientsData.js";
+import {
+  cancelAppointmentSeries, createAppointment, createAppointmentSeries, deleteAppointment, updateAppointmentStatus
+} from "../lib/clientsData.js";
 import { cn } from "../lib/cn.js";
 import { formatPhone } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
@@ -16,7 +18,9 @@ import AppointmentRow from "./AppointmentRow.jsx";
 import { Button } from "./ui/button.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 
-const EMPTY_FORM = { clientId: "", firstName: "", lastName: "", phone: "", email: "", staffEmail: "", date: "", time: "", reason: "" };
+const EMPTY_FORM = { clientId: "", firstName: "", lastName: "", phone: "", email: "", staffEmail: "", date: "", time: "", reason: "", repeat: "none", occurrences: "6" };
+
+const REPEAT_INTERVAL_DAYS = { weekly: 7, biweekly: 14 };
 
 const fieldInputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 function Field({ id, label, required, invalid, children }) {
@@ -68,23 +72,41 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
       showToast(t("fixErrors"));
       return;
     }
+    if (form.repeat !== "none" && !form.date) {
+      setErrors((prev) => prev.concat(["date"]));
+      showToast(t("fixErrors"));
+      return;
+    }
     setErrors([]);
     const selectedProgramClient = (clientList || []).find((c) => c.id === form.clientId);
     const master = selectedProgramClient && selectedProgramClient.nbId
       ? (data.clients || []).find((mc) => mc.nbId === selectedProgramClient.nbId) : null;
-    await createAppointment({
+    const baseFields = {
       clientId: master ? master.id : null,
       firstName: form.firstName, lastName: form.lastName, phone: form.phone, email: form.email,
       assignedEmail: form.staffEmail, meetingWith: meetingWith, date: form.date, time: form.time, reason: form.reason,
       source: "staff"
-    });
+    };
+    if (form.repeat === "none") {
+      await createAppointment(baseFields);
+      showToast(t("apptScheduled"));
+    } else {
+      const count = Math.min(52, Math.max(2, parseInt(form.occurrences, 10) || 1));
+      await createAppointmentSeries(baseFields, REPEAT_INTERVAL_DAYS[form.repeat], count);
+      showToast(t("apptSeriesScheduled").replace("{count}", count));
+    }
     setForm(EMPTY_FORM);
-    showToast(t("apptScheduled"));
   }
 
   async function cancelAppt(id) {
     const ok = await requestConfirm(t("apptCancelConfirm"), { danger: true });
     if (ok) await updateAppointmentStatus(id, "cancelled");
+  }
+  async function cancelSeries(seriesId) {
+    const ok = await requestConfirm(t("apptCancelSeriesConfirm"), { danger: true });
+    if (!ok) return;
+    await cancelAppointmentSeries(seriesId, new Date().toISOString().slice(0, 10));
+    showToast(t("apptSeriesCancelled"));
   }
   async function deleteAppt(id) {
     const ok = await requestConfirm(t("apptDeleteConfirm"), { danger: true });
@@ -159,7 +181,25 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
                 <textarea id="appt-reason" rows={2} className="min-h-0 w-full rounded-lg border border-border bg-background p-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={form.reason} onChange={(e) => setField("reason", e.target.value)} />
               </Field>
 
-              <Button onClick={schedule}>{t("scheduleApptBtn")}</Button>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="appt-repeat" label={t("apptRepeatLabel")}>
+                  <select id="appt-repeat" value={form.repeat} onChange={(e) => setField("repeat", e.target.value)} className={fieldInputClass}>
+                    <option value="none">{t("apptRepeatNone")}</option>
+                    <option value="weekly">{t("apptRepeatWeekly")}</option>
+                    <option value="biweekly">{t("apptRepeatBiweekly")}</option>
+                  </select>
+                </Field>
+                {form.repeat !== "none" ? (
+                  <Field id="appt-occurrences" label={t("apptOccurrencesLabel")}>
+                    <input
+                      type="number" id="appt-occurrences" min={2} max={52} className={fieldInputClass}
+                      value={form.occurrences} onChange={(e) => setField("occurrences", e.target.value)}
+                    />
+                  </Field>
+                ) : null}
+              </div>
+
+              <Button onClick={schedule}>{form.repeat === "none" ? t("scheduleApptBtn") : t("scheduleApptSeriesBtn")}</Button>
             </div>
 
             <div className="rounded-xl border border-border">
@@ -172,6 +212,7 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
                       onConfirm={() => updateAppointmentStatus(a.id, "scheduled")}
                       onComplete={() => updateAppointmentStatus(a.id, "completed")}
                       onCancel={() => cancelAppt(a.id)}
+                      onCancelSeries={a.seriesId ? () => cancelSeries(a.seriesId) : undefined}
                       onDelete={() => deleteAppt(a.id)}
                     />
                   ))}

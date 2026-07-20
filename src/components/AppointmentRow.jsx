@@ -3,7 +3,7 @@
 // confirm/complete/cancel/delete handlers as before, plus an inline
 // reschedule (new date/time) action.
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Repeat, X } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
 import { updateAppointment } from "../lib/clientsData.js";
@@ -17,7 +17,7 @@ function apptStatusBadgeVariant(status) {
   return "success";
 }
 
-export default function AppointmentRow({ appt, onConfirm, onComplete, onCancel, onDelete }) {
+export default function AppointmentRow({ appt, onConfirm, onComplete, onCancel, onCancelSeries, onDelete }) {
   const { lang, showToast } = useApp();
   const t = useT();
   const mgrLabel = appt.assignedEmail ? appt.assignedEmail : t("apptUnassignedOption");
@@ -38,6 +38,9 @@ export default function AppointmentRow({ appt, onConfirm, onComplete, onCancel, 
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-bold text-card-foreground">{appt.firstName} {appt.lastName}</span>
             <Badge variant={apptStatusBadgeVariant(appt.status)}>{apptStatusLabel(appt.status, lang)}</Badge>
+            {appt.seriesId ? (
+              <Badge variant="neutral" className="gap-1"><Repeat className="h-3 w-3" /> {t("apptRecurringBadge")}</Badge>
+            ) : null}
           </div>
           <div className="mt-1 text-xs text-muted">
             {fmtDateLong(appt.date)}{appt.time ? " · " + appt.time : ""} — {meetingWithLabel(appt.meetingWith, lang)}: {mgrLabel}
@@ -61,6 +64,9 @@ export default function AppointmentRow({ appt, onConfirm, onComplete, onCancel, 
           )}
           <Button size="sm" variant="outline" onClick={() => setRescheduling(true)}>{t("rescheduleApptBtn")}</Button>
           <Button size="sm" variant="ghost" className="text-accent hover:bg-tint-danger" onClick={onCancel}>{t("cancelApptBtn")}</Button>
+          {onCancelSeries ? (
+            <Button size="sm" variant="ghost" className="text-accent hover:bg-tint-danger" onClick={onCancelSeries}>{t("cancelApptSeriesBtn")}</Button>
+          ) : null}
         </div>
       )}
       {rescheduling && (
