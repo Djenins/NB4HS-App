@@ -232,7 +232,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const showContent = bare || !collapsed;
 
   return (
-    <Card className={bare ? "" : "mb-5"}>
+    <Card className={cn("border-none bg-transparent shadow-none hover:shadow-none", bare ? "" : "mb-5")}>
       {bare ? null : (
         <CardHeader className="space-y-0">
           <SectionCardHeader icon={ClipboardList} title="Client Intake Form" collapsed={collapsed} onToggle={onToggle} />
