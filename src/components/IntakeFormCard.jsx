@@ -7,8 +7,10 @@
 // masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
 // width at the end.
 import { useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
-  AlertTriangle, Briefcase, Check, ChevronDown, ChevronUp, ClipboardList, FileText,
+  AlertTriangle, Briefcase, Camera, Check, ChevronDown, ChevronUp, ClipboardList, FileText,
   Home, MapPin, Phone, Printer, Save, ShieldCheck, Users, UsersRound,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
@@ -167,6 +169,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [savedAt, setSavedAt] = useState(client && client.intakeFormSavedAt ? client.intakeFormSavedAt : null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const printRef = useRef(null);
 
   function set(name, value) {
@@ -237,6 +240,45 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     win.document.close();
     win.focus();
     win.print();
+  }
+
+  // exportAsPdf -- screenshots the filled form (as it looks on screen right
+  // now) with html2canvas and drops that image into a jsPDF document, sliced
+  // across A4 pages. Different from downloadFilledForm above: that one opens
+  // the OS print dialog so staff can print or "Save as PDF" manually; this
+  // one generates and downloads an actual .pdf file directly, no dialog.
+  async function exportAsPdf() {
+    const source = printRef.current;
+    if (!source) return;
+    setExporting(true);
+    try {
+      const bg = getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff";
+      const canvas = await html2canvas(source, { scale: 2, backgroundColor: bg, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("Intake Form - " + (f.fullName || "Unnamed") + ".pdf");
+    } catch (err) {
+      console.warn("exportAsPdf failed", err);
+    } finally {
+      setExporting(false);
+    }
   }
 
   function clearForm() {
@@ -418,6 +460,14 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
               className="gap-2 rounded-full border-navy bg-navy px-6 text-navy-foreground hover:bg-navy-dark"
             >
               <Printer className="h-4 w-4" /> Download Filled Form (PDF)
+            </Button>
+            <Button
+              onClick={exportAsPdf}
+              disabled={exporting}
+              variant="secondary"
+              className="gap-2 rounded-full px-6"
+            >
+              <Camera className="h-4 w-4" /> {exporting ? "Exporting…" : "Export as PDF"}
             </Button>
             <button
               type="button"
