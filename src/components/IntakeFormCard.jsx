@@ -8,12 +8,13 @@
 // width at the end.
 import { useRef, useState } from "react";
 import {
-  AlertTriangle, Briefcase, ChevronDown, ChevronUp, ClipboardList, FileText,
-  Home, MapPin, Phone, Printer, ShieldCheck, Users, UsersRound,
+  AlertTriangle, Briefcase, Check, ChevronDown, ChevronUp, ClipboardList, FileText,
+  Home, MapPin, Phone, Printer, Save, ShieldCheck, Users, UsersRound,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Button } from "./ui/button.jsx";
 import { cn } from "../lib/cn.js";
+import { updateClientRecord } from "../lib/clientsData.js";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
 
@@ -142,6 +143,7 @@ function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
 
 function initialIntake(client) {
   if (!client) return EMPTY_INTAKE;
+  if (client.intakeForm) return Object.assign({}, EMPTY_INTAKE, client.intakeForm);
   return Object.assign({}, EMPTY_INTAKE, {
     fullName: [client.firstName, client.lastName].filter(Boolean).join(" "),
     dob: client.dob || "",
@@ -154,11 +156,23 @@ function initialIntake(client) {
   });
 }
 
+function formatSavedAt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return "Saved " + d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [f, setF] = useState(() => initialIntake(client));
+  const [savedAt, setSavedAt] = useState(client && client.intakeFormSavedAt ? client.intakeFormSavedAt : null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const printRef = useRef(null);
 
-  function set(name, value) { setF((prev) => Object.assign({}, prev, { [name]: value })); }
+  function set(name, value) {
+    setF((prev) => Object.assign({}, prev, { [name]: value }));
+    setSavedAt(null);
+  }
   function toggleIn(name, opt) {
     setF((prev) => {
       const cur = prev[name];
@@ -227,6 +241,23 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
 
   function clearForm() {
     setF(initialIntake(client));
+    setSavedAt(null);
+    setSaveError("");
+  }
+
+  async function saveForm() {
+    if (!client || !client.id) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const updated = await updateClientRecord(client.id, { intakeForm: f, intakeFormSavedAt: new Date().toISOString() });
+      setSavedAt(updated.intakeFormSavedAt);
+    } catch (err) {
+      console.warn("saveForm failed", err);
+      setSaveError("Couldn't save the form. Try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const showContent = bare || !collapsed;
@@ -376,6 +407,11 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {client && client.id ? (
+              <Button onClick={saveForm} disabled={saving} className="gap-2 rounded-full px-6">
+                <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save Form"}
+              </Button>
+            ) : null}
             <Button
               onClick={downloadFilledForm}
               variant="secondary"
@@ -386,10 +422,15 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             <button
               type="button"
               onClick={clearForm}
-              className="h-10 flex-1 rounded-full border border-border bg-background text-sm font-semibold text-primary hover:bg-primary-tint"
+              className="h-10 rounded-full border border-border bg-background px-6 text-sm font-semibold text-primary hover:bg-primary-tint"
             >
               Clear Form
             </button>
+            {client && client.id ? (
+              <span className={cn("flex items-center gap-1.5 text-sm font-semibold sm:ml-auto", saveError ? "text-accent" : "text-success")}>
+                {saveError ? saveError : savedAt ? (<><Check className="h-4 w-4" /> {formatSavedAt(savedAt)}</>) : null}
+              </span>
+            ) : null}
           </div>
         </CardContent>
       )}
