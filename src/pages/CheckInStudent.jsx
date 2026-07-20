@@ -30,7 +30,7 @@ export default function CheckInStudent() {
       studentId: student.id, className: cls ? cls.name : ""
     };
     const created = await createVisit(record);
-    navigate("/checkin/success", { state: { lastCheckInId: created.id } });
+    navigate("/checkin/success", { state: { lastCheckInId: created.id, kind: "student", className: cls ? cls.name : "" } });
   }
 
   return (

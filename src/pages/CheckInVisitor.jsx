@@ -60,7 +60,7 @@ export default function CheckInVisitor() {
       notes: v.notes || "", date: todayStr(), timeIn: now.toISOString(), timeOut: null
     };
     const created = await createVisit(record);
-    navigate("/checkin/success", { state: { lastCheckInId: created.id } });
+    navigate("/checkin/success", { state: { lastCheckInId: created.id, kind: "visitor" } });
   }
 
   const isInvalid = (name) => errors.indexOf(name) !== -1;
