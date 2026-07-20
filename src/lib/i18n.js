@@ -340,6 +340,8 @@ export var STR = {
   landingHowCanWeHelp: { en: "How can we help you today?", ht: "Kijan nou ka ede w jodi a?", fr: "Comment pouvons-nous vous aider aujourd'hui ?" },
   landingStudentServices: { en: "Computer Literacy, ESL, Digital Skills, Northstar Testing", ht: "Konesans Òdinatè, ESL, Konpetans Dijital, Tès Northstar", fr: "Alphabétisation Informatique, ESL, Compétences Numériques, Test Northstar" },
   landingVisitorServices: { en: "Immigration, Case Management, Food Distribution, Job Assistance, Appointments", ht: "Imigrasyon, Jesyon Ka, Distribisyon Manje, Asistans Travay, Randevou", fr: "Immigration, Gestion de Cas, Distribution Alimentaire, Aide à l'Emploi, Rendez-vous" },
+  iAmDone: { en: "I'm Done for Today", ht: "Mwen Fini pou Jodi a", fr: "J'ai Terminé pour Aujourd'hui" },
+  landingCheckOutServices: { en: "Leaving? Tap here to check out.", ht: "W ap kite? Peze isit la pou chèk soti.", fr: "Vous partez ? Touchez ici pour vous enregistrer." },
   landingNeedHelp: { en: "Need Help?", ht: "Bezwen Èd?", fr: "Besoin d'Aide ?" },
   landingAskStaff: { en: "Please ask a staff member.", ht: "Tanpri mande yon anplwaye.", fr: "Veuillez demander à un membre du personnel." },
   landingBuildingFutures: { en: "Building Stronger Futures Together", ht: "N'ap Bati Lavni pi Fò Ansanm", fr: "Bâtir des Avenirs Plus Forts Ensemble" },

@@ -5,7 +5,7 @@
 // boxed card the rest of the app's screens use.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, GraduationCap, Headset, User } from "lucide-react";
+import { ArrowRight, GraduationCap, Headset, LogOut, User } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { ORG } from "../lib/constants.js";
@@ -142,6 +142,17 @@ export default function CheckIn() {
             buttonLabel={t("checkInLabel")}
             buttonClass="bg-gradient-to-r from-gold to-gold-dark hover:brightness-110"
             onClick={() => navigate("/checkin/visitor")}
+          />
+          <RoleCard
+            compact={compact}
+            icon={(props) => <LogOut {...props} />}
+            iconBg="var(--tint-neutral)"
+            iconColor="var(--muted)"
+            title={t("iAmDone")}
+            services={t("landingCheckOutServices")}
+            buttonLabel={t("checkOutBtn")}
+            buttonClass="bg-gradient-to-r from-navy to-navy hover:brightness-110"
+            onClick={() => navigate("/checkout")}
           />
         </div>
 
