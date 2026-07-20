@@ -28,8 +28,8 @@ export default function EventCard({ block, t, onOpen, onEdit, onDuplicate, onDel
 
   return (
     <div
-      className="group absolute z-10 box-border overflow-hidden py-px pr-0.5 hover:z-20"
-      style={{ top, height, left: col * widthPct + "%", width: widthPct + "%", paddingLeft: col === 0 ? 0 : 2 }}
+      className="group absolute z-10 box-border overflow-hidden py-0.5 pr-1 hover:z-20"
+      style={{ top, height, left: col * widthPct + "%", width: widthPct + "%", paddingLeft: col === 0 ? 0 : 4 }}
     >
       <div
         role="button"
