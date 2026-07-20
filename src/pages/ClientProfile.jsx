@@ -293,9 +293,13 @@ function LogCommunicationModal({ onSave, onCancel }) {
 // Documents now live in Supabase Storage (private bucket), not inline
 // base64 -- resolves a short-lived signed URL on click.
 function StorageDownloadLink({ path, fileName, children, className }) {
+  const [loading, setLoading] = useState(false);
   async function handleClick(e) {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
     const url = await getFileSignedUrl(path);
+    setLoading(false);
     if (url) {
       const a = document.createElement("a");
       a.href = url; a.download = fileName || "";
@@ -472,7 +476,7 @@ export default function ClientProfile() {
   useEffect(() => {
     let cancelled = false;
     if (!clientId) { setNotes([]); setDocuments([]); setCommunications([]); return; }
-    fetchClientNotes(clientId, "case").then((rows) => { if (!cancelled) setNotes(rows); });
+    fetchClientNotes(clientId).then((rows) => { if (!cancelled) setNotes(rows); });
     fetchClientDocuments(clientId).then((rows) => { if (!cancelled) setDocuments(rows); });
     fetchCommunications(clientId).then((rows) => { if (!cancelled) setCommunications(rows); });
     return () => { cancelled = true; };
@@ -515,7 +519,11 @@ export default function ClientProfile() {
   }
 
   async function addNote(fields) {
-    const created = await createClientNote(client.id, Object.assign({}, fields, { department: "case" }));
+    // Unified profile isn't scoped to one program (unlike JobClientProfile's
+    // "job"-department notes) -- department defaults to "general" so a note
+    // added here shows up regardless of which programs this client is
+    // enrolled in.
+    const created = await createClientNote(client.id, fields);
     setNotes((prev) => [created].concat(prev));
     setAddingNote(false);
   }

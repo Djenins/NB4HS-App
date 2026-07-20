@@ -1,16 +1,20 @@
 // Settings.jsx -- ported from users_settings.js's renderSettings()/
-// attachSettingsHandlers(). "Reset demo data" rebuilds the seed dataset
-// via buildSeedData() (see lib/seed.js) instead of the original's
-// side-effecting seedData(); the closing-time save also re-runs the
-// auto-checkout sweep immediately, same as the original, so changing the
-// closing time to something already in the past checks people out right away.
+// attachSettingsHandlers(). The closing-time save re-runs the auto-checkout
+// sweep immediately, same as the original, so changing the closing time to
+// something already in the past checks people out right away.
+//
+// The original prototype's "Reset Demo Data" button (which rebuilt a local
+// seed dataset via buildSeedData()) was removed once the app moved to
+// Supabase: visits/students/clients/etc. are now real production data, and
+// setData() no longer even touches those Supabase-backed fields, so the
+// button had become a silent no-op rather than something safe to wire up to
+// an actual data wipe.
 import { useState } from "react";
-import { AlertTriangle, Briefcase, Building2, CheckCircle2, Clock, Info, ShieldCheck, Trash2, UserRound, Users } from "lucide-react";
+import { Briefcase, Building2, CheckCircle2, Clock, Info, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { buildSeedData } from "../lib/seed.js";
 
 export default function Settings() {
-  const { config, updateConfig, requestConfirm, setData, showToast } = useApp();
+  const { config, updateConfig, showToast } = useApp();
   const t = useT();
   const [closingTime, setClosingTime] = useState(config.closingTime || "17:00");
 
@@ -30,12 +34,6 @@ export default function Settings() {
     // here beyond confirming the save, since it's no longer a function this
     // page calls directly.
     showToast(t("saveUrl") + " ✓");
-  }
-
-  async function resetDemoData() {
-    const ok = await requestConfirm(t("resetDemoDataConfirm"), { danger: true });
-    if (!ok) return;
-    setData(() => buildSeedData());
   }
 
   return (
@@ -82,24 +80,6 @@ export default function Settings() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="card card-danger">
-        <div className="flex-between" style={{ alignItems: "flex-start", gap: 20 }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <div className="icon-badge accent"><AlertTriangle className="icon" /></div>
-            <div>
-              <h3 style={{ margin: 0, color: "var(--accent-dark)" }}>{t("developmentModeTitle")}</h3>
-              <p className="muted" style={{ margin: "4px 0 0", fontSize: ".9rem", maxWidth: 480 }}>{t("prototypeNotice")}</p>
-            </div>
-          </div>
-          <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-            <button className="btn-outline-danger" onClick={resetDemoData}>
-              <Trash2 className="icon" style={{ marginRight: 6 }} /> {t("resetDemoData")}
-            </button>
-            <p className="muted" style={{ fontSize: ".8rem", marginTop: 8 }}>{t("resetDemoDataDesc")}</p>
-          </div>
-        </div>
       </div>
 
       <div className="info-callout">

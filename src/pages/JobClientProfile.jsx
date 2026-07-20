@@ -666,7 +666,7 @@ export default function JobClientProfile() {
         </CardContent>
       </Card>
 
-      {editingPersonal && <PersonalInfoModal record={record} onSave={(fields) => { updateRecord(fields); setEditingPersonal(false); }} onCancel={() => setEditingPersonal(false)} />}
+      {editingPersonal && <PersonalInfoModal record={record} onSave={async (fields) => { await updateRecord(fields); setEditingPersonal(false); }} onCancel={() => setEditingPersonal(false)} />}
       {addingApplication && <AddApplicationModal onSave={addApplication} onCancel={() => setAddingApplication(false)} />}
       {addingNote && <AddNoteModal onSave={addNote} onCancel={() => setAddingNote(false)} />}
       {uploadingDocument && <UploadDocumentModal onSave={uploadDocument} onCancel={() => setUploadingDocument(false)} />}

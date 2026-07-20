@@ -56,7 +56,7 @@ export default function Users() {
   const totalCount = (data.profiles || []).length;
 
   async function toggleActive(u) {
-    await updateProfile(u.id, { active: u.active === false }).catch(() => {});
+    await updateProfile(u.id, { active: u.active === false }).catch(() => { showToast(t("userActionError")); });
   }
 
   // Deactivates rather than deletes the Supabase Auth account -- actually
@@ -67,7 +67,7 @@ export default function Users() {
   // `profiles` picks the change up on its own.)
   async function deleteUser(u) {
     if (u.email.toLowerCase() === currentEmail) { showToast(t("cannotDeleteSelf")); return; }
-    await updateProfile(u.id, { active: false }).catch(() => {});
+    await updateProfile(u.id, { active: false }).catch(() => { showToast(t("userActionError")); });
   }
 
   // Self-service supabase.auth.signUp() doesn't need admin/service-role

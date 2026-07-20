@@ -412,6 +412,7 @@ export var STR = {
   switchToLightMode: { en: "Switch to light mode", ht: "Chanje an mòd klè", fr: "Passer en mode clair" },
   noUsersYet: { en: "No accounts yet.", ht: "Pa gen kont ankò.", fr: "Aucun compte pour l'instant." },
   cannotDeleteSelf: { en: "You can't remove the account you're currently logged in as.", ht: "Ou pa ka retire kont w ap itilize kounye a.", fr: "Vous ne pouvez pas supprimer le compte avec lequel vous êtes actuellement connecté." },
+  userActionError: { en: "Couldn't save that change. Please try again.", ht: "Nou pa t kapab sove chanjman sa a. Tanpri eseye ankò.", fr: "Impossible d'enregistrer ce changement. Veuillez réessayer." },
   newUserCreatedSignInAgain: { en: "Account created. Share the password with them, then sign back in as yourself.", ht: "Kont kreye. Pataje modpas la avèk yo, epi konekte ankò kòm ou menm.", fr: "Compte créé. Partagez le mot de passe avec eux, puis reconnectez-vous en tant que vous-même." },
   duplicateEmail: { en: "An account with that email already exists.", ht: "Gen deja yon kont ak imèl sa a.", fr: "Un compte avec cet e-mail existe déjà." },
   invalidEmail: { en: "Please enter a valid email address.", ht: "Tanpri antre yon adrès imèl valab.", fr: "Veuillez entrer une adresse e-mail valide." },
