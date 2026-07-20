@@ -317,6 +317,14 @@ export async function countApplicationsWithInterview() {
   if (error) { console.warn("countApplicationsWithInterview failed", error); return 0; }
   return count || 0;
 }
+// Every application across every job_client, flat -- for Reports.jsx's
+// outcome/funnel trend, which needs the whole table rather than one
+// client's applications at a time.
+export async function fetchAllApplications() {
+  const { data, error } = await supabase.from("job_applications").select("*");
+  if (error) { console.warn("fetchAllApplications failed", error); return []; }
+  return data.map(applicationFromRow);
+}
 
 // ---------- food clients + distributions ----------
 

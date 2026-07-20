@@ -7,16 +7,17 @@
 // Active Day"/"Peak Visit Time" card, both taken from the requested design.
 import { useEffect, useState } from "react";
 import {
-  Award, Calendar, Clock, FileSpreadsheet, FileText, GraduationCap, Home,
+  Award, Briefcase, Calendar, Clock, FileSpreadsheet, FileText, GraduationCap, Home,
   Printer, Repeat, TrendingDown, TrendingUp, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { allDistributions } from "../lib/clients.js";
 import { navItemsForRole } from "../lib/nav.js";
+import { fetchAllApplications, fetchAllDistributions, subscribeClientsTable } from "../lib/clientsData.js";
+import { applicationStatusLabel, pipelineStageLabel } from "../lib/jobProfile.js";
 import {
-  computeDailyTrend, computeGeoBreakdown, computeMostActiveDay, computeStats, exportCSV,
-  exportExcel, fmtHour, inRange, previousRange, rangeForPreset, trendPct
+  computeDailyTrend, computeDailyValueTrend, computeGeoBreakdown, computeJobOutcomes, computeMostActiveDay,
+  computeStats, exportCSV, exportExcel, fmtHour, inRange, parseQuantity, previousRange, rangeForPreset, trendPct
 } from "../lib/reports_data.js";
 import { fetchGrants } from "../lib/grants.js";
 import { fetchCaseNoteIdsInRange, fetchGrantTagsForRecords } from "../lib/serviceGrantTags.js";
@@ -115,12 +116,43 @@ export default function Reports() {
   // here to roles that actually have that nav item, same gate as the nav.
   const role = session ? session.role : null;
   const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
-  const distributions = allDistributions(data.foodClients);
+
+  // food_distributions is its own table (not embedded on data.foodClients),
+  // so it's fetched here directly -- same pattern FoodDistribution.jsx uses
+  // for its own household-level `.distributions` attachment.
+  const [distributions, setDistributions] = useState([]);
+  useEffect(() => {
+    if (!showFoodStats) return undefined;
+    let cancelled = false;
+    fetchAllDistributions().then((rows) => { if (!cancelled) setDistributions(rows); });
+    const unsub = subscribeClientsTable("food_distributions", () => {
+      fetchAllDistributions().then((rows) => { if (!cancelled) setDistributions(rows); });
+    });
+    return () => { cancelled = true; unsub(); };
+  }, [showFoodStats]);
+
   const distInRange = distributions.filter((d) => inRange(d, range.from, range.to));
   const distInPrev = distributions.filter((d) => inRange(d, prevRange.from, prevRange.to));
-  const householdsServedCount = new Set(distInRange.map((d) => d.clientId)).size;
-  const householdsServedPrevCount = new Set(distInPrev.map((d) => d.clientId)).size;
+  const householdsServedCount = new Set(distInRange.map((d) => d.foodClientId)).size;
+  const householdsServedPrevCount = new Set(distInPrev.map((d) => d.foodClientId)).size;
   const distTrend = computeDailyTrend(distributions, range);
+  const distVolumeTrend = computeDailyValueTrend(distributions, range, (d) => parseQuantity(d.quantity));
+
+  // Job Developer outcome/funnel reporting.
+  const showJobStats = navItemsForRole(role).indexOf("jobdeveloper") !== -1;
+  const [applications, setApplications] = useState([]);
+  useEffect(() => {
+    if (!showJobStats) return undefined;
+    let cancelled = false;
+    fetchAllApplications().then((rows) => { if (!cancelled) setApplications(rows); });
+    const unsub = subscribeClientsTable("job_applications", () => {
+      fetchAllApplications().then((rows) => { if (!cancelled) setApplications(rows); });
+    });
+    return () => { cancelled = true; unsub(); };
+  }, [showJobStats]);
+  const jobOutcomes = computeJobOutcomes(data.jobClients, applications, range);
+  const pipelineRows = Object.keys(jobOutcomes.pipelineCounts).map((key) => ({ label: pipelineStageLabel(key), count: jobOutcomes.pipelineCounts[key] }));
+  const statusRows = Object.keys(jobOutcomes.statusCounts).map((key) => ({ label: applicationStatusLabel(key), count: jobOutcomes.statusCounts[key] }));
 
   function handleExportCSV() {
     exportCSV(data.visits, range, data.customServices, data.customStaff, lang);
@@ -274,14 +306,79 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>{t("trendDistributionsPerDay")}</CardTitle></CardHeader>
+              <CardContent className="pt-0">
+                <DashChart
+                  type="line"
+                  labels={distTrend.labels}
+                  datasets={[{ data: distTrend.data, fill: true, tension: 0.3 }]}
+                  fallback={<Sparkline labels={distTrend.labels} data={distTrend.data} />}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("estimatedVolumeTrendTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="mb-2 text-xs text-muted">{t("estimatedVolumeTrendNote")}</p>
+                <DashChart
+                  type="line"
+                  labels={distVolumeTrend.labels}
+                  datasets={[{ data: distVolumeTrend.data, fill: true, tension: 0.3 }]}
+                  fallback={<Sparkline labels={distVolumeTrend.labels} data={distVolumeTrend.data} />}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {showJobStats && (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard icon={Briefcase} tint="bg-primary-tint" iconColor="text-primary" value={jobOutcomes.applicationsInRange} label={t("applicationsInRangeLabel")} pct={0} none t={t} />
+            <KpiCard icon={UserPlus} tint="bg-tint-success" iconColor="text-success" value={jobOutcomes.placementsInRange} label={t("placementsInRangeLabel")} pct={0} none t={t} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>{t("currentPipelineTitle")}</CardTitle></CardHeader>
+              <CardContent className="pt-0">
+                <p className="mb-2 text-xs text-muted">{t("currentPipelineNote")}</p>
+                <DashChart
+                  type="bar"
+                  labels={pipelineRows.map((x) => x.label)}
+                  datasets={[{ data: pipelineRows.map((x) => x.count) }]}
+                  fallback={<BarList items={pipelineRows} />}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>{t("applicationsByStatusTitle")}</CardTitle></CardHeader>
+              <CardContent className="pt-0">
+                {statusRows.length ? (
+                  <DashChart
+                    type="bar"
+                    labels={statusRows.map((x) => x.label)}
+                    datasets={[{ data: statusRows.map((x) => x.count) }]}
+                    fallback={<BarList items={statusRows} />}
+                  />
+                ) : (
+                  <p className="py-8 text-center text-sm text-muted">{t("noApplicationsInRange")}</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
           <Card>
-            <CardHeader><CardTitle>{t("trendDistributionsPerDay")}</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("trendApplicationsPerDay")}</CardTitle></CardHeader>
             <CardContent className="pt-0">
               <DashChart
                 type="line"
-                labels={distTrend.labels}
-                datasets={[{ data: distTrend.data, fill: true, tension: 0.3 }]}
-                fallback={<Sparkline labels={distTrend.labels} data={distTrend.data} />}
+                labels={jobOutcomes.applicationsTrend.labels}
+                datasets={[{ data: jobOutcomes.applicationsTrend.data, fill: true, tension: 0.3 }]}
+                fallback={<Sparkline labels={jobOutcomes.applicationsTrend.labels} data={jobOutcomes.applicationsTrend.data} />}
               />
             </CardContent>
           </Card>

@@ -214,6 +214,69 @@ export function computeDailyTrend(visits, range) {
   return { labels: labels, data: data };
 }
 
+// Same day-by-day bucketing as computeDailyTrend, but sums a numeric value
+// per item instead of just counting occurrences -- used for food
+// distribution volume, where `quantity` is free text ("2 boxes", "15 lbs")
+// rather than a clean number.
+export function computeDailyValueTrend(items, range, valueFn) {
+  var sums = {};
+  (items || []).forEach(function (item) {
+    if (!inRange(item, range.from, range.to)) return;
+    sums[item.date] = (sums[item.date] || 0) + valueFn(item);
+  });
+  var labels = [], data = [];
+  var from = new Date(range.from + "T00:00:00"), to = new Date(range.to + "T00:00:00");
+  var maxDays = 92;
+  var d = new Date(from);
+  var n = 0;
+  while (d <= to && n < maxDays) {
+    var key = dateStrFromDate(d);
+    labels.push((d.getMonth() + 1) + "/" + d.getDate());
+    data.push(sums[key] || 0);
+    d.setDate(d.getDate() + 1);
+    n++;
+  }
+  return { labels: labels, data: data };
+}
+
+// Best-effort numeric read of a free-text quantity field ("2 boxes" -> 2,
+// "15 lbs" -> 15, "" / non-numeric -> 0). Not exact, but the only signal
+// available without a schema change to a real numeric column.
+export function parseQuantity(quantity) {
+  var m = String(quantity || "").match(/[\d.]+/);
+  return m ? parseFloat(m[0]) || 0 : 0;
+}
+
+// Job placement outcomes for the Reports page. `jobClients`' pipelineStage
+// is a current snapshot (no history), so the funnel breakdown is always
+// "as of now" regardless of the selected date range -- only the
+// applications-based figures (submitted/hired counts, daily trend) are
+// actually range-filtered, keyed off `appliedDate` since job_applications
+// has no separate "decided" date.
+export function computeJobOutcomes(jobClients, applications, range) {
+  var pipelineCounts = {};
+  (jobClients || []).forEach(function (c) {
+    if (c.active === false) return;
+    var stage = c.pipelineStage || "resume";
+    pipelineCounts[stage] = (pipelineCounts[stage] || 0) + 1;
+  });
+
+  var dated = (applications || []).map(function (a) { return Object.assign({}, a, { date: a.appliedDate }); }).filter(function (a) { return a.date; });
+  var inRangeApps = dated.filter(function (a) { return inRange(a, range.from, range.to); });
+  var statusCounts = {};
+  inRangeApps.forEach(function (a) { statusCounts[a.status] = (statusCounts[a.status] || 0) + 1; });
+  var placementsInRange = inRangeApps.filter(function (a) { return a.status === "hired"; }).length;
+  var applicationsTrend = computeDailyTrend(dated, range);
+
+  return {
+    pipelineCounts: pipelineCounts,
+    statusCounts: statusCounts,
+    applicationsInRange: inRangeApps.length,
+    placementsInRange: placementsInRange,
+    applicationsTrend: applicationsTrend
+  };
+}
+
 export function reportRows(visits, range, customServices, customStaff, lang) {
   var list = (visits || []).filter(function (v) { return inRange(v, range.from, range.to); });
   list = list.slice().sort(function (a, b) { return new Date(a.timeIn) - new Date(b.timeIn); });
