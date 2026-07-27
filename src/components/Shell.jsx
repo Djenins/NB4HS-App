@@ -328,13 +328,13 @@ export default function Shell() {
                       // collapsible submenu (toggle row + indented children)
                       // rather than its own top-level heading.
                       collapsed ? (
-                        <div className="mt-0.5 space-y-0.5">
+                        <div className="mt-3 space-y-0.5">
                           {workforceSection.items.map((v) => (
                             <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
                           ))}
                         </div>
                       ) : (
-                        <>
+                        <div className="mt-3">
                           <button
                             type="button"
                             onClick={() => setWorkforceOpenOverride(!workforceOpen)}
@@ -356,7 +356,7 @@ export default function Shell() {
                               ))}
                             </div>
                           )}
-                        </>
+                        </div>
                       )
                     )}
                   </div>
