@@ -56,7 +56,7 @@ export var STR = {
   navQR: { en: "QR Code", ht: "Kòd QR", fr: "Code QR" },
   navMyCaseload: { en: "My Caseload", ht: "Ka Mwen yo", fr: "Mes Dossiers" },
   navCaseManagement: { en: "Case Management", ht: "Jesyon Ka", fr: "Gestion de Cas" },
-  navJobDeveloper: { en: "Workforce", ht: "Travay", fr: "Main-d'œuvre" },
+  navJobDeveloper: { en: "Job Developer", ht: "Devlopè Travay", fr: "Développeur d'Emploi" },
   navSettings: { en: "Settings", ht: "Paramèt", fr: "Paramètres" },
   navGroupCore: { en: "Daily Operations", ht: "Operasyon Chak Jou", fr: "Opérations Quotidiennes" },
   navGroupAdmin: { en: "Administration", ht: "Administrasyon", fr: "Administration" },

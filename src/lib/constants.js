@@ -118,7 +118,12 @@ export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core",
 export var NAV_SECTION = {
   dashboard: "overview", mycaseload: "overview",
   checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps",
-  students: "programs", assessments: "programs", casemanagement: "programs", jobdeveloper: "programs", fooddistribution: "programs",
+  students: "programs", assessments: "programs", casemanagement: "programs", fooddistribution: "programs",
+  // jobdeveloper (the older participant/job-seeker tracking page) lives in
+  // the same "Workforce" submenu as the newer Employer & Job Opportunity
+  // Management pages -- both were separately labeled "Workforce" in the
+  // sidebar before merging, which read as two unrelated entries.
+  jobdeveloper: "workforceDevelopment",
   workforcedashboard: "workforceDevelopment", employers: "workforceDevelopment", jobopenings: "workforceDevelopment",
   candidatematching: "workforceDevelopment", referrals: "workforceDevelopment", placements: "workforceDevelopment",
   workforcereports: "workforceDevelopment",
