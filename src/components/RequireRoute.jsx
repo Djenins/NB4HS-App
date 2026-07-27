@@ -8,13 +8,13 @@
 // and visibility can't drift apart.
 import { Navigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
-import { navItemsForRole } from "../lib/nav.js";
+import { enabledWorkforceRoles, navItemsForRole } from "../lib/nav.js";
 
 export default function RequireRoute({ routeKey, children }) {
-  const { session, authLoading } = useApp();
+  const { session, authLoading, data } = useApp();
   if (authLoading) return null;
   const role = session ? session.role : null;
-  const allowed = role && navItemsForRole(role).indexOf(routeKey) !== -1;
+  const allowed = role && navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)).indexOf(routeKey) !== -1;
   if (!allowed) return <Navigate to="/dashboard" replace />;
   return children;
 }

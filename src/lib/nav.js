@@ -6,13 +6,40 @@
 import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
 
-export function navItemsForRole(role) {
-  if (role === "administrator") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports", "users", "settings"];
-  if (role === "staff") return ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
-  if (role === "receptionist") return ["checkin", "checkout", "calendar"];
-  if (role === "case_manager") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
-  if (role === "job_developer") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper", "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports"];
-  return [];
+// The 7 Workforce Development pages -- deliberately NOT hardcoded into any
+// role's base array below. Whether a role gets them is decided at the
+// bottom of navItemsForRole() by the admin-configurable
+// workforce_role_access table (see enabledWorkforceRoles() and
+// Settings.jsx's "Workforce Development Access" card) -- administrator
+// always gets them, every other role only if explicitly granted. Note
+// "jobdeveloper" itself (the older Job Developer/participant-tracking page)
+// is unrelated and stays hardcoded per-role as before.
+var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports"];
+
+export function navItemsForRole(role, workforceAllowedRoles) {
+  var base;
+  if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
+  else if (role === "staff") base = ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
+  else if (role === "receptionist") base = ["checkin", "checkout", "calendar"];
+  else if (role === "case_manager") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
+  else if (role === "job_developer") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
+  else return [];
+
+  var hasWorkforceAccess = role === "administrator" || (workforceAllowedRoles || []).indexOf(role) !== -1;
+  if (!hasWorkforceAccess) return base;
+
+  // Insert right after "jobdeveloper" when present (preserves the exact
+  // ordering admin/job_developer always had), otherwise append at the end.
+  var jdIndex = base.indexOf("jobdeveloper");
+  if (jdIndex === -1) return base.concat(WORKFORCE_KEYS);
+  return base.slice(0, jdIndex + 1).concat(WORKFORCE_KEYS, base.slice(jdIndex + 1));
+}
+
+// Flattens workforce_role_access rows ([{role, enabled}]) into a plain
+// array of role strings currently granted -- what navItemsForRole()'s
+// second argument expects.
+export function enabledWorkforceRoles(workforceRoleAccess) {
+  return (workforceRoleAccess || []).filter(function (r) { return r.enabled; }).map(function (r) { return r.role; });
 }
 
 export function navLabel(v, lang) {

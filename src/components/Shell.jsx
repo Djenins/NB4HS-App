@@ -29,7 +29,7 @@ import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { NAV_ICONS } from "../lib/navIcons.js";
-import { navItemsForRole, navLabel, navPath, navSectionLabel, navSectionsForItems } from "../lib/nav.js";
+import { enabledWorkforceRoles, navItemsForRole, navLabel, navPath, navSectionLabel, navSectionsForItems } from "../lib/nav.js";
 import { studentMatchesSearch } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
 import { roleLabel } from "../lib/utils.js";
@@ -239,7 +239,7 @@ export default function Shell() {
   const isKioskLanding = kiosk && location.pathname === "/checkin";
 
   const role = session ? session.role : null;
-  const items = !kiosk && role ? navItemsForRole(role) : [];
+  const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
   const showSidebar = !kiosk && role && items.length > 0;
   const sections = navSectionsForItems(items);
   const workforceSection = sections.find((s) => s.key === "workforceDevelopment");

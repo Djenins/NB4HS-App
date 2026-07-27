@@ -10,13 +10,43 @@
 // button had become a silent no-op rather than something safe to wire up to
 // an actual data wipe.
 import { useState } from "react";
-import { Briefcase, Building2, CheckCircle2, Clock, Info, ShieldCheck, UserRound, Users } from "lucide-react";
+import { Briefcase, Building2, CheckCircle2, Circle, Clock, Info, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
+import { setWorkforceRoleAccess } from "../lib/clientsData.js";
+
+// The 4 non-administrator roles the Workforce Development toggle applies to
+// -- administrator always has access (see lib/nav.js), so it isn't one of
+// these rows, it gets a plain "Always has access" badge instead.
+const WORKFORCE_TOGGLE_ROLES = [
+  { key: "staff", labelKey: "roleStaff" },
+  { key: "receptionist", labelKey: "roleReceptionist" },
+  { key: "case_manager", labelKey: "roleCaseManager" },
+  { key: "job_developer", labelKey: "roleJobDeveloper" }
+];
 
 export default function Settings() {
-  const { config, updateConfig, showToast } = useApp();
+  const { config, updateConfig, showToast, data } = useApp();
   const t = useT();
   const [closingTime, setClosingTime] = useState(config.closingTime || "17:00");
+  // Optimistic local overrides so a click flips the toggle immediately
+  // instead of waiting on the round trip + realtime refetch -- same pattern
+  // as ManageListCard.jsx's services/staff/industries toggles.
+  const [workforceOverrides, setWorkforceOverrides] = useState({});
+
+  const workforceAccessByRole = {};
+  (data.workforceRoleAccess || []).forEach((r) => { workforceAccessByRole[r.role] = r.enabled; });
+  function isWorkforceEnabled(role) { return role in workforceOverrides ? workforceOverrides[role] : !!workforceAccessByRole[role]; }
+
+  async function toggleWorkforceAccess(role, nextEnabled) {
+    setWorkforceOverrides((prev) => Object.assign({}, prev, { [role]: nextEnabled }));
+    try {
+      await setWorkforceRoleAccess(role, nextEnabled);
+    } catch (err) {
+      setWorkforceOverrides((prev) => { const next = Object.assign({}, prev); delete next[role]; return next; });
+      showToast(t("manageToggleError"));
+      throw err;
+    }
+  }
 
   const rolePermissionRows = [
     [t("roleAdmin"), t("roleAdminDesc"), <Users className="icon" />, "accent"],
@@ -80,6 +110,36 @@ export default function Settings() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="card">
+        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
+          <div className="icon-badge"><Briefcase className="icon" /></div>
+          <div>
+            <h3 style={{ margin: 0 }}>{t("workforceAccessSettingsTitle")}</h3>
+            <p className="muted" style={{ margin: "4px 0 0", fontSize: ".88rem" }}>{t("workforceAccessSettingsDesc")}</p>
+          </div>
+        </div>
+        <div className="kv">
+          <span>{t("roleAdmin")}</span>
+          <span className="badge badge-in">{t("alwaysHasAccessLabel")}</span>
+        </div>
+        {WORKFORCE_TOGGLE_ROLES.map(({ key, labelKey }) => {
+          const enabled = isWorkforceEnabled(key);
+          return (
+            <div className="kv" key={key}>
+              <span>{t(labelKey)}</span>
+              <button
+                type="button"
+                className={"btn-icon status-toggle" + (enabled ? " status-toggle-on" : " status-toggle-off")}
+                onClick={() => toggleWorkforceAccess(key, !enabled)}
+              >
+                {enabled ? <CheckCircle2 className="icon" /> : <Circle className="icon" />}
+                {enabled ? t("activeLabel") : t("inactiveLabel")}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <div className="info-callout">

@@ -917,6 +917,21 @@ export async function setOptionDisabled(optionType, key, disabled) {
   }
 }
 
+// ---------- workforce role access (admin-configurable, Settings page) ----------
+// Which non-administrator roles can see the Workforce Development module.
+// Administrator itself isn't stored here -- it always has access (see
+// lib/nav.js's enabledWorkforceRoles()/navItemsForRole()).
+
+export async function fetchWorkforceRoleAccess() {
+  const { data, error } = await supabase.from("workforce_role_access").select("*");
+  if (error) { console.warn("fetchWorkforceRoleAccess failed", error); return []; }
+  return data.map((row) => ({ role: row.role, enabled: row.enabled }));
+}
+export async function setWorkforceRoleAccess(role, enabled) {
+  const { error } = await supabase.from("workforce_role_access").update({ enabled, updated_at: new Date().toISOString() }).eq("role", role);
+  if (error) throw error;
+}
+
 // ---------- realtime ----------
 
 export function subscribeClientsTable(table, onChange) {
