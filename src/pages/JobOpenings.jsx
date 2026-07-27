@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createJobOpening, deleteJobOpening, updateJobOpening } from "../lib/clientsData.js";
 import {
-  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, JOB_OPENING_STATUSES,
+  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES,
   educationLevelLabel, employmentTypeLabel, englishLevelLabel, formatPayRange, jobOpeningSortKey, statusBadgeVariant, statusLabel
 } from "../lib/jobOpenings.js";
 import { hasReachedInterview } from "../lib/referrals.js";
