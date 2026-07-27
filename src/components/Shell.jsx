@@ -21,7 +21,7 @@
 // is reproduced via NAV_SECTION (constants.js) mapped onto the *real* nav
 // vocabulary, not the mockup's literal (partly fictional) item labels.
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
 import { Fragment, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -220,6 +220,12 @@ export default function Shell() {
   const { data, session, authLoading, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
   const location = useLocation();
+  // null = "no manual override yet, default to expanded whenever a Workforce
+  // page is the active route" -- once the user actually clicks the toggle,
+  // that choice sticks regardless of route (same as any collapsible sidebar
+  // section elsewhere). Declared here (not after the early returns below) so
+  // it isn't a conditionally-called hook.
+  const [workforceOpenOverride, setWorkforceOpenOverride] = useState(null);
 
   // Wait for Supabase to finish restoring any existing session before
   // deciding to redirect -- otherwise a valid session in localStorage loses
@@ -236,6 +242,9 @@ export default function Shell() {
   const items = !kiosk && role ? navItemsForRole(role) : [];
   const showSidebar = !kiosk && role && items.length > 0;
   const sections = navSectionsForItems(items);
+  const workforceSection = sections.find((s) => s.key === "workforceDevelopment");
+  const isWorkforceActive = !!workforceSection && workforceSection.items.some((v) => location.pathname === navPath(v) || location.pathname.startsWith(navPath(v) + "/"));
+  const workforceOpen = workforceOpenOverride !== null ? workforceOpenOverride : isWorkforceActive;
   const badgeCounts = {
     casemanagement: pendingApptCount(data.appointments, "case_manager"),
     jobdeveloper: pendingApptCount(data.appointments, "job_developer")
@@ -293,20 +302,52 @@ export default function Shell() {
               <nav className="flex-1 space-y-5 px-3 py-3" aria-label={t("navManage")}>
                 {sections.map((section) => (
                   <div key={section.key}>
-                    {!collapsed && (
-                      // Small gold section marker dot -- the brand spec's "left
-                      // panels: add subtle gold accents (section markers)"
-                      // applied sparingly, not a recolor of the label itself.
-                      <div className="flex items-center gap-1.5 px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-text/70">
-                        <span className="h-1 w-1 shrink-0 rounded-full bg-gold" />
-                        {navSectionLabel(section.key, lang)}
-                      </div>
+                    {section.key === "workforceDevelopment" && !collapsed ? (
+                      // Workforce is the one section rendered as a real
+                      // collapsible submenu (toggle row + indented children)
+                      // instead of a plain heading -- every other section
+                      // keeps the flat heading+list layout below.
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setWorkforceOpenOverride(!workforceOpen)}
+                          aria-expanded={workforceOpen}
+                          className={cn(
+                            "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text no-underline transition-colors hover:bg-white/5 hover:text-sidebar-text-active",
+                            BTN_RESET,
+                            isWorkforceActive && !workforceOpen && "bg-sidebar-bg-active text-sidebar-text-active"
+                          )}
+                        >
+                          <NavIcon name="workforceDevelopmentGroup" className="h-[18px] w-[18px] shrink-0" />
+                          <span className="flex-1 truncate text-left">{navSectionLabel(section.key, lang)}</span>
+                          <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", workforceOpen && "rotate-180")} />
+                        </button>
+                        {workforceOpen && (
+                          <div className="mt-0.5 space-y-0.5 border-l border-white/10 pl-3.5">
+                            {section.items.map((v) => (
+                              <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {!collapsed && (
+                          // Small gold section marker dot -- the brand spec's "left
+                          // panels: add subtle gold accents (section markers)"
+                          // applied sparingly, not a recolor of the label itself.
+                          <div className="flex items-center gap-1.5 px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-text/70">
+                            <span className="h-1 w-1 shrink-0 rounded-full bg-gold" />
+                            {navSectionLabel(section.key, lang)}
+                          </div>
+                        )}
+                        <div className="space-y-0.5">
+                          {section.items.map((v) => (
+                            <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
+                          ))}
+                        </div>
+                      </>
                     )}
-                    <div className="space-y-0.5">
-                      {section.items.map((v) => (
-                        <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
-                      ))}
-                    </div>
                   </div>
                 ))}
               </nav>

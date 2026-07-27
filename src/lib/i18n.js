@@ -569,7 +569,7 @@ export var STR = {
 
   // ---- Employer & Job Opportunity Management, Phase 1: Employers ----
   navEmployers: { en: "Employers", ht: "Anplwayè", fr: "Employeurs" },
-  navSectionWorkforceDevelopment: { en: "Workforce Development", ht: "Devlopman Mendèv", fr: "Développement de la Main-d'Œuvre" },
+  navSectionWorkforceDevelopment: { en: "Workforce", ht: "Mendèv", fr: "Main-d'Œuvre" },
   employersTitle: { en: "Employers", ht: "Anplwayè", fr: "Employeurs" },
   employersDesc: { en: "Build and manage relationships with local employers.", ht: "Bati epi jere relasyon ak anplwayè lokal yo.", fr: "Établissez et gérez des relations avec les employeurs locaux." },
   addEmployerTitle: { en: "Add Employer", ht: "Ajoute Anplwayè", fr: "Ajouter un Employeur" },
