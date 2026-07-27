@@ -5,6 +5,7 @@
 // as checkinData.js from Phase 1, so the pages that only *read* this data
 // keep working with minimal changes; only the *write* call sites change.
 import { supabase } from "./supabase.js";
+import { CHECKIN_TYPES, checkinDueDate } from "./placements.js";
 
 // ---------- storage (documents/resumes) ----------
 
@@ -136,7 +137,7 @@ function jobClientToRow(fields) {
 
 function applicationFromRow(row) {
   return {
-    id: row.id, company: row.company || "", position: row.position || "", appliedDate: row.applied_date || "",
+    id: row.id, jobClientId: row.job_client_id, company: row.company || "", position: row.position || "", appliedDate: row.applied_date || "",
     status: row.status || "applied", nextStepDate: row.next_step_date || "", nextStepNote: row.next_step_note || "",
     interviewDate: row.interview_date || "", interviewNotes: row.interview_notes || ""
   };
@@ -147,6 +148,191 @@ function applicationToRow(fields) {
     status: fields.status || "applied", next_step_date: fields.nextStepDate || null, next_step_note: fields.nextStepNote || "",
     interview_date: fields.interviewDate || null, interview_notes: fields.interviewNotes || ""
   };
+}
+
+function employerFromRow(row) {
+  return {
+    id: row.id, businessName: row.business_name || "", industry: row.industry || "", website: row.website || "",
+    street: row.street || "", city: row.city || "", zip: row.zip || "", state: row.state || "RI",
+    contactName: row.contact_name || "", contactPhone: row.contact_phone || "", contactEmail: row.contact_email || "",
+    hrContactName: row.hr_contact_name || "", hrContactPhone: row.hr_contact_phone || "", hrContactEmail: row.hr_contact_email || "",
+    preferredCommunication: row.preferred_communication || "", notes: row.notes || "",
+    partnershipStage: row.partnership_stage || "prospect", partnerSince: row.partner_since || "",
+    lastMeetingDate: row.last_meeting_date || "", nextFollowUpDate: row.next_follow_up_date || "",
+    assignedJobDeveloperEmail: row.assigned_job_developer_email || "", preferredHiringMethod: row.preferred_hiring_method || "",
+    active: row.active, createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+function employerToRow(fields) {
+  const row = {};
+  if (fields.businessName !== undefined) row.business_name = fields.businessName;
+  if (fields.industry !== undefined) row.industry = fields.industry;
+  if (fields.website !== undefined) row.website = fields.website;
+  if (fields.street !== undefined) row.street = fields.street;
+  if (fields.city !== undefined) row.city = fields.city;
+  if (fields.zip !== undefined) row.zip = fields.zip;
+  if (fields.contactName !== undefined) row.contact_name = fields.contactName;
+  if (fields.contactPhone !== undefined) row.contact_phone = fields.contactPhone;
+  if (fields.contactEmail !== undefined) row.contact_email = fields.contactEmail;
+  if (fields.hrContactName !== undefined) row.hr_contact_name = fields.hrContactName;
+  if (fields.hrContactPhone !== undefined) row.hr_contact_phone = fields.hrContactPhone;
+  if (fields.hrContactEmail !== undefined) row.hr_contact_email = fields.hrContactEmail;
+  if (fields.preferredCommunication !== undefined) row.preferred_communication = fields.preferredCommunication;
+  if (fields.notes !== undefined) row.notes = fields.notes;
+  if (fields.partnershipStage !== undefined) row.partnership_stage = fields.partnershipStage;
+  if (fields.partnerSince !== undefined) row.partner_since = fields.partnerSince || null;
+  if (fields.lastMeetingDate !== undefined) row.last_meeting_date = fields.lastMeetingDate || null;
+  if (fields.nextFollowUpDate !== undefined) row.next_follow_up_date = fields.nextFollowUpDate || null;
+  if (fields.assignedJobDeveloperEmail !== undefined) row.assigned_job_developer_email = fields.assignedJobDeveloperEmail;
+  if (fields.preferredHiringMethod !== undefined) row.preferred_hiring_method = fields.preferredHiringMethod;
+  if (fields.active !== undefined) row.active = fields.active;
+  return row;
+}
+
+function employerNoteFromRow(row) {
+  return { id: row.id, employerId: row.employer_id, date: row.note_date, staffName: row.profiles ? row.profiles.name : "", content: row.content };
+}
+function employerActivityFromRow(row) {
+  return {
+    id: row.id, employerId: row.employer_id, date: row.activity_date, type: row.type || "call",
+    summary: row.summary || "", followUpRequired: row.follow_up_required, staffName: row.profiles ? row.profiles.name : ""
+  };
+}
+function employerDocumentFromRow(row) {
+  return {
+    id: row.id, employerId: row.employer_id, fileName: row.file_name, category: row.category || "other",
+    storagePath: row.storage_path, uploadedAt: row.created_at, uploadedBy: row.profiles ? row.profiles.name : ""
+  };
+}
+
+function jobOpeningFromRow(row) {
+  return {
+    id: row.id, employerId: row.employer_id,
+    employerName: row.employers ? row.employers.business_name : undefined, employerCity: row.employers ? row.employers.city : undefined,
+    title: row.title || "", department: row.department || "", description: row.description || "",
+    responsibilities: row.responsibilities || "", requirements: row.requirements || "",
+    education: row.education || "", experience: row.experience || "",
+    certifications: row.certifications || [], skills: row.skills || [], languages: row.languages || [],
+    payType: row.pay_type || "", payMin: row.pay_min, payMax: row.pay_max,
+    employmentType: row.employment_type || "", schedule: row.schedule || "", hoursPerWeek: row.hours_per_week || "",
+    benefits: row.benefits || "", startDate: row.start_date || "", openingsCount: row.openings_count || 1,
+    applicationDeadline: row.application_deadline || "", transportationRequired: row.transportation_required,
+    englishLevelRequired: row.english_level_required || "", applyMethod: row.apply_method || "",
+    applyWebsite: row.apply_website || "", applyEmail: row.apply_email || "", internalNotes: row.internal_notes || "",
+    status: row.status || "draft", source: row.source || "staff_added", postedDate: row.posted_date || "",
+    createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+function jobOpeningToRow(fields) {
+  const row = {};
+  if (fields.employerId !== undefined) row.employer_id = fields.employerId;
+  if (fields.title !== undefined) row.title = fields.title;
+  if (fields.department !== undefined) row.department = fields.department;
+  if (fields.description !== undefined) row.description = fields.description;
+  if (fields.responsibilities !== undefined) row.responsibilities = fields.responsibilities;
+  if (fields.requirements !== undefined) row.requirements = fields.requirements;
+  if (fields.education !== undefined) row.education = fields.education;
+  if (fields.experience !== undefined) row.experience = fields.experience;
+  if (fields.certifications !== undefined) row.certifications = fields.certifications;
+  if (fields.skills !== undefined) row.skills = fields.skills;
+  if (fields.languages !== undefined) row.languages = fields.languages;
+  if (fields.payType !== undefined) row.pay_type = fields.payType;
+  if (fields.payMin !== undefined) row.pay_min = fields.payMin === "" ? null : fields.payMin;
+  if (fields.payMax !== undefined) row.pay_max = fields.payMax === "" ? null : fields.payMax;
+  if (fields.employmentType !== undefined) row.employment_type = fields.employmentType;
+  if (fields.schedule !== undefined) row.schedule = fields.schedule;
+  if (fields.hoursPerWeek !== undefined) row.hours_per_week = fields.hoursPerWeek;
+  if (fields.benefits !== undefined) row.benefits = fields.benefits;
+  if (fields.startDate !== undefined) row.start_date = fields.startDate || null;
+  if (fields.openingsCount !== undefined) row.openings_count = fields.openingsCount || 1;
+  if (fields.applicationDeadline !== undefined) row.application_deadline = fields.applicationDeadline || null;
+  if (fields.transportationRequired !== undefined) row.transportation_required = fields.transportationRequired;
+  if (fields.englishLevelRequired !== undefined) row.english_level_required = fields.englishLevelRequired;
+  if (fields.applyMethod !== undefined) row.apply_method = fields.applyMethod;
+  if (fields.applyWebsite !== undefined) row.apply_website = fields.applyWebsite;
+  if (fields.applyEmail !== undefined) row.apply_email = fields.applyEmail;
+  if (fields.internalNotes !== undefined) row.internal_notes = fields.internalNotes;
+  if (fields.status !== undefined) row.status = fields.status;
+  if (fields.source !== undefined) row.source = fields.source;
+  return row;
+}
+
+function referralFromRow(row) {
+  return {
+    id: row.id, jobClientId: row.job_client_id, jobOpeningId: row.job_opening_id, employerId: row.employer_id,
+    participantName: row.job_clients ? ((row.job_clients.first_name || "") + " " + (row.job_clients.last_name || "")).trim() : undefined,
+    positionTitle: row.job_openings ? row.job_openings.title : undefined,
+    employerName: row.employers ? row.employers.business_name : undefined,
+    status: row.status || "ready", referralDate: row.referral_date || "", interviewDate: row.interview_date || "",
+    assignedJobDeveloperEmail: row.assigned_job_developer_email || "", notes: row.notes || "",
+    createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+function referralToRow(fields) {
+  const row = {};
+  if (fields.jobClientId !== undefined) row.job_client_id = fields.jobClientId;
+  if (fields.jobOpeningId !== undefined) row.job_opening_id = fields.jobOpeningId;
+  if (fields.employerId !== undefined) row.employer_id = fields.employerId;
+  if (fields.status !== undefined) row.status = fields.status;
+  if (fields.referralDate !== undefined) row.referral_date = fields.referralDate || null;
+  if (fields.interviewDate !== undefined) row.interview_date = fields.interviewDate || null;
+  if (fields.assignedJobDeveloperEmail !== undefined) row.assigned_job_developer_email = fields.assignedJobDeveloperEmail;
+  if (fields.notes !== undefined) row.notes = fields.notes;
+  return row;
+}
+
+function placementFromRow(row) {
+  return {
+    id: row.id, jobClientId: row.job_client_id, employerId: row.employer_id, jobOpeningId: row.job_opening_id, referralId: row.referral_id,
+    participantName: row.job_clients ? ((row.job_clients.first_name || "") + " " + (row.job_clients.last_name || "")).trim() : undefined,
+    employerName: row.employers ? row.employers.business_name : undefined,
+    positionTitle: row.position_title || "", startDate: row.start_date || "", hourlyWage: row.hourly_wage,
+    hoursPerWeek: row.hours_per_week || "", benefits: row.benefits || "",
+    supervisorName: row.supervisor_name || "", supervisorContact: row.supervisor_contact || "",
+    currentStatus: row.current_status || "active", endDate: row.end_date || "", reasonForLeaving: row.reason_for_leaving || "",
+    createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+function placementToRow(fields) {
+  const row = {};
+  if (fields.jobClientId !== undefined) row.job_client_id = fields.jobClientId;
+  if (fields.employerId !== undefined) row.employer_id = fields.employerId;
+  if (fields.jobOpeningId !== undefined) row.job_opening_id = fields.jobOpeningId || null;
+  if (fields.referralId !== undefined) row.referral_id = fields.referralId || null;
+  if (fields.positionTitle !== undefined) row.position_title = fields.positionTitle;
+  if (fields.startDate !== undefined) row.start_date = fields.startDate || null;
+  if (fields.hourlyWage !== undefined) row.hourly_wage = fields.hourlyWage === "" ? null : fields.hourlyWage;
+  if (fields.hoursPerWeek !== undefined) row.hours_per_week = fields.hoursPerWeek;
+  if (fields.benefits !== undefined) row.benefits = fields.benefits;
+  if (fields.supervisorName !== undefined) row.supervisor_name = fields.supervisorName;
+  if (fields.supervisorContact !== undefined) row.supervisor_contact = fields.supervisorContact;
+  if (fields.currentStatus !== undefined) row.current_status = fields.currentStatus;
+  if (fields.endDate !== undefined) row.end_date = fields.endDate || null;
+  if (fields.reasonForLeaving !== undefined) row.reason_for_leaving = fields.reasonForLeaving;
+  return row;
+}
+
+function placementCheckinFromRow(row) {
+  return {
+    id: row.id, placementId: row.placement_id, checkinType: row.checkin_type, dueDate: row.due_date,
+    completed: row.completed, completedDate: row.completed_date || "",
+    performanceRating: row.performance_rating || "", attendanceNotes: row.attendance_notes || "",
+    promotion: row.promotion, raise: row.raise,
+    employerFeedback: row.employer_feedback || "", participantFeedback: row.participant_feedback || "", notes: row.notes || ""
+  };
+}
+function placementCheckinToRow(fields) {
+  const row = {};
+  if (fields.completed !== undefined) row.completed = fields.completed;
+  if (fields.completedDate !== undefined) row.completed_date = fields.completedDate || null;
+  if (fields.performanceRating !== undefined) row.performance_rating = fields.performanceRating;
+  if (fields.attendanceNotes !== undefined) row.attendance_notes = fields.attendanceNotes;
+  if (fields.promotion !== undefined) row.promotion = fields.promotion;
+  if (fields.raise !== undefined) row.raise = fields.raise;
+  if (fields.employerFeedback !== undefined) row.employer_feedback = fields.employerFeedback;
+  if (fields.participantFeedback !== undefined) row.participant_feedback = fields.participantFeedback;
+  if (fields.notes !== undefined) row.notes = fields.notes;
+  return row;
 }
 
 function foodClientFromRow(row) {
@@ -324,6 +510,183 @@ export async function fetchAllApplications() {
   const { data, error } = await supabase.from("job_applications").select("*");
   if (error) { console.warn("fetchAllApplications failed", error); return []; }
   return data.map(applicationFromRow);
+}
+
+// ---------- employers + notes/activity/documents ----------
+// Employer & Job Opportunity Management, Phase 1. Employers is its own
+// list-level table (no shared `clients` master row -- a business isn't a
+// program participant, so there's no cross-program dedup concern the way
+// job_clients/case_clients have via create_job_client/create_case_client).
+// employer_notes/employer_activity/employer_documents are append-only detail
+// tables fetched on demand by EmployerProfile.jsx, following the exact
+// client_notes/communications/client_documents idiom above.
+
+export async function fetchEmployers() {
+  const { data, error } = await supabase.from("employers").select("*").order("business_name");
+  if (error) { console.warn("fetchEmployers failed", error); return []; }
+  return data.map(employerFromRow);
+}
+export async function createEmployer(fields) {
+  const { data, error } = await supabase.from("employers").insert(employerToRow(fields)).select().single();
+  if (error) throw error;
+  return employerFromRow(data);
+}
+export async function updateEmployer(id, patch) {
+  const { data, error } = await supabase.from("employers").update(Object.assign({}, employerToRow(patch), { updated_at: new Date().toISOString() })).eq("id", id).select().single();
+  if (error) throw error;
+  return employerFromRow(data);
+}
+export async function deleteEmployer(id) {
+  const { error } = await supabase.from("employers").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchEmployerNotes(employerId) {
+  const { data, error } = await supabase.from("employer_notes").select("*, profiles(name)").eq("employer_id", employerId).order("created_at", { ascending: false });
+  if (error) { console.warn("fetchEmployerNotes failed", error); return []; }
+  return data.map(employerNoteFromRow);
+}
+export async function createEmployerNote(employerId, content) {
+  const { data: auth } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("employer_notes").insert({
+    employer_id: employerId, content: (content || "").trim(), created_by: auth.user ? auth.user.id : null
+  }).select("*, profiles(name)").single();
+  if (error) throw error;
+  return employerNoteFromRow(data);
+}
+
+export async function fetchEmployerActivity(employerId) {
+  const { data, error } = await supabase.from("employer_activity").select("*, profiles(name)").eq("employer_id", employerId).order("created_at", { ascending: false });
+  if (error) { console.warn("fetchEmployerActivity failed", error); return []; }
+  return data.map(employerActivityFromRow);
+}
+// Every employer_activity row, flat, across every employer -- for
+// WorkforceDashboard.jsx's "Recent Employer Activity" feed, which needs the
+// whole table rather than one employer's activity at a time. Same
+// dashboard-scoped "all rows, no context state" idiom as
+// fetchAllApplications/fetchAllDistributions (Reports.jsx).
+export async function fetchAllEmployerActivity() {
+  const { data, error } = await supabase.from("employer_activity").select("*");
+  if (error) { console.warn("fetchAllEmployerActivity failed", error); return []; }
+  return data.map(employerActivityFromRow);
+}
+export async function createEmployerActivity(employerId, fields) {
+  const { data: auth } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("employer_activity").insert({
+    employer_id: employerId, activity_date: fields.date || null, type: fields.type || "call",
+    summary: fields.summary || "", follow_up_required: !!fields.followUpRequired, created_by: auth.user ? auth.user.id : null
+  }).select("*, profiles(name)").single();
+  if (error) throw error;
+  return employerActivityFromRow(data);
+}
+
+export async function fetchEmployerDocuments(employerId) {
+  const { data, error } = await supabase.from("employer_documents").select("*, profiles(name)").eq("employer_id", employerId).order("created_at", { ascending: false });
+  if (error) { console.warn("fetchEmployerDocuments failed", error); return []; }
+  return data.map(employerDocumentFromRow);
+}
+export async function createEmployerDocument(employerId, fields) {
+  const { data: auth } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("employer_documents").insert({
+    employer_id: employerId, file_name: fields.fileName, category: fields.category || "other",
+    storage_path: fields.storagePath, uploaded_by: auth.user ? auth.user.id : null
+  }).select("*, profiles(name)").single();
+  if (error) throw error;
+  return employerDocumentFromRow(data);
+}
+export async function deleteEmployerDocument(id, storagePath) {
+  await deleteClientFile(storagePath);
+  const { error } = await supabase.from("employer_documents").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- job openings ----------
+// Employer & Job Opportunity Management, Phase 2. A list-level table like
+// employers -- embeds employers(business_name, city) for display on the
+// standalone Job Openings list without a second query.
+
+export async function fetchJobOpenings() {
+  const { data, error } = await supabase.from("job_openings").select("*, employers(business_name, city)").order("posted_date", { ascending: false });
+  if (error) { console.warn("fetchJobOpenings failed", error); return []; }
+  return data.map(jobOpeningFromRow);
+}
+export async function createJobOpening(fields) {
+  const { data, error } = await supabase.from("job_openings").insert(jobOpeningToRow(fields)).select("*, employers(business_name, city)").single();
+  if (error) throw error;
+  return jobOpeningFromRow(data);
+}
+export async function updateJobOpening(id, patch) {
+  const { data, error } = await supabase.from("job_openings").update(Object.assign({}, jobOpeningToRow(patch), { updated_at: new Date().toISOString() })).eq("id", id).select("*, employers(business_name, city)").single();
+  if (error) throw error;
+  return jobOpeningFromRow(data);
+}
+export async function deleteJobOpening(id) {
+  const { error } = await supabase.from("job_openings").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- referrals ----------
+// Employer & Job Opportunity Management, Phase 3. Links a job_client
+// (job-seeker) to a job_opening; employer_id is denormalized from the
+// opening so the kanban/counts don't need a second join.
+
+export async function fetchReferrals() {
+  const { data, error } = await supabase.from("referrals").select("*, job_clients(first_name, last_name), job_openings(title), employers(business_name)").order("created_at", { ascending: false });
+  if (error) { console.warn("fetchReferrals failed", error); return []; }
+  return data.map(referralFromRow);
+}
+export async function createReferral(fields) {
+  const { data, error } = await supabase.from("referrals").insert(referralToRow(fields)).select("*, job_clients(first_name, last_name), job_openings(title), employers(business_name)").single();
+  if (error) throw error;
+  return referralFromRow(data);
+}
+export async function updateReferral(id, patch) {
+  const { data, error } = await supabase.from("referrals").update(Object.assign({}, referralToRow(patch), { updated_at: new Date().toISOString() })).eq("id", id).select("*, job_clients(first_name, last_name), job_openings(title), employers(business_name)").single();
+  if (error) throw error;
+  return referralFromRow(data);
+}
+export async function deleteReferral(id) {
+  const { error } = await supabase.from("referrals").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- placements + check-ins ----------
+// Employer & Job Opportunity Management, Phase 4. createPlacement() inserts
+// the placement, then its 4 fixed 30/60/90/180-day check-in rows in one
+// follow-up insert -- same "create parent, then follow-up writes" idiom as
+// the resume upload in JobDeveloper.jsx, no new Postgres trigger/RPC needed.
+
+export async function fetchPlacements() {
+  const { data, error } = await supabase.from("placements").select("*, job_clients(first_name, last_name), employers(business_name)").order("start_date", { ascending: false });
+  if (error) { console.warn("fetchPlacements failed", error); return []; }
+  return data.map(placementFromRow);
+}
+export async function createPlacement(fields) {
+  const { data, error } = await supabase.from("placements").insert(placementToRow(fields)).select("*, job_clients(first_name, last_name), employers(business_name)").single();
+  if (error) throw error;
+  const placement = placementFromRow(data);
+  const checkinRows = CHECKIN_TYPES.map((c) => ({
+    placement_id: placement.id, checkin_type: c.key, due_date: checkinDueDate(placement.startDate, c.days)
+  }));
+  const { data: checkinData, error: checkinError } = await supabase.from("placement_checkins").insert(checkinRows).select();
+  if (checkinError) throw checkinError;
+  return { placement, checkins: checkinData.map(placementCheckinFromRow) };
+}
+export async function updatePlacement(id, patch) {
+  const { data, error } = await supabase.from("placements").update(Object.assign({}, placementToRow(patch), { updated_at: new Date().toISOString() })).eq("id", id).select("*, job_clients(first_name, last_name), employers(business_name)").single();
+  if (error) throw error;
+  return placementFromRow(data);
+}
+
+export async function fetchAllPlacementCheckins() {
+  const { data, error } = await supabase.from("placement_checkins").select("*");
+  if (error) { console.warn("fetchAllPlacementCheckins failed", error); return []; }
+  return data.map(placementCheckinFromRow);
+}
+export async function updatePlacementCheckin(id, patch) {
+  const { data, error } = await supabase.from("placement_checkins").update(Object.assign({}, placementCheckinToRow(patch), { updated_at: new Date().toISOString() })).eq("id", id).select().single();
+  if (error) throw error;
+  return placementCheckinFromRow(data);
 }
 
 // ---------- food clients + distributions ----------

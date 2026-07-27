@@ -18,8 +18,8 @@ import { t } from "../lib/i18n.js";
 import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
 import { checkOutVisit, fetchClasses, fetchStudents, fetchVisits, subscribeTable } from "../lib/checkinData.js";
 import {
-  fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
-  fetchFoodClients, fetchJobClients, subscribeClientsTable
+  fetchAllPlacementCheckins, fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
+  fetchEmployers, fetchFoodClients, fetchJobClients, fetchJobOpenings, fetchPlacements, fetchReferrals, subscribeClientsTable
 } from "../lib/clientsData.js";
 import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } from "../lib/sessionsData.js";
 import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
@@ -157,11 +157,18 @@ export function AppProvider({ children }) {
   const [caseClients, setCaseClients] = useState([]);
   const [jobClients, setJobClients] = useState([]);
   const [foodClients, setFoodClients] = useState([]);
+  const [employers, setEmployers] = useState([]);
+  const [jobOpenings, setJobOpenings] = useState([]);
+  const [referrals, setReferrals] = useState([]);
+  const [placements, setPlacements] = useState([]);
+  const [placementCheckins, setPlacementCheckins] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [customServices, setCustomServices] = useState([]);
   const [customStaff, setCustomStaff] = useState([]);
+  const [customIndustries, setCustomIndustries] = useState([]);
   const [disabledServices, setDisabledServices] = useState([]);
   const [disabledStaff, setDisabledStaff] = useState([]);
+  const [disabledIndustries, setDisabledIndustries] = useState([]);
 
   // ---- Phase 3 Supabase migration: sessions/pastSessionStudents/profiles ----
   // Same authenticated-only fetch-on-mount + subscription pattern as Phase 2
@@ -216,11 +223,18 @@ export function AppProvider({ children }) {
       [fetchCaseClients, setCaseClients],
       [fetchJobClients, setJobClients],
       [fetchFoodClients, setFoodClients],
+      [fetchEmployers, setEmployers],
+      [fetchJobOpenings, setJobOpenings],
+      [fetchReferrals, setReferrals],
+      [fetchPlacements, setPlacements],
+      [fetchAllPlacementCheckins, setPlacementCheckins],
       [fetchAppointments, setAppointments],
       [() => fetchCustomOptions("service"), setCustomServices],
       [() => fetchCustomOptions("staff"), setCustomStaff],
+      [() => fetchCustomOptions("industry"), setCustomIndustries],
       [() => fetchDisabledOptionKeys("service"), setDisabledServices],
       [() => fetchDisabledOptionKeys("staff"), setDisabledStaff],
+      [() => fetchDisabledOptionKeys("industry"), setDisabledIndustries],
       [fetchCurrentSession, setCurrentSession],
       [fetchSessionHistory, setSessionHistory],
       [fetchPastSessionStudents, setPastSessionStudents],
@@ -229,7 +243,7 @@ export function AppProvider({ children }) {
     refetchers.forEach(([fetcher, setter]) => { fetcher().then((rows) => { if (!cancelled) setter(rows); }); });
 
     const tables = [
-      "clients", "case_clients", "job_clients", "food_clients", "appointments", "custom_options", "disabled_options",
+      "clients", "case_clients", "job_clients", "food_clients", "employers", "job_openings", "referrals", "placements", "placement_checkins", "appointments", "custom_options", "disabled_options",
       "sessions", "past_session_students", "profiles"
     ];
     const unsubs = tables.map((table) => subscribeClientsTable(table, () => {
@@ -241,13 +255,13 @@ export function AppProvider({ children }) {
   const data = useMemo(
     () => Object.assign({}, localData, {
       visits, students, classes,
-      clients, caseClients, jobClients, foodClients, appointments,
-      customServices, customStaff, disabledServices, disabledStaff,
+      clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, appointments,
+      customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles
     }),
     [
-      localData, visits, students, classes, clients, caseClients, jobClients, foodClients, appointments,
-      customServices, customStaff, disabledServices, disabledStaff,
+      localData, visits, students, classes, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, appointments,
+      customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles
     ]
   );
@@ -266,8 +280,8 @@ export function AppProvider({ children }) {
     setDataRaw((prev) => {
       const prevMerged = Object.assign({}, prev, {
         visits, students, classes,
-        clients, caseClients, jobClients, foodClients, appointments,
-        customServices, customStaff, disabledServices, disabledStaff,
+        clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, appointments,
+        customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
         currentSession, sessionHistory, pastSessionStudents, profiles
       });
       const nextMerged = typeof updater === "function" ? updater(prevMerged) : updater;
@@ -276,8 +290,8 @@ export function AppProvider({ children }) {
       const next = Object.assign({}, nextMerged);
       [
         "visits", "students", "classes",
-        "clients", "caseClients", "jobClients", "foodClients", "appointments",
-        "customServices", "customStaff", "disabledServices", "disabledStaff",
+        "clients", "caseClients", "jobClients", "foodClients", "employers", "jobOpenings", "referrals", "placements", "placementCheckins", "appointments",
+        "customServices", "customStaff", "customIndustries", "disabledServices", "disabledStaff", "disabledIndustries",
         "currentSession", "sessionHistory", "pastSessionStudents", "profiles"
       ].forEach((key) => delete next[key]);
       saveData(next);
@@ -285,8 +299,8 @@ export function AppProvider({ children }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    visits, students, classes, clients, caseClients, jobClients, foodClients, appointments,
-    customServices, customStaff, disabledServices, disabledStaff,
+    visits, students, classes, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, appointments,
+    customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
     currentSession, sessionHistory, pastSessionStudents, profiles
   ]);
 

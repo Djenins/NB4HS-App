@@ -4,14 +4,14 @@ import { Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useT } from "../context/AppContext.jsx";
 import { clientDisplayName } from "../lib/clients.js";
-import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
+import { formatAddress, formatPhone, fmtDateLong, initialsOf, todayStr } from "../lib/utils.js";
 import { avatarColorFor } from "./StudentCard.jsx";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 
-export default function JobClientCard({ client, onRemove, selected, onToggleSelect }) {
+export default function JobClientCard({ client, onRemove, selected, onToggleSelect, followUp }) {
   const t = useT();
   const navigate = useNavigate();
   const name = clientDisplayName(client);
@@ -52,6 +52,23 @@ export default function JobClientCard({ client, onRemove, selected, onToggleSele
         )}
       </td>
       <td className="px-3 py-3 text-sm text-card-foreground">{fmtDateLong(client.intakeDate)}</td>
+      <td className="px-3 py-3 text-sm">
+        {followUp ? (
+          <button
+            type="button"
+            onClick={() => navigate("/jobdeveloper/" + client.id)}
+            className="block border-0 bg-transparent p-0 text-left"
+            title={followUp.company ? followUp.company + (followUp.position ? " · " + followUp.position : "") : undefined}
+          >
+            <Badge variant={followUp.nextStepDate < todayStr() ? "accent" : "warn"}>
+              {followUp.nextStepDate < todayStr() ? t("followUpOverdueLabel") : t("followUpDueTodayLabel")}
+            </Badge>
+            <div className="mt-1 text-xs text-muted">{fmtDateLong(followUp.nextStepDate)}</div>
+          </button>
+        ) : (
+          <span className="text-muted">—</span>
+        )}
+      </td>
       <td className="px-3 py-3">
         <Button variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove} className="h-8 w-8 text-muted hover:bg-tint-danger hover:text-accent">
           <Trash2 className="h-4 w-4" />

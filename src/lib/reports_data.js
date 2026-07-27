@@ -314,3 +314,60 @@ export function exportExcel(visits, range, customServices, customStaff, lang) {
   var full = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>" + html + "</body></html>";
   downloadBlob(full, "nb4hs-visits-" + todayStr() + ".xls", "application/vnd.ms-excel");
 }
+
+// ---------- Workforce Reports (Employer & Job Opportunity Management, Phase 6) ----------
+
+// Month-bucketed counts for one calendar year -- same {labels, data} shape
+// as computeDailyTrend/computeDailyValueTrend so it drops straight into
+// <DashChart>/<BarList>, just bucketed coarser (12 months instead of days).
+var MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export function computeMonthlyCounts(items, year) {
+  var counts = new Array(12).fill(0);
+  (items || []).forEach(function (item) {
+    if (!item.date || item.date.slice(0, 4) !== String(year)) return;
+    var monthIdx = parseInt(item.date.slice(5, 7), 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) counts[monthIdx]++;
+  });
+  return { labels: MONTH_LABELS.slice(), data: counts };
+}
+
+// Year-bucketed counts across a fixed year range (inclusive), same shape.
+export function computeAnnualCounts(items, fromYear, toYear) {
+  var labels = [], data = [];
+  for (var y = fromYear; y <= toYear; y++) { labels.push(String(y)); data.push(0); }
+  (items || []).forEach(function (item) {
+    if (!item.date) return;
+    var y2 = parseInt(item.date.slice(0, 4), 10);
+    var idx = y2 - fromYear;
+    if (idx >= 0 && idx < data.length) data[idx]++;
+  });
+  return { labels: labels, data: data };
+}
+
+function workforceReportRows(placements, range) {
+  var list = (placements || []).filter(function (p) { return inRange({ date: p.startDate }, range.from, range.to); });
+  list = list.slice().sort(function (a, b) { return (a.startDate || "").localeCompare(b.startDate || ""); });
+  var header = ["Participant", "Employer", "Position", "Start Date", "Hourly Wage", "Status"];
+  var rows = list.map(function (p) {
+    return [
+      p.participantName || "", p.employerName || "", p.positionTitle || "", p.startDate || "",
+      p.hourlyWage || "", p.currentStatus === "active" ? "Active" : "Ended"
+    ];
+  });
+  return { header: header, rows: rows };
+}
+
+export function exportWorkforceCSV(placements, range) {
+  var data = workforceReportRows(placements, range);
+  var lines = [data.header.map(csvEscape).join(",")].concat(data.rows.map(function (r) { return r.map(csvEscape).join(","); }));
+  downloadBlob(lines.join("\r\n"), "nb4hs-workforce-placements-" + todayStr() + ".csv", "text/csv;charset=utf-8;");
+}
+
+export function exportWorkforceExcel(placements, range) {
+  var data = workforceReportRows(placements, range);
+  var html = "<table><thead><tr>" + data.header.map(function (h) { return "<th>" + escapeHtml(h) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+    data.rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + escapeHtml(c) + "</td>"; }).join("") + "</tr>"; }).join("") +
+    "</tbody></table>";
+  var full = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>" + html + "</body></html>";
+  downloadBlob(full, "nb4hs-workforce-placements-" + todayStr() + ".xls", "application/vnd.ms-excel");
+}

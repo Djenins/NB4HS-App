@@ -8,16 +8,17 @@
 // AddClientCard idiom.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, CalendarClock, ChevronDown, ChevronUp, FileCheck2, MoreHorizontal, Plus, Trash2, User, UserPlus, Users } from "lucide-react";
+import { AlertCircle, Calendar, CalendarClock, ChevronDown, ChevronUp, FileCheck2, MoreHorizontal, Plus, Trash2, User, UserPlus, Users, X } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient, clientMatchesSearch } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
-import { countApplicationsWithInterview, createJobClient, deleteJobClient, updateJobClient } from "../lib/clientsData.js";
+import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetchAllApplications, updateJobClient } from "../lib/clientsData.js";
+import { computeFollowUps } from "../lib/jobProfile.js";
 import { paginateList } from "../lib/pagination.js";
 import { sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
-import { formatPhone } from "../lib/utils.js";
+import { formatPhone, todayStr } from "../lib/utils.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
@@ -33,10 +34,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 
-function KpiStat({ icon: Icon, tint, label, value, sub }) {
+function KpiStat({ icon: Icon, tint, label, value, sub, onClick, active }) {
+  const interactive = onClick ? {
+    role: "button", tabIndex: 0, onClick,
+    onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } },
+    className: "cursor-pointer p-6"
+  } : { className: "p-6" };
   return (
-    <Card>
-      <CardContent className="p-6">
+    <Card className={active ? "ring-2 ring-primary" : ""}>
+      <CardContent {...interactive}>
         <div className={"flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl " + tint}>
           <Icon className="h-6 w-6" strokeWidth={2} />
         </div>
@@ -255,6 +261,19 @@ export default function JobDeveloper() {
     countApplicationsWithInterview().then((n) => { if (!cancelled) setInterviewsScheduled(n); });
     return () => { cancelled = true; };
   }, [data.jobClients]);
+  // Follow-ups due -- fetched once per caseload change (same freshness
+  // trade-off as interviewsScheduled above) and reduced client-side into a
+  // per-client map so the list page can surface "who needs a call today"
+  // without a per-row query.
+  const [applications, setApplications] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllApplications().then((rows) => { if (!cancelled) setApplications(rows); });
+    return () => { cancelled = true; };
+  }, [data.jobClients]);
+  const followUps = computeFollowUps(applications, todayStr());
+  const followUpsDueCount = Object.keys(followUps).length;
+  const [followUpOnly, setFollowUpOnly] = useState(false);
   const [opens, setOpens] = useState({ addJobClient: true, appointments: false });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -264,7 +283,9 @@ export default function JobDeveloper() {
   const appointmentsRef = useRef(null);
 
   const term = search.trim().toLowerCase();
-  const matched = (data.jobClients || []).filter((c) => clientMatchesSearch("job", c, term));
+  const matched = (data.jobClients || [])
+    .filter((c) => clientMatchesSearch("job", c, term))
+    .filter((c) => !followUpOnly || followUps[c.id]);
   const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
   const paged = paginateList(sorted, page, pageSize);
   const allOnPageSelected = paged.items.length > 0 && paged.items.every((c) => selected.has(c.id));
@@ -347,13 +368,26 @@ export default function JobDeveloper() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-6">
+        <KpiStat
+          icon={AlertCircle} tint="bg-tint-danger text-accent" label={t("statFollowUpsDueLabel")} value={followUpsDueCount} sub={t("statActionNeededLabel")}
+          onClick={() => { setFollowUpOnly((v) => !v); setPage(1); }} active={followUpOnly}
+        />
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalJobClientsLabel")} value={totalClients} sub={t("statAllTimeLabel")} />
         <KpiStat icon={Calendar} tint="bg-tint-success text-success" label={t("statActivelyLookingLabel")} value={activelyLooking} sub={t("statCurrentlyLookingLabel")} />
         <KpiStat icon={UserPlus} tint="bg-violet-100 text-violet-700" label={t("statInterviewsLabel")} value={interviewsScheduled} sub={t("statScheduledLabel")} />
         <KpiStat icon={User} tint="bg-tint-warn text-warn" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
         <KpiStat icon={FileCheck2} tint="bg-cyan-100 text-cyan-700" label={t("statResumesCompletedLabel")} value={resumesCompleted} sub={t("statUpToDateLabel")} />
       </div>
+
+      {followUpOnly && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent/30 bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
+          {t("followUpFilterActiveLabel")}
+          <Button variant="ghost" size="sm" className="gap-1.5 text-accent hover:bg-accent/10" onClick={() => setFollowUpOnly(false)}>
+            <X className="h-3.5 w-3.5" /> {t("clearFilters")}
+          </Button>
+        </div>
+      )}
 
       <AddJobClientCard forwardRef={addClientRef} collapsed={!opens.addJobClient} onToggle={() => setOpen("addJobClient", !opens.addJobClient)} />
       <div ref={appointmentsRef}>
@@ -397,6 +431,7 @@ export default function JobDeveloper() {
                     <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("workPermitLabel")}</th>
                     <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("resumeLabel")}</th>
                     <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("intakeDateLabel")}</th>
+                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("followUpColumnLabel")}</th>
                     <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("actionsLabel")}</th>
                   </tr>
                 </thead>
@@ -405,6 +440,7 @@ export default function JobDeveloper() {
                     <JobClientCard
                       key={c.id} client={c} onRemove={() => removeClient(c.id)}
                       selected={selected.has(c.id)} onToggleSelect={() => toggleSelect(c.id)}
+                      followUp={followUps[c.id]}
                     />
                   ))}
                 </tbody>

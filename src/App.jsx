@@ -40,6 +40,15 @@ import CaseManagement from "./pages/CaseManagement.jsx";
 import JobDeveloper from "./pages/JobDeveloper.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
 import JobClientProfile from "./pages/JobClientProfile.jsx";
+import WorkforceDashboard from "./pages/WorkforceDashboard.jsx";
+import Employers from "./pages/Employers.jsx";
+import EmployerProfile from "./pages/EmployerProfile.jsx";
+import JobOpenings from "./pages/JobOpenings.jsx";
+import CandidateMatching from "./pages/CandidateMatching.jsx";
+import Referrals from "./pages/Referrals.jsx";
+import Placements from "./pages/Placements.jsx";
+import PlacementDetail from "./pages/PlacementDetail.jsx";
+import WorkforceReports from "./pages/WorkforceReports.jsx";
 import Users from "./pages/Users.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -94,6 +103,15 @@ export default function App() {
           <Route path="/casemanagement" element={<CaseManagement />} />
           <Route path="/jobdeveloper" element={<JobDeveloper />} />
           <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
+          <Route path="/workforcedashboard" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />
+          <Route path="/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
+          <Route path="/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
+          <Route path="/jobopenings" element={<RequireRoute routeKey="jobopenings"><JobOpenings /></RequireRoute>} />
+          <Route path="/candidatematching" element={<RequireRoute routeKey="candidatematching"><CandidateMatching /></RequireRoute>} />
+          <Route path="/referrals" element={<RequireRoute routeKey="referrals"><Referrals /></RequireRoute>} />
+          <Route path="/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />
+          <Route path="/placements/:placementId" element={<RequireRoute routeKey="placements"><PlacementDetail /></RequireRoute>} />
+          <Route path="/workforcereports" element={<RequireRoute routeKey="workforcereports"><WorkforceReports /></RequireRoute>} />
           <Route path="/clients/:nbId" element={<ClientProfile />} />
           <Route path="/users" element={<RequireRoute routeKey="users"><Users /></RequireRoute>} />
           <Route path="/settings" element={<RequireRoute routeKey="settings"><Settings /></RequireRoute>} />

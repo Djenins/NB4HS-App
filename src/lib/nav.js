@@ -7,11 +7,11 @@ import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
 
 export function navItemsForRole(role) {
-  if (role === "administrator") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
+  if (role === "administrator") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports", "users", "settings"];
   if (role === "staff") return ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
   if (role === "receptionist") return ["checkin", "checkout", "calendar"];
   if (role === "case_manager") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
-  if (role === "job_developer") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
+  if (role === "job_developer") return ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper", "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports"];
   return [];
 }
 
@@ -31,6 +31,13 @@ export function navLabel(v, lang) {
     assessments: t("navAssessments", lang),
     casemanagement: t("navCaseManagement", lang),
     jobdeveloper: t("navJobDeveloper", lang),
+    workforcedashboard: t("navWorkforceDashboard", lang),
+    employers: t("navEmployers", lang),
+    jobopenings: t("navJobOpenings", lang),
+    candidatematching: t("navCandidateMatching", lang),
+    referrals: t("navReferrals", lang),
+    placements: t("navPlacements", lang),
+    workforcereports: t("navWorkforceReports", lang),
     users: t("navUsers", lang),
     settings: t("navSettings", lang)
   }[v];
@@ -63,6 +70,7 @@ export function navSectionLabel(key, lang) {
     overview: t("navSectionOverview", lang),
     dailyOps: t("navGroupCore", lang),
     programs: t("navSectionPrograms", lang),
+    workforceDevelopment: t("navSectionWorkforceDevelopment", lang),
     operations: t("navSectionOperations", lang),
     administration: t("navGroupAdmin", lang)
   }[key];

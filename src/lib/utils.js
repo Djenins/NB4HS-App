@@ -2,7 +2,7 @@
 // These take the values they need (lang, data arrays) as parameters instead
 // of reading a global App singleton, since there is no such singleton in the
 // React app -- state lives in AppContext and is passed in by components.
-import { DATE_LOCALE, SERVICES, STAFF } from "./constants.js";
+import { DATE_LOCALE, INDUSTRIES, SERVICES, STAFF } from "./constants.js";
 import { t } from "./i18n.js";
 
 export function labelFor(list, key, lang) {
@@ -23,6 +23,11 @@ export function activeServiceList(customServices, disabledServices) {
 export function activeStaffList(customStaff, disabledStaff) {
   var disabled = disabledStaff || [];
   return fullStaffList(customStaff).filter(function (s) { return disabled.indexOf(s.key) === -1; });
+}
+export function fullIndustryList(customIndustries) { return INDUSTRIES.concat(customIndustries || []); }
+export function activeIndustryList(customIndustries, disabledIndustries) {
+  var disabled = disabledIndustries || [];
+  return fullIndustryList(customIndustries).filter(function (s) { return disabled.indexOf(s.key) === -1; });
 }
 export function slugify(str) {
   return (str || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "item";

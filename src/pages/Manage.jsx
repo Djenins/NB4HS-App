@@ -4,11 +4,11 @@
 // requestConfirm() in place of the original's callback-based showConfirmModal().
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, Briefcase, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, Plus, Trash2, Users } from "lucide-react";
+import { Award, Briefcase, Building2, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, Plus, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { meetingDaysLabel, studentsForClass } from "../lib/students.js";
-import { fullServiceList, fullStaffList, slugify } from "../lib/utils.js";
+import { fullIndustryList, fullServiceList, fullStaffList, slugify } from "../lib/utils.js";
 import { createClass, deleteClass, subscribeTable, updateClass } from "../lib/checkinData.js";
 import { createGrant, deleteGrant, fetchGrants, updateGrant } from "../lib/grants.js";
 import ManageListCard from "../components/ManageListCard.jsx";
@@ -231,8 +231,10 @@ export default function Manage() {
   const dayNames = WEEKDAYS[lang] || WEEKDAYS.en;
   const serviceList = fullServiceList(data.customServices);
   const staffList = fullStaffList(data.customStaff);
+  const industryList = fullIndustryList(data.customIndustries);
   const disabledServices = data.disabledServices || [];
   const disabledStaff = data.disabledStaff || [];
+  const disabledIndustries = data.disabledIndustries || [];
   const classes = data.classes || [];
   const activeServicesCount = serviceList.filter((i) => disabledServices.indexOf(i.key) === -1).length;
   const activeStaffCount = staffList.filter((i) => disabledStaff.indexOf(i.key) === -1).length;
@@ -285,6 +287,15 @@ export default function Manage() {
           list={staffList}
           disabled={disabledStaff}
           placeholder={t("newStaffName")}
+        />
+        <ManageListCard
+          kind="industry"
+          icon={<Building2 className="icon" />}
+          title={t("manageIndustriesTitle")}
+          description={t("manageIndustriesDesc")}
+          list={industryList}
+          disabled={disabledIndustries}
+          placeholder={t("addIndustryPlaceholder")}
         />
       </div>
 

@@ -89,6 +89,29 @@ export function pipelineStageIndex(key) {
   return i === -1 ? 0 : i;
 }
 
+// Application statuses that still represent an open, in-progress application
+// (as opposed to a terminal outcome like hired/not_selected/withdrawn) --
+// only these count toward a client "needing" follow-up.
+export var OPEN_APPLICATION_STATUSES = ["applied", "under_review", "interview_scheduled", "offer_received"];
+
+// One entry per job client with an open application whose next step is due
+// today or already overdue, keyed by jobClientId and keeping the earliest
+// such date per client. Powers the "Follow-ups Due" KPI/column on the Job
+// Developer list page -- the daily triage question of "who do I need to
+// call today" that the raw client list otherwise doesn't answer.
+export function computeFollowUps(applications, todayStr) {
+  var map = {};
+  (applications || []).forEach(function (a) {
+    if (!a.jobClientId || !a.nextStepDate || a.nextStepDate > todayStr) return;
+    if (OPEN_APPLICATION_STATUSES.indexOf(a.status) === -1) return;
+    var existing = map[a.jobClientId];
+    if (!existing || a.nextStepDate < existing.nextStepDate) {
+      map[a.jobClientId] = { nextStepDate: a.nextStepDate, company: a.company, position: a.position, nextStepNote: a.nextStepNote };
+    }
+  });
+  return map;
+}
+
 // Pure constructor for one row in a job record's applications[] array.
 export function buildApplication(fields) {
   return {

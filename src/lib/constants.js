@@ -24,6 +24,23 @@ export var SERVICES = [
   { key: "other", en: "Other", ht: "Lòt", fr: "Autre" }
 ];
 
+/* Employer Directory "Industry" filter/dropdown -- plugs into the same
+   custom_options/disabled_options mechanism as SERVICES/STAFF (option_type
+   "industry"), so admins can add more from the Manage page without a
+   code change. */
+export var INDUSTRIES = [
+  { key: "healthcare", en: "Healthcare", ht: "Swen Sante", fr: "Santé" },
+  { key: "manufacturing", en: "Manufacturing", ht: "Fabrikasyon", fr: "Fabrication" },
+  { key: "retail", en: "Retail", ht: "Vant Detay", fr: "Commerce de Détail" },
+  { key: "hospitality", en: "Hospitality", ht: "Ospitalite", fr: "Hôtellerie" },
+  { key: "construction", en: "Construction", ht: "Konstriksyon", fr: "Construction" },
+  { key: "food_service", en: "Food Service", ht: "Sèvis Manje", fr: "Restauration" },
+  { key: "warehousing_logistics", en: "Warehousing / Logistics", ht: "Depo / Lojistik", fr: "Entreposage / Logistique" },
+  { key: "administrative", en: "Administrative", ht: "Administratif", fr: "Administratif" },
+  { key: "education", en: "Education", ht: "Edikasyon", fr: "Éducation" },
+  { key: "other", en: "Other", ht: "Lòt", fr: "Autre" }
+];
+
 export var STAFF = [
   { key: "bernard_georges", en: "Bernard Georges", ht: "Bernard Georges", fr: "Bernard Georges" },
   { key: "case_manager", en: "Case Manager", ht: "Jesyon Ka", fr: "Gestionnaire de Cas" },
@@ -102,10 +119,13 @@ export var NAV_SECTION = {
   dashboard: "overview", mycaseload: "overview",
   checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps",
   students: "programs", assessments: "programs", casemanagement: "programs", jobdeveloper: "programs", fooddistribution: "programs",
+  workforcedashboard: "workforceDevelopment", employers: "workforceDevelopment", jobopenings: "workforceDevelopment",
+  candidatematching: "workforceDevelopment", referrals: "workforceDevelopment", placements: "workforceDevelopment",
+  workforcereports: "workforceDevelopment",
   reports: "operations", qrcode: "operations", manage: "operations",
   users: "administration", settings: "administration"
 };
-export var NAV_SECTION_ORDER = ["overview", "dailyOps", "programs", "operations", "administration"];
+export var NAV_SECTION_ORDER = ["overview", "dailyOps", "programs", "workforceDevelopment", "operations", "administration"];
 
 // Max active students per classroom (waiting list is exempt -- it's the
 // backlog, not a class). A flat number rather than a per-classroom field
