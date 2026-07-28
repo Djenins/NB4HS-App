@@ -38,6 +38,7 @@ import FoodDistribution from "./pages/FoodDistribution.jsx";
 import CalendarPage from "./pages/Calendar.jsx";
 import CaseManagement from "./pages/CaseManagement.jsx";
 import JobDeveloper from "./pages/JobDeveloper.jsx";
+import Workforce from "./pages/Workforce.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
 import JobClientProfile from "./pages/JobClientProfile.jsx";
 import WorkforceDashboard from "./pages/WorkforceDashboard.jsx";
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="/students" element={<Students />} />
           <Route path="/assessments" element={<Assessments />} />
           <Route path="/casemanagement" element={<CaseManagement />} />
+          <Route path="/workforce" element={<Workforce />} />
           <Route path="/jobdeveloper" element={<JobDeveloper />} />
           <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
           <Route path="/workforcedashboard" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />

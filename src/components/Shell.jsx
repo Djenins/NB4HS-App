@@ -21,7 +21,7 @@
 // is reproduced via NAV_SECTION (constants.js) mapped onto the *real* nav
 // vocabulary, not the mockup's literal (partly fictional) item labels.
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
 import { Fragment, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -220,12 +220,6 @@ export default function Shell() {
   const { data, session, authLoading, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
   const location = useLocation();
-  // null = "no manual override yet, default to expanded whenever a Workforce
-  // page is the active route" -- once the user actually clicks the toggle,
-  // that choice sticks regardless of route (same as any collapsible sidebar
-  // section elsewhere). Declared here (not after the early returns below) so
-  // it isn't a conditionally-called hook.
-  const [workforceOpenOverride, setWorkforceOpenOverride] = useState(null);
 
   // Wait for Supabase to finish restoring any existing session before
   // deciding to redirect -- otherwise a valid session in localStorage loses
@@ -250,8 +244,6 @@ export default function Shell() {
   // its own section rather than dropping it from the sidebar.
   const hasPrograms = sections.some((s) => s.key === "programs");
   const displaySections = hasPrograms ? sections.filter((s) => s.key !== "workforceDevelopment") : sections;
-  const isWorkforceActive = !!workforceSection && workforceSection.items.some((v) => location.pathname === navPath(v) || location.pathname.startsWith(navPath(v) + "/"));
-  const workforceOpen = workforceOpenOverride !== null ? workforceOpenOverride : isWorkforceActive;
   const badgeCounts = {
     casemanagement: pendingApptCount(data.appointments, "case_manager"),
     jobdeveloper: pendingApptCount(data.appointments, "job_developer")
@@ -324,39 +316,14 @@ export default function Shell() {
                       ))}
                     </div>
                     {section.key === "programs" && workforceSection && (
-                      // Workforce lives nested inside Programs as a real
-                      // collapsible submenu (toggle row + indented children)
-                      // rather than its own top-level heading.
-                      collapsed ? (
-                        <div className="mt-0.5 space-y-0.5">
-                          {workforceSection.items.map((v) => (
-                            <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="mt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setWorkforceOpenOverride(!workforceOpen)}
-                            aria-expanded={workforceOpen}
-                            className={cn(
-                              "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text no-underline transition-colors hover:bg-white/5 hover:text-sidebar-text-active",
-                              BTN_RESET
-                            )}
-                          >
-                            <NavIcon name="workforceDevelopmentGroup" className="h-[18px] w-[18px] shrink-0" />
-                            <span className="flex-1 truncate text-left">{navSectionLabel("workforceDevelopment", lang)}</span>
-                            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", workforceOpen && "rotate-180")} />
-                          </button>
-                          {workforceOpen && (
-                            <div className="mt-0.5 space-y-0.5 border-l border-white/10 pl-3.5">
-                              {workforceSection.items.map((v) => (
-                                <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
+                      // Workforce is a single flat link into Workforce.jsx,
+                      // which owns its own tab strip for the individual
+                      // Employer & Job Opportunity Management pages -- same
+                      // level in the sidebar as Case Management etc, not a
+                      // nested submenu.
+                      <div className="mt-0.5">
+                        <NavItem v="workforce" lang={lang} collapsed={collapsed} badgeCount={0} />
+                      </div>
                     )}
                   </div>
                 ))}

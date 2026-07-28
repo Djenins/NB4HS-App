@@ -57,6 +57,7 @@ export function navLabel(v, lang) {
     students: t("navStudents", lang),
     assessments: t("navAssessments", lang),
     casemanagement: t("navCaseManagement", lang),
+    workforce: t("navSectionWorkforceDevelopment", lang),
     jobdeveloper: t("navJobDeveloper", lang),
     workforcedashboard: t("navWorkforceDashboard", lang),
     employers: t("navEmployers", lang),

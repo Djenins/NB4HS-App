@@ -23,10 +23,10 @@ export var NAV_ICONS = {
   assessments: ClipboardCheck,
   casemanagement: FolderKanban,
   jobdeveloper: Briefcase,
-  // Employer & Job Opportunity Management module -- workforceDevelopmentGroup
-  // is the collapsible submenu's own toggle row (Shell.jsx), not a real nav
-  // key/route.
-  workforceDevelopmentGroup: Briefcase,
+  // Single flat "Workforce" sidebar link (Shell.jsx/Workforce.jsx) -- not
+  // one of the individual Employer & Job Opportunity Management pages
+  // below, those are reached via that page's own tab strip instead.
+  workforce: Briefcase,
   workforcedashboard: LayoutDashboard,
   employers: Building2,
   jobopenings: FileText,
