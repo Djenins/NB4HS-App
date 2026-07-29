@@ -2,14 +2,13 @@
 // The just-checked-in visit id comes through router navigation state (the
 // original stored it on App.state.lastCheckInId; here it's just handed
 // along with the navigate() call instead of living in global state).
-// In kiosk mode, auto-returns to the chooser after 15s, same as the original.
+// Auto-returns to the chooser after 5s.
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useApp, useT } from "../context/AppContext.jsx";
+import { useT } from "../context/AppContext.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function CheckInSuccess() {
-  const { kiosk } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,10 +16,9 @@ export default function CheckInSuccess() {
   const className = (location.state && location.state.className) || "";
 
   useEffect(() => {
-    if (!kiosk) return undefined;
-    const id = setTimeout(() => navigate("/checkin"), 15000);
+    const id = setTimeout(() => navigate("/checkin"), 5000);
     return () => clearTimeout(id);
-  }, [kiosk, navigate]);
+  }, [navigate]);
 
   const heading = isStudent ? t("checkInSuccessStudent") : t("checkInSuccess");
   const sub = isStudent
