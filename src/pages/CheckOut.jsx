@@ -72,8 +72,10 @@ export default function CheckOut() {
   }
 
   // Self-service kiosk flow: clients tap their own name to check out
-  // (instead of staff searching for them), then land on the same
-  // scan-success screen the personal QR-code checkout flow already uses.
+  // (instead of staff searching for them), then land on
+  // CheckOutScanSuccess.jsx -- named for a scan-a-personal-QR-code checkout
+  // flow that was removed for being broken (see d5a3c44) and never rebuilt;
+  // this tap-your-name flow is the only thing that navigates there now.
   async function selfCheckOut(id) {
     const visit = data.visits.find((v) => v.id === id);
     if (!visit) return;

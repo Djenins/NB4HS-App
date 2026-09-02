@@ -348,8 +348,6 @@ export var STR = {
   scanToCheckOut: { en: "Your Check-Out QR Code", ht: "Kòd QR Chèk Soti Ou", fr: "Votre Code QR de Sortie" },
   scanToCheckOutDesc: { en: "Save or screenshot this. Scan it when you leave to check yourself out automatically — or a staff member can check you out by name at the front desk.", ht: "Sove oswa fè yon foto ekran sa a. Eskane l lè w ap prale pou chèk soti otomatikman — oswa yon anplwaye ka chèk ou soti pa non nan biwo devan an.", fr: "Enregistrez ou capturez cet écran. Scannez-le en partant pour enregistrer votre sortie automatiquement, ou un membre du personnel peut le faire par nom à l'accueil." },
   checkOutScanSuccessTitle: { en: "You're checked out!", ht: "Ou chèk soti!", fr: "Vous êtes enregistré comme parti !" },
-  alreadyCheckedOut: { en: "This visit was already checked out.", ht: "Vizit sa a te deja chèk soti.", fr: "Cette visite avait déjà été enregistrée comme terminée." },
-  visitNotFound: { en: "We couldn't find that check-in. Please see a staff member.", ht: "Nou pa t kapab jwenn enskripsyon sa a. Tanpri wè yon anplwaye.", fr: "Nous n'avons pas trouvé cet enregistrement. Veuillez voir un membre du personnel." },
   trendVisitsPerDay: { en: "Visits Per Day", ht: "Vizit pa Jou", fr: "Visites par Jour" },
   studentOrVisitor: { en: "Are you here as a Student or a Visitor?", ht: "Èske w isit la kòm Elèv oswa Vizitè?", fr: "Venez-vous en tant qu'Étudiant ou Visiteur ?" },
   iAmStudent: { en: "I'm a Student (Class Check-In)", ht: "Mwen se yon Elèv (Enskripsyon Klas)", fr: "Je suis Étudiant (Enregistrement de Classe)" },
