@@ -4,20 +4,32 @@
 // Food Distribution program detail stays in their own tables (case_clients/
 // job_clients/food_clients), each carrying the master's `nbId` directly
 // (no separate join table -- see resolveEnrollmentsForClient() in
-// masterClients.js). Services and Activity History tabs still show a "not
-// yet available" placeholder rather than fabricated data.
+// masterClients.js). Services and Activity History tabs aggregate real data
+// already fetched elsewhere on this page (no new tables): Services reads
+// each enrolled program's own service fields (case_clients.services,
+// job_clients.servicesProvided, food_distributions, and check-in visits for
+// enrolled students); Activity History merges notes/documents/
+// communications/appointments/enrollments into one sorted timeline, same
+// "aggregate what's already fetched" idiom as the Workforce Dashboard's
+// Recent Employer Activity feed (see plans/wobbly-munching-rose.md).
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Briefcase, Download, GraduationCap, Paperclip, ShoppingBasket, Trash2, Users } from "lucide-react";
+import {
+  Briefcase, CalendarClock, Download, FileText, GraduationCap, MessageCircle, Paperclip, ShoppingBasket,
+  StickyNote, Trash2, UserPlus, Users
+} from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
-import { immigrationStatusLabel } from "../lib/clients.js";
+import { caseServiceLabel, immigrationStatusLabel } from "../lib/clients.js";
 import { IMMIGRATION_STATUSES } from "../lib/constants.js";
+import { jobServiceLabel } from "../lib/jobProfile.js";
+import { serviceDisplay } from "../lib/students.js";
 import { findClientByNbId, resolveAppointmentsForClient, resolveEnrollmentsForClient } from "../lib/masterClients.js";
 import { createStudent } from "../lib/checkinData.js";
 import {
   createCaseClient, createClientDocument, createClientNote, createCommunication, createFoodClient, createJobClient,
-  deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchCommunications, getFileSignedUrl, updateClientRecord, uploadClientFile
+  deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchCommunications, fetchDistributions,
+  getFileSignedUrl, updateClientRecord, uploadClientFile
 } from "../lib/clientsData.js";
 import { fmtDateLong } from "../lib/utils.js";
 import ClientHeader from "../components/ClientHeader.jsx";
@@ -459,6 +471,137 @@ function ProgramsTab({ enrollments, lang }) {
   );
 }
 
+function ServicesSection({ title, icon: Icon, children }) {
+  return (
+    <div>
+      <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-card-foreground">
+        <Icon className="h-4 w-4 text-primary" /> {title}
+      </h4>
+      {children}
+    </div>
+  );
+}
+
+function ServicesTab({ enrollments, visits, customServices, lang }) {
+  const t = useT();
+  const caseEnrollment = enrollments.find((e) => e.programType === "case");
+  const jobEnrollment = enrollments.find((e) => e.programType === "job");
+  const foodEnrollment = enrollments.find((e) => e.programType === "food");
+  const studentEnrollment = enrollments.find((e) => e.programType === "student");
+  const foodClientId = foodEnrollment && foodEnrollment.record.id;
+
+  const [distributions, setDistributions] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!foodClientId) { setDistributions([]); return undefined; }
+    fetchDistributions(foodClientId).then((rows) => { if (!cancelled) setDistributions(rows); });
+    return () => { cancelled = true; };
+  }, [foodClientId]);
+
+  if (!caseEnrollment && !jobEnrollment && !foodEnrollment && !studentEnrollment) {
+    return <p className="py-8 text-center text-sm text-muted">{t("noServicesYet")}</p>;
+  }
+
+  const studentVisits = studentEnrollment
+    ? visits.filter((v) => v.studentId === studentEnrollment.record.id).sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn))
+    : [];
+
+  return (
+    <div className="space-y-6">
+      {caseEnrollment && (
+        <ServicesSection title={t(PROGRAM_META.case.labelKey)} icon={Users}>
+          {caseEnrollment.record.services && caseEnrollment.record.services.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {caseEnrollment.record.services.map((key) => <Badge key={key} variant="neutral">{caseServiceLabel(key, lang)}</Badge>)}
+            </div>
+          ) : <p className="text-sm text-muted">{t("noCaseServicesRecorded")}</p>}
+        </ServicesSection>
+      )}
+      {jobEnrollment && (
+        <ServicesSection title={t(PROGRAM_META.job.labelKey)} icon={Briefcase}>
+          {jobEnrollment.record.servicesProvided && jobEnrollment.record.servicesProvided.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {jobEnrollment.record.servicesProvided.map((key) => <Badge key={key} variant="neutral">{jobServiceLabel(key)}</Badge>)}
+            </div>
+          ) : <p className="text-sm text-muted">{t("noJobServicesRecorded")}</p>}
+        </ServicesSection>
+      )}
+      {foodEnrollment && (
+        <ServicesSection title={t(PROGRAM_META.food.labelKey)} icon={ShoppingBasket}>
+          {distributions.length ? (
+            <div className="space-y-1.5">
+              {distributions.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 border-b border-border pb-1.5 text-sm last:border-b-0">
+                  <span className="font-semibold text-card-foreground">{fmtDateLong(d.date)}</span>
+                  <span className="text-muted">{d.items}{d.quantity ? " · " + d.quantity : ""}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted">{t("noDistributionsYet")}</p>}
+        </ServicesSection>
+      )}
+      {studentEnrollment && (
+        <ServicesSection title={t(PROGRAM_META.student.labelKey)} icon={GraduationCap}>
+          {studentVisits.length ? (
+            <div className="space-y-1.5">
+              {studentVisits.map((v) => (
+                <div key={v.id} className="flex items-center justify-between gap-3 border-b border-border pb-1.5 text-sm last:border-b-0">
+                  <span className="font-semibold text-card-foreground">{fmtDateLong(v.date)}</span>
+                  <span className="text-muted">{serviceDisplay(v, customServices, lang)}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted">{t("noClassVisitsYet")}</p>}
+        </ServicesSection>
+      )}
+    </div>
+  );
+}
+
+function ActivityTab({ enrollments, notes, documents, communications, appointments, lang }) {
+  const t = useT();
+  const events = []
+    .concat(enrollments.map((e) => ({
+      key: "enroll-" + e.enrollment.id, date: e.enrollment.enrolledAt, icon: UserPlus,
+      label: t("activityEnrolledIn") + " " + t(PROGRAM_META[e.programType].labelKey)
+    })))
+    .concat(notes.map((n) => ({
+      key: "note-" + n.id, date: n.date, icon: StickyNote,
+      label: t("activityNoteAdded") + (n.staffName ? " — " + n.staffName : "")
+    })))
+    .concat(documents.map((d) => ({
+      key: "doc-" + d.id, date: d.uploadedAt, icon: FileText,
+      label: t("activityDocumentUploaded") + ": " + d.fileName
+    })))
+    .concat(communications.map((c) => ({
+      key: "comm-" + c.id, date: c.date, icon: MessageCircle,
+      label: t("activityCommunicationLogged") + " (" + t(COMM_METHOD_KEY[c.method] || "methodPhone") + ")"
+    })))
+    .concat(appointments.map((a) => ({
+      key: "appt-" + a.id, date: a.date, icon: CalendarClock,
+      label: t("activityAppointmentLabel") + " — " + apptStatusLabel(a.status, lang)
+    })))
+    .filter((e) => e.date)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!events.length) return <p className="py-8 text-center text-sm text-muted">{t("noActivityYet")}</p>;
+
+  return (
+    <div className="space-y-2">
+      {events.map((e) => {
+        const Icon = e.icon;
+        return (
+          <div key={e.key} className="flex items-center gap-3 border-b border-border py-2 text-sm last:border-b-0">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"><Icon className="h-4 w-4" /></span>
+            <span className="flex-1 font-medium text-card-foreground">{e.label}</span>
+            <span className="shrink-0 text-xs text-muted">{fmtDateLong(e.date)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ClientProfile() {
   const { nbId } = useParams();
   const { data, lang, session, refetchStudents, requestConfirm, showToast } = useApp();
@@ -599,8 +742,12 @@ export default function ClientProfile() {
           {tab === "documents" && <DocumentsTab documents={documents} onDelete={deleteDocument} />}
           {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
           {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
-          {(tab === "services" || tab === "activity") && (
-            <p className="py-10 text-center text-sm text-muted">{t("clientTabComingSoon")}</p>
+          {tab === "services" && <ServicesTab enrollments={enrollments} visits={data.visits || []} customServices={data.customServices} lang={lang} />}
+          {tab === "activity" && (
+            <ActivityTab
+              enrollments={enrollments} notes={notes} documents={documents}
+              communications={communications} appointments={appointments} lang={lang}
+            />
           )}
         </CardContent>
       </Card>
