@@ -26,9 +26,10 @@ import { Info } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { addDays, addMonths, addWorkdays, classBlocksForDay, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
+import { addDays, addMonths, addWorkdays, classBlocksForDay, classGroupAccents, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
 import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetchCalendarEvents, subscribeCalendarEvents, updateCalendarEvent } from "../lib/calendarData.js";
-import { dateStrFromDate, todayStr } from "../lib/utils.js";
+import { dateStrFromDate, fullServiceList, labelFor, todayStr } from "../lib/utils.js";
+import { studentsForClass } from "../lib/students.js";
 import { holidaysByDate } from "../lib/holidays.js";
 import { Button } from "../components/ui/button.jsx";
 import { FILTERS } from "../components/calendar/kindStyle.js";
@@ -44,6 +45,24 @@ import Legend from "../components/calendar/Legend.jsx";
 import { CalendarError, CalendarSkeleton } from "../components/calendar/CalendarStatus.jsx";
 
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
+
+// The switcher in CalendarHeader. Week/Month/Day is the trio the redesign
+// reference puts there; Agenda stays on the end because it's a saved
+// default (Calendar Settings' "List view") -- dropping it would strand
+// anyone whose configured view is "list" with no way back to it.
+const VIEWS = [
+  { key: "week", label: "calendarWeekShort" },
+  { key: "month", label: "calendarMonthView" },
+  { key: "day", label: "calendarDayView" },
+  { key: "list", label: "calendarAgendaView" }
+];
+
+const VIEW_TITLE = {
+  week: "calendarTitleWeek",
+  month: "calendarTitleMonth",
+  day: "calendarTitleDay",
+  list: "calendarTitleAgenda"
+};
 
 // A five-column week grid is unreadable on a phone, so a narrow first paint
 // opens on the single-day timeline instead. Only the *default* moves --
@@ -157,7 +176,7 @@ function minutesOfDay(date) {
 }
 
 export default function CalendarPage() {
-  const { data, session, config, updateConfig, requestConfirm, showToast } = useApp();
+  const { data, session, config, lang, updateConfig, requestConfirm, showToast } = useApp();
   const t = useT();
   const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState([]);
@@ -291,11 +310,39 @@ export default function CalendarPage() {
     }
   }
 
+  // Which palette slot each distinct class grouping draws from -- derived
+  // from the schedule itself, so Level 1 & 2 (Mon/Wed/Fri) and Level 3
+  // (Tue/Thu) are visually distinct without either being hard-coded.
+  const classAccents = useMemo(() => classGroupAccents(data.classes), [data.classes]);
+  const classGroupCount = useMemo(() => Object.keys(classAccents).length, [classAccents]);
+
+  // The two things a class block can only learn up here: the service it
+  // belongs to (its card subtitle) and how many students are enrolled in
+  // it right now. Both are real rows -- classes.service and the students
+  // table's class_key -- so a class with no roster gets no count rather
+  // than a fabricated one.
+  const classMeta = useMemo(() => {
+    const services = fullServiceList(data.customServices);
+    const byKey = {};
+    (data.classes || []).forEach((c) => { byKey[c.key] = c; });
+    return function metaFor(classKeys) {
+      const list = (classKeys || []).map((k) => byKey[k]).filter(Boolean);
+      const labels = [];
+      list.forEach((c) => {
+        const label = c.service ? labelFor(services, c.service, lang) : "";
+        if (label && labels.indexOf(label) === -1) labels.push(label);
+      });
+      const count = list.reduce((n, c) => n + studentsForClass(data.students, c.key).length, 0);
+      return { subtitle: labels.join(" · "), count: count };
+    };
+  }, [data.classes, data.students, data.customServices, lang]);
+
   const dayBlocks = useMemo(() => {
     const q = search.trim().toLowerCase();
     return days.map((d) => {
       const dateStr = dateStrFromDate(d);
-      const classBlocks = classBlocksForDay(data.classes, d.getDay(), config.calendarClassStartTime, config.calendarClassEndTime);
+      const classBlocks = classBlocksForDay(data.classes, d.getDay(), config.calendarClassStartTime, config.calendarClassEndTime, classAccents)
+        .map((b) => Object.assign({}, b, classMeta(b.classKeys)));
       const dayEvents = events.filter((e) => e.date === dateStr);
       let blocks = sortDayBlocks(
         classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, event: e })))
@@ -304,7 +351,7 @@ export default function CalendarPage() {
       if (q) blocks = blocks.filter((b) => b.title.toLowerCase().includes(q) || (b.event?.personName || "").toLowerCase().includes(q));
       return { date: d, dateStr, blocks };
     });
-  }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime]);
+  }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime, classAccents, classMeta]);
 
   // Day view gets a taller hour so a single column can carry more detail;
   // the grid otherwise spans 8 AM-6 PM, widened to cover anything actually
@@ -366,6 +413,8 @@ export default function CalendarPage() {
     return (
       <WeekView
         dayBlocks={dayBlocks}
+        onPrev={goPrev}
+        onNext={goNext}
         weekdayLabels={weekdayLabels}
         todayStr={today}
         holidaysByDate={rangeHolidays}
@@ -385,15 +434,19 @@ export default function CalendarPage() {
     <div className="flex flex-col gap-4 lg:gap-5">
       <CalendarHeader
         t={t}
+        title={t(VIEW_TITLE[view] || "calendarTitleWeek")}
         rangeLabel={rangeLabel}
         prevLabel={navLabels.prev}
         nextLabel={navLabels.next}
+        views={VIEWS}
+        view={view}
+        onViewChange={handleViewChange}
         onToday={goToday}
         onPrev={goPrev}
         onNext={goNext}
       />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1">
           <CalendarToolbar
             t={t}
@@ -401,8 +454,6 @@ export default function CalendarPage() {
             onSearchChange={setSearch}
             filter={filter}
             onFilterChange={setFilter}
-            view={view}
-            onViewChange={handleViewChange}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
@@ -420,7 +471,7 @@ export default function CalendarPage() {
 
       {renderCalendar()}
 
-      <Legend t={t} summary={status === "ready" ? summary : null} />
+      <Legend t={t} summary={status === "ready" ? summary : null} classGroups={classGroupCount} />
 
       <p className="m-0 flex items-start gap-2 px-1 text-xs text-muted">
         <Info className="mt-px h-3.5 w-3.5 shrink-0 text-primary" />

@@ -6,7 +6,7 @@
 // rows of 5.
 import { Plus } from "lucide-react";
 import { fmtTime } from "./calendarLayout.js";
-import { KIND_STYLE } from "./kindStyle.js";
+import { blockStyle, KIND_STYLE } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
@@ -86,7 +86,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
 
                 <div className="flex flex-col gap-1">
                   {visible.map((b) => {
-                    const style = KIND_STYLE[b.kind];
+                    const style = blockStyle(b);
                     const Icon = style.icon;
                     return (
                       <button

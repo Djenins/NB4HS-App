@@ -30,19 +30,55 @@ export function weekDays(weekStart) {
 
 // Every active, in-person class (Online has no fixed days -- see
 // DEFAULT_CLASSES in constants.js) that meets on the given JS weekday
-// (0=Sun..6=Sat), as a calendar block. All classes share one fixed
-// start/end (the whole point of the class time-block setting), so any
-// classes meeting the same day -- e.g. Level 1 & Level 2, both Mon/Wed/Fri
-// -- are combined into a single calendar card instead of one per class.
-export function classBlocksForDay(classes, weekday, startTime, endTime) {
+// (0=Sun..6=Sat). All classes share one fixed start/end (the whole point of
+// the class time-block setting), so any classes meeting the same day --
+// e.g. Level 1 & Level 2, both Mon/Wed/Fri -- form a single group.
+export function activeClassesForDay(classes, weekday) {
+  return (classes || []).filter(function (c) {
+    return c.active !== false && (c.days || []).indexOf(weekday) !== -1;
+  });
+}
+
+export function classGroupKey(activeClasses) {
+  return activeClasses.map(function (c) { return c.key; }).join("_");
+}
+
+// Which palette each distinct class grouping draws from, so Level 1 & 2
+// (Mon/Wed/Fri) and Level 3 (Tue/Thu) don't render as the same blue card
+// five days running. Derived from the schedule itself rather than hard-coded
+// per class name: walk the work week in order, and the first time a new
+// grouping appears it claims the next palette slot. Stable for a given
+// `classes` array, and it degrades to "everything is slot 0" (today's single
+// blue) if every weekday happens to hold the same set of classes.
+export function classGroupAccents(classes) {
+  var map = {};
+  var next = 0;
+  for (var weekday = 1; weekday <= 5; weekday++) {
+    var active = activeClassesForDay(classes, weekday);
+    if (!active.length) continue;
+    var key = classGroupKey(active);
+    if (map[key] === undefined) { map[key] = next; next++; }
+  }
+  return map;
+}
+
+// The day's class group as one calendar block. `accents` is the map from
+// classGroupAccents(); `classKeys` is carried on the block so the page can
+// attach the things only it can resolve -- the service label and the live
+// enrolled-student count -- without this staying pure-data helper needing
+// the language, the custom-service list or the student roster.
+export function classBlocksForDay(classes, weekday, startTime, endTime, accents) {
   var start = startTime || CLASS_START_TIME;
   var end = endTime || CLASS_END_TIME;
-  var active = (classes || []).filter(function (c) { return c.active !== false && (c.days || []).indexOf(weekday) !== -1; });
+  var active = activeClassesForDay(classes, weekday);
   if (!active.length) return [];
+  var groupKey = classGroupKey(active);
   return [{
-    key: "class_" + active.map(function (c) { return c.key; }).join("_"),
+    key: "class_" + groupKey,
     kind: "class",
     title: active.map(function (c) { return c.name; }).join(" & "),
+    classKeys: active.map(function (c) { return c.key; }),
+    accentIndex: (accents && accents[groupKey]) || 0,
     startTime: start,
     endTime: end
   }];

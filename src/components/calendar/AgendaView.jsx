@@ -6,7 +6,7 @@
 // so the list still shows the shape of the week.
 import { Plus } from "lucide-react";
 import { fmtTimeRange } from "./calendarLayout.js";
-import { KIND_STYLE } from "./kindStyle.js";
+import { blockStyle, KIND_STYLE } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
@@ -59,7 +59,7 @@ export default function AgendaView({ dayBlocks, todayStr, holidaysByDate, t, onO
             ) : (
               <ul className="m-0 flex list-none flex-col p-0">
                 {blocks.map((b) => {
-                  const style = KIND_STYLE[b.kind];
+                  const style = blockStyle(b);
                   const Icon = style.icon;
                   return (
                     <li key={b.key} className="border-t border-border first:border-t-0">

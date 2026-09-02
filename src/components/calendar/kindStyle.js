@@ -67,6 +67,40 @@ export var KIND_STYLE = {
   }
 };
 
+// The class kind draws from a small palette rather than one fixed blue --
+// classGroupAccents() in lib/calendar.js assigns each distinct class
+// grouping in the week an index into this array, so Level 1 & 2 and Level 3
+// are told apart at a glance. Slot 0 is KIND_STYLE.class itself, so a
+// schedule with only one grouping looks exactly as it did before.
+//
+// Slot 1's violet is deliberately a lighter, bluer hue than the appointment
+// purple (--ev-appt-fg): the two kinds still differ by hue, and they always
+// differ by icon (graduation cap vs. clock) and by the type word in the
+// tooltip, legend and drawer -- colour is never the only signal here.
+export var CLASS_ACCENTS = [
+  KIND_STYLE.class,
+  {
+    icon: GraduationCap,
+    label: "calendarClassLabel",
+    chipBg: "bg-[var(--ev-class-alt-bg)]",
+    chipFg: "text-[var(--ev-class-alt-fg)]",
+    dot: "bg-[var(--ev-class-alt-fg)]",
+    cardBg: "bg-[var(--ev-class-alt-bg)]",
+    cardBorder: "border-[var(--ev-class-alt-border)]",
+    accent: "border-l-[var(--ev-class-alt-fg)]",
+    hover: "hover:border-[var(--ev-class-alt-fg)]"
+  }
+];
+
+// The single lookup every view uses to draw a block. Non-class kinds fall
+// straight through to KIND_STYLE; class blocks pick their palette slot.
+export function blockStyle(block) {
+  if (block && block.kind === "class") {
+    return CLASS_ACCENTS[(block.accentIndex || 0) % CLASS_ACCENTS.length];
+  }
+  return KIND_STYLE[block ? block.kind : "class"];
+}
+
 export var FILTERS = [
   { key: "all", label: "calendarFilterAll", style: null },
   { key: "class", label: "calendarFilterClasses", style: KIND_STYLE.class },

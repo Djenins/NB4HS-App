@@ -11,12 +11,16 @@
 // events instead of showing them.
 export var DEFAULT_START_MIN = 8 * 60;
 export var DEFAULT_END_MIN = 18 * 60;
-export var HOUR_HEIGHT = 64;
+// 72px an hour: tall enough that the 8 AM-6 PM window fills a desktop
+// screen without the 9:30-12:30 class card having to compress its content,
+// and it keeps a half-hour start landing on a clean 36px offset.
+export var HOUR_HEIGHT = 72;
 // Shared row heights for the day-header and All Day rows. The time gutter
 // has to reserve exactly the same space as the day columns beside it, so
-// both read these rather than each measuring itself.
-export var HEADER_HEIGHT = 62;
-export var ALLDAY_HEIGHT = 46;
+// both read these rather than each measuring itself. The header stacks
+// three lines (MON / 31 / Jul) plus the current-day rule above them.
+export var HEADER_HEIGHT = 112;
+export var ALLDAY_HEIGHT = 44;
 
 export function toMinutes(timeStr) {
   if (!timeStr) return DEFAULT_START_MIN;
