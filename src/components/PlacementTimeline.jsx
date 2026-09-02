@@ -24,7 +24,7 @@ export default function PlacementTimeline({ checkins }) {
   return (
     <div className="flex flex-wrap items-center">
       {nodes.map((n, i) => {
-        const color = n.state === "completed" ? "bg-primary text-white" : n.state === "due" ? "bg-tint-warn text-warn" : "bg-tint-neutral text-muted";
+        const color = n.state === "completed" ? "bg-primary text-white" : n.state === "due" ? "bg-tint-warn text-gold-ink" : "bg-tint-neutral text-muted";
         const Icon = n.state === "completed" ? CheckCircle2 : n.state === "due" ? Clock : Circle;
         return (
           <div key={n.key} className="flex items-center">

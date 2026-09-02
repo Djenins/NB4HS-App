@@ -406,7 +406,7 @@ export default function Search() {
         <KpiCard icon={Users} tint="bg-primary-tint text-primary" num={stats.todayVisits.length} label={t("todaysVisitors")} trend={trend} color="#2563EB" index={0} />
         <KpiCard icon={LogIn} tint="bg-tint-success text-success" num={stats.currentlyIn.length} label={t("currentlyInBuilding")} trend={trend} color="#1a7f37" index={1} />
         <KpiCard icon={DoorOpen} tint="bg-primary-tint text-primary" num={stats.checkedOutToday.length} label={t("checkedOutToday")} trend={trend} color="#2563EB" index={2} />
-        <KpiCard icon={Clock} tint="bg-tint-warn text-warn" num={fmtDuration(stats.avgLen, lang)} label={t("avgVisitLength")} trend={trend} color="#D99E32" index={3} />
+        <KpiCard icon={Clock} tint="bg-tint-warn text-gold-ink" num={fmtDuration(stats.avgLen, lang)} label={t("avgVisitLength")} trend={trend} color="#D99E32" index={3} />
       </div>
 
       <Card>

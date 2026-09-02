@@ -91,12 +91,12 @@ export default function MyCaseload() {
         <KpiStat icon={Users} tint="bg-primary-tint" iconColor="text-primary" value={myClientCount} label="My Clients" />
         <KpiStat icon={CalendarClock} tint="bg-tint-success" iconColor="text-success" value={upcoming.length} label="Upcoming Appointments" />
         <KpiStat icon={CalendarPlus} tint="bg-gold-tint" iconColor="text-gold-dark" value={needsScheduling.length} label="Needs Scheduling" />
-        <KpiStat icon={AlertTriangle} tint="bg-tint-warn" iconColor="text-warn" value={overdue.length} label="Overdue" />
+        <KpiStat icon={AlertTriangle} tint="bg-tint-warn" iconColor="text-gold-ink" value={overdue.length} label="Overdue" />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warn" /> Overdue</CardTitle>
+          <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-gold-ink" /> Overdue</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           {overdue.length ? (

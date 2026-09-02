@@ -377,7 +377,7 @@ export default function CaseManagement() {
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalClientsLabel")} value={totalClients} />
         <KpiStat icon={CalendarClock} tint="bg-tint-success text-success" label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} />
         <KpiStat icon={Users} tint="bg-violet-100 text-violet-700" label={t("statActiveClientsLabel")} value={activeClients} />
-        <KpiStat icon={Clock3} tint="bg-tint-warn text-warn" label={t("statImportedContactsLabel")} value={importedCount} />
+        <KpiStat icon={Clock3} tint="bg-tint-warn text-gold-ink" label={t("statImportedContactsLabel")} value={importedCount} />
       </div>
 
       <AddClientCard forwardRef={addClientRef} collapsed={!opens.addClient} onToggle={() => setOpen("addClient", !opens.addClient)} />

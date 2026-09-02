@@ -335,7 +335,7 @@ export default function Assessments() {
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("assessStatTotalLabel")} value={total} sublabel={t("assessStatEnrolledSublabel")} index={0} />
         <KpiStat icon={CheckCircle2} tint="bg-tint-success text-success" label={t("assessStatCompletedLabel")} value={completedCount} sublabel={total ? Math.round((completedCount / total) * 100) + "%" : "0%"} index={1} />
-        <KpiStat icon={Clock} tint="bg-tint-warn text-warn" label={t("assessStatInProgressLabel")} value={inProgressCount} sublabel={total ? Math.round((inProgressCount / total) * 100) + "%" : "0%"} index={2} />
+        <KpiStat icon={Clock} tint="bg-tint-warn text-gold-ink" label={t("assessStatInProgressLabel")} value={inProgressCount} sublabel={total ? Math.round((inProgressCount / total) * 100) + "%" : "0%"} index={2} />
         <KpiStat icon={Circle} tint="bg-tint-neutral text-muted" label={t("assessStatNotStartedLabel")} value={notStartedCount} sublabel={total ? Math.round((notStartedCount / total) * 100) + "%" : "0%"} index={3} />
       </div>
 

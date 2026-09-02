@@ -230,7 +230,7 @@ export default function Reports() {
         <KpiCard icon={Users} tint="bg-primary-tint" iconColor="text-primary" value={s.inRangeVisits.length} label={t("numVisitors")} pct={visitorsTrend.pct} none={visitorsTrend.none} t={t} />
         <KpiCard icon={UserPlus} tint="bg-tint-success" iconColor="text-success" value={s.newCount} label={t("firstTime")} pct={firstTimeTrend.pct} none={firstTimeTrend.none} t={t} />
         <KpiCard icon={Repeat} tint="bg-gold-tint" iconColor="text-gold-dark" value={s.returningCount} label={t("repeatVisitors")} pct={repeatTrend.pct} none={repeatTrend.none} t={t} />
-        <KpiCard icon={Clock} tint="bg-tint-warn" iconColor="text-warn" value={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} pct={avgLenTrend.pct} none={avgLenTrend.none} t={t} />
+        <KpiCard icon={Clock} tint="bg-tint-warn" iconColor="text-gold-ink" value={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} pct={avgLenTrend.pct} none={avgLenTrend.none} t={t} />
       </div>
 
       {/* Flat NRS/grant-reporting credit for the currently selected range --

@@ -50,13 +50,15 @@
        theme's ink instead: 6.05:1 on #6A94F1, better still on the lighter
        --primary-dark hover. */
     --primary-foreground:#ffffff;
-    /* Gold used AS text, rather than as a fill or a badge tint. The brand
-       gold is a pale hue -- #D99E32 on a white card is 2.36:1, well under AA
-       for small text -- so foreground uses take this deepened version
-       instead (4.98:1) while --gold stays the brand value for fills, stripes
-       and tints. Dark mode needs no adjustment: --gold is already lightened
-       there and reads at 8.26:1 on --card, so this just tracks it. */
-    --gold-ink:#96661F;
+    /* Gold used AS text or as an icon glyph, rather than as a fill or a badge
+       tint. The brand gold is a pale hue -- #D99E32 is 2.36:1 on a white card
+       and 2.2:1 on --tint-warn, well under AA -- so foreground uses take this
+       deepened version while --gold stays the brand value for fills, stripes
+       and tints. Chosen to clear AA on both surfaces a gold foreground
+       actually lands on: 5.57:1 on --card, 4.92:1 on --tint-warn. Dark mode
+       needs no adjustment -- --gold is already lightened there (8.26:1 on
+       --card, 6.29:1 on the dark tint) -- so it just tracks it. */
+    --gold-ink:#8C5F1C;
     /* Spacing scale (8pt system) -- used by new components; existing
        hard-coded values are left alone unless called out below. */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
@@ -773,7 +775,7 @@
       --focus-ring:rgba(37,99,235,.34);
       --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
       --primary-foreground:#ffffff;
-      --gold-ink:#96661F;
+      --gold-ink:#8C5F1C;
     }
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}

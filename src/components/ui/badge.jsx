@@ -13,7 +13,7 @@ const badgeVariants = cva(
         default: "bg-primary-tint text-primary",
         accent: "bg-accent-tint text-accent",
         success: "bg-tint-success text-success",
-        warn: "bg-tint-warn text-warn",
+        warn: "bg-tint-warn text-gold-ink",
         neutral: "bg-tint-neutral text-muted"
       }
     },

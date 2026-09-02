@@ -51,7 +51,7 @@ export default function ResetPassword() {
     <div className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
       <div className="w-full max-w-[460px]">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold-ink">
             <Lock className="h-6 w-6" strokeWidth={2} />
           </div>
           <div className="mt-4 flex items-center justify-center gap-2">

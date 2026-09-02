@@ -387,7 +387,7 @@ export default function JobDeveloper() {
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalJobClientsLabel")} value={totalClients} sub={t("statAllTimeLabel")} />
         <KpiStat icon={Calendar} tint="bg-tint-success text-success" label={t("statActivelyLookingLabel")} value={activelyLooking} sub={t("statCurrentlyLookingLabel")} />
         <KpiStat icon={UserPlus} tint="bg-violet-100 text-violet-700" label={t("statInterviewsLabel")} value={interviewsScheduled} sub={t("statScheduledLabel")} />
-        <KpiStat icon={User} tint="bg-tint-warn text-warn" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
+        <KpiStat icon={User} tint="bg-tint-warn text-gold-ink" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
         <KpiStat icon={FileCheck2} tint="bg-cyan-100 text-cyan-700" label={t("statResumesCompletedLabel")} value={resumesCompleted} sub={t("statUpToDateLabel")} />
       </div>
 
