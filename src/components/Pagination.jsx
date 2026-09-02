@@ -64,7 +64,7 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
                     navBtnClass,
                     p === page
                       ? "border-primary bg-primary text-primary-foreground shadow-[0_4px_10px_-2px_rgba(37,99,235,0.45)]"
-                      : "hover:border-primary/40 hover:bg-primary-tint"
+                      : "hover:border-primary hover:bg-primary-tint"
                   )}
                 >
                   {p}
@@ -76,14 +76,14 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
             <button
               type="button" disabled={page >= totalPages} onClick={() => onChange(1)}
               aria-label={t("nextPage")}
-              className={cn(navBtnClass, "hover:border-primary/40 hover:bg-primary-tint")}
+              className={cn(navBtnClass, "hover:border-primary hover:bg-primary-tint")}
             >
               <ChevronRight className="h-4.5 w-4.5" />
             </button>
             <button
               type="button" disabled={page >= totalPages} onClick={() => onChange(totalPages - page)}
               aria-label={t("lastPage")}
-              className={cn(navBtnClass, "hover:border-primary/40 hover:bg-primary-tint")}
+              className={cn(navBtnClass, "hover:border-primary hover:bg-primary-tint")}
             >
               <ChevronLast className="h-4.5 w-4.5" />
             </button>

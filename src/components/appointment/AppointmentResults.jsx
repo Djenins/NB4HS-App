@@ -64,7 +64,7 @@ function LookupState({ tone, icon: StateIcon, title, description, actionLabel, o
     <div
       className={cn(
         "rounded-[18px] border p-6 text-center sm:p-8",
-        tone === "error" ? "border-accent/40 bg-accent-tint" : "border-border bg-background"
+        tone === "error" ? "border-accent bg-accent-tint" : "border-border bg-background"
       )}
     >
       <span

@@ -50,7 +50,7 @@ export default function KioskField({
               // Hidden on the narrowest phones: at 375px the icon's inset
               // would crowd the field's own value out of view.
               "pointer-events-none absolute left-4 top-1/2 hidden -translate-y-1/2 sm:block",
-              disabled ? "text-muted/70" : "text-primary"
+              disabled ? "text-muted" : "text-primary"
             )}
           />
         )}

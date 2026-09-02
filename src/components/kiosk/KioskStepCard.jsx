@@ -14,7 +14,7 @@ export default function KioskStepCard({ number, icon: StepIcon, title, descripti
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         active
           ? "border-primary bg-primary-tint shadow-card"
-          : "border-border bg-card hover:border-primary/40 hover:bg-[#F7F9FC] dark:hover:bg-background"
+          : "border-border bg-card hover:border-primary hover:bg-[#F7F9FC] dark:hover:bg-background"
       )}
     >
       <span
@@ -28,7 +28,7 @@ export default function KioskStepCard({ number, icon: StepIcon, title, descripti
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className={cn("text-sm font-extrabold tabular-nums", active ? "text-primary" : "text-muted")}>{number}</span>
-          <span className={cn("text-[1.02rem] font-bold leading-tight", active ? "text-navy dark:text-[color:var(--text)]" : "text-navy/85 dark:text-[color:var(--text)]/85")}>{title}</span>
+          <span className={cn("text-[1.02rem] font-bold leading-tight", active ? "text-navy dark:text-[color:var(--text)]" : "text-navy dark:text-[color:var(--text)]/85")}>{title}</span>
         </span>
         <span className="mt-0.5 block text-[0.85rem] leading-snug text-muted xl:mt-1 xl:text-[0.88rem]">{description}</span>
       </span>

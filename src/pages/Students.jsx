@@ -237,7 +237,7 @@ function DetailActionButton({ icon: Icon, label, onClick, tone }) {
       className={cn(
         "flex h-9 min-h-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-colors",
         tone === "danger"
-          ? "border-accent/25 bg-tint-danger text-accent hover:bg-accent/10"
+          ? "border-accent bg-tint-danger text-accent hover:bg-accent-tint"
           : "border-border bg-card text-card-foreground hover:bg-background"
       )}
     >
@@ -264,7 +264,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary/40 data-[state=open]:border-primary"
+          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary data-[state=open]:border-primary"
         >
           <span className="flex items-center gap-2.5 min-w-0">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: current.accent + "22", color: current.accent }}>
@@ -892,7 +892,7 @@ function UploadStudentsPanel() {
         <Button variant="secondary" size="sm" className="gap-2" onClick={downloadStudentTemplate}>
           <Download className="h-4 w-4" /> {t("downloadTemplate")}
         </Button>
-        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-primary-tint/40">
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-primary-tint">
           <FileUp className="h-6 w-6 text-muted" />
           <span className="text-sm font-semibold text-card-foreground">{fileName || t("chooseFileDragDrop")}</span>
           <span className="text-xs text-muted">{t("fileTypesHint")}</span>
@@ -973,11 +973,11 @@ function PastSessionsPanel() {
         <Button className="mt-3 w-full sm:w-auto" onClick={addPastSession}>{t("addSession")}</Button>
 
         {!history.length ? (
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-tint px-4 py-3.5 text-sm text-primary">
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary bg-primary-tint px-4 py-3.5 text-sm text-primary">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <div className="font-semibold">{t("noPastSessions")}</div>
-              <div className="mt-0.5 text-primary/80">{t("noPastSessionsHint")}</div>
+              <div className="mt-0.5 text-primary">{t("noPastSessionsHint")}</div>
             </div>
           </div>
         ) : (
