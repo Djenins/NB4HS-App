@@ -90,10 +90,31 @@ export function AppProvider({ children }) {
   const [authLoading, setAuthLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    const unsubscribe = onAuthStateChange(async (authSession) => {
-      if (!authSession) { if (!cancelled) { setSession(null); setAuthLoading(false); } return; }
-      const profile = await fetchProfile(authSession.user.id);
-      if (!cancelled) { setSession(profileToSession(profile)); setAuthLoading(false); }
+    // Supabase invokes this callback while holding its internal auth lock,
+    // and every other call on the client waits for that lock -- so awaiting
+    // fetchProfile() *inside* the callback deadlocks the whole client
+    // against itself. Nothing resolves, setAuthLoading(false) never runs,
+    // and Shell.jsx's `if (authLoading) return null` renders a blank app
+    // forever with no redirect to sign-in. Deferring the fetch to a
+    // setTimeout lets the callback return and release the lock first; this
+    // is the workaround Supabase's own docs give for async work in an auth
+    // listener.
+    const unsubscribe = onAuthStateChange((authSession) => {
+      if (cancelled) return;
+      if (!authSession) { setSession(null); setAuthLoading(false); return; }
+      setTimeout(async () => {
+        let profile = null;
+        try {
+          profile = await fetchProfile(authSession.user.id);
+        } finally {
+          // finally, not just the happy path: if the profile query throws
+          // (expired token, network drop) the gate still has to open. A null
+          // profile is a null session, which sends Shell to the login screen
+          // -- the right destination for a session we can't resolve, and far
+          // better than stranding staff on a blank page.
+          if (!cancelled) { setSession(profileToSession(profile)); setAuthLoading(false); }
+        }
+      }, 0);
     });
     return () => { cancelled = true; unsubscribe(); };
   }, []);
