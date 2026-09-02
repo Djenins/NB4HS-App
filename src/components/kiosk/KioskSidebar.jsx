@@ -1,16 +1,19 @@
 // KioskSidebar.jsx -- left identity/navigation column of the landscape
-// check-in kiosk: who this screen is for, the three step cards, and the
-// "ask a staff member" note pinned to the bottom. The Back control lives in
-// the kiosk header row above this column (see CheckInVisitor.jsx) so it sits
-// in the top-left corner of the kiosk frame.
+// check-in kiosk: who this screen is for, the cards that navigate its
+// sections, and the "ask a staff member" note pinned to the bottom. The
+// Back control lives in the kiosk header row above this column (see
+// CheckInVisitor.jsx / CheckInStudent.jsx) so it sits in the top-left
+// corner of the kiosk frame. Shared by both check-in screens: the visitor
+// form passes its three form sections as `steps`, the student roster passes
+// today's classes.
 import { CircleHelp, UserRoundCheck } from "lucide-react";
 import KioskStepCard from "./KioskStepCard.jsx";
 
-export default function KioskSidebar({ title, subtitle, steps, activeStep, onStepSelect, helpTitle, helpText }) {
+export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = UserRoundCheck, steps, activeStep, onStepSelect, navLabel, helpTitle, helpText }) {
   return (
     <div className="flex min-h-0 flex-col lg:h-full lg:overflow-y-auto">
       <span className="kiosk-sidebar-badge flex h-12 w-12 items-center justify-center rounded-full bg-primary-tint text-primary xl:h-14 xl:w-14">
-        <UserRoundCheck size={26} strokeWidth={2} aria-hidden="true" />
+        <IdentityIcon size={26} strokeWidth={2} aria-hidden="true" />
       </span>
       {/* Split on spaces so a long title wraps between words instead of
           breaking inside "Check-In" at its hyphen on narrower kiosks. */}
@@ -21,7 +24,7 @@ export default function KioskSidebar({ title, subtitle, steps, activeStep, onSte
       </h1>
       <p className="mt-2 text-[0.92rem] leading-snug text-muted xl:text-[1rem]">{subtitle}</p>
 
-      <nav aria-label={title} className="kiosk-sidebar-steps mt-4 hidden gap-2 md:flex md:flex-row lg:flex-col xl:mt-5 xl:gap-2.5">
+      <nav aria-label={navLabel || title} className="kiosk-sidebar-steps mt-4 hidden gap-2 md:flex md:flex-row lg:flex-col xl:mt-5 xl:gap-2.5">
         {steps.map((step) => (
           <KioskStepCard
             key={step.id}
