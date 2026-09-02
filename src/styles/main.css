@@ -394,6 +394,27 @@
   .content-col{flex:1; min-width:0; display:flex; flex-direction:column;}
   .content-col > header.topbar{position:sticky; top:0; z-index:15;}
   .content-col > main{max-width:1200px;}
+  /* Landscape check-in kiosk (CheckInVisitor.jsx). The kiosk form is a
+     three-column screen (sidebar | form | action panel), so it opts out of
+     <main>'s usual 1200px reading measure; on a landscape-sized viewport it
+     also gets a definite height (flex-basis 0 + overflow hidden) so the
+     centre form column scrolls inside the kiosk frame rather than scrolling
+     the whole page out from under the visitor's finger. */
+  .content-col > main.main--kiosk-form{max-width:none; padding:12px; display:flex; flex-direction:column;}
+  @media (min-width:1024px) and (min-height:620px){
+    .content-col > main.main--kiosk-form{flex:1 1 0; height:0; min-height:0; overflow:hidden;}
+  }
+  /* Short landscape kiosks (1366x768 and friends) can't show the sidebar's
+     help note and all three step cards at once -- the steps win, and the
+     same "ask a staff member" line is still on the kiosk landing screen. */
+  @media (min-width:1024px) and (max-height:820px){
+    .kiosk-checkin .kiosk-sidebar-help{display:none;}
+    .kiosk-checkin .kiosk-sidebar-title{font-size:1.5rem;}
+    .kiosk-checkin .kiosk-sidebar-badge{height:40px; width:40px;}
+    .kiosk-checkin .kiosk-sidebar-steps{margin-top:10px; gap:6px;}
+  }
+  /* The shared 16px select chevron is too small a target at kiosk scale. */
+  .kiosk-checkin .kiosk-select{background-size:22px; background-position:right 16px center; padding-right:50px;}
   /* =========================================================
      AUTH SPLIT LAYOUT -- Login.jsx / StaffLogin.jsx (AuthShell.jsx). Split-
      screen look modeled on a reference design the client shared: a colored

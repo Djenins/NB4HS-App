@@ -119,6 +119,18 @@ export var STR = {
   staffMember: { en: "Staff Member", ht: "Manm Ekip la", fr: "Membre du Personnel" },
   notes: { en: "Additional Notes (optional)", ht: "Nòt Adisyonèl (opsyonèl)", fr: "Notes Supplémentaires (facultatif)" },
   submit: { en: "Submit Check-In", ht: "Soumèt Enskripsyon", fr: "Soumettre l'Enregistrement" },
+  // Kiosk check-in placeholders + footer line (CheckInVisitor.jsx's
+  // landscape kiosk layout -- the old single-column form had no placeholders).
+  phFirstName: { en: "Enter first name", ht: "Antre prenon", fr: "Entrez le prénom" },
+  phLastName: { en: "Enter last name", ht: "Antre non fanmi", fr: "Entrez le nom de famille" },
+  phPhone: { en: "(555) 123-4567", ht: "(555) 123-4567", fr: "(555) 123-4567" },
+  phEmail: { en: "Enter email address", ht: "Antre adrès imèl", fr: "Entrez l'adresse e-mail" },
+  phAddress: { en: "Street address, apartment, suite, etc.", ht: "Adrès lari, apatman, swit, elatriye.", fr: "Adresse, appartement, suite, etc." },
+  phCity: { en: "Enter city", ht: "Antre vil", fr: "Entrez la ville" },
+  phZip: { en: "Enter ZIP code", ht: "Antre kòd postal", fr: "Entrez le code postal" },
+  phNotes: { en: "Add any additional information…", ht: "Ajoute nenpòt enfòmasyon anplis…", fr: "Ajoutez toute information supplémentaire…" },
+  kioskStepVisitDetailsDesc: { en: "What they're here for today.", ht: "Poukisa yo isit la jodi a.", fr: "Pourquoi ils sont ici aujourd'hui." },
+  kioskFooterWelcome: { en: "Thank you for visiting. We're glad you're here.", ht: "Mèsi paske w vizite nou. Nou kontan ou la.", fr: "Merci de votre visite. Nous sommes heureux de vous accueillir." },
   thankYou: { en: "Thank you!", ht: "Mèsi!", fr: "Merci !" },
   thankYouDesc: { en: "Your information helps us serve you better.", ht: "Enfòmasyon w yo ede nou sèvi w pi byen.", fr: "Vos informations nous aident à mieux vous servir." },
   checkInSuccess: { en: "You're checked in!", ht: "Ou enskri!", fr: "Vous êtes enregistré !" },

@@ -231,6 +231,16 @@ export default function Shell() {
   // design that owns its own header/footer chrome -- skip Shell's default
   // topbar/footer-note there instead of nesting one inside the other.
   const isKioskLanding = kiosk && location.pathname === "/checkin";
+  // The visitor check-in form (CheckInVisitor.jsx) is a landscape kiosk
+  // layout -- sidebar | form | action panel -- so it needs the full width of
+  // the content column rather than <main>'s usual 1200px reading measure,
+  // and (on a landscape screen) a definite height so its centre column can
+  // scroll on its own instead of scrolling the whole page. Both come from
+  // main--kiosk-form in main.css; the rest of Shell is untouched.
+  // In kiosk mode the form also drops Shell's prototype footer note: the
+  // kiosk frame has its own closing line, and the landing screen already
+  // hides that note in kiosk mode for the same reason.
+  const isKioskForm = location.pathname === "/checkin/visitor";
 
   const role = session ? session.role : null;
   const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
@@ -389,12 +399,12 @@ export default function Shell() {
             {isKioskLanding ? (
               <Outlet />
             ) : (
-              <main id="main-content" tabIndex={-1}>
+              <main id="main-content" tabIndex={-1} className={isKioskForm ? "main--kiosk-form" : undefined}>
                 <Outlet />
               </main>
             )}
 
-            {!isKioskLanding && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
+            {!isKioskLanding && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>

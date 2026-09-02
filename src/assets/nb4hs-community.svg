@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 250" width="320" height="250" role="img" aria-hidden="true">
+  <title>Community</title>
+  <!-- Original flat-vector community/family mark drawn for the check-in
+       kiosk's action panel. Palette is the NB4HS Design System blue
+       (#2563EB, the app's primary) plus lighter tints of it, so it reads as
+       part of the brand rather than as stock art. Deliberately simple: one
+       heart, three figures, a ground arc and two leaves. -->
+  <g fill="none">
+    <!-- ground -->
+    <path d="M28 214c34-16 76-24 132-24s98 8 132 24" stroke="#DCE7FB" stroke-width="6" stroke-linecap="round"/>
+    <!-- heart -->
+    <path d="M160 96c-31-21-44-40-33-56 9-13 27-11 33 4 6-15 24-17 33-4 11 16-2 35-33 56z" fill="#C8D9FA"/>
+    <!-- left adult -->
+    <circle cx="101" cy="124" r="20" fill="#93B4F5"/>
+    <path d="M101 148c-16 0-27 12-27 28v32h54v-32c0-16-11-28-27-28z" fill="#93B4F5"/>
+    <!-- right adult -->
+    <circle cx="219" cy="121" r="21" fill="#2563EB"/>
+    <path d="M219 146c-17 0-29 13-29 29v33h58v-33c0-16-12-29-29-29z" fill="#2563EB"/>
+    <!-- child, centre -->
+    <circle cx="160" cy="150" r="16" fill="#5B8AEE"/>
+    <path d="M160 170c-12 0-21 9-21 21v17h42v-17c0-12-9-21-21-21z" fill="#5B8AEE"/>
+    <!-- joined hands / connection between the three -->
+    <path d="M128 186c10-6 20-8 32-8s22 2 32 8" stroke="#DCE7FB" stroke-width="5" stroke-linecap="round"/>
+    <!-- leaves -->
+    <path d="M50 208c-12-2-19-10-18-22 12 1 20 9 18 22z" fill="#DCE7FB"/>
+    <path d="M270 208c12-2 19-10 18-22-12 1-20 9-18 22z" fill="#DCE7FB"/>
+  </g>
+</svg>
