@@ -22,6 +22,9 @@ function calendarEventFromRow(row) {
   };
 }
 
+// Throws on failure rather than returning [] -- the calendar page has to be
+// able to tell "this range is empty" apart from "the fetch failed", so it can
+// show its error state with a retry instead of a convincingly empty week.
 export async function fetchCalendarEvents(startDate, endDate) {
   const { data, error } = await supabase
     .from("calendar_events")
@@ -30,7 +33,7 @@ export async function fetchCalendarEvents(startDate, endDate) {
     .lte("event_date", endDate)
     .order("event_date")
     .order("start_time");
-  if (error) { console.warn("fetchCalendarEvents failed", error); return []; }
+  if (error) throw error;
   return data.map(calendarEventFromRow);
 }
 

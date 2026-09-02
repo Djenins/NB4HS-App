@@ -6,12 +6,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Copy, FileText, Link2, Pencil, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { fmtTimeRange } from "./calendarLayout.js";
 import { KIND_STYLE } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
 import { cn } from "../../lib/cn.js";
 
-const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 function Field({ label, value }) {
   return (
@@ -85,12 +86,15 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
 
             {block && !editing && (
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
-                <div>
-                  <p className={cn("m-0 text-xs font-bold uppercase tracking-wide", style.chipFg)}>{t(style.label)}</p>
-                  <p className="m-0 mt-0.5 text-lg font-bold text-card-foreground">{block.title}</p>
+                <div className={cn("rounded-xl border border-l-[3px] px-4 py-3", style.cardBg, style.cardBorder, style.accent)}>
+                  <p className={cn("m-0 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide", style.chipFg)}>
+                    {Icon && <Icon className="h-3.5 w-3.5" />}{t(style.label)}
+                  </p>
+                  <p className="m-0 mt-1 text-lg font-bold leading-tight text-card-foreground">{block.title}</p>
+                  <p className="m-0 mt-0.5 text-sm font-medium text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-border pt-3">
+                <div className="flex flex-col gap-3">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label={t("calendarPersonName")} value={block.event?.personName} />
                     <Field label={t("calendarStaffMember")} value={block.event?.createdByName} />
@@ -101,7 +105,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                   </div>
                   <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                     <Field label={t("calendarDate")} value={block.event?.date} />
-                    <Field label={t("calendarStartTime")} value={block.startTime + (block.endTime ? " – " + block.endTime : "")} />
+                    <Field label={t("calendarStartTime")} value={fmtTimeRange(block.startTime, block.endTime)} />
                   </div>
                 </div>
 
