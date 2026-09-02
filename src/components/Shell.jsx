@@ -248,6 +248,11 @@ export default function Shell() {
   // column rather than <main>'s 1200px reading measure -- see
   // main--appt-lookup in main.css.
   const isApptLookup = location.pathname === "/appointments/lookup";
+  // The public appointment request form and its confirmation screen are the
+  // third screen of that same visitor-facing family (ApptRequest.jsx /
+  // ApptRequestSuccess.jsx) and carry their own logo/Back/language header for
+  // the same reason -- see main--appt-request in main.css.
+  const isApptRequest = location.pathname.indexOf("/appointments/request") === 0;
 
   const role = session ? session.role : null;
   const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
@@ -387,7 +392,7 @@ export default function Shell() {
           )}
 
           <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
-            {!isKioskLanding && !isApptLookup && (
+            {!isKioskLanding && !isApptLookup && !isApptRequest && (
               <header className="topbar">
                 {!showSidebar && (
                   <div className="brand">
@@ -406,12 +411,12 @@ export default function Shell() {
             {isKioskLanding ? (
               <Outlet />
             ) : (
-              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup")}>
+              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request")}>
                 <Outlet />
               </main>
             )}
 
-            {!isKioskLanding && !isApptLookup && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
+            {!isKioskLanding && !isApptLookup && !isApptRequest && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>
