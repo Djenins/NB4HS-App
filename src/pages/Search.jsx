@@ -7,10 +7,12 @@
 // Visit Details column header -- neither invents new data, just slices/
 // sorts the existing rows differently. "New Visitor" links to the existing
 // /checkin/visitor route; Export reuses Reports.jsx's exportCSV/exportExcel.
-// Row actions are scoped to what's real: View opens a read-only detail
-// modal (and Print reuses it via window.print()); there is no edit-visit
-// feature anywhere in the app yet, so Edit surfaces an honest "not
-// available yet" toast instead of pretending to save something.
+// Row actions: View opens a read-only detail modal (and Print reuses it via
+// window.print()); Edit opens a form modal covering the same contact/
+// service/notes fields CheckInVisitor.jsx collects at check-in time (not
+// date/timeIn/timeOut -- those are check-in/check-out mechanics, edited
+// through their own flows, not a general-purpose field here) and saves via
+// checkinData.js's updateVisit().
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -24,6 +26,7 @@ import { serviceDisplay } from "../lib/students.js";
 import { computeDailyTrend, computeStats, exportCSV, exportExcel, rangeForPreset } from "../lib/reports_data.js";
 import { fetchGrants } from "../lib/grants.js";
 import { fetchGrantTagsForRecords, setRecordGrantTag } from "../lib/serviceGrantTags.js";
+import { updateVisit } from "../lib/checkinData.js";
 import {
   dateStrFromDate, fmtDuration, fmtTime, formatPhone, fullServiceList, fullStaffList,
   initialsOf, labelFor, minutesBetween, todayStr
@@ -152,7 +155,7 @@ function durationBucket(mins) {
 }
 
 export default function Search() {
-  const { data, lang, showToast } = useApp();
+  const { data, lang, showToast, refetchVisits } = useApp();
   const t = useT();
   const navigate = useNavigate();
 
@@ -163,6 +166,9 @@ export default function Search() {
   const [selected, setSelected] = useState(() => new Set());
   const [visibleCols, setVisibleCols] = useState({ staff: true, actions: true });
   const [detailVisit, setDetailVisit] = useState(null);
+  const [editVisit, setEditVisit] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [grants, setGrants] = useState([]);
   const [grantTags, setGrantTags] = useState({});
   const [grantTagVisit, setGrantTagVisit] = useState(null);
@@ -238,6 +244,31 @@ export default function Search() {
     setGrantTagVisit(null);
   }
   const grantNameFor = (id) => { const g = grants.find((x) => x.id === id); return g ? g.name : ""; };
+
+  function openEditVisit(v) {
+    setEditVisit(v);
+    setEditForm({
+      firstName: v.firstName || "", lastName: v.lastName || "", phone: v.phone || "", email: v.email || "",
+      address: v.address || "", city: v.city || "", state: v.state || "RI", zip: v.zip || "",
+      service: v.service || "", serviceOther: v.serviceOther || "", staff: v.staff || "", staffOther: v.staffOther || "",
+      notes: v.notes || ""
+    });
+  }
+  function closeEditVisit() { setEditVisit(null); setEditForm(null); }
+  function setEditField(key, value) { setEditForm((prev) => Object.assign({}, prev, { [key]: value })); }
+  async function saveEditVisit() {
+    setSavingEdit(true);
+    try {
+      await updateVisit(editVisit.id, editForm);
+      await refetchVisits();
+      showToast(t("visitUpdatedToast"));
+      closeEditVisit();
+    } catch (e) {
+      showToast(t("visitUpdateError"));
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   const allOnPageSelected = rows.length > 0 && rows.every((v) => selected.has(v.id));
   function toggleAllOnPage() {
@@ -474,7 +505,7 @@ export default function Search() {
                             <td className="px-3 py-3.5 align-top">
                               <div className="flex items-center gap-1">
                                 <button title={t("viewDetails")} onClick={() => setDetailVisit(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Eye className="h-4 w-4" /></button>
-                                <button title={t("editVisit")} onClick={() => showToast(t("editComingSoon"))} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Pencil className="h-4 w-4" /></button>
+                                <button title={t("editVisit")} onClick={() => openEditVisit(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Pencil className="h-4 w-4" /></button>
                                 <button title={t("printVisit")} onClick={() => handlePrint(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Printer className="h-4 w-4" /></button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -521,7 +552,7 @@ export default function Search() {
                       </div>
                       <div className="flex items-center gap-1 border-t border-border pt-2">
                         <button title={t("viewDetails")} onClick={() => setDetailVisit(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Eye className="h-4 w-4" /></button>
-                        <button title={t("editVisit")} onClick={() => showToast(t("editComingSoon"))} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Pencil className="h-4 w-4" /></button>
+                        <button title={t("editVisit")} onClick={() => openEditVisit(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Pencil className="h-4 w-4" /></button>
                         <button title={t("printVisit")} onClick={() => handlePrint(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Printer className="h-4 w-4" /></button>
                         <button title="Tag Grant" onClick={() => openGrantTag(v)} className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-card-foreground"><Award className="h-4 w-4" /></button>
                       </div>
@@ -567,6 +598,89 @@ export default function Search() {
               <Button variant="secondary" onClick={() => window.print()} className="gap-2"><Printer className="h-4 w-4" />{t("printVisit")}</Button>
               <Button onClick={() => setDetailVisit(null)}>{t("closeLabel")}</Button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editVisit && editForm ? (
+        <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) closeEditVisit(); }}>
+          <div className="modal-box" style={{ maxWidth: 560 }}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="m-0">{t("editVisitModalTitle")}</h3>
+              <button onClick={closeEditVisit} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveEditVisit(); }}>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label className="required" htmlFor="edit-visit-firstName">{t("firstName")}</label>
+                  <input id="edit-visit-firstName" value={editForm.firstName} onChange={(e) => setEditField("firstName", e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label className="required" htmlFor="edit-visit-lastName">{t("lastName")}</label>
+                  <input id="edit-visit-lastName" value={editForm.lastName} onChange={(e) => setEditField("lastName", e.target.value)} required />
+                </div>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor="edit-visit-phone">{t("phone")}</label>
+                  <input id="edit-visit-phone" type="tel" value={editForm.phone} onChange={(e) => setEditField("phone", formatPhone(e.target.value))} />
+                </div>
+                <div className="field">
+                  <label htmlFor="edit-visit-email">{t("email")}</label>
+                  <input id="edit-visit-email" type="email" value={editForm.email} onChange={(e) => setEditField("email", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="edit-visit-address">{t("address")}</label>
+                <input id="edit-visit-address" value={editForm.address} onChange={(e) => setEditField("address", e.target.value)} />
+              </div>
+              <div className="grid grid-3">
+                <div className="field">
+                  <label htmlFor="edit-visit-city">{t("city")}</label>
+                  <input id="edit-visit-city" value={editForm.city} onChange={(e) => setEditField("city", e.target.value)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="edit-visit-state">{t("state")}</label>
+                  <input id="edit-visit-state" value={editForm.state} onChange={(e) => setEditField("state", e.target.value)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="edit-visit-zip">{t("zip")}</label>
+                  <input id="edit-visit-zip" value={editForm.zip} onChange={(e) => setEditField("zip", e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="edit-visit-service">{t("reasonForVisit")}</label>
+                <select id="edit-visit-service" value={editForm.service} onChange={(e) => setEditField("service", e.target.value)}>
+                  <option value="">{t("pleaseSelect")}</option>
+                  {services.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
+                </select>
+              </div>
+              {editForm.service === "other" && (
+                <div className="field">
+                  <input value={editForm.serviceOther} placeholder={t("otherPleaseSpecify")} aria-label={t("otherPleaseSpecify")} onChange={(e) => setEditField("serviceOther", e.target.value)} />
+                </div>
+              )}
+              <div className="field">
+                <label htmlFor="edit-visit-staff">{t("staffMember")}</label>
+                <select id="edit-visit-staff" value={editForm.staff} onChange={(e) => setEditField("staff", e.target.value)}>
+                  <option value="">{t("pleaseSelect")}</option>
+                  {staffList.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
+                </select>
+              </div>
+              {editForm.staff === "other" && (
+                <div className="field">
+                  <input value={editForm.staffOther} placeholder={t("otherPleaseSpecify")} aria-label={t("otherPleaseSpecify")} onChange={(e) => setEditField("staffOther", e.target.value)} />
+                </div>
+              )}
+              <div className="field">
+                <label htmlFor="edit-visit-notes">{t("notes")}</label>
+                <textarea id="edit-visit-notes" value={editForm.notes} onChange={(e) => setEditField("notes", e.target.value)} />
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={closeEditVisit}>{t("cancelLabel")}</Button>
+                <Button type="submit" disabled={!editForm.firstName.trim() || !editForm.lastName.trim() || savingEdit}>{t("saveLabel")}</Button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

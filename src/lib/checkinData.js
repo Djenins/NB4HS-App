@@ -72,6 +72,29 @@ function visitFromRow(row) {
     studentId: row.student_id, className: row.class_name || ""
   };
 }
+// Partial mapper for updateVisit() below -- unlike visitToRow() (which
+// always builds a full insert payload for createVisit()), this only
+// forwards fields the caller actually passed, same undefined-check idiom as
+// studentToRow()/classToRow(). Deliberately excludes date/timeIn/timeOut/
+// studentId/className: those are check-in/check-out mechanics, not part of
+// Search.jsx's edit-visit form.
+function visitPatchToRow(patch) {
+  const row = {};
+  if (patch.firstName !== undefined) row.first_name = patch.firstName;
+  if (patch.lastName !== undefined) row.last_name = patch.lastName;
+  if (patch.phone !== undefined) row.phone = patch.phone || null;
+  if (patch.email !== undefined) row.email = patch.email || null;
+  if (patch.address !== undefined) row.street = patch.address || null;
+  if (patch.city !== undefined) row.city = patch.city || null;
+  if (patch.state !== undefined) row.state = patch.state || null;
+  if (patch.zip !== undefined) row.zip = patch.zip || null;
+  if (patch.service !== undefined) row.service = patch.service || null;
+  if (patch.serviceOther !== undefined) row.service_other = patch.serviceOther || null;
+  if (patch.staff !== undefined) row.staff = patch.staff || null;
+  if (patch.staffOther !== undefined) row.staff_other = patch.staffOther || null;
+  if (patch.notes !== undefined) row.notes = patch.notes || null;
+  return row;
+}
 function visitToRow(record) {
   // Deliberately never forwards `record.id` -- CheckIn*.jsx build that id
   // client-side via uid() (a short non-UUID string, fine for the rest of
@@ -159,6 +182,14 @@ export async function fetchVisits() {
 }
 export async function createVisit(record) {
   const { data, error } = await supabase.from("visits").insert(visitToRow(record)).select().single();
+  if (error) throw error;
+  return visitFromRow(data);
+}
+// Search.jsx's edit-visit action -- staff-only (see the visits_update RLS
+// policy: `authenticated` only, unlike visits_insert/visits_select which are
+// `public` for the anonymous kiosk session).
+export async function updateVisit(id, patch) {
+  const { data, error } = await supabase.from("visits").update(visitPatchToRow(patch)).eq("id", id).select().single();
   if (error) throw error;
   return visitFromRow(data);
 }
