@@ -28,7 +28,7 @@ import {
   createPastSession, createPastSessionStudents, deleteSession as deleteSessionRow, startNewSession as startNewSessionRpc
 } from "../lib/sessionsData.js";
 import {
-  buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
+  buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor, columnAccentTint,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
   sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount,
   waitingListStudents, waitlistForClass
@@ -44,7 +44,7 @@ import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 
-const WAITING_ACCENT = "#D99E32"; // gold -- matches columnAccentColor("waiting", ...)
+const WAITING_ACCENT = "var(--gold)"; // gold -- matches columnAccentColor("waiting", ...)
 const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
 
 // Shared by the Kanban board (StudentsBoard) and the Waiting List panel,
@@ -267,7 +267,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
           className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary-soft data-[state=open]:border-primary"
         >
           <span className="flex items-center gap-2.5 min-w-0">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: current.accent + "22", color: current.accent }}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: columnAccentTint(current.accent), color: current.accent }}>
               <current.icon className="h-4 w-4" />
             </span>
             <span className="truncate text-sm font-bold text-card-foreground">{current.name}</span>
@@ -279,7 +279,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
         {options.map((o) => (
           <DropdownMenuItem key={o.key || "waiting"} onClick={() => onMove(o.key)} className="justify-between">
             <span className="flex items-center gap-2.5">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: o.accent + "22", color: o.accent }}>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: columnAccentTint(o.accent), color: o.accent }}>
                 <o.icon className="h-3.5 w-3.5" />
               </span>
               {o.name}
@@ -443,7 +443,7 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
             {totalFiltered}{(term || filterMode === "missingContact") ? "/" + totalStudents : ""}
           </span>
         </button>
-        <Link to="/manage"><Button type="button" variant="ghost" size="sm" className="font-semibold">{t("addClassroomShortcutBtn")}</Button></Link>
+        <Link to="/manage"><Button type="button" variant="ghost" size="sm" className="font-semibold text-primary">{t("addClassroomShortcutBtn")}</Button></Link>
       </CardHeader>
       {collapsed ? null : (
       <CardContent className="pt-0">

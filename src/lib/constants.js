@@ -104,7 +104,14 @@ export var DATE_LOCALE = { en: "en-US", ht: "en-US", fr: "fr-FR" };
 export var PAGE_SIZE = 25;
 // NB4HS Design System accent set: Blue/Green/Gold/Purple, cycled for however
 // many classroom columns exist -- no random hues, and no non-error red.
-export var COLUMN_ACCENTS = ["#2563EB", "#1a7f37", "#D99E32", "#6b21a8"];
+// These are var() references, not hexes, because the values are used as text
+// and border colours on --card: the literal light-mode hues were unreadable
+// once the card went dark (blue 3.13:1, green 3.18:1, purple 1.85:1). Each
+// one already has a dark-mode counterpart defined in main.css, so pointing at
+// the token gets the lightened hue for free -- 5.5:1 to 8.3:1 in dark, and
+// byte-identical output in light. Purple is the calendar's appointment
+// foreground, the only purple in the system with both variants.
+export var COLUMN_ACCENTS = ["var(--primary)", "var(--success)", "var(--gold)", "var(--ev-appt-fg)"];
 export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core", checkout: "core", search: "core", reports: "core", fooddistribution: "core", calendar: "core", qrcode: "admin", manage: "admin", students: "admin", casemanagement: "admin", jobdeveloper: "admin", users: "admin", settings: "admin", assessments: "admin" };
 
 // Finer-grained sidebar grouping for the Tailwind/shadcn redesign pass
