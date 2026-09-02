@@ -7,16 +7,18 @@
 // just needs the fresh profile synchronously to pick a landing page and
 // surface the pending-appointments toast.
 //
-// Two deliberate omissions from the reference mockup, both because adding
-// them would mean inventing functionality rather than restyling existing
-// functionality:
+// One deliberate omission from the reference mockup:
 //  - "Remember me": Supabase Auth sessions already persist across
 //    refreshes by default, so there's nothing for this checkbox to toggle.
-//  - "Forgot Password?": no password-reset flow is wired up yet (a real
-//    Supabase Auth `resetPasswordForEmail` flow is Phase 2 scope, not
-//    invented here as a dead link).
 //  - The mockup's "Your information is encrypted and protected" line was
 //    replaced with the app's existing disclaimer (passwordAuthCaution).
+//
+// "Forgot Password?" toggles this same card into a second, simpler form
+// (just an email field) that calls Supabase Auth's `resetPasswordForEmail`
+// -- the email links back to /reset-password, which prompts for a new
+// password via `updateUser`. The confirmation toast is worded the same way
+// regardless of whether the email matches an account, so this can't be used
+// to enumerate staff emails.
 //
 // The demo-accounts credentials panel (a click-to-copy "email / password"
 // list) has been removed as of the Phase 1 Supabase migration: the 3 seed
@@ -33,7 +35,7 @@ import { pendingApptCount } from "../lib/appointments.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { navItemsForRole, navPath } from "../lib/nav.js";
 import { totalEnrolledCount } from "../lib/students.js";
-import { fetchProfile, signIn, signOut } from "../lib/supabaseAuth.js";
+import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -66,6 +68,8 @@ export default function StaffLogin() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState("login");
+  const [resetEmail, setResetEmail] = useState("");
 
   // Phase 1 Supabase migration: real auth (supabase.auth.signInWithPassword)
   // instead of the old plaintext data.users lookup -- see supabaseAuth.js.
@@ -94,6 +98,18 @@ export default function StaffLogin() {
     if (profile.role === "job_developer" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "job_developer");
     navigate(navPath(items[0] || "dashboard"));
     if (pending > 0) showToast(t("pendingRequestsToast").replace("{n}", pending));
+  }
+
+  // Same generic toast whether or not the email matches an account -- avoids
+  // leaking which work emails have staff accounts.
+  async function handleForgotSubmit(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    await resetPasswordForEmail(resetEmail.trim());
+    setSubmitting(false);
+    showToast(t("resetLinkSentToast"));
+    setMode("login");
+    setResetEmail("");
   }
 
   const stats = [
@@ -199,78 +215,127 @@ export default function StaffLogin() {
                 <Lock className="h-6 w-6" strokeWidth={2} />
               </div>
               <div className="mt-3 text-sm font-bold text-primary">{t("staffLoginTitle")}</div>
-              <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-card-foreground">{t("welcomeBackHeading")}</h1>
-              <p className="mt-2 text-sm text-muted">{t("staffLoginSubtitle")}</p>
+              <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-card-foreground">
+                {mode === "login" ? t("welcomeBackHeading") : t("forgotPasswordHeading")}
+              </h1>
+              <p className="mt-2 text-sm text-muted">{mode === "login" ? t("staffLoginSubtitle") : t("forgotPasswordSubtitle")}</p>
             </div>
 
             <Card className="mx-auto mt-6 w-full max-w-[460px] rounded-[20px]">
               <CardContent className="p-10">
-                <form onSubmit={handleSubmit} noValidate>
-                  <div className="mb-5">
-                    <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
-                      <input
-                        type="email"
-                        id="login-email"
-                        autoComplete="username"
-                        placeholder={t("workEmailPlaceholder")}
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
+                {mode === "login" ? (
+                  <form onSubmit={handleSubmit} noValidate>
+                    <div className="mb-5">
+                      <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <input
+                          type="email"
+                          id="login-email"
+                          autoComplete="username"
+                          placeholder={t("workEmailPlaceholder")}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mb-4">
-                    <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
-                      <input
-                        type={showPw ? "text" : "password"}
-                        id="login-password"
-                        autoComplete="current-password"
-                        placeholder={t("passwordFieldPlaceholder")}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-12 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 h-9 w-9 -translate-y-1/2 text-muted hover:bg-background hover:text-card-foreground"
-                        onClick={() => setShowPw((v) => !v)}
-                        aria-label={showPw ? t("hidePassword") : t("showPassword")}
-                        title={showPw ? t("hidePassword") : t("showPassword")}
-                      >
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.span
-                            key={showPw ? "hide" : "show"}
-                            initial={{ rotate: -90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: 90, opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="flex"
-                          >
-                            {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
-                          </motion.span>
-                        </AnimatePresence>
-                      </Button>
+                    <div className="mb-4">
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="required block text-sm font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-primary hover:underline"
+                          onClick={() => setMode("forgot")}
+                        >
+                          {t("forgotPasswordLink")}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <input
+                          type={showPw ? "text" : "password"}
+                          id="login-password"
+                          autoComplete="current-password"
+                          placeholder={t("passwordFieldPlaceholder")}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-12 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 h-9 w-9 -translate-y-1/2 text-muted hover:bg-background hover:text-card-foreground"
+                          onClick={() => setShowPw((v) => !v)}
+                          aria-label={showPw ? t("hidePassword") : t("showPassword")}
+                          title={showPw ? t("hidePassword") : t("showPassword")}
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.span
+                              key={showPw ? "hide" : "show"}
+                              initial={{ rotate: -90, opacity: 0 }}
+                              animate={{ rotate: 0, opacity: 1 }}
+                              exit={{ rotate: 90, opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex"
+                            >
+                              {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
+                            </motion.span>
+                          </AnimatePresence>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
 
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={!email.trim() || !password || submitting}
-                    className="mt-2 h-14 w-full text-base"
-                  >
-                    {t("loginBtn")} <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </form>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={!email.trim() || !password || submitting}
+                      className="mt-2 h-14 w-full text-base"
+                    >
+                      {t("loginBtn")} <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleForgotSubmit} noValidate>
+                    <div className="mb-5">
+                      <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="reset-email">{t("loginEmail")}</label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <input
+                          type="email"
+                          id="reset-email"
+                          autoComplete="username"
+                          placeholder={t("workEmailPlaceholder")}
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                      </div>
+                    </div>
 
-                <p className="mt-4 text-center text-xs leading-relaxed text-muted">{t("passwordAuthCaution")}</p>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={!resetEmail.trim() || submitting}
+                      className="mt-2 h-14 w-full text-base"
+                    >
+                      {t("sendResetLinkBtn")} <ArrowRight className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="mt-3 h-auto w-full text-sm font-semibold text-muted hover:bg-transparent hover:text-card-foreground"
+                      onClick={() => setMode("login")}
+                    >
+                      {t("backToSignIn")}
+                    </Button>
+                  </form>
+                )}
+
+                {mode === "login" && <p className="mt-4 text-center text-xs leading-relaxed text-muted">{t("passwordAuthCaution")}</p>}
               </CardContent>
             </Card>
           </motion.div>

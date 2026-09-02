@@ -16,6 +16,7 @@ import { useApp } from "./context/AppContext.jsx";
 import Shell from "./components/Shell.jsx";
 import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import MyCaseload from "./pages/MyCaseload.jsx";
 import RequireRoute from "./components/RequireRoute.jsx";
@@ -80,6 +81,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/staff-login" element={<StaffLogin />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<Shell />}>
           <Route path="/dashboard" element={<Dashboard />} />

@@ -13,6 +13,14 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+export async function resetPasswordForEmail(email) {
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+}
+
+export async function updatePassword(password) {
+  return supabase.auth.updateUser({ password });
+}
+
 export async function getSession() {
   const { data } = await supabase.auth.getSession();
   return data.session || null;
