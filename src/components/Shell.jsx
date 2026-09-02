@@ -231,16 +231,16 @@ export default function Shell() {
   // design that owns its own header/footer chrome -- skip Shell's default
   // topbar/footer-note there instead of nesting one inside the other.
   const isKioskLanding = kiosk && location.pathname === "/checkin";
-  // The visitor check-in form (CheckInVisitor.jsx) is a landscape kiosk
-  // layout -- sidebar | form | action panel -- so it needs the full width of
-  // the content column rather than <main>'s usual 1200px reading measure,
-  // and (on a landscape screen) a definite height so its centre column can
-  // scroll on its own instead of scrolling the whole page. Both come from
-  // main--kiosk-form in main.css; the rest of Shell is untouched.
+  // Both check-in screens (CheckInVisitor.jsx's form and CheckInStudent.jsx's
+  // class rosters) are landscape kiosk layouts -- sidebar | content | action
+  // panel -- so they need the full width of the content column rather than
+  // <main>'s usual 1200px reading measure, and (on a landscape screen) a
+  // definite height so their centre column can scroll on its own instead of
+  // scrolling the whole page. Both come from main--kiosk-form in main.css.
   // In kiosk mode the form also drops Shell's prototype footer note: the
   // kiosk frame has its own closing line, and the landing screen already
   // hides that note in kiosk mode for the same reason.
-  const isKioskForm = location.pathname === "/checkin/visitor";
+  const isKioskForm = location.pathname === "/checkin/visitor" || location.pathname === "/checkin/student";
   // The public appointment lookup (AppointmentLookup.jsx) is the other half
   // of that same visitor-facing design: it carries the NB4HS logo, the Back
   // control and the language picker inside its own frame, so Shell's topbar

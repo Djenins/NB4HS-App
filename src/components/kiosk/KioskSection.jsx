@@ -13,7 +13,7 @@ const BADGE_TONES = {
   violet: "bg-[#EDE9FE] text-[#7C3AED] dark:bg-[#2c2447] dark:text-[#b39ef2]"
 };
 
-export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, children, className }) {
+export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, subtitle, children, className }) {
   return (
     <section
       id={id}
@@ -28,7 +28,10 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", BADGE_TONES[tone])}>
           <SectionIcon size={21} strokeWidth={2} aria-hidden="true" />
         </span>
-        <h2 id={id + "-title"} className="m-0 text-[1.35rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+        <div className="min-w-0">
+          <h2 id={id + "-title"} className="m-0 text-[1.35rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+          {subtitle && <p className="m-0 mt-0.5 text-[0.92rem] leading-snug text-muted">{subtitle}</p>}
+        </div>
       </div>
       {children}
     </section>
