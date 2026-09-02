@@ -56,19 +56,21 @@ export default function QRCode() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="qr-box">
           <CardContent className="flex flex-col items-center p-8 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-tint">
               <QrCode className="h-7 w-7 text-primary" strokeWidth={2} />
             </div>
             <h3 className="text-lg font-bold tracking-tight text-card-foreground">{t("qrScanHeading")}</h3>
             <p className="mt-1 max-w-xs text-sm text-muted">{t("qrScanDesc")}</p>
 
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border bg-white p-4">
+            <div className="qr-plate mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border p-4">
               <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
               <img src={qrImg} alt="QR code" className={imgFailed ? "hidden" : "h-[220px] w-[220px]"} onError={() => setImgFailed(true)} />
-              {imgFailed && <div className="max-w-[220px] text-sm text-muted">QR image requires internet access. Link: {url}</div>}
+              {/* Sits on the always-white .qr-plate, so it can't use --muted: in dark
+                  mode that's #a2acba on white, ~2.3:1. Navy reads on white in both themes. */}
+              {imgFailed && <div className="max-w-[220px] text-sm text-muted dark:text-navy">QR image requires internet access. Link: {url}</div>}
             </div>
 
-            <div className="no-print mt-6 flex w-full items-start gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-left">
+            <div className="no-print mt-6 flex w-full items-start gap-3 rounded-xl border border-dashed border-primary-soft bg-primary-tint p-4 text-left">
               <Printer className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
                 <div className="text-sm font-semibold text-card-foreground">{t("qrDesc").split(".")[0]}.</div>
@@ -81,13 +83,13 @@ export default function QRCode() {
         <div className="no-print space-y-6">
           <Card>
             <CardContent className="flex flex-col items-center p-8 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-tint-success">
                 <ShieldCheck className="h-7 w-7 text-success" strokeWidth={2} />
               </div>
               <h3 className="text-lg font-bold tracking-tight text-card-foreground">{t("qrLinkHeading")}</h3>
               <p className="mt-1 max-w-xs text-sm text-muted">{t("qrLinkDesc")}</p>
 
-              <div className="mt-6 flex w-full items-center gap-2 rounded-xl border border-border bg-muted/30 px-4 py-3">
+              <div className="mt-6 flex w-full items-center gap-2 rounded-xl border border-border bg-tint-neutral px-4 py-3">
                 <Globe className="h-4 w-4 shrink-0 text-muted" />
                 <input
                   ref={inputRef}
@@ -119,7 +121,7 @@ export default function QRCode() {
             </CardContent>
           </Card>
 
-          <div className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 p-4">
+          <div className="flex items-start gap-3 rounded-xl border border-success-soft bg-tint-success p-4">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
             <div>
               <div className="text-sm font-bold text-card-foreground">{t("qrSecureTitle")}</div>

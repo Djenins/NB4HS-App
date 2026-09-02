@@ -12,7 +12,7 @@ export default function BulkActionsBar({ count, onClear, children }) {
   const t = useT();
   if (!count) return null;
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-tint px-4 py-3">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary-soft bg-primary-tint px-4 py-3">
       <div className="text-sm font-bold text-primary">{t("bulkSelectedLabel").replace("{n}", String(count))}</div>
       <div className="flex flex-wrap items-center gap-2">
         {children}

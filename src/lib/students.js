@@ -40,8 +40,15 @@ export function studentMissingContact(s) {
   return !((s.phone || "").trim()) && !(s.street || s.city || s.zip);
 }
 export function columnAccentColor(key, index) {
-  if (key === "waiting") return "#D99E32"; // gold -- matches --warn's new brand value
+  if (key === "waiting") return "var(--gold-ink)"; // gold -- theme-aware, see COLUMN_ACCENTS
   return COLUMN_ACCENTS[index % COLUMN_ACCENTS.length];
+}
+// The faint disc behind a classroom's icon. Colour-mixed at call time rather
+// than by string-concatenating an alpha suffix onto a hex, which stopped
+// working when the accents became tokens -- `var(--primary)22` is not a
+// colour. Mixing against transparent keeps it readable on either theme's card.
+export function columnAccentTint(color) {
+  return "color-mix(in srgb, " + color + " 13%, transparent)";
 }
 // Counts students actually placed in a classroom (Level 1/2/3, Online, or
 // any other active class) -- the waiting list is the backlog, not an

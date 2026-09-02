@@ -246,7 +246,7 @@ export default function WorkforceReports() {
           <KpiCard icon={Briefcase} tint="bg-primary-tint" iconColor="text-primary" value={jobsPostedKpi.value} label={t("statJobsPostedLabel")} pct={jobsPostedKpi.trend.pct} none={jobsPostedKpi.trend.none} t={t} />
           <KpiCard icon={CheckCircle2} tint="bg-tint-success" iconColor="text-success" value={placementsKpi.value} label={t("placementsTitle")} pct={placementsKpi.trend.pct} none={placementsKpi.trend.none} t={t} />
           <KpiCard icon={Building2} tint="bg-gold-tint" iconColor="text-gold-dark" value={employersAddedKpi.value} label={t("statEmployersAddedLabel")} pct={employersAddedKpi.trend.pct} none={employersAddedKpi.trend.none} t={t} />
-          <KpiCard icon={UserPlus} tint="bg-tint-warn" iconColor="text-warn" value={referralsKpi.value} label={t("referralsLabel")} pct={referralsKpi.trend.pct} none={referralsKpi.trend.none} t={t} />
+          <KpiCard icon={UserPlus} tint="bg-tint-warn" iconColor="text-gold-ink" value={referralsKpi.value} label={t("referralsLabel")} pct={referralsKpi.trend.pct} none={referralsKpi.trend.none} t={t} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard icon={CalendarClock} tint="bg-primary-tint" iconColor="text-primary" value={interviewsKpi.value} label={t("statInterviewsLabel")} pct={interviewsKpi.trend.pct} none={interviewsKpi.trend.none} t={t} />

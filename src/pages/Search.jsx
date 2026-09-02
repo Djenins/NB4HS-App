@@ -51,8 +51,9 @@ function Sparkline({ data, color }) {
   const area = path + ` L${w},${h} L0,${h} Z`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} className="shrink-0">
-      <path d={area} fill={color} opacity="0.14" />
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {/* style rather than fill/stroke attributes so a var() colour resolves */}
+      <path d={area} style={{ fill: color }} opacity="0.14" />
+      <path d={path} fill="none" style={{ stroke: color }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -403,10 +404,10 @@ export default function Search() {
       </Card>
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard icon={Users} tint="bg-primary-tint text-primary" num={stats.todayVisits.length} label={t("todaysVisitors")} trend={trend} color="#2563EB" index={0} />
-        <KpiCard icon={LogIn} tint="bg-tint-success text-success" num={stats.currentlyIn.length} label={t("currentlyInBuilding")} trend={trend} color="#1a7f37" index={1} />
-        <KpiCard icon={DoorOpen} tint="bg-primary-tint text-primary" num={stats.checkedOutToday.length} label={t("checkedOutToday")} trend={trend} color="#2563EB" index={2} />
-        <KpiCard icon={Clock} tint="bg-tint-warn text-warn" num={fmtDuration(stats.avgLen, lang)} label={t("avgVisitLength")} trend={trend} color="#D99E32" index={3} />
+        <KpiCard icon={Users} tint="bg-primary-tint text-primary" num={stats.todayVisits.length} label={t("todaysVisitors")} trend={trend} color="var(--primary)" index={0} />
+        <KpiCard icon={LogIn} tint="bg-tint-success text-success" num={stats.currentlyIn.length} label={t("currentlyInBuilding")} trend={trend} color="var(--success)" index={1} />
+        <KpiCard icon={DoorOpen} tint="bg-primary-tint text-primary" num={stats.checkedOutToday.length} label={t("checkedOutToday")} trend={trend} color="var(--primary)" index={2} />
+        <KpiCard icon={Clock} tint="bg-tint-warn text-gold-ink" num={fmtDuration(stats.avgLen, lang)} label={t("avgVisitLength")} trend={trend} color="var(--gold-ink)" index={3} />
       </div>
 
       <Card>

@@ -18,12 +18,15 @@ export default function Sparkline({ labels, data }) {
 
   return (
     <svg viewBox={"0 0 " + w + " " + h} style={{ width: "100%", height: 120 }} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke="#2563EB" strokeWidth="2" />
+      {/* style, not a stroke/fill attribute: presentation attributes don't
+          reliably resolve var(), and these need to follow the theme -- the
+          hardcoded #2563EB stayed light-mode blue on a dark card. */}
+      <polyline points={points} fill="none" style={{ stroke: "var(--primary)" }} strokeWidth="2" />
       {data.map((v, i) => {
         const x = pad + i * stepX;
         const y = h - pad - (v / max) * (h - pad * 2);
         return (
-          <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="2.5" fill="#2563EB">
+          <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="2.5" style={{ fill: "var(--primary)" }}>
             <title>{labels[i]}: {v}</title>
           </circle>
         );

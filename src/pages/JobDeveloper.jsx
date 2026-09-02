@@ -387,14 +387,14 @@ export default function JobDeveloper() {
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalJobClientsLabel")} value={totalClients} sub={t("statAllTimeLabel")} />
         <KpiStat icon={Calendar} tint="bg-tint-success text-success" label={t("statActivelyLookingLabel")} value={activelyLooking} sub={t("statCurrentlyLookingLabel")} />
         <KpiStat icon={UserPlus} tint="bg-violet-100 text-violet-700" label={t("statInterviewsLabel")} value={interviewsScheduled} sub={t("statScheduledLabel")} />
-        <KpiStat icon={User} tint="bg-tint-warn text-warn" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
+        <KpiStat icon={User} tint="bg-tint-warn text-gold-ink" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
         <KpiStat icon={FileCheck2} tint="bg-cyan-100 text-cyan-700" label={t("statResumesCompletedLabel")} value={resumesCompleted} sub={t("statUpToDateLabel")} />
       </div>
 
       {followUpOnly && (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent/30 bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent-soft bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
           {t("followUpFilterActiveLabel")}
-          <Button variant="ghost" size="sm" className="gap-1.5 text-accent hover:bg-accent/10" onClick={() => setFollowUpOnly(false)}>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-accent hover:bg-accent-tint" onClick={() => setFollowUpOnly(false)}>
             <X className="h-3.5 w-3.5" /> {t("clearFilters")}
           </Button>
         </div>

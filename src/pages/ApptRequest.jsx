@@ -157,7 +157,7 @@ export default function ApptRequest() {
           {submitError && (
             <p
               role="alert"
-              className="m-0 flex items-start gap-2.5 rounded-[14px] border border-accent/40 bg-accent-tint p-3.5 text-[0.98rem] font-semibold text-accent"
+              className="m-0 flex items-start gap-2.5 rounded-[14px] border border-accent-soft bg-accent-tint p-3.5 text-[0.98rem] font-semibold text-accent"
             >
               <TriangleAlert size={20} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
               {submitError}

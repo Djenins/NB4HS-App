@@ -253,6 +253,11 @@ export default function Shell() {
   // ApptRequestSuccess.jsx) and carry their own logo/Back/language header for
   // the same reason -- see main--appt-request in main.css.
   const isApptRequest = location.pathname.indexOf("/appointments/request") === 0;
+  // The shared calendar is an internal productivity screen whose week grid
+  // needs the whole content column rather than <main>'s 1200px reading
+  // measure -- see main--calendar in main.css. It keeps Shell's topbar; only
+  // the width/padding changes.
+  const isCalendar = location.pathname === "/calendar";
 
   const role = session ? session.role : null;
   const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
@@ -411,7 +416,7 @@ export default function Shell() {
             {isKioskLanding ? (
               <Outlet />
             ) : (
-              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request")}>
+              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
                 <Outlet />
               </main>
             )}

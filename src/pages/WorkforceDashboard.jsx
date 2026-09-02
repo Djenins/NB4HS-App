@@ -96,7 +96,7 @@ export default function WorkforceDashboard() {
         <KpiCard icon={Building2} tint="bg-primary-tint text-primary" label={t("statActiveEmployersLabel")} value={activeEmployers} />
         <KpiCard icon={Briefcase} tint="bg-tint-success text-success" label={t("statActiveJobOpeningsLabel")} value={activeJobOpenings} />
         <KpiCard icon={Users} tint="bg-violet-100 text-violet-700" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
-        <KpiCard icon={CalendarClock} tint="bg-tint-warn text-warn" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled} />
+        <KpiCard icon={CalendarClock} tint="bg-tint-warn text-gold-ink" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled} />
         <KpiCard icon={CheckCircle2} tint="bg-cyan-100 text-cyan-700" label={t("statPlacementsThisMonthLabel")} value={placementsThisMonth} />
         <KpiCard icon={Percent} tint="bg-primary-tint text-primary" label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
         <KpiCard icon={AlertCircle} tint="bg-tint-danger text-accent" label={t("statEmployerFollowUpsDueLabel")} value={followUpsDue} />

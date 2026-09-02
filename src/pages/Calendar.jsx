@@ -1,25 +1,29 @@
-// Calendar.jsx -- shared weekly calendar: Level 1/2/3 class schedule
-// (fixed 9:30-12:30 block, derived from data.classes -- see lib/calendar.js)
+// Calendar.jsx -- shared calendar: Level 1/2/3 class schedule (one fixed
+// block per class day, derived from data.classes -- see lib/calendar.js)
 // plus staff-added "office visit" and "appointment" entries (calendar_events
-// table, see lib/calendarData.js). Any signed-in staff can add either kind;
-// everyone with calendar access can see the whole week at a glance.
+// table, see lib/calendarData.js) plus US federal holidays (computed, see
+// lib/holidays.js). Any signed-in staff can add either stored kind;
+// everyone with calendar access sees the whole range at a glance.
 //
-// Redesigned as a true time-grid week view (WeekView/DayColumn/EventCard,
-// see components/calendar/) with a slide-out EventDrawer, in the style of
-// Google/Outlook/Notion Calendar. The design brief this was built from asked
-// for 9 event categories (Immigration, Housing, Job Development, Case
-// Management, Staff Meetings, ...) and drawer fields like Related Case and
-// Documents -- none of that exists in calendar_events today (type is only
-// class/visit/appointment; no client/staff/status/case-link columns), so
-// per explicit product decision this pass is UI-only for the 3 real
-// categories: no fabricated data, no controls that silently do nothing.
+// The design brief this screen was built from asked for 9 event categories
+// (Immigration, Housing, Job Development, Case Management, Staff Meetings,
+// ...) and drawer fields like Related Case and Documents -- none of that
+// exists in calendar_events today (type is only class/visit/appointment; no
+// client/staff/status/case-link columns), so per explicit product decision
+// this stays UI-only for the 4 real categories: no fabricated data, no
+// controls that silently do nothing.
 //
 // Week/Day/Month/Agenda all share one `anchor` date and one `days` array
 // (see visibleDays() below) so there's a single source of truth for what
 // range is on screen -- Day view reuses WeekView/DayColumn with a 1-day
 // array rather than a separate component, since the time grid is identical.
-import { CalendarPlus, Info, Settings } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+//
+// The page owns everything the four views need to agree on: the visible
+// days, the fetched events, the derived dayBlocks, the time grid built from
+// them (buildTimeGrid widens past 8-6 for anything scheduled outside office
+// hours) and the minute-resolution clock behind the "now" line.
+import { Info } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { addDays, addMonths, addWorkdays, classBlocksForDay, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
@@ -27,18 +31,28 @@ import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetch
 import { dateStrFromDate, todayStr } from "../lib/utils.js";
 import { holidaysByDate } from "../lib/holidays.js";
 import { Button } from "../components/ui/button.jsx";
-import { FILTERS, KIND_STYLE } from "../components/calendar/kindStyle.js";
+import { FILTERS } from "../components/calendar/kindStyle.js";
+import { buildTimeGrid } from "../components/calendar/calendarLayout.js";
 import CalendarHeader from "../components/calendar/CalendarHeader.jsx";
 import CalendarToolbar from "../components/calendar/CalendarToolbar.jsx";
 import WeekView from "../components/calendar/WeekView.jsx";
 import MonthView from "../components/calendar/MonthView.jsx";
+import AgendaView from "../components/calendar/AgendaView.jsx";
 import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
-import { BTN_RESET } from "../components/calendar/btnReset.js";
-import { cn } from "../lib/cn.js";
+import { CalendarError, CalendarSkeleton } from "../components/calendar/CalendarStatus.jsx";
 
-const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
+
+// A five-column week grid is unreadable on a phone, so a narrow first paint
+// opens on the single-day timeline instead. Only the *default* moves --
+// every view stays reachable from the switcher at any width.
+function initialView(configuredView) {
+  const saved = configuredView === "list" ? "list" : "week";
+  if (saved === "week" && typeof window !== "undefined" && window.innerWidth < 768) return "day";
+  return saved;
+}
 
 function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
   const t = useT();
@@ -138,19 +152,26 @@ function fmtMonthDay(d) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function minutesOfDay(date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
 export default function CalendarPage() {
   const { data, session, config, updateConfig, requestConfirm, showToast } = useApp();
   const t = useT();
   const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState([]);
+  const [status, setStatus] = useState("loading");
+  const [reloadKey, setReloadKey] = useState(0);
   const [filter, setFilter] = useState(config.calendarDefaultFilter || "all");
   const [search, setSearch] = useState("");
-  const [view, setView] = useState(config.calendarDefaultView === "list" ? "list" : "week");
+  const [view, setView] = useState(() => initialView(config.calendarDefaultView));
   const [addModalType, setAddModalType] = useState(null);
   const [addModalDate, setAddModalDate] = useState(todayStr());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeBlock, setActiveBlock] = useState(null);
   const [drawerEditMode, setDrawerEditMode] = useState(false);
+  const [nowMinutes, setNowMinutes] = useState(() => minutesOfDay(new Date()));
 
   function openEvent(block) { setDrawerEditMode(false); setActiveBlock(block); }
   function editEvent(block) { setDrawerEditMode(true); setActiveBlock(block); }
@@ -188,14 +209,47 @@ export default function CalendarPage() {
     return fmtMonthDay(days[0]) + " – " + fmtMonthDay(days[days.length - 1]) + ", " + days[days.length - 1].getFullYear();
   }, [view, days, anchor]);
 
+  const navLabels = view === "day"
+    ? { prev: t("calendarPrevDay"), next: t("calendarNextDay") }
+    : view === "month"
+      ? { prev: t("calendarPrevMonth"), next: t("calendarNextMonth") }
+      : { prev: t("calendarPrevWeek"), next: t("calendarNextWeek") };
+
+  // One fetch per visible range (plus a realtime re-fetch of that same
+  // range) -- navigating a week forward asks only for the new week, and
+  // nothing refetches while the user types in the search box, since search
+  // and the filter chips both run over the rows already in memory.
   useEffect(() => {
     let cancelled = false;
-    fetchCalendarEvents(rangeStart, rangeEnd).then((rows) => { if (!cancelled) setEvents(rows); });
-    const unsub = subscribeCalendarEvents(() => {
-      fetchCalendarEvents(rangeStart, rangeEnd).then((rows) => { if (!cancelled) setEvents(rows); });
-    });
+    let seen = false;
+    function load(initial) {
+      if (initial) setStatus("loading");
+      fetchCalendarEvents(rangeStart, rangeEnd).then((rows) => {
+        if (cancelled) return;
+        seen = true;
+        setEvents(rows);
+        setStatus("ready");
+      }).catch((err) => {
+        if (cancelled) return;
+        console.warn("fetchCalendarEvents failed", err);
+        // A realtime re-fetch that fails after a good load leaves the
+        // already-rendered week alone rather than blanking it.
+        if (!seen) setStatus("error");
+      });
+    }
+    load(true);
+    const unsub = subscribeCalendarEvents(() => load(false));
     return () => { cancelled = true; unsub(); };
-  }, [rangeStart, rangeEnd]);
+  }, [rangeStart, rangeEnd, reloadKey]);
+
+  // Drives the "now" line. A minute is as precise as an hour-tall row can
+  // show, and it stops the page re-rendering on a timer any faster.
+  useEffect(() => {
+    const id = setInterval(() => setNowMinutes(minutesOfDay(new Date())), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const reload = useCallback(() => setReloadKey((n) => n + 1), []);
 
   async function handleSave(fields) {
     try {
@@ -252,6 +306,11 @@ export default function CalendarPage() {
     });
   }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime]);
 
+  // Day view gets a taller hour so a single column can carry more detail;
+  // the grid otherwise spans 8 AM-6 PM, widened to cover anything actually
+  // scheduled outside that window.
+  const grid = useMemo(() => buildTimeGrid(dayBlocks, view === "day" ? 84 : 64), [dayBlocks, view]);
+
   const summary = useMemo(() => {
     let classes = 0, visits = 0, appointments = 0;
     dayBlocks.forEach((day) => day.blocks.forEach((b) => {
@@ -266,127 +325,107 @@ export default function CalendarPage() {
     ? [days[0].toLocaleDateString("en-US", { weekday: "long" }).toUpperCase()]
     : days.map((d) => WEEKDAYS.en[d.getDay()].slice(0, 3).toUpperCase());
 
-  const weekHolidays = useMemo(() => {
+  const rangeHolidays = useMemo(() => {
     if (filter !== "all" && filter !== "holiday") return {};
     const years = Array.from(new Set(days.map((d) => d.getFullYear())));
     return holidaysByDate(years);
   }, [days, filter]);
 
-  return (
-    <div className="flex flex-col gap-4">
-      <CalendarHeader
-        t={t}
-        rangeLabel={rangeLabel}
-        onToday={goToday}
-        onPrev={goPrev}
-        onNext={goNext}
-      />
+  const today = todayStr();
+  const isEmptyRange = status === "ready" && dayBlocks.every((d) => d.blocks.length === 0);
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <CalendarToolbar
-          t={t}
-          search={search}
-          onSearchChange={setSearch}
-          filter={filter}
-          onFilterChange={setFilter}
-          view={view}
-          onViewChange={handleViewChange}
-        />
-        <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />
-      </div>
-
-      {view === "month" ? (
+  function renderCalendar() {
+    if (status === "loading") return <CalendarSkeleton columns={view === "day" ? 1 : 5} rows={view === "day" ? 6 : 8} />;
+    if (status === "error") return <CalendarError t={t} onRetry={reload} />;
+    if (view === "month") {
+      return (
         <MonthView
           dayBlocks={dayBlocks}
           monthAnchor={anchor}
-          todayStr={todayStr()}
-          holidaysByDate={weekHolidays}
+          todayStr={today}
+          holidaysByDate={rangeHolidays}
           t={t}
           onSelectDay={(dateStr) => { setAnchor(new Date(dateStr + "T00:00:00")); setView("day"); }}
           onOpenEvent={openEvent}
           onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
         />
-      ) : view === "week" || view === "day" ? (
-        <WeekView
+      );
+    }
+    if (view === "list") {
+      return (
+        <AgendaView
           dayBlocks={dayBlocks}
-          weekdayLabels={weekdayLabels}
-          todayStr={todayStr()}
-          holidaysByDate={weekHolidays}
+          todayStr={today}
+          holidaysByDate={rangeHolidays}
           t={t}
-          onOpen={openEvent}
-          onEdit={editEvent}
-          onDuplicate={handleDuplicate}
-          onDelete={handleDelete}
+          onOpenEvent={openEvent}
           onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
         />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {dayBlocks.map(({ date: d, dateStr, blocks }) => {
-            const holiday = weekHolidays[dateStr];
-            return (
-              <div key={dateStr} className={cn("rounded-xl border p-3", dateStr === todayStr() ? "border-primary bg-primary-tint/30" : "border-border bg-card")}>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="m-0 text-sm font-bold text-card-foreground">{WEEKDAYS.en[d.getDay()]}, {fmtMonthDay(d)}</p>
-                  {holiday && (
-                    <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
-                      <KIND_STYLE.holiday.icon className="h-3 w-3" />{holiday.name}
-                    </span>
-                  )}
-                </div>
-                {blocks.length === 0 ? (
-                  <button type="button" className={cn(BTN_RESET, "w-full rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-muted hover:border-primary hover:text-primary")} onClick={() => { setAddModalDate(dateStr); setAddModalType("visit"); }}>
-                    {t("calendarNewEvent")}
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {blocks.map((b) => {
-                      const style = KIND_STYLE[b.kind];
-                      const Icon = style.icon;
-                      return (
-                        <button key={b.key} type="button" onClick={() => openEvent(b)} className={cn(BTN_RESET, "flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left hover:border-primary/40")}>
-                          <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md", style.chipBg, style.chipFg)}><Icon className="h-3.5 w-3.5" /></span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-card-foreground">{b.title}</span>
-                            <span className="block text-xs text-muted">{b.startTime}{b.endTime ? " – " + b.endTime : ""}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      );
+    }
+    return (
+      <WeekView
+        dayBlocks={dayBlocks}
+        weekdayLabels={weekdayLabels}
+        todayStr={today}
+        holidaysByDate={rangeHolidays}
+        grid={grid}
+        nowMinutes={nowMinutes}
+        t={t}
+        onOpen={openEvent}
+        onEdit={editEvent}
+        onDuplicate={handleDuplicate}
+        onDelete={handleDelete}
+        onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 lg:gap-5">
+      <CalendarHeader
+        t={t}
+        rangeLabel={rangeLabel}
+        prevLabel={navLabels.prev}
+        nextLabel={navLabels.next}
+        onToday={goToday}
+        onPrev={goPrev}
+        onNext={goNext}
+      />
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <CalendarToolbar
+            t={t}
+            search={search}
+            onSearchChange={setSearch}
+            filter={filter}
+            onFilterChange={setFilter}
+            view={view}
+            onViewChange={handleViewChange}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         </div>
+        <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />
+      </div>
+
+      {/* The grid itself always stays on screen when a range is empty -- the
+          note sits above it so staff can still navigate or add an event. */}
+      {isEmptyRange && (
+        <p className="m-0 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted">
+          <Info className="h-4 w-4 shrink-0 text-primary" />
+          {search.trim() || filter !== "all" ? t("calendarNoMatches") : t("calendarNoEventsRange")}
+        </p>
       )}
 
-      <Legend t={t} />
+      {renderCalendar()}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary-tint/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div>
-            <p className="m-0 text-sm font-bold text-card-foreground">{t("calendarAboutTitle")}</p>
-            <p className="m-0 text-sm text-muted">{t("calendarAboutBody")}</p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" className="shrink-0" onClick={() => setSettingsOpen(true)}>
-          <Settings className="mr-1.5 h-4 w-4" />{t("calendarSettings")}
-        </Button>
-      </div>
+      <Legend t={t} summary={status === "ready" ? summary : null} />
 
-      <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary">
-          <CalendarPlus className="h-5 w-5" />
-        </span>
-        <p className="m-0 shrink-0 text-sm font-bold text-card-foreground">{t("calendarSummaryTitle")}</p>
-        <div className="flex divide-x divide-border">
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-card-foreground">{summary.days}</p><p className="m-0 text-[11px] text-muted">{t("calendarSummaryDays")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-primary">{summary.classes}</p><p className="m-0 text-[11px] text-muted">{t("calendarClassLabel")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-success">{summary.visits}</p><p className="m-0 text-[11px] text-muted">{t("calendarVisitLabel")}</p></div>
-          <div className="px-4 text-center first:pl-0 last:pr-0"><p className="m-0 text-lg font-bold text-[#6b21a8]">{summary.appointments}</p><p className="m-0 text-[11px] text-muted">{t("calendarAppointmentLabel")}</p></div>
-        </div>
-      </div>
+      <p className="m-0 flex items-start gap-2 px-1 text-xs text-muted">
+        <Info className="mt-px h-3.5 w-3.5 shrink-0 text-primary" />
+        {t("calendarAboutBody")}
+      </p>
 
       <EventDrawer
         block={activeBlock}

@@ -1207,7 +1207,17 @@ export var STR = {
   calendarUpdated: { en: "Event updated ✓", ht: "Evènman mete ajou ✓", fr: "Événement mis à jour ✓" },
   calendarHolidayLabel: { en: "Holiday", ht: "Jou Ferye", fr: "Jour Férié" },
   calendarFilterHolidays: { en: "Holidays", ht: "Jou Ferye", fr: "Jours Fériés" },
-  calendarOfficeClosed: { en: "Office closed", ht: "Biwo fèmen", fr: "Bureau fermé" }
+  calendarOfficeClosed: { en: "Office closed", ht: "Biwo fèmen", fr: "Bureau fermé" },
+  calendarAllDay: { en: "All Day", ht: "Tout Jounen", fr: "Toute la Journée" },
+  calendarMore: { en: "more", ht: "plis", fr: "de plus" },
+  calendarPrevDay: { en: "Previous day", ht: "Jou anvan", fr: "Jour précédent" },
+  calendarNextDay: { en: "Next day", ht: "Jou apre", fr: "Jour suivant" },
+  calendarPrevMonth: { en: "Previous month", ht: "Mwa anvan", fr: "Mois précédent" },
+  calendarNextMonth: { en: "Next month", ht: "Mwa apre", fr: "Mois suivant" },
+  calendarNoEventsRange: { en: "No events scheduled for this period.", ht: "Pa gen evènman pwograme pou peryòd sa a.", fr: "Aucun événement prévu pour cette période." },
+  calendarNoMatches: { en: "No events match your search or filter.", ht: "Pa gen evènman ki koresponn ak rechèch ou oswa filtè ou.", fr: "Aucun événement ne correspond à votre recherche ou à votre filtre." },
+  calendarLoadError: { en: "We couldn\u2019t load the calendar. Please try again.", ht: "Nou pa t kapab chaje kalandriye a. Tanpri eseye ankò.", fr: "Nous n\u2019avons pas pu charger le calendrier. Veuillez réessayer." },
+  calendarRetry: { en: "Try again", ht: "Eseye ankò", fr: "Réessayer" }
 };
 
 export function t(key, lang) {

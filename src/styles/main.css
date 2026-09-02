@@ -18,6 +18,47 @@
     /* Neutral/semantic tints reused by badges, code, board columns, etc. so dark mode can re-theme them centrally.
        tint-warn now matches gold-tint since warnings are gold; tint-danger matches the new red's tint. */
     --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
+    /* Shared Calendar event kinds. Each timed/all-day event on the calendar
+       is drawn as a soft tint + a hairline border + a solid left accent, and
+       the accent/foreground is the kind's existing brand token (blue class /
+       green office visit / red holiday). Only the two tints per kind live
+       here, because Tailwind's `/opacity` modifier can't be used on the
+       var()-backed colors in tailwind.config.js -- it compiles to an invalid
+       rgb(var(--x) / .5) and the surface silently renders transparent. The
+       appointment purple has no brand token of its own (see kindStyle.js),
+       so its foreground is defined here alongside its tints. */
+    --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8;
+    --ev-visit-bg:#EEF7F1; --ev-visit-border:#BBDDC7;
+    --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
+    --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
+    /* Focus halo. Matches the `outline:3px solid rgba(37,99,235,.28)` this
+       file already uses on input:focus, so Tailwind ring-* focus states and
+       the plain-CSS ones are the same colour. */
+    --focus-ring:rgba(37,99,235,.34);
+    /* Soft border tints -- the hairline around a tinted callout, where the
+       full-strength brand colour is too loud. These exist because a Tailwind
+       opacity modifier can't produce them: `border-primary/25` on a
+       var()-backed palette entry compiles to an invalid
+       `rgb(var(--primary) / .25)` and renders nothing at all. Pre-blended
+       here instead (~30% of the brand hue over --card), same trick and the
+       same hue family as the --ev-*-border calendar tints above. */
+    --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
+    /* Ink for text on a solid --primary fill. White is right in light mode
+       (5.16:1 on #2563EB) but not in dark: --primary is lightened there for
+       link/icon legibility, and that drops white-on-primary to 2.95:1 --
+       under AA on every solid primary button. Dark mode uses the light
+       theme's ink instead: 6.05:1 on #6A94F1, better still on the lighter
+       --primary-dark hover. */
+    --primary-foreground:#ffffff;
+    /* Gold used AS text or as an icon glyph, rather than as a fill or a badge
+       tint. The brand gold is a pale hue -- #D99E32 is 2.36:1 on a white card
+       and 2.2:1 on --tint-warn, well under AA -- so foreground uses take this
+       deepened version while --gold stays the brand value for fills, stripes
+       and tints. Chosen to clear AA on both surfaces a gold foreground
+       actually lands on: 5.57:1 on --card, 4.92:1 on --tint-warn. Dark mode
+       needs no adjustment -- --gold is already lightened there (8.26:1 on
+       --card, 6.29:1 on the dark tint) -- so it just tracks it. */
+    --gold-ink:#8C5F1C;
     /* Spacing scale (8pt system) -- used by new components; existing
        hard-coded values are left alone unless called out below. */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
@@ -39,9 +80,70 @@
     --secondary-border:#475569;
     --primary-tint:#192643; --accent-tint:#411B1C; --gold-tint:#3F331D;
     --tint-neutral:#242b34; --tint-success:#16321f; --tint-warn:#3F331D; --tint-danger:#411B1C;
+    --ev-class-bg:#1A2542; --ev-class-border:#31456F;
+    --ev-visit-bg:#16301F; --ev-visit-border:#2A5539;
+    --ev-appt-bg:#2A1C3A; --ev-appt-border:#4C3465; --ev-appt-fg:#C9A2E8;
+    --ev-holiday-bg:#3A1C1E; --ev-holiday-border:#6B3033;
+    --focus-ring:rgba(106,148,241,.48);
+    /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
+       that reads as a hairline on white disappears on a dark surface. */
+    --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
+    --primary-foreground:#0F172A;
+    --gold-ink:#E1B25C;
     --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box;}
+  /* Tailwind's preflight is deliberately off (see tailwind.config.js), and
+     preflight is what normally gives every element `border-width:0;
+     border-style:solid; border-color:<default>`. Without it a Tailwind
+     `border`/`border-t` utility sets a width onto an element whose
+     border-style is still the CSS default `none` -- the used width computes
+     to 0 and the border simply never paints. Nothing warns you: the class is
+     in the DOM, it just does nothing. Every one of the ~436 border utilities
+     across the Tailwind-based pages was silently inert, so this restores
+     that one trio of defaults for the whole app.
+
+     The selector is wrapped in :where() so the rule carries ZERO
+     specificity, exactly like preflight. Everything already in the codebase
+     therefore still wins over it:
+       - Tailwind's own width/style/color utilities (0,1,0)
+       - every class rule in this file -- .modal-box's `border:1px solid
+         var(--border)`, .theme-pill, .avatar-chip, and the rest
+       - the bare-tag rules below: `button, .btn` (border:2px solid
+         transparent), `input, select, textarea` (1px solid var(--border)),
+         `th,td` (border-bottom), all at (0,0,1)
+     so no styled control loses its border. The elements that would rely on a
+     UA default border instead -- fieldset, iframe -- aren't used anywhere in
+     src/, and the one <hr> (AppointmentLookup.jsx) already spells its rule
+     out as `border-0 border-t border-border`, expecting exactly this.
+
+     border-color defaults to var(--border) rather than preflight's
+     currentColor: a `border-t` written without a color utility means a
+     hairline divider here, never a line in the text color. */
+  :where(*, *::before, *::after){
+    border-width:0; border-style:solid; border-color:var(--border);
+  }
+  /* Ring colour, not ring plumbing. Tailwind emits its own
+     `*, ::before, ::after` rule carrying every --tw-ring-* default whether or
+     not preflight is on, so ring-* utilities DO draw -- unlike border-*
+     above, they were never inert. What is broken is the colour: 81 of them
+     are written `ring-primary/15`, `/30`, `/40`, and an opacity modifier on
+     a var()-backed palette entry compiles to an invalid
+     `rgb(var(--primary) / .15)`. That declaration is dropped, so the ring
+     falls back to Tailwind's stock #3b82f6 -- a blue that isn't ours, on
+     ~24 files' worth of form inputs.
+
+     Overriding the default here recolours every one of them at once, with no
+     per-file edit and nothing to keep in sync: a dropped `/15` and a bare
+     `ring-2` both land on the NB4HS focus halo. --focus-ring matches the
+     `outline:3px solid rgba(37,99,235,.28)` this file already uses on
+     input:focus, so Tailwind and plain-CSS focus states finally agree.
+     Offset colour tracks --card so ring-offset-* reads correctly in dark
+     mode instead of Tailwind's hardcoded white. */
+  :where(*, *::before, *::after){
+    --tw-ring-color:var(--focus-ring);
+    --tw-ring-offset-color:var(--card);
+  }
   html,body{margin:0;padding:0;}
   body{
     font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -77,8 +179,17 @@
     min-height:52px; padding:12px 20px; font-weight:600;
     transition:transform .12s ease, opacity .15s ease, box-shadow .12s ease, background-color .12s ease;
   }
-  button:not(:disabled):hover{transform:translateY(-1px);}
-  button:active{transform:scale(0.98);}
+  /* Wrapped in :where() so these are specificity-0. Both rules set the whole
+     `transform` shorthand, so at their natural specificity (0,2,1 / 0,1,1)
+     they beat -- and wipe out -- any Tailwind transform utility on a button,
+     e.g. the `absolute right-2 top-1/2 -translate-y-1/2` centering on the
+     password reveal toggle in StaffLogin/ResetPassword: hovering swapped
+     translateY(-50%) for translateY(-1px) and the button dropped half its
+     height. At specificity 0 a transform utility class always wins (main.css
+     loads after tailwind.css, but 0,1,0 still beats 0,0,0), while plain
+     buttons that declare no transform of their own keep the lift/press. */
+  :where(button:not(:disabled):hover){transform:translateY(-1px);}
+  :where(button:active){transform:scale(0.98);}
   /* Opt-in loading state -- e.g. className={"btn-primary" + (busy ? " btn-loading" : "")};
      no existing call site sets this yet, added as a ready-to-use hook. */
   .btn-loading{position:relative; color:transparent !important; pointer-events:none;}
@@ -98,7 +209,7 @@
     background-size:400% 100%; border-radius:8px; animation:skeleton-shine 1.4s ease infinite;
   }
   @keyframes skeleton-shine{0%{background-position:100% 50%;} 100%{background-position:0 50%;}}
-  .btn-primary{background:var(--primary); color:#fff; box-shadow:0 1px 2px rgba(27,37,89,.3);}
+  .btn-primary{background:var(--primary); color:var(--primary-foreground); box-shadow:0 1px 2px rgba(27,37,89,.3);}
   .btn-primary:hover{background:var(--primary-dark); box-shadow:0 2px 6px rgba(27,37,89,.35);}
   /* Secondary button text is brand navy (not the interactive blue) per the
      NB4HS Design System spec -- white bg, a dedicated slate border, navy label. */
@@ -199,7 +310,7 @@
      look, so the selectors below cover both tag names. */
   nav.tabs button, nav.tabs a{position:relative; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; min-height:44px; padding:8px 16px; background:var(--card); color:var(--muted); border:2px solid var(--border); text-decoration:none;}
   nav.tabs button:hover, nav.tabs a:hover{background:var(--bg); color:var(--text);}
-  nav.tabs button.active, nav.tabs a.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+  nav.tabs button.active, nav.tabs a.active{background:var(--primary); color:var(--primary-foreground); border-color:var(--primary);}
   nav.tabs button.active:hover, nav.tabs a.active:hover{background:var(--primary-dark);}
   nav.tabs button .icon, nav.tabs a .icon{width:16px; height:16px; vertical-align:0;}
   .nav-divider{width:1px; align-self:stretch; background:var(--border); margin:6px 4px; flex:0 0 auto;}
@@ -256,7 +367,7 @@
   }
   .pagination-arrow{width:36px; padding:0;}
   .pagination-page:hover, .pagination-arrow:not(:disabled):hover{background:var(--bg);}
-  .pagination-page.active{background:var(--primary); color:#fff;}
+  .pagination-page.active{background:var(--primary); color:var(--primary-foreground);}
   .pagination-arrow:disabled{opacity:.4; cursor:not-allowed;}
   .pagination-ellipsis{color:var(--muted); padding:0 2px; font-weight:600;}
   /* Generic mirror-flip -- reuses a right-pointing chevron as a left one
@@ -271,7 +382,7 @@
   .bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   .bar-label{flex:0 0 150px; font-size:.9rem; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .bar-track{flex:1; background:var(--tint-neutral); border-radius:6px; height:22px; overflow:hidden;}
-  .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:#fff; font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
+  .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:var(--primary-foreground); font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
   .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
   .pill{padding:8px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.9rem; cursor:pointer; transition:background .1s ease, border-color .1s ease;}
   .pill:hover{border-color:#b7c0d1;}
@@ -283,7 +394,7 @@
   .success-icon .icon{stroke-width:3;}
   .muted{color:var(--muted);}
   .skip-link{
-    position:absolute; left:-9999px; top:0; background:var(--primary); color:#fff; padding:12px 18px;
+    position:absolute; left:-9999px; top:0; background:var(--primary); color:var(--primary-foreground); padding:12px 18px;
     border-radius:0 0 8px 0; font-weight:700; z-index:1000;
   }
   .skip-link:focus{left:0;}
@@ -298,7 +409,17 @@
   .lang-select select{min-height:40px; padding:6px 10px; width:auto;}
   @keyframes toast-in{from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);}}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#161b22; color:#fff; padding:12px 22px; border-radius:10px; font-weight:600; z-index:999; box-shadow:0 4px 14px rgba(0,0,0,.25); animation:toast-in .18s ease-out;}
-  .qr-box{background:#fff; padding:24px; border-radius:var(--radius); text-align:center; border:1px solid var(--border);}
+  /* Follows the theme rather than forcing white. It used to be hardcoded
+     #fff so the QR stayed scannable, but that put dark mode's near-white
+     --text on a white card -- #e8eaed on #ffffff, about 1.13:1, an
+     invisible heading. Scannability doesn't need the whole card: the QR
+     itself sits on its own always-white plate (.qr-plate below), so the
+     card can be --card like every other surface. Prints white either way,
+     since the print block re-declares --card. */
+  .qr-box{background:var(--card); padding:24px; border-radius:var(--radius); text-align:center; border:1px solid var(--border);}
+  /* Stays white in both themes -- the logo and QR are dark-on-light
+     artwork, and a QR on a dark ground doesn't scan reliably. */
+  .qr-plate{background:#fff;}
   .qr-box img{max-width:260px; width:100%; height:auto;}
   .kv{
     display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 10px; margin:0 -10px;
@@ -431,6 +552,19 @@
      topbar and out of <main>'s 1200px reading measure. It stays a normally
      scrolling page (a phone has to scroll it); the landscape kiosk target is
      hit by the two-column layout plus the short-viewport trims below. */
+  /* Shared Calendar (Calendar.jsx). An internal scheduling screen, not a
+     reading page: the week grid wants every pixel of the content column so
+     five day columns stay wide enough to read an event title in, rather than
+     being squeezed into <main>'s 1200px measure. Padding tightens on short
+     landscape displays (1366x768 front-desk screens) so the grid, not the
+     chrome, gets the height. */
+  .content-col > main.main--calendar{max-width:none; padding:12px;}
+  @media (min-width:768px){
+    .content-col > main.main--calendar{padding:20px 24px;}
+  }
+  @media (min-width:1024px) and (max-height:820px){
+    .content-col > main.main--calendar{padding:12px 20px;}
+  }
   .content-col > main.main--appt-request{max-width:none; padding:12px;}
   @media (min-width:768px){
     .content-col > main.main--appt-request{padding:16px 20px;}
@@ -634,6 +768,14 @@
       --accent:#D61F26; --accent-dark:#9A161B; --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
       --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
       --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
+      --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8;
+      --ev-visit-bg:#EEF7F1; --ev-visit-border:#BBDDC7;
+      --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
+      --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
+      --focus-ring:rgba(37,99,235,.34);
+      --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
+      --primary-foreground:#ffffff;
+      --gold-ink:#8C5F1C;
     }
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}

@@ -25,14 +25,17 @@ export default {
         // active nav items, links, focus, charts, icons) -- split apart from
         // brand navy (chrome/backgrounds) below, since the two used to be
         // conflated under one --primary value.
-        primary: { DEFAULT: "var(--primary)", dark: "var(--primary-dark)", foreground: "#ffffff" },
+        // `soft` is the hairline-border tint (border-primary-soft); it exists
+        // because `border-primary/25` can't work on a var()-backed colour --
+        // see --border-*-soft in main.css.
+        primary: { DEFAULT: "var(--primary)", dark: "var(--primary-dark)", foreground: "var(--primary-foreground)", soft: "var(--border-primary-soft)" },
         navy: { DEFAULT: "var(--navy)", dark: "var(--navy-dark)", foreground: "#ffffff" },
         // Accent is red, reserved for errors/validation/destructive actions only.
-        accent: { DEFAULT: "var(--accent)", dark: "var(--accent-dark)", foreground: "#ffffff" },
-        success: "var(--success)",
+        accent: { DEFAULT: "var(--accent)", dark: "var(--accent-dark)", foreground: "#ffffff", soft: "var(--border-accent-soft)" },
+        success: { DEFAULT: "var(--success)", soft: "var(--border-success-soft)" },
         // Gold: sparing premium accent (dividers, featured stats, KPI
         // highlights, badges) -- never a dominant color.
-        gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A" },
+        gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A", ink: "var(--gold-ink)" },
         warn: "var(--warn)",
         background: "var(--bg)",
         card: { DEFAULT: "var(--card)", foreground: "var(--text)" },

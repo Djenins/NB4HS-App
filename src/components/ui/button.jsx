@@ -28,9 +28,18 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary-dark",
         // Secondary button text is brand navy (not the interactive blue) and
         // uses a dedicated slate border, per the NB4HS Design System spec.
-        secondary: "bg-card text-navy border border-[#CBD5E1] hover:bg-primary-tint",
+        // text-navy and the slate border are light-theme values: on a dark
+        // --card they land at 1.4:1, so every secondary button in dark mode
+        // was unreadable. Dark mode takes the theme ink and the themed
+        // --secondary-border instead.
+        secondary: "bg-card text-navy dark:text-[color:var(--text)] border border-[#CBD5E1] dark:border-secondary-border hover:bg-primary-tint",
         outline: "border border-border bg-transparent hover:bg-background",
-        ghost: "hover:bg-background",
+        // Needs an explicit colour: preflight is off, so nothing sets
+        // `color:inherit` on a <button> and a ghost with no colour class of
+        // its own falls back to the UA's `buttontext` -- pure black, which is
+        // invisible on a dark card. Call sites that pass their own text-*
+        // class or inline colour still win (tailwind-merge, then inline).
+        ghost: "text-card-foreground hover:bg-background",
         destructive: "bg-accent text-accent-foreground hover:bg-accent-dark",
         // No --success-dark token exists (only primary/accent have a dark
         // variant), so this uses a brightness filter for the hover-darken

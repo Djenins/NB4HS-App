@@ -28,7 +28,7 @@ import {
   createPastSession, createPastSessionStudents, deleteSession as deleteSessionRow, startNewSession as startNewSessionRpc
 } from "../lib/sessionsData.js";
 import {
-  buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor,
+  buildImportedPastRoster, buildImportedStudents, buildUpdatedStudent, columnAccentColor, columnAccentTint,
   downloadPastSessionTemplate, downloadStudentTemplate, enrollStudent, readRowsFromFile,
   sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount,
   waitingListStudents, waitlistForClass
@@ -44,7 +44,7 @@ import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 
-const WAITING_ACCENT = "#D99E32"; // gold -- matches columnAccentColor("waiting", ...)
+const WAITING_ACCENT = "var(--gold-ink)"; // gold -- matches columnAccentColor("waiting", ...)
 const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
 
 // Shared by the Kanban board (StudentsBoard) and the Waiting List panel,
@@ -237,7 +237,7 @@ function DetailActionButton({ icon: Icon, label, onClick, tone }) {
       className={cn(
         "flex h-9 min-h-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-colors",
         tone === "danger"
-          ? "border-accent/25 bg-tint-danger text-accent hover:bg-accent/10"
+          ? "border-accent-soft bg-tint-danger text-accent hover:bg-accent-tint"
           : "border-border bg-card text-card-foreground hover:bg-background"
       )}
     >
@@ -264,10 +264,10 @@ function ClassroomPicker({ classKey, classes, onMove }) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary/40 data-[state=open]:border-primary"
+          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary-soft data-[state=open]:border-primary"
         >
           <span className="flex items-center gap-2.5 min-w-0">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: current.accent + "22", color: current.accent }}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: columnAccentTint(current.accent), color: current.accent }}>
               <current.icon className="h-4 w-4" />
             </span>
             <span className="truncate text-sm font-bold text-card-foreground">{current.name}</span>
@@ -279,7 +279,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
         {options.map((o) => (
           <DropdownMenuItem key={o.key || "waiting"} onClick={() => onMove(o.key)} className="justify-between">
             <span className="flex items-center gap-2.5">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: o.accent + "22", color: o.accent }}>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: columnAccentTint(o.accent), color: o.accent }}>
                 <o.icon className="h-3.5 w-3.5" />
               </span>
               {o.name}
@@ -443,7 +443,7 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
             {totalFiltered}{(term || filterMode === "missingContact") ? "/" + totalStudents : ""}
           </span>
         </button>
-        <Link to="/manage"><Button type="button" variant="ghost" size="sm" className="font-semibold">{t("addClassroomShortcutBtn")}</Button></Link>
+        <Link to="/manage"><Button type="button" variant="ghost" size="sm" className="font-semibold text-primary">{t("addClassroomShortcutBtn")}</Button></Link>
       </CardHeader>
       {collapsed ? null : (
       <CardContent className="pt-0">
@@ -892,7 +892,7 @@ function UploadStudentsPanel() {
         <Button variant="secondary" size="sm" className="gap-2" onClick={downloadStudentTemplate}>
           <Download className="h-4 w-4" /> {t("downloadTemplate")}
         </Button>
-        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-primary-tint/40">
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-primary-tint">
           <FileUp className="h-6 w-6 text-muted" />
           <span className="text-sm font-semibold text-card-foreground">{fileName || t("chooseFileDragDrop")}</span>
           <span className="text-xs text-muted">{t("fileTypesHint")}</span>
@@ -973,11 +973,11 @@ function PastSessionsPanel() {
         <Button className="mt-3 w-full sm:w-auto" onClick={addPastSession}>{t("addSession")}</Button>
 
         {!history.length ? (
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-tint px-4 py-3.5 text-sm text-primary">
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary-soft bg-primary-tint px-4 py-3.5 text-sm text-primary">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <div className="font-semibold">{t("noPastSessions")}</div>
-              <div className="mt-0.5 text-primary/80">{t("noPastSessionsHint")}</div>
+              <div className="mt-0.5 text-primary">{t("noPastSessionsHint")}</div>
             </div>
           </div>
         ) : (
@@ -1116,7 +1116,7 @@ export default function Students() {
         <KpiStat icon={CalendarRange} tint="bg-primary-tint text-primary" label={t("currentSession")} value={fmtDateLong(session.startDate, lang) + " – " + fmtDateLong(session.endDate, lang)} index={0} />
         <KpiStat icon={Users} tint="bg-tint-success text-success" label={t("statTotalEnrolledLabel")} value={totalEnrolled} sublabel={t("navStudents")} index={1} big />
         <KpiStat icon={CheckCircle2} tint="bg-primary-tint text-primary" label={t("statSeatsAvailableLabel")} value={seatsAvailable} sublabel={t("statAcrossClassroomsLabel")} index={2} big />
-        <KpiStat icon={TrendingUp} tint="bg-tint-warn text-warn" label={t("statCompletionRateLabel")} value={completionRate + "%"} sublabel={t("statThisSessionLabel")} index={3} big />
+        <KpiStat icon={TrendingUp} tint="bg-tint-warn text-gold-ink" label={t("statCompletionRateLabel")} value={completionRate + "%"} sublabel={t("statThisSessionLabel")} index={3} big />
       </div>
 
       <Card className="mb-5">

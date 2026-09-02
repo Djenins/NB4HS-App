@@ -211,7 +211,7 @@ export default function StaffLogin() {
               {/* Gold security icon per the brand spec -- a deliberate,
                   sparing "premium" touch on this one badge, not a wholesale
                   recolor of every icon in the app. */}
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold-ink">
                 <Lock className="h-6 w-6" strokeWidth={2} />
               </div>
               <div className="mt-3 text-sm font-bold text-primary">{t("staffLoginTitle")}</div>
