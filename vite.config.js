@@ -8,5 +8,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173
+  },
+  // `npm test` (Vitest, config lives here since Vitest reads Vite's own
+  // config file). jsdom + jest-dom matchers so component tests aren't
+  // limited to the pure-function tests in src/lib/*.test.js -- see
+  // src/test/setup.js.
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.js"
   }
 });

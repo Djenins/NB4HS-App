@@ -93,6 +93,19 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Running tests
+
+Unit tests use [Vitest](https://vitest.dev/) (config lives in
+`vite.config.js`'s `test` block, since Vitest reads Vite's own config).
+Currently covers the pure-function helpers in `src/lib/*.js` -- component
+tests can use `@testing-library/react` + jest-dom matchers (already wired up
+via `src/test/setup.js`), there just aren't any yet.
+
+```
+npm test          # run once
+npm run test:watch  # re-run on file changes
+```
+
 ## Supabase connection
 
 The browser client is configured in `src/lib/supabase.js`. Get the project URL
