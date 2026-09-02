@@ -27,10 +27,28 @@
        rgb(var(--x) / .5) and the surface silently renders transparent. The
        appointment purple has no brand token of its own (see kindStyle.js),
        so its foreground is defined here alongside its tints. */
-    --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8;
+    --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8; --ev-class-fg:#1D4ED8;
+    /* Second class palette. classGroupAccents() in lib/calendar.js hands the
+       week's distinct class groupings a palette index, so e.g. Level 1 & 2
+       (Mon/Wed/Fri) and Level 3 (Tue/Thu) read as different classes at a
+       glance instead of one undifferentiated blue. Violet, not the deeper
+       --ev-appt-fg purple: class and appointment stay distinguishable by
+       hue, and always by icon + label as well, since colour is never the
+       only signal on this grid. */
+    --ev-class-alt-bg:#F5F1FE; --ev-class-alt-border:#D5CBF8; --ev-class-alt-fg:#5B21B6;
     --ev-visit-bg:#EEF7F1; --ev-visit-border:#BBDDC7;
     --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
     --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
+    /* The time grid's own hairlines, a step lighter than --border: the hour
+       rules and day dividers repeat ten times a column, so at --border
+       strength the grid reads as a spreadsheet rather than a calendar. */
+    --cal-grid:#EEF1F7;
+    /* Secondary text *on an event tint*. --muted (#64748B) is 4.76:1 on
+       white but only 4.23-4.35:1 once the surface is one of the --ev-*-bg
+       tints, which fails AA for the 13px card subtitle and attendee count.
+       One step darker clears 5.0:1 on every event tint while still reading
+       as secondary next to the navy title. */
+    --ev-ink-soft:#5B6879;
     /* Focus halo. Matches the `outline:3px solid rgba(37,99,235,.28)` this
        file already uses on input:focus, so Tailwind ring-* focus states and
        the plain-CSS ones are the same colour. */
@@ -80,10 +98,13 @@
     --secondary-border:#475569;
     --primary-tint:#192643; --accent-tint:#411B1C; --gold-tint:#3F331D;
     --tint-neutral:#242b34; --tint-success:#16321f; --tint-warn:#3F331D; --tint-danger:#411B1C;
-    --ev-class-bg:#1A2542; --ev-class-border:#31456F;
+    --ev-class-bg:#1A2542; --ev-class-border:#31456F; --ev-class-fg:#A2BCF6;
+    --ev-class-alt-bg:#241E45; --ev-class-alt-border:#453A76; --ev-class-alt-fg:#C4B2F5;
     --ev-visit-bg:#16301F; --ev-visit-border:#2A5539;
     --ev-appt-bg:#2A1C3A; --ev-appt-border:#4C3465; --ev-appt-fg:#C9A2E8;
     --ev-holiday-bg:#3A1C1E; --ev-holiday-border:#6B3033;
+    --cal-grid:#272F3B;
+    --ev-ink-soft:#AAB4C2;
     --focus-ring:rgba(106,148,241,.48);
     /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
        that reads as a hairline on white disappears on a dark surface. */

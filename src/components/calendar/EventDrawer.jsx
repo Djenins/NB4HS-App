@@ -9,10 +9,10 @@
 // If those fields ever get real columns, they belong in the field grid above
 // like any other -- not as dashed placeholders.
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, Pencil, Trash2, X } from "lucide-react";
+import { Copy, Pencil, Trash2, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fmtTimeRange } from "./calendarLayout.js";
-import { KIND_STYLE } from "./kindStyle.js";
+import { blockStyle } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
 import { cn } from "../../lib/cn.js";
@@ -33,7 +33,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
   const [fields, setFields] = useState(null);
 
   const open = !!block;
-  const style = open ? KIND_STYLE[block.kind] : null;
+  const style = open ? blockStyle(block) : null;
   const Icon = style?.icon;
   const editable = !!block?.event;
 
@@ -96,7 +96,17 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                     {Icon && <Icon className="h-3.5 w-3.5" />}{t(style.label)}
                   </p>
                   <p className="m-0 mt-1 text-lg font-bold leading-tight text-card-foreground">{block.title}</p>
+                  {block.subtitle && <p className="m-0 mt-0.5 text-sm font-medium text-muted">{block.subtitle}</p>}
                   <p className="m-0 mt-0.5 text-sm font-medium text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
+                  {/* Live enrolled-student count for the classes in this
+                      block -- see Calendar.jsx. Absent, not zero, for kinds
+                      that have no roster. */}
+                  {block.count > 0 && (
+                    <p className="m-0 mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
+                      <Users className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                      {block.count} <span className="font-medium text-muted">{t("calendarEnrolled")}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3">

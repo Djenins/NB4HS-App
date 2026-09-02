@@ -2,19 +2,27 @@
 // entry per event kind, dot + icon + word, matching the grid exactly) and
 // the counts for whatever range is currently on screen on the right, so the
 // two things that used to be separate panels read as one summary line.
-import { KIND_STYLE } from "./kindStyle.js";
+import { CLASS_ACCENTS, KIND_STYLE } from "./kindStyle.js";
 import { cn } from "../../lib/cn.js";
 
-export default function Legend({ t, summary }) {
+// `classGroups` is how many distinct class groupings the schedule holds
+// (Level 1 & 2, Level 3 -> 2). The Class key shows one dot per grouping in
+// use, so the legend never claims a single colour for what the grid draws
+// in two.
+export default function Legend({ t, summary, classGroups }) {
+  const classDots = Math.min(Math.max(classGroups || 1, 1), CLASS_ACCENTS.length);
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-card lg:flex-row lg:items-center lg:justify-between">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <span className="text-[13px] font-bold text-card-foreground">{t("calendarLegendTitle")}</span>
         {Object.entries(KIND_STYLE).map(([key, style]) => {
           const Icon = style.icon;
+          const dots = key === "class" ? CLASS_ACCENTS.slice(0, classDots) : [style];
           return (
             <span key={key} className="flex items-center gap-1.5 text-[13px] font-medium leading-none text-muted">
-              <span className={cn("h-2.5 w-2.5 rounded-full", style.dot)} />
+              <span className="flex items-center gap-1">
+                {dots.map((d, i) => <span key={i} className={cn("h-2.5 w-2.5 rounded-full", d.dot)} />)}
+              </span>
               <Icon className={cn("h-3.5 w-3.5", style.chipFg)} />
               {t(style.label)}
             </span>

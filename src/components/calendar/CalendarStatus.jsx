@@ -9,7 +9,7 @@
 // CalendarError is the other half of that: a failed load says so and offers
 // a retry, instead of quietly rendering as an empty calendar.
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { ALLDAY_HEIGHT, HEADER_HEIGHT, HOUR_HEIGHT } from "./calendarLayout.js";
+import { HEADER_HEIGHT, HOUR_HEIGHT } from "./calendarLayout.js";
 import { Button } from "../ui/button.jsx";
 
 export function CalendarSkeleton({ columns = 5, rows = 8 }) {
@@ -19,25 +19,26 @@ export function CalendarSkeleton({ columns = 5, rows = 8 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card" aria-hidden="true">
       <div className="flex">
-        <div className="w-[62px] shrink-0 border-r border-border sm:w-[74px]">
-          <div style={{ height: HEADER_HEIGHT }} className="border-b border-border" />
-          <div style={{ height: ALLDAY_HEIGHT }} className="border-b border-border" />
+        <div className="w-[78px] shrink-0 border-r border-[var(--cal-grid)] sm:w-[112px]">
+          <div style={{ height: HEADER_HEIGHT }} className="flex items-center border-b border-[var(--cal-grid)] pl-3 sm:pl-4">
+            <span className="h-3 w-10 animate-pulse rounded bg-tint-neutral" />
+          </div>
           {hours.map((_, i) => (
-            <div key={i} style={{ height: HOUR_HEIGHT }} className="flex items-start justify-end border-t border-border pr-2 pt-0 sm:pr-3">
-              <span className="mt-[-6px] h-3 w-8 animate-pulse rounded bg-tint-neutral" />
+            <div key={i} style={{ height: HOUR_HEIGHT }} className="flex items-start border-t border-dashed border-[var(--cal-grid)] pl-3 sm:pl-4">
+              <span className="mt-[-6px] h-3 w-9 animate-pulse rounded bg-tint-neutral" />
             </div>
           ))}
         </div>
         <div className="flex flex-1">
           {cols.map((_, c) => (
-            <div key={c} className="flex min-w-0 flex-1 flex-col border-l border-border first:border-l-0">
-              <div style={{ height: HEADER_HEIGHT }} className="flex flex-col items-center justify-center gap-1.5 border-b border-border">
+            <div key={c} className="flex min-w-0 flex-1 flex-col border-l border-[var(--cal-grid)] first:border-l-0">
+              <div style={{ height: HEADER_HEIGHT }} className="flex flex-col items-center justify-center gap-1.5 border-b border-[var(--cal-grid)]">
                 <span className="h-2.5 w-8 animate-pulse rounded bg-tint-neutral" />
-                <span className="h-3.5 w-14 animate-pulse rounded bg-tint-neutral" />
+                <span className="h-6 w-7 animate-pulse rounded bg-tint-neutral" />
+                <span className="h-2.5 w-7 animate-pulse rounded bg-tint-neutral" />
               </div>
-              <div style={{ height: ALLDAY_HEIGHT }} className="border-b border-border" />
               {hours.map((_, i) => (
-                <div key={i} style={{ height: HOUR_HEIGHT }} className="border-t border-border" />
+                <div key={i} style={{ height: HOUR_HEIGHT }} className="border-t border-dashed border-[var(--cal-grid)]" />
               ))}
             </div>
           ))}

@@ -1143,6 +1143,18 @@ export var STR = {
 
   navCalendar: { en: "Calendar", ht: "Kalandriye", fr: "Calendrier" },
   calendarTitle: { en: "Shared Calendar", ht: "Kalandriye Pataje", fr: "Calendrier Partagé" },
+  // Page title per view -- the calendar's H1 names the range you're looking
+  // at ("Weekly Schedule") rather than the feature ("Shared Calendar"), so
+  // the heading and the range control beside it say the same thing.
+  calendarTitleWeek: { en: "Weekly Schedule", ht: "Orè Semèn nan", fr: "Horaire Hebdomadaire" },
+  calendarTitleMonth: { en: "Monthly Schedule", ht: "Orè Mwa a", fr: "Horaire Mensuel" },
+  calendarTitleDay: { en: "Daily Schedule", ht: "Orè Jounen an", fr: "Horaire Quotidien" },
+  calendarTitleAgenda: { en: "Schedule Agenda", ht: "Ajanda Orè", fr: "Agenda des Horaires" },
+  // Short form for the view switcher, where "Week View" doesn't sit level
+  // with its one-word neighbours Month/Day/Agenda.
+  calendarWeekShort: { en: "Week", ht: "Semèn", fr: "Semaine" },
+  calendarTimeColumn: { en: "Time", ht: "Lè", fr: "Heure" },
+  calendarEnrolled: { en: "enrolled", ht: "enskri", fr: "inscrits" },
   calendarSubtitle: { en: "Class schedules, office visits, and staff appointments, all in one place.", ht: "Orè klas, vizit biwo, ak randevou anplwaye, tout nan yon sèl kote.", fr: "Horaires des cours, visites au bureau et rendez-vous du personnel, tout en un seul endroit." },
   calendarPrevWeek: { en: "Previous week", ht: "Semèn anvan", fr: "Semaine précédente" },
   calendarNextWeek: { en: "Next week", ht: "Semèn apre", fr: "Semaine suivante" },
