@@ -980,6 +980,7 @@ export var STR = {
   clientTabIntakeForm: { en: "Intake Form", ht: "Fòm Enskripsyon", fr: "Formulaire d'Admission" },
   clientTabComingSoon: { en: "Not yet available — coming in a future update.", ht: "Poko disponib — ap vini nan yon pwochen mizajou.", fr: "Pas encore disponible — à venir dans une prochaine mise à jour." },
   clientActionComingSoon: { en: "Coming in a future update", ht: "Ap vini nan yon pwochen mizajou", fr: "À venir dans une prochaine mise à jour" },
+  scheduleAppointmentDisabledTooltip: { en: "Add this client to Case Management or Job Developer to schedule appointments.", ht: "Ajoute kliyan sa a nan Jesyon Ka oswa Devlopè Travay pou pwograme randevou.", fr: "Ajoutez ce client à la Gestion de Cas ou au Développeur d'Emploi pour planifier des rendez-vous." },
   editProfileBtn: { en: "Edit Profile", ht: "Modifye Pwofil", fr: "Modifier le Profil" },
   addToProgramBtn: { en: "Add to Program", ht: "Ajoute nan Pwogram", fr: "Ajouter à un Programme" },
   scheduleAppointmentBtn: { en: "Schedule Appointment", ht: "Pwograme Randevou", fr: "Planifier un Rendez-vous" },

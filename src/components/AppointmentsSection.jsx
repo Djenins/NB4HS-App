@@ -2,7 +2,7 @@
 // existing appointments, shared by Case Management and Job Developer.
 // Ported from appointments.js's renderAppointmentsCard()/
 // attachAppointmentsSectionHandlers()/attachAppointmentRowActionHandlers().
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { sortedAppointments } from "../lib/appointments.js";
@@ -34,7 +34,7 @@ function Field({ id, label, required, invalid, children }) {
   );
 }
 
-export default function AppointmentsSection({ open, onToggle, meetingWith, clientList, staffList, staffLabelKey }) {
+export default function AppointmentsSection({ open, onToggle, meetingWith, clientList, staffList, staffLabelKey, initialClientId }) {
   const { data, session, requestConfirm, showToast } = useApp();
   const t = useT();
   // Defaults the staff-assignment dropdown to whoever's currently signed in,
@@ -49,6 +49,20 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
   const apptList = sortedAppointments(data.appointments, meetingWith);
 
   function setField(name, value) { setForm((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  // Pre-selects the client this section was opened for, e.g. ClientHeader's
+  // "Schedule Appointment" navigating here from ClientProfile.jsx with the
+  // program-row id in router state. Only fires once -- appliedRef guards
+  // against re-running (and clobbering whatever the user's typed since) on
+  // every clientList refetch, since clientList changes identity on each
+  // realtime update.
+  const appliedInitialClientRef = useRef(false);
+  useEffect(() => {
+    if (appliedInitialClientRef.current || !initialClientId) return;
+    if (!(clientList || []).some((c) => c.id === initialClientId)) return;
+    appliedInitialClientRef.current = true;
+    pickClient(initialClientId);
+  }, [initialClientId, clientList]);
 
   function pickClient(clientId) {
     const client = (clientList || []).find((c) => c.id === clientId);

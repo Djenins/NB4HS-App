@@ -14,7 +14,7 @@ import { Card, CardContent } from "./ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.jsx";
 
-function DisabledActionButton({ icon: Icon, label }) {
+function DisabledActionButton({ icon: Icon, label, tooltip }) {
   const t = useT();
   return (
     <TooltipProvider>
@@ -26,7 +26,7 @@ function DisabledActionButton({ icon: Icon, label }) {
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>{t("clientActionComingSoon")}</TooltipContent>
+        <TooltipContent>{tooltip || t("clientActionComingSoon")}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -70,7 +70,7 @@ export default function ClientHeader({ client, name, onEditProfile, onAddToProgr
               <CalendarPlus className="h-3.5 w-3.5" /> {t("scheduleAppointmentBtn")}
             </Button>
           ) : (
-            <DisabledActionButton icon={CalendarPlus} label={t("scheduleAppointmentBtn")} />
+            <DisabledActionButton icon={CalendarPlus} label={t("scheduleAppointmentBtn")} tooltip={t("scheduleAppointmentDisabledTooltip")} />
           )}
           <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}>
             <MessageSquarePlus className="h-3.5 w-3.5" /> {t("addNoteBtn")}

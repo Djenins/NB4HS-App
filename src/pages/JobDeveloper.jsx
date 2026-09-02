@@ -7,7 +7,7 @@
 // became Tailwind form-section layouts matching CaseManagement.jsx's
 // AddClientCard idiom.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Calendar, CalendarClock, ChevronDown, ChevronUp, FileCheck2, MoreHorizontal, Plus, Trash2, User, UserPlus, Users, X } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
@@ -281,6 +281,12 @@ export default function JobDeveloper() {
   const [selected, setSelected] = useState(() => new Set());
   const addClientRef = useRef(null);
   const appointmentsRef = useRef(null);
+  const location = useLocation();
+  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
+  // with this state to land directly on a pre-filled, expanded appointments
+  // form instead of a generic client list -- see AppointmentsSection.jsx's
+  // initialClientId prop for the pre-fill half.
+  const scheduleClientId = location.state && location.state.openAppointments ? location.state.appointmentClientId : undefined;
 
   const term = search.trim().toLowerCase();
   const matched = (data.jobClients || [])
@@ -317,6 +323,11 @@ export default function JobDeveloper() {
     setOpen("appointments", true);
     appointmentsRef.current && appointmentsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  useEffect(() => {
+    if (location.state && location.state.openAppointments) scrollToAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeJobClientConfirm"), { danger: true });
@@ -398,6 +409,7 @@ export default function JobDeveloper() {
           clientList={jobClients}
           staffList={activeJobDevelopers(data.profiles)}
           staffLabelKey="apptJobDeveloperLabel"
+          initialClientId={scheduleClientId}
         />
       </div>
 

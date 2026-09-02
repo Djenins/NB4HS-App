@@ -6,8 +6,8 @@
 // accordions became collapsible Cards, and legacy .field/.grid form
 // markup became Tailwind form-section layouts matching Students.jsx's
 // EnrollStudentPanel idiom.
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarClock, CalendarPlus, ChevronDown, ChevronUp, Clock3, Download, FileUp, Mail,
   Phone, Plus, Search as SearchIcon, SlidersHorizontal, Trash2, UploadCloud, UserPlus, Users
@@ -299,6 +299,20 @@ export default function CaseManagement() {
   const [selected, setSelected] = useState(() => new Set());
   const [importedCount, setImportedCount] = useState(0);
   const addClientRef = useRef(null);
+  const appointmentsRef = useRef(null);
+  const location = useLocation();
+  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
+  // with this state to land directly on a pre-filled, expanded appointments
+  // form instead of a generic client list -- see AppointmentsSection.jsx's
+  // initialClientId prop for the pre-fill half.
+  const scheduleClientId = location.state && location.state.openAppointments ? location.state.appointmentClientId : undefined;
+  useEffect(() => {
+    if (location.state && location.state.openAppointments) {
+      setOpen("appointments", true);
+      appointmentsRef.current && appointmentsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const term = search.trim().toLowerCase();
   const matched = (data.caseClients || []).filter((c) => clientMatchesSearch("case", c, term, lang));
@@ -371,14 +385,17 @@ export default function CaseManagement() {
       {canUseIntakeForm && (
         <IntakeFormCard collapsed={!opens.intakeForm} onToggle={() => setOpen("intakeForm", !opens.intakeForm)} />
       )}
-      <AppointmentsSection
-        open={opens.appointments}
-        onToggle={(v) => setOpen("appointments", v)}
-        meetingWith="case_manager"
-        clientList={data.caseClients || []}
-        staffList={activeCaseManagers(data.profiles)}
-        staffLabelKey="apptCaseManagerLabel"
-      />
+      <div ref={appointmentsRef}>
+        <AppointmentsSection
+          open={opens.appointments}
+          onToggle={(v) => setOpen("appointments", v)}
+          meetingWith="case_manager"
+          clientList={data.caseClients || []}
+          staffList={activeCaseManagers(data.profiles)}
+          staffLabelKey="apptCaseManagerLabel"
+          initialClientId={scheduleClientId}
+        />
+      </div>
 
       <Card className="mt-5">
         <CardContent className="p-5">

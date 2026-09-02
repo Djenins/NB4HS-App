@@ -569,7 +569,7 @@ export default function ClientProfile() {
         client={client} name={name}
         onEditProfile={() => setEditing(true)}
         onAddToProgram={() => setAddingToProgram(true)}
-        onScheduleAppointment={schedulingProgram ? () => navigate(PROGRAM_META[schedulingProgram.programType].path) : undefined}
+        onScheduleAppointment={schedulingProgram ? () => navigate(PROGRAM_META[schedulingProgram.programType].path, { state: { openAppointments: true, appointmentClientId: schedulingProgram.record.id } }) : undefined}
         onAddNote={() => setAddingNote(true)}
         onUploadDocument={() => setUploadingDocument(true)}
         onToggleStatus={toggleStatus}
