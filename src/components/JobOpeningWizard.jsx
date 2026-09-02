@@ -10,7 +10,7 @@
 // integrations that don't exist yet.
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import {
   APPLY_METHODS, EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, PAY_TYPES
 } from "../lib/jobOpenings.js";
@@ -75,6 +75,7 @@ function emptyFields(lockEmployerId) {
 }
 
 export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers, onSave, onCancel }) {
+  const { showToast } = useApp();
   const t = useT();
   const [step, setStep] = useState(0);
   const [fields, setFields] = useState(() => jobOpening ? Object.assign(emptyFields(), jobOpening) : emptyFields(lockEmployerId));
@@ -87,10 +88,14 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
 
   const selectedEmployer = employers.find((e) => e.id === fields.employerId);
   const employerLocked = !!lockEmployerId;
+  // Both sides are optional (a posting might only quote one), so this only
+  // fires once both are actually filled in.
+  const payRangeInvalid = fields.payMin !== "" && fields.payMax !== "" && Number(fields.payMin) > Number(fields.payMax);
 
   function goNext() {
     if (step === 0 && !fields.employerId) { setErrors(["employerId"]); return; }
     if (step === 1 && !fields.title.trim()) { setErrors(["title"]); return; }
+    if (step === 2 && payRangeInvalid) { setErrors(["payMax"]); showToast(t("invalidPayRangeError")); return; }
     setErrors([]);
     setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1));
   }
@@ -98,6 +103,7 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
 
   async function submit(status) {
     if (!fields.employerId || !fields.title.trim()) { setErrors(["employerId", "title"].filter((f) => !fields[f] || (typeof fields[f] === "string" && !fields[f].trim()))); return; }
+    if (payRangeInvalid) { setStep(2); setErrors(["payMax"]); showToast(t("invalidPayRangeError")); return; }
     setSaving(true);
     try {
       await onSave(fields, status);
@@ -192,7 +198,7 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
                 </select>
               </Field>
               <Field label={t("payMinLabel")}><input type="number" className={inputClass} value={fields.payMin} onChange={(e) => setField("payMin", e.target.value)} /></Field>
-              <Field label={t("payMaxLabel")}><input type="number" className={inputClass} value={fields.payMax} onChange={(e) => setField("payMax", e.target.value)} /></Field>
+              <Field label={t("payMaxLabel")}><input type="number" className={inputClass + (errors.indexOf("payMax") !== -1 ? " border-accent" : "")} value={fields.payMax} onChange={(e) => setField("payMax", e.target.value)} /></Field>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("employmentTypeLabel")}>

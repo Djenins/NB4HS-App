@@ -686,6 +686,7 @@ export var STR = {
   payTypeLabel: { en: "Pay Type", ht: "Kalite Salè", fr: "Type de Salaire" },
   payMinLabel: { en: "Minimum Pay", ht: "Salè Minimòm", fr: "Salaire Minimum" },
   payMaxLabel: { en: "Maximum Pay", ht: "Salè Maksimòm", fr: "Salaire Maximum" },
+  invalidPayRangeError: { en: "Minimum pay can't be more than maximum pay.", ht: "Salè minimòm pa ka pi wo pase salè maksimòm.", fr: "Le salaire minimum ne peut pas dépasser le salaire maximum." },
   scheduleLabel: { en: "Schedule", ht: "Orè", fr: "Horaire" },
   hoursPerWeekLabel: { en: "Hours per Week", ht: "Èdtan pa Semèn", fr: "Heures par Semaine" },
   benefitsLabel: { en: "Benefits", ht: "Benefis", fr: "Avantages" },
