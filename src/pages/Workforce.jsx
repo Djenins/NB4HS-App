@@ -1,13 +1,22 @@
 // Workforce.jsx -- single flat "Workforce" sidebar entry (Shell.jsx) at the
 // same level as Case Management, Assessments, etc, replacing the old
-// collapsible submenu. Owns a tab strip (same idiom as ClientProfile.jsx/
-// EmployerProfile.jsx) switching between the existing, otherwise-unchanged
-// Employer & Job Opportunity Management pages -- this file doesn't
-// duplicate their logic, it only decides which one is currently mounted.
+// collapsible submenu. Owns the module's secondary navigation, switching
+// between the existing, otherwise-unchanged Employer & Job Opportunity
+// Management pages -- this file doesn't duplicate their logic, it only
+// decides which one is currently mounted.
+//
+// That strip now renders through components/ModuleNav.jsx (the standard
+// icon + label + active-underline treatment for secondary module menus)
+// instead of the old text-only tab row. Nothing about the sidebar/header
+// shell changes, and the record-detail tabs inside ClientProfile.jsx /
+// EmployerProfile.jsx / JobClientProfile.jsx keep their own tab idiom --
+// those are local page controls, not module navigation.
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
+import { BarChart3, Briefcase, Building2, ContactRound, LayoutGrid, Send, UserSearch, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { enabledWorkforceRoles, navItemsForRole } from "../lib/nav.js";
+import ModuleNav from "../components/ModuleNav.jsx";
 import JobDeveloper from "./JobDeveloper.jsx";
 import WorkforceDashboard from "./WorkforceDashboard.jsx";
 import Employers from "./Employers.jsx";
@@ -17,15 +26,20 @@ import Referrals from "./Referrals.jsx";
 import Placements from "./Placements.jsx";
 import WorkforceReports from "./WorkforceReports.jsx";
 
+// Icons are chosen per *section*, not reused from lib/navIcons.js: that map
+// is scoped to the sidebar, where several of these keys deliberately share
+// a glyph (jobdeveloper/workforce both Briefcase, two LayoutDashboards, two
+// BarChart3s). Inside one module the icons have to be distinguishable from
+// each other, so each section gets its own.
 const TABS = [
-  { key: "jobdeveloper", label: "navJobDeveloper", Component: JobDeveloper },
-  { key: "workforcedashboard", label: "navWorkforceDashboard", Component: WorkforceDashboard },
-  { key: "employers", label: "navEmployers", Component: Employers },
-  { key: "jobopenings", label: "navJobOpenings", Component: JobOpenings },
-  { key: "candidatematching", label: "navCandidateMatching", Component: CandidateMatching },
-  { key: "referrals", label: "navReferrals", Component: Referrals },
-  { key: "placements", label: "navPlacements", Component: Placements },
-  { key: "workforcereports", label: "navWorkforceReports", Component: WorkforceReports }
+  { key: "jobdeveloper", label: "navJobDeveloper", icon: Users, Component: JobDeveloper },
+  { key: "workforcedashboard", label: "navWorkforceDashboard", icon: LayoutGrid, Component: WorkforceDashboard },
+  { key: "employers", label: "navEmployers", icon: Building2, Component: Employers },
+  { key: "jobopenings", label: "navJobOpenings", icon: Briefcase, Component: JobOpenings },
+  { key: "candidatematching", label: "navCandidateMatching", icon: UserSearch, Component: CandidateMatching },
+  { key: "referrals", label: "navReferrals", icon: Send, Component: Referrals },
+  { key: "placements", label: "navPlacements", icon: ContactRound, Component: Placements },
+  { key: "workforcereports", label: "navWorkforceReports", icon: BarChart3, Component: WorkforceReports }
 ];
 
 export default function Workforce() {
@@ -43,21 +57,12 @@ export default function Workforce() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap gap-1 overflow-x-auto border-b border-border">
-        {visibleTabs.map((vt) => (
-          <button
-            key={vt.key}
-            type="button"
-            onClick={() => setTabOverride(vt.key)}
-            className={
-              "shrink-0 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors " +
-              (tab === vt.key ? "border-b-2 border-primary text-primary" : "text-muted hover:text-card-foreground")
-            }
-          >
-            {t(vt.label)}
-          </button>
-        ))}
-      </div>
+      <ModuleNav
+        label={t("navSectionWorkforceDevelopment")}
+        items={visibleTabs.map((vt) => ({ key: vt.key, label: t(vt.label), icon: vt.icon }))}
+        value={tab}
+        onChange={setTabOverride}
+      />
       <ActiveComponent />
     </>
   );
