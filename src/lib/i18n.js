@@ -1151,7 +1151,6 @@ export var STR = {
   calendarDayView: { en: "Day", ht: "Jou", fr: "Jour" },
   calendarMonthView: { en: "Month", ht: "Mwa", fr: "Mois" },
   calendarAgendaView: { en: "Agenda", ht: "Ajanda", fr: "Agenda" },
-  calendarViewComingSoon: { en: "This view is coming soon.", ht: "Vi sa a ap vini talè.", fr: "Cette vue arrive bientôt." },
   calendarNewEvent: { en: "New Event", ht: "Nouvo Evènman", fr: "Nouvel Événement" },
   calendarView: { en: "View", ht: "Gade", fr: "Voir" },
   calendarEdit: { en: "Edit", ht: "Modifye", fr: "Modifier" },
