@@ -62,10 +62,12 @@ export default function QRCode() {
             <h3 className="text-lg font-bold tracking-tight text-card-foreground">{t("qrScanHeading")}</h3>
             <p className="mt-1 max-w-xs text-sm text-muted">{t("qrScanDesc")}</p>
 
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border bg-white p-4">
+            <div className="qr-plate mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border p-4">
               <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
               <img src={qrImg} alt="QR code" className={imgFailed ? "hidden" : "h-[220px] w-[220px]"} onError={() => setImgFailed(true)} />
-              {imgFailed && <div className="max-w-[220px] text-sm text-muted">QR image requires internet access. Link: {url}</div>}
+              {/* Sits on the always-white .qr-plate, so it can't use --muted: in dark
+                  mode that's #a2acba on white, ~2.3:1. Navy reads on white in both themes. */}
+              {imgFailed && <div className="max-w-[220px] text-sm text-muted dark:text-navy">QR image requires internet access. Link: {url}</div>}
             </div>
 
             <div className="no-print mt-6 flex w-full items-start gap-3 rounded-xl border border-dashed border-primary-soft bg-primary-tint p-4 text-left">

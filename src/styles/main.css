@@ -391,7 +391,17 @@
   .lang-select select{min-height:40px; padding:6px 10px; width:auto;}
   @keyframes toast-in{from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);}}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#161b22; color:#fff; padding:12px 22px; border-radius:10px; font-weight:600; z-index:999; box-shadow:0 4px 14px rgba(0,0,0,.25); animation:toast-in .18s ease-out;}
-  .qr-box{background:#fff; padding:24px; border-radius:var(--radius); text-align:center; border:1px solid var(--border);}
+  /* Follows the theme rather than forcing white. It used to be hardcoded
+     #fff so the QR stayed scannable, but that put dark mode's near-white
+     --text on a white card -- #e8eaed on #ffffff, about 1.13:1, an
+     invisible heading. Scannability doesn't need the whole card: the QR
+     itself sits on its own always-white plate (.qr-plate below), so the
+     card can be --card like every other surface. Prints white either way,
+     since the print block re-declares --card. */
+  .qr-box{background:var(--card); padding:24px; border-radius:var(--radius); text-align:center; border:1px solid var(--border);}
+  /* Stays white in both themes -- the logo and QR are dark-on-light
+     artwork, and a QR on a dark ground doesn't scan reliably. */
+  .qr-plate{background:#fff;}
   .qr-box img{max-width:260px; width:100%; height:auto;}
   .kv{
     display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 10px; margin:0 -10px;
