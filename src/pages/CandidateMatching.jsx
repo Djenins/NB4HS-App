@@ -2,6 +2,15 @@
 // see ranked matching candidates on the right. Reachable directly from the
 // nav, or via JobOpenings.jsx's "Refer Candidate" row action, which passes
 // the opening id through router state so it's pre-selected on arrival.
+//
+// `alreadyReferred` below is a client-side check against in-memory
+// data.referrals -- fast, but racy (two staff, or two tabs, could both pass
+// it before either referral lands). The real backstop is the DB's
+// referrals_job_client_opening_unique index on (job_client_id,
+// job_opening_id); a second createReferral() for the same pair fails there
+// with a 23505 (unique_violation), which refer()'s catch below turns into
+// the same "already referred" toast instead of an unhandled error.
+// `referringId` covers the same-tab double-click case even faster.
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -20,6 +29,7 @@ export default function CandidateMatching() {
   const [search, setSearch] = useState("");
   const [activeOnly, setActiveOnly] = useState(true);
   const [selectedId, setSelectedId] = useState(location.state && location.state.openingId ? location.state.openingId : null);
+  const [referringId, setReferringId] = useState(null);
 
   const employers = data.employers || [];
   const employerById = {};
@@ -43,11 +53,23 @@ export default function CandidateMatching() {
     : [];
 
   async function refer(jobClientId) {
-    await createReferral({
-      jobClientId, jobOpeningId: selectedOpening.id, employerId: selectedOpening.employerId,
-      status: "referred", referralDate: todayStr(), assignedJobDeveloperEmail: session ? session.currentUserEmail : ""
-    });
-    showToast(t("candidateReferred"));
+    if (referringId) return;
+    setReferringId(jobClientId);
+    try {
+      await createReferral({
+        jobClientId, jobOpeningId: selectedOpening.id, employerId: selectedOpening.employerId,
+        status: "referred", referralDate: todayStr(), assignedJobDeveloperEmail: session ? session.currentUserEmail : ""
+      });
+      showToast(t("candidateReferred"));
+    } catch (err) {
+      if (err && err.code === "23505") {
+        showToast(t("alreadyReferredLabel"));
+      } else {
+        throw err;
+      }
+    } finally {
+      setReferringId(null);
+    }
   }
 
   return (
@@ -105,7 +127,7 @@ export default function CandidateMatching() {
                 return (
                   <CandidateMatchCard
                     key={jobClient.id} jobClient={jobClient} jobOpening={selectedOpening} employer={employer}
-                    score={score} alreadyReferred={alreadyReferred} onRefer={() => refer(jobClient.id)}
+                    score={score} alreadyReferred={alreadyReferred} referring={!!referringId} onRefer={() => refer(jobClient.id)}
                   />
                 );
               })}

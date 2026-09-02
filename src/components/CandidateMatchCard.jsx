@@ -16,7 +16,7 @@ import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 import { Card, CardContent } from "./ui/card.jsx";
 
-export default function CandidateMatchCard({ jobClient, jobOpening, employer, score, alreadyReferred, onRefer }) {
+export default function CandidateMatchCard({ jobClient, jobOpening, employer, score, alreadyReferred, referring, onRefer }) {
   const t = useT();
   const navigate = useNavigate();
   const name = clientDisplayName(jobClient);
@@ -70,7 +70,7 @@ export default function CandidateMatchCard({ jobClient, jobOpening, employer, sc
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
           <Button size="sm" variant="secondary" onClick={() => navigate("/jobdeveloper/" + jobClient.id)}>{t("viewLabel")}</Button>
-          <Button size="sm" disabled={alreadyReferred} onClick={onRefer} className="gap-1.5">
+          <Button size="sm" disabled={alreadyReferred || referring} onClick={onRefer} className="gap-1.5">
             {alreadyReferred ? <><XCircle className="h-3.5 w-3.5" /> {t("alreadyReferredLabel")}</> : t("referBtn")}
           </Button>
         </div>
