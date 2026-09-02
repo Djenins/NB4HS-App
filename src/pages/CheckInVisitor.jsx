@@ -3,7 +3,9 @@
 // Fields are uncontrolled (read via FormData on submit, exactly like the
 // original) except the service/staff selects, which need React state to
 // toggle the "other, please specify" inputs. Validation rules (required
-// fields, phone/zip regexes) are copied verbatim.
+// fields, phone/zip regexes) are copied verbatim; the email regex (same
+// format check Users.jsx's "Add Account" already uses) is new -- the field
+// is optional, so it only fires when a value is actually entered.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -40,6 +42,7 @@ export default function CheckInVisitor() {
     if (v.staff === "other" && !v.staffOther) errs.push("staffOther");
     if (v.phone && !/^[0-9()\-\s.+]{7,20}$/.test(v.phone)) errs.push("phone");
     if (v.zip && !/^\d{5}(-\d{4})?$/.test(v.zip)) errs.push("zip");
+    if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) errs.push("email");
 
     if (errs.length) {
       const uniqueErrors = errs.filter((f, i) => errs.indexOf(f) === i);
@@ -97,7 +100,7 @@ export default function CheckInVisitor() {
               </div>
               <div className="grid grid-2">
                 <FormField name="phone" label={t("phone")} type="tel" required invalid={isInvalid("phone")} />
-                <FormField name="email" label={t("email")} type="email" />
+                <FormField name="email" label={t("email")} type="email" invalid={isInvalid("email")} />
               </div>
             </div>
           </div>
