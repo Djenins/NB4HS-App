@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 200" width="260" height="200" role="img" aria-hidden="true">
+  <title>Appointment calendar</title>
+  <!-- Original flat-vector calendar/appointment mark drawn for the public
+       appointment-lookup page's help panel. Same construction and palette as
+       nb4hs-community.svg (the check-in kiosk's illustration): the NB4HS
+       Design System blue (#2563EB, the app's primary token) plus lighter tints of
+       it, so the two visitor-facing screens read as one product. Drawn here
+       rather than imported from a stock library so there's no third-party
+       licence or attribution attached to a page the public sees. -->
+  <g fill="none">
+    <!-- leaves behind the calendar -->
+    <path d="M232 150c14-3 22-13 21-27-14 1-23 12-21 27z" fill="#DCE7FB"/>
+    <path d="M28 156c-13-3-20-12-19-25 13 1 21 11 19 25z" fill="#DCE7FB"/>
+    <!-- ground line -->
+    <path d="M22 172c30-9 62-13 108-13s78 4 108 13" stroke="#DCE7FB" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- spiral binding -->
+    <g stroke="#93B4F5" stroke-width="5" stroke-linecap="round">
+      <path d="M74 20v14M100 20v14M126 20v14M152 20v14M178 20v14"/>
+    </g>
+
+    <!-- calendar body -->
+    <rect x="56" y="30" width="148" height="126" rx="14" fill="#ffffff" stroke="#C8D9FA" stroke-width="4"/>
+    <!-- header band -->
+    <path d="M56 44a14 14 0 0 1 14-14h120a14 14 0 0 1 14 14v18H56z" fill="#2563EB"/>
+
+    <!-- date grid -->
+    <g fill="#DCE7FB">
+      <rect x="72" y="78" width="20" height="16" rx="5"/>
+      <rect x="100" y="78" width="20" height="16" rx="5"/>
+      <rect x="128" y="78" width="20" height="16" rx="5"/>
+      <rect x="156" y="78" width="20" height="16" rx="5"/>
+      <rect x="72" y="102" width="20" height="16" rx="5"/>
+      <rect x="128" y="102" width="20" height="16" rx="5"/>
+      <rect x="156" y="102" width="20" height="16" rx="5"/>
+      <rect x="72" y="126" width="20" height="16" rx="5"/>
+      <rect x="100" y="126" width="20" height="16" rx="5"/>
+      <rect x="128" y="126" width="20" height="16" rx="5"/>
+    </g>
+    <!-- the booked day -->
+    <rect x="100" y="102" width="20" height="16" rx="5" fill="#5B8AEE"/>
+
+    <!-- confirmation badge -->
+    <circle cx="186" cy="134" r="26" fill="#2563EB" stroke="#ffffff" stroke-width="6"/>
+    <path d="M175 134l8 8 15-16" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -404,6 +404,16 @@
   @media (min-width:1024px) and (min-height:620px){
     .content-col > main.main--kiosk-form{flex:1 1 0; height:0; min-height:0; overflow:hidden;}
   }
+  /* Public appointment lookup (AppointmentLookup.jsx). Same visitor-facing
+     family as the check-in kiosk: one wide white frame that owns its own
+     logo/Back/language header, so it opts out of <main>'s 1200px reading
+     measure and out of Shell's topbar (see isApptLookup in Shell.jsx).
+     Unlike the check-in form it stays a normal scrolling page -- the results
+     list grows with however many appointments come back. */
+  .content-col > main.main--appt-lookup{max-width:none; padding:12px;}
+  @media (min-width:768px){
+    .content-col > main.main--appt-lookup{padding:24px 20px;}
+  }
   /* Short landscape kiosks (1366x768 and friends) can't show the sidebar's
      help note and all three step cards at once -- the steps win, and the
      same "ask a staff member" line is still on the kiosk landing screen. */
