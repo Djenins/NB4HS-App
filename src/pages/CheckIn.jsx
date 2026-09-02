@@ -47,7 +47,7 @@ function RoleCard({ icon, iconBg, iconColor, title, services, buttonLabel, butto
       >
         {icon({ size: compact ? 30 : 32, color: iconColor, strokeWidth: 2 })}
       </span>
-      <h2 className={cn("font-extrabold text-navy", compact ? "mt-3 text-xl" : "mt-3 text-xl")}>{title}</h2>
+      <h2 className={cn("font-extrabold text-navy dark:text-[color:var(--text)]", compact ? "mt-3 text-xl" : "mt-3 text-xl")}>{title}</h2>
       <p className={cn("text-muted", compact ? "mt-1.5 text-sm leading-snug" : "mt-1.5 min-h-[2.5rem] text-sm leading-snug")}>{services}</p>
       <span
         className={cn(
@@ -76,7 +76,7 @@ export default function CheckIn() {
   const compact = !kiosk;
 
   return (
-    <div className={cn("kiosk-landing relative flex w-full flex-col overflow-hidden bg-[#F7F8FC]", compact ? "min-h-0" : "h-screen")}>
+    <div className={cn("kiosk-landing relative flex w-full flex-col overflow-hidden bg-background", compact ? "min-h-0" : "h-screen")}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute left-1/2 top-[-10%] h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-60"
@@ -114,7 +114,7 @@ export default function CheckIn() {
         <p className={cn("animate-[fadeIn_.5s_ease-out] font-bold uppercase tracking-wide text-accent", compact ? "text-sm" : "text-base")}>
           {t("landingWelcomeTo")}
         </p>
-        <h1 className={cn("max-w-3xl text-center font-extrabold leading-tight text-navy", compact ? "mt-1 text-2xl sm:text-3xl" : "mt-1 text-3xl sm:text-4xl")}>
+        <h1 className={cn("max-w-3xl text-center font-extrabold leading-tight text-navy dark:text-[color:var(--text)]", compact ? "mt-1 text-2xl sm:text-3xl" : "mt-1 text-3xl sm:text-4xl")}>
           {ORG.name}
         </h1>
         <p className={cn("text-muted", compact ? "mt-1.5 text-base" : "mt-2 text-lg")}>{t("landingHowCanWeHelp")}</p>
@@ -160,7 +160,7 @@ export default function CheckIn() {
           <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-10 w-10")}>
             <Headset size={compact ? 16 : 18} strokeWidth={2} />
           </span>
-          <h3 className={cn("font-bold text-navy", compact ? "text-sm" : "text-base")}>{t("landingNeedHelp")}</h3>
+          <h3 className={cn("font-bold text-navy dark:text-[color:var(--text)]", compact ? "text-sm" : "text-base")}>{t("landingNeedHelp")}</h3>
           <p className={cn("text-muted", compact ? "text-xs" : "text-sm")}>{t("landingAskStaff")}</p>
         </div>
       </main>
