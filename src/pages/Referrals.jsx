@@ -3,6 +3,11 @@
 // src/pages/Students.jsx:404,424-429,456-466) -- no new dependency, same
 // dropHover-keyed-by-column-key + onDragOver/onDragLeave/onDrop wiring and
 // the same border-primary/ring-2/ring-primary/30 drop-target highlight.
+// Unlike every other mutation on this page, handleDrop() awaits its update
+// and surfaces a toast on failure -- a dropped card that silently failed to
+// save would otherwise look successful (it visually snaps back next
+// re-render, but with no explanation) until the user noticed the count was
+// wrong.
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -29,11 +34,17 @@ export default function Referrals() {
   const openJobOpenings = (data.jobOpenings || []).filter((o) => o.status !== "archived");
   const jobDevelopers = activeJobDevelopers(data.profiles);
 
-  function handleDrop(e, stageKey) {
+  async function handleDrop(e, stageKey) {
     e.preventDefault();
     setDropHover(null);
     const id = e.dataTransfer.getData("text/plain");
-    if (id) updateReferral(id, { status: stageKey });
+    if (!id) return;
+    try {
+      await updateReferral(id, { status: stageKey });
+    } catch (err) {
+      console.warn("updateReferral failed", err);
+      showToast(t("userActionError"));
+    }
   }
 
   async function createFromModal(fields) {
