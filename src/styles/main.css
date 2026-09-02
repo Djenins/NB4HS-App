@@ -61,21 +61,32 @@
   *{box-sizing:border-box;}
   /* Tailwind's preflight is deliberately off (see tailwind.config.js), and
      preflight is what normally gives every element `border-width:0;
-     border-style:solid`. Without it a Tailwind `border`/`border-t` utility
-     sets a width onto an element whose border-style is still the CSS default
-     `none`, so the used width computes to 0 and the border simply never
-     paints. The Shared Calendar is drawn almost entirely in Tailwind and its
-     whole design is hairlines -- grid lines, day dividers, card outlines,
-     the 3px left accent on an event -- so it restores that one pair of
-     defaults for its own subtree.
+     border-style:solid; border-color:<default>`. Without it a Tailwind
+     `border`/`border-t` utility sets a width onto an element whose
+     border-style is still the CSS default `none` -- the used width computes
+     to 0 and the border simply never paints. Nothing warns you: the class is
+     in the DOM, it just does nothing. Every one of the ~436 border utilities
+     across the Tailwind-based pages was silently inert, so this restores
+     that one trio of defaults for the whole app.
 
-     Both selectors are wrapped in :where() so the rule carries ZERO
-     specificity, exactly like preflight: every Tailwind border utility and
-     every main.css class rule inside the page (.modal-box's `border:1px
-     solid var(--border)`, for one) still wins over it. Scoped to this page
-     rather than applied globally because the rest of the app has been built
-     and reviewed against the current no-border behavior. */
-  :where(main.main--calendar) :where(*, *::before, *::after){
+     The selector is wrapped in :where() so the rule carries ZERO
+     specificity, exactly like preflight. Everything already in the codebase
+     therefore still wins over it:
+       - Tailwind's own width/style/color utilities (0,1,0)
+       - every class rule in this file -- .modal-box's `border:1px solid
+         var(--border)`, .theme-pill, .avatar-chip, and the rest
+       - the bare-tag rules below: `button, .btn` (border:2px solid
+         transparent), `input, select, textarea` (1px solid var(--border)),
+         `th,td` (border-bottom), all at (0,0,1)
+     so no styled control loses its border. The elements that would rely on a
+     UA default border instead -- fieldset, iframe -- aren't used anywhere in
+     src/, and the one <hr> (AppointmentLookup.jsx) already spells its rule
+     out as `border-0 border-t border-border`, expecting exactly this.
+
+     border-color defaults to var(--border) rather than preflight's
+     currentColor: a `border-t` written without a color utility means a
+     hairline divider here, never a line in the text color. */
+  :where(*, *::before, *::after){
     border-width:0; border-style:solid; border-color:var(--border);
   }
   html,body{margin:0;padding:0;}
