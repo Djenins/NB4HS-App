@@ -1,10 +1,15 @@
 // EventDrawer.jsx -- slide-out panel (not a modal) shown when an event is
-// clicked. View mode shows every field from the design brief; fields with
-// no real backing data (Related Case, Documents) are shown as honest empty
-// states rather than fabricated content. Edit mode reuses the same fields
-// calendar_events actually stores.
+// clicked. View mode shows the fields calendar_events actually stores, and
+// edit mode reuses the same set.
+//
+// An earlier pass also rendered "No related case linked" / "No documents
+// attached" placeholders here, standing in for two fields from the original
+// design brief that the table has no columns for. They were removed as
+// noise: a permanently empty box teaches nothing the second time it is read.
+// If those fields ever get real columns, they belong in the field grid above
+// like any other -- not as dashed placeholders.
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, FileText, Link2, Pencil, Trash2, X } from "lucide-react";
+import { Copy, Pencil, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fmtTimeRange } from "./calendarLayout.js";
 import { KIND_STYLE } from "./kindStyle.js";
@@ -112,15 +117,6 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                 <div className="border-t border-border pt-3">
                   <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
                   <p className="m-0 mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
-                </div>
-
-                <div className="flex flex-col gap-2 border-t border-border pt-3">
-                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
-                    <Link2 className="h-3.5 w-3.5 shrink-0" /> No related case linked
-                  </div>
-                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted">
-                    <FileText className="h-3.5 w-3.5 shrink-0" /> No documents attached
-                  </div>
                 </div>
               </div>
             )}
