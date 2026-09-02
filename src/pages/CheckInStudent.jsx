@@ -37,7 +37,7 @@ export default function CheckInStudent() {
     const now = new Date();
     const record = {
       id: uid(), firstName: student.firstName, lastName: student.lastName, phone: student.phone || "",
-      email: "", address: "", city: "", state: "RI", zip: "",
+      email: student.email || "", address: student.street || "", city: student.city || "", state: student.state || "RI", zip: student.zip || "",
       service: (cls && cls.service) || "adult_education", serviceOther: "",
       staff: (cls && cls.staff) || "esl_instructor", staffOther: "",
       notes: "", date: todayStr(), timeIn: now.toISOString(), timeOut: null,
