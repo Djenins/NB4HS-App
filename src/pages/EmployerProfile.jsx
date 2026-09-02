@@ -1,10 +1,11 @@
 // EmployerProfile.jsx -- CRM-style Employer Profile page. Phase 1 (Employer
 // info/notes/activity/documents) mirrors JobClientProfile.jsx's structure
 // (header card + tab strip + SectionCard/FieldRow/modal idioms) almost
-// verbatim. Phase 2 lights up the Job Openings tab with real data (and the
-// Total Positions/Active Openings metrics) now that job_openings exists;
-// Candidates/Placements stay honest "not available yet" placeholders since
-// those data models still don't exist.
+// verbatim. Phase 2 lit up the Job Openings tab with real data (and the
+// Total Positions/Active Openings metrics) once job_openings existed;
+// Phase 3/4 did the same for Candidates (data.referrals, filtered to this
+// employer) and Placements (data.placements, linking into
+// /placements/:placementId) -- both tabs are real now, not placeholders.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
