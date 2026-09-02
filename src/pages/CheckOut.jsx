@@ -181,7 +181,7 @@ export default function CheckOut() {
       </Card>
 
       {list.length ? (
-        <div className="mb-5 rounded-2xl border border-success bg-tint-success p-5">
+        <div className="mb-5 rounded-2xl border border-success-soft bg-tint-success p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-success" />
@@ -278,7 +278,7 @@ export default function CheckOut() {
         </CardContent>
       </Card>
 
-      <div className="flex items-start gap-3 rounded-2xl border border-primary bg-primary-tint px-5 py-4">
+      <div className="flex items-start gap-3 rounded-2xl border border-primary-soft bg-primary-tint px-5 py-4">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Info className="h-4 w-4" />
         </div>

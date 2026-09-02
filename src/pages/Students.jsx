@@ -237,7 +237,7 @@ function DetailActionButton({ icon: Icon, label, onClick, tone }) {
       className={cn(
         "flex h-9 min-h-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-colors",
         tone === "danger"
-          ? "border-accent bg-tint-danger text-accent hover:bg-accent-tint"
+          ? "border-accent-soft bg-tint-danger text-accent hover:bg-accent-tint"
           : "border-border bg-card text-card-foreground hover:bg-background"
       )}
     >
@@ -264,7 +264,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary data-[state=open]:border-primary"
+          className="flex h-14 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-left transition-colors hover:border-primary-soft data-[state=open]:border-primary"
         >
           <span className="flex items-center gap-2.5 min-w-0">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: current.accent + "22", color: current.accent }}>
@@ -973,7 +973,7 @@ function PastSessionsPanel() {
         <Button className="mt-3 w-full sm:w-auto" onClick={addPastSession}>{t("addSession")}</Button>
 
         {!history.length ? (
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary bg-primary-tint px-4 py-3.5 text-sm text-primary">
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary-soft bg-primary-tint px-4 py-3.5 text-sm text-primary">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <div className="font-semibold">{t("noPastSessions")}</div>

@@ -68,7 +68,7 @@ export default function QRCode() {
               {imgFailed && <div className="max-w-[220px] text-sm text-muted">QR image requires internet access. Link: {url}</div>}
             </div>
 
-            <div className="no-print mt-6 flex w-full items-start gap-3 rounded-xl border border-dashed border-primary bg-primary-tint p-4 text-left">
+            <div className="no-print mt-6 flex w-full items-start gap-3 rounded-xl border border-dashed border-primary-soft bg-primary-tint p-4 text-left">
               <Printer className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
                 <div className="text-sm font-semibold text-card-foreground">{t("qrDesc").split(".")[0]}.</div>
@@ -119,7 +119,7 @@ export default function QRCode() {
             </CardContent>
           </Card>
 
-          <div className="flex items-start gap-3 rounded-xl border border-success bg-tint-success p-4">
+          <div className="flex items-start gap-3 rounded-xl border border-success-soft bg-tint-success p-4">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
             <div>
               <div className="text-sm font-bold text-card-foreground">{t("qrSecureTitle")}</div>

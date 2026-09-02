@@ -392,7 +392,7 @@ export default function JobDeveloper() {
       </div>
 
       {followUpOnly && (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent-soft bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
           {t("followUpFilterActiveLabel")}
           <Button variant="ghost" size="sm" className="gap-1.5 text-accent hover:bg-accent-tint" onClick={() => setFollowUpOnly(false)}>
             <X className="h-3.5 w-3.5" /> {t("clearFilters")}

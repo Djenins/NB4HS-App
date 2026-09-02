@@ -211,7 +211,7 @@ function AssessmentDetailModal({ row, onClose, onSetOutcome }) {
           </DetailRow>
         </div>
 
-        <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary bg-card px-3.5 py-3 text-xs text-muted">
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary-soft bg-card px-3.5 py-3 text-xs text-muted">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <p className="m-0">
             {hintPrefix}

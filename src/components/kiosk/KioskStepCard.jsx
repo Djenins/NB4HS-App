@@ -14,7 +14,7 @@ export default function KioskStepCard({ number, icon: StepIcon, title, descripti
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         active
           ? "border-primary bg-primary-tint shadow-card"
-          : "border-border bg-card hover:border-primary hover:bg-[#F7F9FC] dark:hover:bg-background"
+          : "border-border bg-card hover:border-primary-soft hover:bg-[#F7F9FC] dark:hover:bg-background"
       )}
     >
       <span

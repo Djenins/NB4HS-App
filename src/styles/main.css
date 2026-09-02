@@ -35,6 +35,14 @@
        file already uses on input:focus, so Tailwind ring-* focus states and
        the plain-CSS ones are the same colour. */
     --focus-ring:rgba(37,99,235,.34);
+    /* Soft border tints -- the hairline around a tinted callout, where the
+       full-strength brand colour is too loud. These exist because a Tailwind
+       opacity modifier can't produce them: `border-primary/25` on a
+       var()-backed palette entry compiles to an invalid
+       `rgb(var(--primary) / .25)` and renders nothing at all. Pre-blended
+       here instead (~30% of the brand hue over --card), same trick and the
+       same hue family as the --ev-*-border calendar tints above. */
+    --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
     /* Spacing scale (8pt system) -- used by new components; existing
        hard-coded values are left alone unless called out below. */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
@@ -61,6 +69,9 @@
     --ev-appt-bg:#2A1C3A; --ev-appt-border:#4C3465; --ev-appt-fg:#C9A2E8;
     --ev-holiday-bg:#3A1C1E; --ev-holiday-border:#6B3033;
     --focus-ring:rgba(106,148,241,.48);
+    /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
+       that reads as a hairline on white disappears on a dark surface. */
+    --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
     --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box;}
@@ -734,6 +745,7 @@
       --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
       --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
       --focus-ring:rgba(37,99,235,.34);
+      --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
     }
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}
