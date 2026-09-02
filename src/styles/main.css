@@ -124,8 +124,17 @@
     min-height:52px; padding:12px 20px; font-weight:600;
     transition:transform .12s ease, opacity .15s ease, box-shadow .12s ease, background-color .12s ease;
   }
-  button:not(:disabled):hover{transform:translateY(-1px);}
-  button:active{transform:scale(0.98);}
+  /* Wrapped in :where() so these are specificity-0. Both rules set the whole
+     `transform` shorthand, so at their natural specificity (0,2,1 / 0,1,1)
+     they beat -- and wipe out -- any Tailwind transform utility on a button,
+     e.g. the `absolute right-2 top-1/2 -translate-y-1/2` centering on the
+     password reveal toggle in StaffLogin/ResetPassword: hovering swapped
+     translateY(-50%) for translateY(-1px) and the button dropped half its
+     height. At specificity 0 a transform utility class always wins (main.css
+     loads after tailwind.css, but 0,1,0 still beats 0,0,0), while plain
+     buttons that declare no transform of their own keep the lift/press. */
+  :where(button:not(:disabled):hover){transform:translateY(-1px);}
+  :where(button:active){transform:scale(0.98);}
   /* Opt-in loading state -- e.g. className={"btn-primary" + (busy ? " btn-loading" : "")};
      no existing call site sets this yet, added as a ready-to-use hook. */
   .btn-loading{position:relative; color:transparent !important; pointer-events:none;}
