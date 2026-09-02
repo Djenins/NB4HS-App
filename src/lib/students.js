@@ -40,7 +40,7 @@ export function studentMissingContact(s) {
   return !((s.phone || "").trim()) && !(s.street || s.city || s.zip);
 }
 export function columnAccentColor(key, index) {
-  if (key === "waiting") return "var(--gold)"; // gold -- theme-aware, see COLUMN_ACCENTS
+  if (key === "waiting") return "var(--gold-ink)"; // gold -- theme-aware, see COLUMN_ACCENTS
   return COLUMN_ACCENTS[index % COLUMN_ACCENTS.length];
 }
 // The faint disc behind a classroom's icon. Colour-mixed at call time rather

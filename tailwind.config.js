@@ -35,7 +35,7 @@ export default {
         success: { DEFAULT: "var(--success)", soft: "var(--border-success-soft)" },
         // Gold: sparing premium accent (dividers, featured stats, KPI
         // highlights, badges) -- never a dominant color.
-        gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A" },
+        gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A", ink: "var(--gold-ink)" },
         warn: "var(--warn)",
         background: "var(--bg)",
         card: { DEFAULT: "var(--card)", foreground: "var(--text)" },

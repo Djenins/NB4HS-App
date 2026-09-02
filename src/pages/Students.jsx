@@ -44,7 +44,7 @@ import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 
-const WAITING_ACCENT = "var(--gold)"; // gold -- matches columnAccentColor("waiting", ...)
+const WAITING_ACCENT = "var(--gold-ink)"; // gold -- matches columnAccentColor("waiting", ...)
 const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
 
 // Shared by the Kanban board (StudentsBoard) and the Waiting List panel,

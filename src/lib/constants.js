@@ -111,7 +111,7 @@ export var PAGE_SIZE = 25;
 // the token gets the lightened hue for free -- 5.5:1 to 8.3:1 in dark, and
 // byte-identical output in light. Purple is the calendar's appointment
 // foreground, the only purple in the system with both variants.
-export var COLUMN_ACCENTS = ["var(--primary)", "var(--success)", "var(--gold)", "var(--ev-appt-fg)"];
+export var COLUMN_ACCENTS = ["var(--primary)", "var(--success)", "var(--gold-ink)", "var(--ev-appt-fg)"];
 export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core", checkout: "core", search: "core", reports: "core", fooddistribution: "core", calendar: "core", qrcode: "admin", manage: "admin", students: "admin", casemanagement: "admin", jobdeveloper: "admin", users: "admin", settings: "admin", assessments: "admin" };
 
 // Finer-grained sidebar grouping for the Tailwind/shadcn redesign pass
