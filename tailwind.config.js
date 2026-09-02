@@ -28,7 +28,7 @@ export default {
         // `soft` is the hairline-border tint (border-primary-soft); it exists
         // because `border-primary/25` can't work on a var()-backed colour --
         // see --border-*-soft in main.css.
-        primary: { DEFAULT: "var(--primary)", dark: "var(--primary-dark)", foreground: "#ffffff", soft: "var(--border-primary-soft)" },
+        primary: { DEFAULT: "var(--primary)", dark: "var(--primary-dark)", foreground: "var(--primary-foreground)", soft: "var(--border-primary-soft)" },
         navy: { DEFAULT: "var(--navy)", dark: "var(--navy-dark)", foreground: "#ffffff" },
         // Accent is red, reserved for errors/validation/destructive actions only.
         accent: { DEFAULT: "var(--accent)", dark: "var(--accent-dark)", foreground: "#ffffff", soft: "var(--border-accent-soft)" },

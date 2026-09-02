@@ -43,6 +43,13 @@
        here instead (~30% of the brand hue over --card), same trick and the
        same hue family as the --ev-*-border calendar tints above. */
     --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
+    /* Ink for text on a solid --primary fill. White is right in light mode
+       (5.16:1 on #2563EB) but not in dark: --primary is lightened there for
+       link/icon legibility, and that drops white-on-primary to 2.95:1 --
+       under AA on every solid primary button. Dark mode uses the light
+       theme's ink instead: 6.05:1 on #6A94F1, better still on the lighter
+       --primary-dark hover. */
+    --primary-foreground:#ffffff;
     /* Spacing scale (8pt system) -- used by new components; existing
        hard-coded values are left alone unless called out below. */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
@@ -72,6 +79,7 @@
     /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
        that reads as a hairline on white disappears on a dark surface. */
     --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
+    --primary-foreground:#0F172A;
     --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box;}
@@ -191,7 +199,7 @@
     background-size:400% 100%; border-radius:8px; animation:skeleton-shine 1.4s ease infinite;
   }
   @keyframes skeleton-shine{0%{background-position:100% 50%;} 100%{background-position:0 50%;}}
-  .btn-primary{background:var(--primary); color:#fff; box-shadow:0 1px 2px rgba(27,37,89,.3);}
+  .btn-primary{background:var(--primary); color:var(--primary-foreground); box-shadow:0 1px 2px rgba(27,37,89,.3);}
   .btn-primary:hover{background:var(--primary-dark); box-shadow:0 2px 6px rgba(27,37,89,.35);}
   /* Secondary button text is brand navy (not the interactive blue) per the
      NB4HS Design System spec -- white bg, a dedicated slate border, navy label. */
@@ -292,7 +300,7 @@
      look, so the selectors below cover both tag names. */
   nav.tabs button, nav.tabs a{position:relative; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; min-height:44px; padding:8px 16px; background:var(--card); color:var(--muted); border:2px solid var(--border); text-decoration:none;}
   nav.tabs button:hover, nav.tabs a:hover{background:var(--bg); color:var(--text);}
-  nav.tabs button.active, nav.tabs a.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+  nav.tabs button.active, nav.tabs a.active{background:var(--primary); color:var(--primary-foreground); border-color:var(--primary);}
   nav.tabs button.active:hover, nav.tabs a.active:hover{background:var(--primary-dark);}
   nav.tabs button .icon, nav.tabs a .icon{width:16px; height:16px; vertical-align:0;}
   .nav-divider{width:1px; align-self:stretch; background:var(--border); margin:6px 4px; flex:0 0 auto;}
@@ -349,7 +357,7 @@
   }
   .pagination-arrow{width:36px; padding:0;}
   .pagination-page:hover, .pagination-arrow:not(:disabled):hover{background:var(--bg);}
-  .pagination-page.active{background:var(--primary); color:#fff;}
+  .pagination-page.active{background:var(--primary); color:var(--primary-foreground);}
   .pagination-arrow:disabled{opacity:.4; cursor:not-allowed;}
   .pagination-ellipsis{color:var(--muted); padding:0 2px; font-weight:600;}
   /* Generic mirror-flip -- reuses a right-pointing chevron as a left one
@@ -364,7 +372,7 @@
   .bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   .bar-label{flex:0 0 150px; font-size:.9rem; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .bar-track{flex:1; background:var(--tint-neutral); border-radius:6px; height:22px; overflow:hidden;}
-  .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:#fff; font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
+  .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:var(--primary-foreground); font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
   .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
   .pill{padding:8px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.9rem; cursor:pointer; transition:background .1s ease, border-color .1s ease;}
   .pill:hover{border-color:#b7c0d1;}
@@ -376,7 +384,7 @@
   .success-icon .icon{stroke-width:3;}
   .muted{color:var(--muted);}
   .skip-link{
-    position:absolute; left:-9999px; top:0; background:var(--primary); color:#fff; padding:12px 18px;
+    position:absolute; left:-9999px; top:0; background:var(--primary); color:var(--primary-foreground); padding:12px 18px;
     border-radius:0 0 8px 0; font-weight:700; z-index:1000;
   }
   .skip-link:focus{left:0;}
@@ -756,6 +764,7 @@
       --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
       --focus-ring:rgba(37,99,235,.34);
       --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
+      --primary-foreground:#ffffff;
     }
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}
