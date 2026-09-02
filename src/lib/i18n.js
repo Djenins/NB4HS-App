@@ -928,6 +928,13 @@ export var STR = {
   apptDateLabel: { en: "Date", ht: "Dat", fr: "Date" },
   apptTimeLabel: { en: "Time", ht: "Lè", fr: "Heure" },
   apptReasonLabel: { en: "Reason for appointment (optional)", ht: "Rezon pou randevou a (opsyonèl)", fr: "Motif du rendez-vous (facultatif)" },
+  apptReasonPlaceholder: { en: "Share any details that will help us prepare…", ht: "Pataje nenpòt detay ki ap ede nou prepare…", fr: "Partagez tout détail qui nous aidera à préparer…" },
+  // Added with the appointment-request kiosk redesign: Submit now reports
+  // that it is working (and stays disabled meanwhile, so a double-tap can't
+  // file the request twice), and a failed insert says so instead of leaving
+  // the visitor on a form that looks like it did nothing.
+  apptRequestSubmitting: { en: "Submitting…", ht: "Ap soumèt…", fr: "Envoi en cours…" },
+  apptRequestErrorDesc: { en: "We couldn't send your request. Your information is still here — please try again.", ht: "Nou pa t kapab voye demann ou an. Enfòmasyon ou yo toujou la — tanpri eseye ankò.", fr: "Nous n'avons pas pu envoyer votre demande. Vos informations sont toujours là — veuillez réessayer." },
   apptReasonHint: { en: "Optional, but helps us prepare for your appointment.", ht: "Opsyonèl, men li ede nou prepare pou randevou ou.", fr: "Facultatif, mais nous aide à préparer votre rendez-vous." },
   apptWhatsNextTitle: { en: "What happens next?", ht: "Kisa k ap pase apre?", fr: "Que se passe-t-il ensuite?" },
   apptWhatsNextDesc: { en: "A staff member will review your request and confirm your appointment time. You will receive a call or email with the details.", ht: "Yon manm pèsonèl ap revize demann ou epi konfime lè randevou ou. W ap resevwa yon apèl oswa yon imèl ak detay yo.", fr: "Un membre du personnel examinera votre demande et confirmera l'heure de votre rendez-vous. Vous recevrez un appel ou un e-mail avec les détails." },

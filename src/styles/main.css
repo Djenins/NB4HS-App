@@ -425,6 +425,57 @@
   }
   /* The shared 16px select chevron is too small a target at kiosk scale. */
   .kiosk-checkin .kiosk-select{background-size:22px; background-position:right 16px center; padding-right:50px;}
+  /* Public appointment request (ApptRequest.jsx). Third screen of the same
+     visitor-facing family as the check-in kiosk and the appointment lookup:
+     it owns its own logo/Back/language header, so it opts out of Shell's
+     topbar and out of <main>'s 1200px reading measure. It stays a normally
+     scrolling page (a phone has to scroll it); the landscape kiosk target is
+     hit by the two-column layout plus the short-viewport trims below. */
+  .content-col > main.main--appt-request{max-width:none; padding:12px;}
+  @media (min-width:768px){
+    .content-col > main.main--appt-request{padding:16px 20px;}
+  }
+  /* Kiosk touch scale for the two controls that aren't plain inputs: the
+     shared select chevron is too small a target at this size, and DatePicker's
+     trigger has to match the height/radius of the inputs beside it. */
+  .appt-request .appt-select{background-size:22px; background-position:right 16px center; padding-right:50px;}
+  .appt-request .appt-textarea{min-height:96px;}
+  .appt-request .date-picker-trigger{min-height:56px; border-radius:14px; padding:12px 16px; font-size:1rem;}
+  .appt-request .date-picker-trigger .icon{width:20px; height:20px; color:var(--primary); vertical-align:0;}
+  .appt-request .date-picker.field-invalid .date-picker-trigger{border-color:var(--accent);}
+  /* Short landscape kiosks (1366x768 and friends) have ~250px less height
+     than the 1920x1080 target this page is designed at, and the whole form
+     is meant to sit in one viewport. Every value below buys that height back
+     from margins, padding, gaps and decoration -- the order the brief asks
+     for. Nothing here shrinks a touch target below 52px or type below 0.9rem;
+     taller kiosks keep the roomier scale defined in the components. */
+  @media (min-width:1024px) and (max-height:900px){
+    .content-col > main.main--appt-request{padding:6px 16px;}
+    .appt-request .appt-frame{padding:14px;}
+    .appt-request .appt-logo{height:34px;}
+    .appt-request .appt-brandbar > button{min-height:48px;}
+    .appt-request .appt-title{margin-top:6px; gap:14px;}
+    .appt-request .appt-title-badge{height:52px; width:52px;}
+    .appt-request .appt-h1{font-size:1.6rem;}
+    .appt-request .appt-lede{margin-top:2px; font-size:1rem;}
+    .appt-request .appt-form{margin-top:10px; gap:8px;}
+    .appt-request .appt-cards{gap:14px;}
+    .appt-request .appt-card{padding:12px 14px;}
+    .appt-request .appt-card-badge{height:40px; width:40px;}
+    .appt-request .appt-card-title{font-size:1.1rem;}
+    .appt-request .appt-card-desc{margin-top:1px; font-size:0.88rem;}
+    .appt-request .appt-card-body{margin-top:10px;}
+    .appt-request .appt-fields{gap:7px 16px;}
+    .appt-request .appt-label{margin-bottom:2px; font-size:0.9rem;}
+    .appt-request .appt-error{margin-top:2px;}
+    .appt-request .appt-hint{margin-top:2px; font-size:0.8rem;}
+    .appt-request .appt-control{min-height:52px;}
+    .appt-request .appt-textarea{min-height:66px; height:66px;}
+    .appt-request .date-picker-trigger{min-height:52px;}
+    .appt-request .appt-next{padding:10px 14px;}
+    .appt-request .appt-next-art{height:64px;}
+    .appt-request .appt-submit{min-height:60px;}
+  }
   /* =========================================================
      AUTH SPLIT LAYOUT -- Login.jsx / StaffLogin.jsx (AuthShell.jsx). Split-
      screen look modeled on a reference design the client shared: a colored
