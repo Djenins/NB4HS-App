@@ -783,7 +783,12 @@ export async function lookupClientAppointments(lastName, email, phone) {
   const { data, error } = await supabase.rpc("lookup_client_appointments", {
     p_last_name: lastName, p_email: email || "", p_phone: phone || ""
   });
-  if (error) { console.warn("lookupClientAppointments failed", error); return []; }
+  // A failed request and "this person has no appointments" used to both
+  // come back as [], so the lookup page could only ever say "no appointments
+  // found" -- including when the RPC was unreachable. The query itself is
+  // unchanged; the failure is just no longer swallowed, so the caller can
+  // tell a server error apart from an empty result.
+  if (error) { console.warn("lookupClientAppointments failed", error); throw error; }
   return (data || []).map((row) => ({
     date: row.appt_date || "", time: row.appt_time || "", meetingWith: row.meeting_with,
     status: row.status, reason: row.reason || ""

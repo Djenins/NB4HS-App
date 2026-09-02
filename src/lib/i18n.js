@@ -33,7 +33,26 @@ export var STR = {
   apptLookupContactHint: { en: "Enter the email or phone number you used, or both.", ht: "Antre imèl oswa nimewo telefòn ou te itilize, oswa toude.", fr: "Saisissez l'e-mail ou le numéro de téléphone que vous avez utilisé, ou les deux." },
   apptLookupBtn: { en: "Find My Appointments", ht: "Jwenn Randevou Mwen yo", fr: "Trouver Mes Rendez-vous" },
   apptLookupSearching: { en: "Searching…", ht: "Ap chèche…", fr: "Recherche en cours…" },
-  apptLookupNoResults: { en: "No appointments found. Double-check the name and contact info you entered, or submit a new request.", ht: "Pa gen randevou jwenn. Tanpri verifye non ak enfòmasyon kontak ou antre yo, oswa soumèt yon nouvo demand.", fr: "Aucun rendez-vous trouvé. Vérifiez le nom et les coordonnées saisis, ou soumettez une nouvelle demande." },
+  // Lookup-page states added with the appointment-lookup redesign: the page
+  // now tells a validation problem, an empty result and a failed request
+  // apart instead of showing the same "no appointments" line for all three.
+  // The approved no-results copy ("No appointments found. Double-check the
+  // name and contact info you entered, or submit a new request.") is split
+  // verbatim across the panel's heading and body rather than repeating its
+  // first sentence in both.
+  apptLookupNoResultsBody: { en: "Double-check the name and contact info you entered, or submit a new request.", ht: "Tanpri verifye non ak enfòmasyon kontak ou antre yo, oswa soumèt yon nouvo demand.", fr: "Vérifiez le nom et les coordonnées saisis, ou soumettez une nouvelle demande." },
+  apptLookupNoResultsTitle: { en: "No appointments found", ht: "Pa gen randevou jwenn", fr: "Aucun rendez-vous trouvé" },
+  apptLookupErrorTitle: { en: "We couldn't check your appointments", ht: "Nou pa t kapab verifye randevou ou yo", fr: "Nous n'avons pas pu vérifier vos rendez-vous" },
+  apptLookupErrorDesc: { en: "We couldn't check your appointments right now. Please try again.", ht: "Nou pa kapab verifye randevou ou yo kounye a. Tanpri eseye ankoò.", fr: "Nous ne pouvons pas vérifier vos rendez-vous pour le moment. Veuillez réessayer." },
+  apptLookupTryAgain: { en: "Try Again", ht: "Eseye Ankoò", fr: "Réessayer" },
+  apptLookupResultsTitle: { en: "Your appointments", ht: "Randevou ou yo", fr: "Vos rendez-vous" },
+  apptLookupLastNameError: { en: "Enter your last name.", ht: "Antre non fanmi ou.", fr: "Saisissez votre nom de famille." },
+  apptLookupContactError: { en: "Enter an email address or phone number.", ht: "Antre yon adrès imèl oswa yon nimewo telefòn.", fr: "Saisissez une adresse e-mail ou un numéro de téléphone." },
+  apptLookupLastNamePlaceholder: { en: "Enter your last name", ht: "Antre non fanmi ou", fr: "Saisissez votre nom de famille" },
+  apptLookupEmailPlaceholder: { en: "Enter your email", ht: "Antre imèl ou", fr: "Saisissez votre e-mail" },
+  apptLookupHelpText: { en: "Please ask a staff member if you need assistance.", ht: "Tanpri mande yon anplwaye si ou bezwen èd.", fr: "Veuillez demander à un membre du personnel si vous avez besoin d'aide." },
+  phoneOptional: { en: "Phone Number (optional)", ht: "Nimewo Telefòn (opsyonèl)", fr: "Numéro de Téléphone (facultatif)" },
+  apptLookupReasonLabel: { en: "Reason", ht: "Rezon", fr: "Motif" },
   secureInfoNote: { en: "Your information is secure and encrypted.", ht: "Enfòmasyon ou an sekirize e kode.", fr: "Vos informations sont sécurisées et cryptées." },
   allRightsReservedLabel: { en: "All rights reserved.", ht: "Tout dwa rezève.", fr: "Tous droits réservés." },
   staffLogin: { en: "Staff / Admin Login", ht: "Koneksyon Anplwaye / Admin", fr: "Connexion Personnel / Admin" },

@@ -241,6 +241,13 @@ export default function Shell() {
   // kiosk frame has its own closing line, and the landing screen already
   // hides that note in kiosk mode for the same reason.
   const isKioskForm = location.pathname === "/checkin/visitor";
+  // The public appointment lookup (AppointmentLookup.jsx) is the other half
+  // of that same visitor-facing design: it carries the NB4HS logo, the Back
+  // control and the language picker inside its own frame, so Shell's topbar
+  // would only repeat them. It also wants the full width of the content
+  // column rather than <main>'s 1200px reading measure -- see
+  // main--appt-lookup in main.css.
+  const isApptLookup = location.pathname === "/appointments/lookup";
 
   const role = session ? session.role : null;
   const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
@@ -380,7 +387,7 @@ export default function Shell() {
           )}
 
           <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
-            {!isKioskLanding && (
+            {!isKioskLanding && !isApptLookup && (
               <header className="topbar">
                 {!showSidebar && (
                   <div className="brand">
@@ -399,12 +406,12 @@ export default function Shell() {
             {isKioskLanding ? (
               <Outlet />
             ) : (
-              <main id="main-content" tabIndex={-1} className={isKioskForm ? "main--kiosk-form" : undefined}>
+              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup")}>
                 <Outlet />
               </main>
             )}
 
-            {!isKioskLanding && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
+            {!isKioskLanding && !isApptLookup && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>
