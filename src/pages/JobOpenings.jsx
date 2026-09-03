@@ -22,10 +22,11 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createJobOpening, deleteJobOpening, updateJobOpening } from "../lib/clientsData.js";
 import {
-  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES, jobOpeningSortKey
+  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES
 } from "../lib/jobOpenings.js";
 import { activeIndustryList } from "../lib/utils.js";
 import { matchesJobOpening } from "../lib/workforceFilters.js";
+import { sortJobOpenings } from "../lib/workforceSorters.js";
 import { paginateList } from "../lib/pagination.js";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningGridCard from "../components/JobOpeningGridCard.jsx";
@@ -43,16 +44,6 @@ function optionsFrom(list, allLabel) {
   return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
 }
 
-// Secondary comparators. The primary one is always jobOpeningSortKey (direct
-// employer opportunities ahead of imported feed jobs -- a product rule from
-// the module spec, not a display preference), so each of these only breaks
-// ties within a group.
-const SORTERS = {
-  recent: function (a, b) { return (b.postedDate || "").localeCompare(a.postedDate || ""); },
-  oldest: function (a, b) { return (a.postedDate || "").localeCompare(b.postedDate || ""); },
-  title: function (a, b) { return (a.title || "").localeCompare(b.title || ""); },
-  employer: function (a, b) { return (a.employerName || "").localeCompare(b.employerName || ""); }
-};
 
 export default function JobOpenings() {
   const { data, lang, requestConfirm, showToast } = useApp();
@@ -147,9 +138,7 @@ export default function JobOpenings() {
   const matched = openings.filter(function (o) {
     return matchesJobOpening(o, filterValues, { employerIndustryById, term });
   });
-  const sorted = matched.slice().sort(function (a, b) {
-    return jobOpeningSortKey(a) - jobOpeningSortKey(b) || SORTERS[sort](a, b);
-  });
+  const sorted = sortJobOpenings(matched, sort);
   const paged = paginateList(sorted, page, pageSize);
 
   const sortOptions = [
