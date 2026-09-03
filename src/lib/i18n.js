@@ -1279,7 +1279,30 @@ export var STR = {
   noEligibleCandidatesTitle: { en: "No eligible candidates", ht: "Pa gen kandida ki kalifye", fr: "Aucun candidat éligible" },
   noEligibleCandidatesDesc: { en: "Only active job seekers who are still looking for work appear here.", ht: "Se sèlman moun k ap chèche travay ki aktif ki parèt isit la.", fr: "Seuls les demandeurs d'emploi actifs et toujours en recherche apparaissent ici." },
   noMatchingCandidatesTitle: { en: "No matching candidates", ht: "Pa gen kandida ki koresponn", fr: "Aucun candidat correspondant" },
-  noMatchingCandidatesDesc: { en: "Try adjusting your search or filters to see more candidates.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis kandida.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de candidats." }
+  noMatchingCandidatesDesc: { en: "Try adjusting your search or filters to see more candidates.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis kandida.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de candidats." },
+
+  // ---- Referrals page: search / filter panel / board + list views ----
+  referralSearchPlaceholder: { en: "Search referrals by participant, position, or employer…", ht: "Chèche referans pa patisipan, pozisyon, oswa anplwayè…", fr: "Rechercher des références par participant, poste ou employeur…" },
+  boardViewLabel: { en: "Board view", ht: "Vi tablo", fr: "Vue tableau" },
+  stageLabel: { en: "Stage", ht: "Etap", fr: "Étape" },
+  employerLabel: { en: "Employer", ht: "Anplwayè", fr: "Employeur" },
+  allEmployersLabel: { en: "All Employers", ht: "Tout Anplwayè", fr: "Tous les Employeurs" },
+  allPositionsLabel: { en: "All Positions", ht: "Tout Pozisyon", fr: "Tous les Postes" },
+  allJobDevelopersLabel: { en: "All Job Developers", ht: "Tout Devlopè Travay", fr: "Tous les Développeurs d'Emploi" },
+  anyTimeLabel: { en: "Any Time", ht: "Nenpòt Lè", fr: "N'importe Quand" },
+  last30DaysLabel: { en: "Last 30 Days", ht: "30 Dènye Jou", fr: "30 Derniers Jours" },
+  last90DaysLabel: { en: "Last 90 Days", ht: "90 Dènye Jou", fr: "90 Derniers Jours" },
+  interviewLabel: { en: "Interview", ht: "Entèvyou", fr: "Entretien" },
+  interviewScheduledLabel: { en: "Interview Scheduled", ht: "Entèvyou Pwograme", fr: "Entretien Programmé" },
+  noInterviewScheduledLabel: { en: "No Interview Scheduled", ht: "Pa gen Entèvyou Pwograme", fr: "Aucun Entretien Programmé" },
+  sortNewestReferralLabel: { en: "Newest Referral", ht: "Referans Pi Resan", fr: "Référence la Plus Récente" },
+  sortOldestReferralLabel: { en: "Oldest Referral", ht: "Referans Pi Ansyen", fr: "Référence la Plus Ancienne" },
+  sortPipelineStageLabel: { en: "Pipeline Stage", ht: "Etap Pipeline", fr: "Étape du Pipeline" },
+  sortParticipantAzLabel: { en: "Participant A–Z", ht: "Patisipan A–Z", fr: "Participant A–Z" },
+  noReferralsTitle: { en: "No referrals yet", ht: "Poko gen referans", fr: "Aucune référence pour l'instant" },
+  noReferralsDesc: { en: "Refer a candidate to a job opening to start tracking them through the pipeline.", ht: "Refere yon kandida nan yon pozisyon travay pou kòmanse swiv li nan pipeline lan.", fr: "Référez un candidat à un poste pour commencer à le suivre dans le pipeline." },
+  noMatchingReferralsTitle: { en: "No matching referrals", ht: "Pa gen referans ki koresponn", fr: "Aucune référence correspondante" },
+  noMatchingReferralsDesc: { en: "Try adjusting your search or filters to see more referrals.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis referans.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de références." }
 };
 
 export function t(key, lang) {
