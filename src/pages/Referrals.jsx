@@ -36,9 +36,10 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { isCandidateEligible } from "../lib/candidateMatching.js";
 import { createReferral, deleteReferral, updateReferral } from "../lib/clientsData.js";
-import { REFERRAL_STAGES, stageIndex } from "../lib/referrals.js";
+import { REFERRAL_STAGES } from "../lib/referrals.js";
 import { todayStr } from "../lib/utils.js";
 import { matchesReferral } from "../lib/workforceFilters.js";
+import { sortReferrals } from "../lib/workforceSorters.js";
 import { cn } from "../lib/cn.js";
 import ReferralCard from "../components/ReferralCard.jsx";
 import ReferralFormModal from "../components/ReferralFormModal.jsx";
@@ -55,13 +56,6 @@ const VIEWS = [
   { value: "list", icon: List, labelKey: "listViewLabel" }
 ];
 
-const SORTERS = {
-  newest: function (a, b) { return (b.referralDate || "").localeCompare(a.referralDate || ""); },
-  oldest: function (a, b) { return (a.referralDate || "").localeCompare(b.referralDate || ""); },
-  stage: function (a, b) { return stageIndex(a.status) - stageIndex(b.status); },
-  participant: function (a, b) { return (a.participantName || "").localeCompare(b.participantName || ""); },
-  employer: function (a, b) { return (a.employerName || "").localeCompare(b.employerName || ""); }
-};
 
 // Distinct non-empty values of one field across the referrals, for the
 // filter tiles that are driven by the data rather than a constant list.
@@ -151,7 +145,7 @@ export default function Referrals() {
   const matched = referrals.filter(function (r) {
     return matchesReferral(r, filterValues, { today: todayStr(), term });
   });
-  const sorted = matched.slice().sort(SORTERS[sort]);
+  const sorted = sortReferrals(matched, sort);
 
   const sortOptions = [
     { value: "newest", label: t("sortNewestReferralLabel") },

@@ -30,10 +30,10 @@ import { AlertTriangle, Briefcase, Car, FileText, MapPin, RotateCcw, Search, Sen
 import { useApp, useT } from "../context/AppContext.jsx";
 import { computeMatchScore, isCandidateEligible } from "../lib/candidateMatching.js";
 import { createReferral } from "../lib/clientsData.js";
-import { clientDisplayName } from "../lib/clients.js";
 import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, WORK_AUTH_STATUSES, employmentStatusLabel } from "../lib/jobProfile.js";
 import { todayStr } from "../lib/utils.js";
 import { matchesCandidate } from "../lib/workforceFilters.js";
+import { sortCandidates } from "../lib/workforceSorters.js";
 import CandidateMatchCard from "../components/CandidateMatchCard.jsx";
 import CandidateMatchListItem from "../components/CandidateMatchListItem.jsx";
 import JobOpeningPickerCard from "../components/JobOpeningPickerCard.jsx";
@@ -46,14 +46,6 @@ function optionsFrom(list, allLabel) {
   return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
 }
 
-// Secondary comparators; the ranked order is always best-match-first unless
-// the user picks otherwise. Intake date is the only date job_clients has.
-const SORTERS = {
-  match: function (a, b) { return b.score - a.score; },
-  name: function (a, b) { return clientDisplayName(a.jobClient).localeCompare(clientDisplayName(b.jobClient)); },
-  newest: function (a, b) { return (b.jobClient.intakeDate || "").localeCompare(a.jobClient.intakeDate || ""); },
-  oldest: function (a, b) { return (a.jobClient.intakeDate || "").localeCompare(b.jobClient.intakeDate || ""); }
-};
 
 export default function CandidateMatching() {
   const { data, session, showToast } = useApp();
@@ -180,7 +172,7 @@ export default function CandidateMatching() {
   const matched = ranked.filter(function (entry) {
     return matchesCandidate(entry, filterValues, { term, isReferred });
   });
-  const sorted = matched.slice().sort(SORTERS[sort]);
+  const sorted = sortCandidates(matched, sort);
 
   const sortOptions = [
     { value: "match", label: t("sortBestMatchLabel") },

@@ -28,6 +28,7 @@ import { EMPLOYER_PARTNERSHIP_STAGES, PREFERRED_HIRING_METHODS } from "../lib/em
 import { paginateList } from "../lib/pagination.js";
 import { activeIndustryList, todayStr } from "../lib/utils.js";
 import { matchesEmployer } from "../lib/workforceFilters.js";
+import { sortEmployers } from "../lib/workforceSorters.js";
 import { cn } from "../lib/cn.js";
 import EmployerCard from "../components/EmployerCard.jsx";
 import EmployerListItem from "../components/EmployerListItem.jsx";
@@ -201,12 +202,6 @@ function distinct(list, key) {
   return Array.from(new Set(list.map(function (e) { return (e[key] || "").trim(); }).filter(Boolean))).sort();
 }
 
-const SORTERS = {
-  name_az: function (a, b) { return (a.businessName || "").localeCompare(b.businessName || ""); },
-  name_za: function (a, b) { return (b.businessName || "").localeCompare(a.businessName || ""); },
-  newest_partner: function (a, b) { return (b.partnerSince || "").localeCompare(a.partnerSince || ""); },
-  last_contact: function (a, b) { return (b.lastMeetingDate || "").localeCompare(a.lastMeetingDate || ""); }
-};
 
 export default function Employers() {
   const { data, lang, requestConfirm } = useApp();
@@ -339,11 +334,7 @@ export default function Employers() {
     return matchesEmployer(e, filterValues, { today, term, openPositionsByEmployer, industryLabelByKey });
   });
 
-  // Most-open-positions isn't a column, so it sorts off the count map rather
-  // than a record field; the rest are plain field comparisons.
-  const sorted = matched.slice().sort(sort === "open_positions"
-    ? function (a, b) { return (openPositionsByEmployer[b.id] || 0) - (openPositionsByEmployer[a.id] || 0); }
-    : SORTERS[sort]);
+  const sorted = sortEmployers(matched, sort, openPositionsByEmployer);
   const paged = paginateList(sorted, page, pageSize);
 
   const sortOptions = [

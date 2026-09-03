@@ -30,12 +30,12 @@ import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetchAllApplications, updateJobClient } from "../lib/clientsData.js";
-import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, JOB_PIPELINE_STAGES, WORK_AUTH_STATUSES, computeFollowUps, pipelineStageIndex } from "../lib/jobProfile.js";
+import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, JOB_PIPELINE_STAGES, WORK_AUTH_STATUSES, computeFollowUps } from "../lib/jobProfile.js";
 import { paginateList } from "../lib/pagination.js";
-import { sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
 import { formatPhone, todayStr } from "../lib/utils.js";
 import { matchesJobClient } from "../lib/workforceFilters.js";
+import { sortJobClients } from "../lib/workforceSorters.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
@@ -272,16 +272,6 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
   );
 }
 
-// Barriers, intake-date windows and the follow-up map are the three filters
-// that aren't a plain field comparison; everything else compares a
-// job_clients column directly.
-const SORTERS = {
-  name_az: null,   // handled by sortStudentsList, which the page already used
-  name_za: null,
-  newest_intake: function (a, b) { return (b.intakeDate || "").localeCompare(a.intakeDate || ""); },
-  oldest_intake: function (a, b) { return (a.intakeDate || "").localeCompare(b.intakeDate || ""); },
-  stage: function (a, b) { return pipelineStageIndex(a.pipelineStage) - pipelineStageIndex(b.pipelineStage); }
-};
 
 function optionsFrom(list, allLabel) {
   return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
@@ -407,17 +397,7 @@ export default function JobDeveloper() {
     return matchesJobClient(c, filterValues, { today: todayStr(), term, followUps });
   });
 
-  // Name sorting keeps going through sortStudentsList, which is what this
-  // page always used and what the rest of the app sorts people by; Z-A is
-  // just that list reversed rather than a second, subtly different collation.
-  let sorted;
-  if (sort === "name_az" || sort === "name_za") {
-    sorted = sortStudentsList(matched.map(function (c) { return { firstName: c.firstName, lastName: c.lastName, __ref: c }; }))
-      .map(function (w) { return w.__ref; });
-    if (sort === "name_za") sorted = sorted.reverse();
-  } else {
-    sorted = matched.slice().sort(SORTERS[sort]);
-  }
+  const sorted = sortJobClients(matched, sort);
   const paged = paginateList(sorted, page, pageSize);
   const allOnPageSelected = paged.items.length > 0 && paged.items.every(function (c) { return selected.has(c.id); });
 

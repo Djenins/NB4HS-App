@@ -29,6 +29,7 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { createPlacement } from "../lib/clientsData.js";
 import { CHECKIN_TYPES, PLACEMENT_STATUSES, checkinState } from "../lib/placements.js";
 import { TENURE_BUCKETS, WAGE_BANDS, matchesPlacement } from "../lib/workforceFilters.js";
+import { sortPlacements } from "../lib/workforceSorters.js";
 import { todayStr } from "../lib/utils.js";
 import PlacementFormModal from "../components/PlacementFormModal.jsx";
 import PlacementGridCard from "../components/PlacementGridCard.jsx";
@@ -38,13 +39,6 @@ import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 
-const SORTERS = {
-  newest: function (a, b) { return (b.startDate || "").localeCompare(a.startDate || ""); },
-  oldest: function (a, b) { return (a.startDate || "").localeCompare(b.startDate || ""); },
-  participant: function (a, b) { return (a.participantName || "").localeCompare(b.participantName || ""); },
-  employer: function (a, b) { return (a.employerName || "").localeCompare(b.employerName || ""); },
-  wage: function (a, b) { return (Number(b.hourlyWage) || 0) - (Number(a.hourlyWage) || 0); }
-};
 
 function distinct(list, key) {
   return Array.from(new Set(list.map(function (p) { return (p[key] || "").trim(); }).filter(Boolean))).sort();
@@ -158,7 +152,7 @@ export default function Placements() {
   const matched = placements.filter(function (p2) {
     return matchesPlacement(p2, filterValues, { today: todayStr(), term, checkinSummaryFor: checkinSummary });
   });
-  const sorted = matched.slice().sort(SORTERS[sort]);
+  const sorted = sortPlacements(matched, sort);
 
   const sortOptions = [
     { value: "newest", label: t("sortNewestStartLabel") },
