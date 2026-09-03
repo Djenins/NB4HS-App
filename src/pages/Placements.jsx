@@ -28,6 +28,7 @@ import { Briefcase, Building2, CircleCheck, Clock, DollarSign, Flag, HeartHandsh
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createPlacement } from "../lib/clientsData.js";
 import { CHECKIN_TYPES, PLACEMENT_STATUSES, checkinState } from "../lib/placements.js";
+import { TENURE_BUCKETS, WAGE_BANDS, matchesPlacement } from "../lib/workforceFilters.js";
 import { todayStr } from "../lib/utils.js";
 import PlacementFormModal from "../components/PlacementFormModal.jsx";
 import PlacementGridCard from "../components/PlacementGridCard.jsx";
@@ -36,22 +37,6 @@ import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
-
-// Tenure buckets, in days since start_date. Chosen to line up with the
-// 30/60/90/180 check-in schedule rather than being invented separately, so
-// "who is past their 90-day check-in" is one filter away.
-const TENURE_BUCKETS = [
-  { value: "under30", labelKey: "tenureUnder30Label", min: 0, max: 29 },
-  { value: "30to89", labelKey: "tenure30to89Label", min: 30, max: 89 },
-  { value: "90to179", labelKey: "tenure90to179Label", min: 90, max: 179 },
-  { value: "180plus", labelKey: "tenure180PlusLabel", min: 180, max: Infinity }
-];
-
-const WAGE_BANDS = [
-  { value: "under15", labelKey: "wageUnder15Label", min: 0, max: 14.999999 },
-  { value: "15to20", labelKey: "wage15to20Label", min: 15, max: 19.999999 },
-  { value: "20plus", labelKey: "wage20PlusLabel", min: 20, max: Infinity }
-];
 
 const SORTERS = {
   newest: function (a, b) { return (b.startDate || "").localeCompare(a.startDate || ""); },
@@ -63,16 +48,6 @@ const SORTERS = {
 
 function distinct(list, key) {
   return Array.from(new Set(list.map(function (p) { return (p[key] || "").trim(); }).filter(Boolean))).sort();
-}
-
-// Whole days from a YYYY-MM-DD start date to today. Placements with no start
-// date recorded get null and fall out of every tenure bucket rather than
-// silently landing in "under 30 days".
-function daysSince(startDate) {
-  if (!startDate) return null;
-  const start = new Date(startDate + "T00:00:00");
-  const today = new Date(todayStr() + "T00:00:00");
-  return Math.floor((today - start) / 86400000);
 }
 
 export default function Placements() {
@@ -176,36 +151,12 @@ export default function Placements() {
   }
 
   const term = search.trim().toLowerCase();
-  const matched = placements.filter(function (p) {
-    if (statusFilter && p.currentStatus !== statusFilter) return false;
-    if (employerFilter && (p.employerName || "").trim() !== employerFilter) return false;
-    if (positionFilter && (p.positionTitle || "").trim() !== positionFilter) return false;
-    if (supervisorFilter && (p.supervisorName || "").trim() !== supervisorFilter) return false;
-
-    if (tenureFilter) {
-      const bucket = TENURE_BUCKETS.filter(function (b) { return b.value === tenureFilter; })[0];
-      const days = daysSince(p.startDate);
-      if (days === null || days < bucket.min || days > bucket.max) return false;
-    }
-    if (wageFilter) {
-      const band = WAGE_BANDS.filter(function (b) { return b.value === wageFilter; })[0];
-      const wage = Number(p.hourlyWage);
-      if (!p.hourlyWage || isNaN(wage) || wage < band.min || wage > band.max) return false;
-    }
-    if (benefitsFilter === "yes" && !(p.benefits || "").trim()) return false;
-    if (benefitsFilter === "no" && (p.benefits || "").trim()) return false;
-
-    if (checkinFilter) {
-      const summary = checkinSummary(p.id);
-      if (checkinFilter === "overdue" && !summary.anyOverdue) return false;
-      if (checkinFilter === "all_complete" && !summary.allComplete) return false;
-      if (checkinFilter === "none_complete" && !summary.noneComplete) return false;
-    }
-
-    if (!term) return true;
-    const hay = [p.participantName, p.employerName, p.positionTitle, p.supervisorName]
-      .join(" ").toLowerCase();
-    return hay.indexOf(term) !== -1;
+  const filterValues = {
+    status: statusFilter, employer: employerFilter, position: positionFilter, supervisor: supervisorFilter,
+    tenure: tenureFilter, wage: wageFilter, benefits: benefitsFilter, checkins: checkinFilter
+  };
+  const matched = placements.filter(function (p2) {
+    return matchesPlacement(p2, filterValues, { today: todayStr(), term, checkinSummaryFor: checkinSummary });
   });
   const sorted = matched.slice().sort(SORTERS[sort]);
 

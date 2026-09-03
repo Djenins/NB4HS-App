@@ -25,6 +25,7 @@ import {
   EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES, jobOpeningSortKey
 } from "../lib/jobOpenings.js";
 import { activeIndustryList } from "../lib/utils.js";
+import { matchesJobOpening } from "../lib/workforceFilters.js";
 import { paginateList } from "../lib/pagination.js";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningGridCard from "../components/JobOpeningGridCard.jsx";
@@ -139,24 +140,12 @@ export default function JobOpenings() {
   }
 
   const term = search.trim().toLowerCase();
+  const filterValues = {
+    city: cityFilter, industry: industryFilter, employmentType: employmentTypeFilter, education: educationFilter,
+    experience: experienceFilter, english: englishFilter, transportation: transportationFilter, status: statusFilter
+  };
   const matched = openings.filter(function (o) {
-    if (cityFilter && o.employerCity !== cityFilter) return false;
-    if (industryFilter && employerIndustryById[o.employerId] !== industryFilter) return false;
-    if (employmentTypeFilter && o.employmentType !== employmentTypeFilter) return false;
-    if (educationFilter && o.education !== educationFilter) return false;
-    if (experienceFilter && o.experience !== experienceFilter) return false;
-    if (englishFilter && o.englishLevelRequired !== englishFilter) return false;
-    if (transportationFilter === "yes" && !o.transportationRequired) return false;
-    if (transportationFilter === "no" && o.transportationRequired) return false;
-    if (statusFilter && o.status !== statusFilter) return false;
-    if (!term) return true;
-    // Title + employer + the free-text fields a "keyword" would sensibly
-    // reach (department, description, requirements, skills).
-    const hay = [
-      o.title, o.employerName, o.department, o.description, o.responsibilities, o.requirements,
-      (o.skills || []).join(" ")
-    ].join(" ").toLowerCase();
-    return hay.indexOf(term) !== -1;
+    return matchesJobOpening(o, filterValues, { employerIndustryById, term });
   });
   const sorted = matched.slice().sort(function (a, b) {
     return jobOpeningSortKey(a) - jobOpeningSortKey(b) || SORTERS[sort](a, b);

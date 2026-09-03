@@ -37,7 +37,8 @@ import { activeJobDevelopers } from "../lib/appointments.js";
 import { isCandidateEligible } from "../lib/candidateMatching.js";
 import { createReferral, deleteReferral, updateReferral } from "../lib/clientsData.js";
 import { REFERRAL_STAGES, stageIndex } from "../lib/referrals.js";
-import { addDays, todayStr } from "../lib/utils.js";
+import { todayStr } from "../lib/utils.js";
+import { matchesReferral } from "../lib/workforceFilters.js";
 import { cn } from "../lib/cn.js";
 import ReferralCard from "../components/ReferralCard.jsx";
 import ReferralFormModal from "../components/ReferralFormModal.jsx";
@@ -142,21 +143,13 @@ export default function Referrals() {
     setDeveloperFilter(""); setDateFilter(""); setInterviewFilter("");
   }
 
-  // "Last N days" is inclusive of today, so the cutoff is N-1 days back.
-  const cutoff = dateFilter ? addDays(todayStr(), -(Number(dateFilter) - 1)) : "";
   const term = search.trim().toLowerCase();
+  const filterValues = {
+    stage: stageFilter, employer: employerFilter, position: positionFilter,
+    developer: developerFilter, date: dateFilter, interview: interviewFilter
+  };
   const matched = referrals.filter(function (r) {
-    if (stageFilter && r.status !== stageFilter) return false;
-    if (employerFilter && (r.employerName || "").trim() !== employerFilter) return false;
-    if (positionFilter && (r.positionTitle || "").trim() !== positionFilter) return false;
-    if (developerFilter && (r.assignedJobDeveloperEmail || "").trim() !== developerFilter) return false;
-    if (cutoff && (!r.referralDate || r.referralDate < cutoff)) return false;
-    if (interviewFilter === "yes" && !r.interviewDate) return false;
-    if (interviewFilter === "no" && r.interviewDate) return false;
-    if (!term) return true;
-    const hay = [r.participantName, r.positionTitle, r.employerName, r.assignedJobDeveloperEmail, r.notes]
-      .join(" ").toLowerCase();
-    return hay.indexOf(term) !== -1;
+    return matchesReferral(r, filterValues, { today: todayStr(), term });
   });
   const sorted = matched.slice().sort(SORTERS[sort]);
 
