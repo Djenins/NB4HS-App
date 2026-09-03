@@ -9,11 +9,10 @@
 // were added after the fact, mirroring Case Management's import and
 // Reports' CSV/Excel export + date-range picker respectively.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
-  allDistributions, buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
+  allDistributions, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
   exportFoodDistributionCSV, exportFoodDistributionExcel, exportFoodRosterCSV, exportFoodRosterExcel
 } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
@@ -21,10 +20,10 @@ import { createFoodClient, deleteFoodClient, fetchAllDistributions, subscribeCli
 import { paginateList } from "../lib/pagination.js";
 import { inRange, rangeForPreset } from "../lib/reports_data.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
-import { formatPhone, todayStr } from "../lib/utils.js";
+import { todayStr } from "../lib/utils.js";
+import AddHouseholdCard from "../components/AddHouseholdCard.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
-import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FoodClientCard from "../components/FoodClientCard.jsx";
 import Icon from "../components/Icon.jsx";
@@ -34,165 +33,8 @@ import { Button } from "../components/ui/button.jsx";
 
 const HOUSEHOLD_SIZES = ["1", "2", "3", "4", "5", "6+"];
 
-const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", householdSize: "", intakeDate: "", street: "", city: "", zip: "" };
-const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 const EXPORT_PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const EXPORT_PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
-
-function AddHouseholdDetails({ open, onToggle }) {
-  const { data, showToast } = useApp();
-  const t = useT();
-  const navigate = useNavigate();
-  const [fields, setFields] = useState(EMPTY_NEW_CLIENT);
-  const [errors, setErrors] = useState([]);
-  const [dupMatches, setDupMatches] = useState(null);
-  const [pendingClient, setPendingClient] = useState(null);
-
-  function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
-
-  async function finalizeCreate(client, matchedClient) {
-    await createFoodClient(client, client, matchedClient ? matchedClient.id : null);
-    setFields(EMPTY_NEW_CLIENT);
-    setDupMatches(null);
-    setPendingClient(null);
-    showToast(t("foodClientAdded"));
-  }
-
-  function submit() {
-    const errs = ["firstName", "lastName"].filter((f) => !fields[f].trim());
-    if (fields.phone.trim() && !PHONE_RE.test(fields.phone.trim())) errs.push("phone");
-    if (errs.length) {
-      setErrors(errs);
-      showToast(t("fixErrors"));
-      return;
-    }
-    setErrors([]);
-    const client = buildClient("food", fields);
-    if (!client) return;
-    const matches = findPossibleDuplicates(fields, data.clients || []);
-    if (matches.length) {
-      setPendingClient(client);
-      setDupMatches(matches);
-      return;
-    }
-    finalizeCreate(client, null);
-  }
-
-  return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>
-        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="icon-badge round"><Icon name="user" /></span>
-          {t("addFoodClientTitle")}
-        </span>
-      </summary>
-      <div className="details-body">
-        <div className="form-section">
-          <div className="form-section-head-row">
-            <div className="icon-badge round"><Icon name="user" /></div>
-            <div className="form-section-head">
-              <h3>{t("sectionPersonalDetails")}</h3>
-              <p>{t("sectionPersonalDetailsDesc")}</p>
-            </div>
-          </div>
-          <div className="form-section-body">
-            <div className="grid grid-2">
-              <div className="field">
-                <label htmlFor="new-food-client-first-name">{t("firstName")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="user" />
-                  <input type="text" id="new-food-client-first-name" placeholder={t("phFirstName")} className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-last-name">{t("lastName")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="user" />
-                  <input type="text" id="new-food-client-last-name" placeholder={t("phLastName")} className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-phone">{t("phone")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="phone" />
-                  <input type="tel" id="new-food-client-phone" placeholder={t("phPhone")} className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-email">{t("email")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="mail" />
-                  <input type="text" id="new-food-client-email" placeholder={t("phEmail")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-household-size">{t("householdSizeLabel")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="users" />
-                  <select id="new-food-client-household-size" value={fields.householdSize} onChange={(e) => setField("householdSize", e.target.value)}>
-                    <option value="">{t("selectHouseholdSize")}</option>
-                    {HOUSEHOLD_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="field"><label htmlFor="new-food-client-intake-date">{t("intakeDateLabel")}</label><DatePicker id="new-food-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} /></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <div className="form-section-head-row">
-            <div className="icon-badge round"><Icon name="mappin" /></div>
-            <div className="form-section-head">
-              <h3>{t("sectionAddress")}</h3>
-              <p>{t("sectionAddressDesc")}</p>
-            </div>
-          </div>
-          <div className="form-section-body">
-            <div className="grid grid-3">
-              <div className="field">
-                <label htmlFor="new-food-client-street">{t("address")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="mappin" />
-                  <input type="text" id="new-food-client-street" placeholder={t("streetAddressPlaceholder")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-city">{t("city")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="city" />
-                  <input type="text" id="new-food-client-city" placeholder={t("phCity")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="new-food-client-zip">{t("zip")}</label>
-                <div className="field-icon-wrap">
-                  <Icon name="hash" />
-                  <input type="text" id="new-food-client-zip" placeholder={t("phZip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <p className="muted" style={{ fontSize: ".85rem" }}>{t("stateAlwaysRI")}</p>
-          </div>
-        </div>
-
-        <div className="pill-row" style={{ marginTop: 4, justifyContent: "flex-end" }}>
-          <button className="btn-secondary" onClick={() => setFields(EMPTY_NEW_CLIENT)}>{t("clearLabel")}</button>
-          <button className="btn-primary" onClick={submit}><Icon name="plus" /> {t("addFoodClientBtn")}</button>
-        </div>
-      </div>
-      {dupMatches && (
-        <DuplicateClientWarning
-          matches={dupMatches}
-          onOpenExisting={(nbId) => { setDupMatches(null); setPendingClient(null); navigate("/clients/" + nbId); }}
-          onEnrollExisting={(matchedClient) => finalizeCreate(pendingClient, matchedClient)}
-          onCreateAnyway={() => finalizeCreate(pendingClient, null)}
-          onCancel={() => { setDupMatches(null); setPendingClient(null); }}
-        />
-      )}
-    </details>
-  );
-}
 
 function ImportHouseholdsDetails({ open, onToggle }) {
   const { data, showToast } = useApp();
@@ -383,7 +225,7 @@ export default function FoodDistribution() {
         <StatCard icon="calendar" variant="warn" num={avgHouseholdSize} label={t("avgHouseholdSizeLabel")} />
       </div>
 
-      <AddHouseholdDetails open={opens.addHousehold} onToggle={(v) => setOpen("addHousehold", v)} />
+      <AddHouseholdCard open={opens.addHousehold} onToggle={(v) => setOpen("addHousehold", v)} />
       <ImportHouseholdsDetails open={opens.importHouseholds} onToggle={(v) => setOpen("importHouseholds", v)} />
       <ExportDataDetails open={opens.exportData} onToggle={(v) => setOpen("exportData", v)} />
 
