@@ -22,7 +22,7 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
 
-export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder }) {
+export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, describedBy }) {
   const { lang } = useApp();
   const t = useT();
   const isControlled = value !== undefined && typeof onChange === "function";
@@ -97,6 +97,9 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-required={required ? true : undefined}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={describedBy}
       >
         <Icon name="calendar" />
         <span className={current ? "" : "muted"}>{current ? fmtDateLong(current, lang) : (placeholder || t("pleaseSelect"))}</span>
