@@ -1302,7 +1302,36 @@ export var STR = {
   noReferralsTitle: { en: "No referrals yet", ht: "Poko gen referans", fr: "Aucune référence pour l'instant" },
   noReferralsDesc: { en: "Refer a candidate to a job opening to start tracking them through the pipeline.", ht: "Refere yon kandida nan yon pozisyon travay pou kòmanse swiv li nan pipeline lan.", fr: "Référez un candidat à un poste pour commencer à le suivre dans le pipeline." },
   noMatchingReferralsTitle: { en: "No matching referrals", ht: "Pa gen referans ki koresponn", fr: "Aucune référence correspondante" },
-  noMatchingReferralsDesc: { en: "Try adjusting your search or filters to see more referrals.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis referans.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de références." }
+  noMatchingReferralsDesc: { en: "Try adjusting your search or filters to see more referrals.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis referans.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de références." },
+
+  // ---- Placements page: search / filter panel / list + grid views ----
+  placementSearchPlaceholder: { en: "Search placements by participant, employer, or position…", ht: "Chèche plasman pa patisipan, anplwayè, oswa pozisyon…", fr: "Rechercher des placements par participant, employeur ou poste…" },
+  allSupervisorsLabel: { en: "All Supervisors", ht: "Tout Sipèvizè", fr: "Tous les Superviseurs" },
+  timeOnJobLabel: { en: "Time on the Job", ht: "Tan sou Travay la", fr: "Ancienneté au Poste" },
+  tenureUnder30Label: { en: "Under 30 Days", ht: "Mwens pase 30 Jou", fr: "Moins de 30 Jours" },
+  tenure30to89Label: { en: "30–89 Days", ht: "30–89 Jou", fr: "30 à 89 Jours" },
+  tenure90to179Label: { en: "90–179 Days", ht: "90–179 Jou", fr: "90 à 179 Jours" },
+  tenure180PlusLabel: { en: "180+ Days", ht: "180+ Jou", fr: "180 Jours et Plus" },
+  checkinsLabel: { en: "Check-Ins", ht: "Kontwòl", fr: "Suivis" },
+  checkinOverdueLabel: { en: "Has Overdue Check-In", ht: "Gen Kontwòl an Reta", fr: "Suivi en Retard" },
+  checkinAllCompleteLabel: { en: "All Check-Ins Complete", ht: "Tout Kontwòl Fini", fr: "Tous les Suivis Terminés" },
+  checkinNoneCompleteLabel: { en: "No Check-Ins Complete", ht: "Pa gen Kontwòl Fini", fr: "Aucun Suivi Terminé" },
+  checkinState_completed: { en: "completed", ht: "fini", fr: "terminé" },
+  checkinState_due: { en: "overdue", ht: "an reta", fr: "en retard" },
+  checkinState_upcoming: { en: "not due yet", ht: "poko rive", fr: "pas encore dû" },
+  wageUnder15Label: { en: "Under $15/hr", ht: "Mwens pase $15/èdtan", fr: "Moins de 15 $/h" },
+  wage15to20Label: { en: "$15–$20/hr", ht: "$15–$20/èdtan", fr: "15 à 20 $/h" },
+  wage20PlusLabel: { en: "$20+/hr", ht: "$20+/èdtan", fr: "20 $/h et Plus" },
+  perHourSuffix: { en: "/hr", ht: "/èdtan", fr: " $/h" },
+  offersBenefitsLabel: { en: "Offers Benefits", ht: "Ofri Benefis", fr: "Avec Avantages" },
+  noBenefitsLabel: { en: "No Benefits", ht: "Pa gen Benefis", fr: "Sans Avantages" },
+  sortNewestStartLabel: { en: "Newest Start Date", ht: "Dat Kòmansman Pi Resan", fr: "Date de Début la Plus Récente" },
+  sortOldestStartLabel: { en: "Oldest Start Date", ht: "Dat Kòmansman Pi Ansyen", fr: "Date de Début la Plus Ancienne" },
+  sortHighestWageLabel: { en: "Highest Wage", ht: "Pi Gwo Salè", fr: "Salaire le Plus Élevé" },
+  noPlacementsTitle: { en: "No placements yet", ht: "Poko gen plasman", fr: "Aucun placement pour l'instant" },
+  noPlacementsDesc: { en: "Record a placement when a candidate is hired to start tracking retention check-ins.", ht: "Anrejistre yon plasman lè yo anboche yon kandida pou kòmanse swiv kontwòl retansyon yo.", fr: "Enregistrez un placement lorsqu'un candidat est embauché pour suivre les rendez-vous de rétention." },
+  noMatchingPlacementsTitle: { en: "No matching placements", ht: "Pa gen plasman ki koresponn", fr: "Aucun placement correspondant" },
+  noMatchingPlacementsDesc: { en: "Try adjusting your search or filters to see more placements.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis plasman.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de placements." }
 };
 
 export function t(key, lang) {
