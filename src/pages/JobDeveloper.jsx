@@ -27,14 +27,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, AlertTriangle, Briefcase, Calendar, CalendarClock, CalendarDays, ChevronDown, ChevronUp, FileCheck2, FileText, MapPin, Plus, RotateCcw, ShieldCheck, Trash2, TrendingUp, User, UserPlus, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
-import { buildClient, clientMatchesSearch } from "../lib/clients.js";
+import { buildClient } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetchAllApplications, updateJobClient } from "../lib/clientsData.js";
 import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, JOB_PIPELINE_STAGES, WORK_AUTH_STATUSES, computeFollowUps, pipelineStageIndex } from "../lib/jobProfile.js";
 import { paginateList } from "../lib/pagination.js";
 import { sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
-import { addDays, formatPhone, todayStr } from "../lib/utils.js";
+import { formatPhone, todayStr } from "../lib/utils.js";
+import { matchesJobClient } from "../lib/workforceFilters.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
@@ -397,22 +398,13 @@ export default function JobDeveloper() {
     setPage(1);
   }
 
-  const intakeCutoff = intakeFilter ? addDays(todayStr(), -(Number(intakeFilter) - 1)) : "";
   const term = search.trim().toLowerCase();
+  const filterValues = {
+    followUp: followUpFilter, status: statusFilter, stage: stageFilter, resume: resumeFilter,
+    workAuth: workAuthFilter, city: cityFilter, barrier: barrierFilter, intake: intakeFilter
+  };
   const matched = jobClients.filter(function (c) {
-    if (!clientMatchesSearch("job", c, term)) return false;
-    if (followUpFilter === "due" && !followUps[c.id]) return false;
-    if (followUpFilter === "none" && followUps[c.id]) return false;
-    if (statusFilter && c.employmentStatus !== statusFilter) return false;
-    if (stageFilter && c.pipelineStage !== stageFilter) return false;
-    if (resumeFilter === "yes" && !c.hasResume) return false;
-    if (resumeFilter === "no" && c.hasResume) return false;
-    if (workAuthFilter && c.workAuthorization !== workAuthFilter) return false;
-    if (cityFilter && (c.city || "").trim() !== cityFilter) return false;
-    if (barrierFilter === "__none" && (c.barriers || []).length > 0) return false;
-    if (barrierFilter && barrierFilter !== "__none" && (c.barriers || []).indexOf(barrierFilter) === -1) return false;
-    if (intakeCutoff && (!c.intakeDate || c.intakeDate < intakeCutoff)) return false;
-    return true;
+    return matchesJobClient(c, filterValues, { today: todayStr(), term, followUps });
   });
 
   // Name sorting keeps going through sortStudentsList, which is what this

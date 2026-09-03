@@ -26,7 +26,8 @@ import { activeJobDevelopers } from "../lib/appointments.js";
 import { createEmployer, deleteEmployer } from "../lib/clientsData.js";
 import { EMPLOYER_PARTNERSHIP_STAGES, PREFERRED_HIRING_METHODS } from "../lib/employerProfile.js";
 import { paginateList } from "../lib/pagination.js";
-import { activeIndustryList, addDays, todayStr } from "../lib/utils.js";
+import { activeIndustryList, todayStr } from "../lib/utils.js";
+import { matchesEmployer } from "../lib/workforceFilters.js";
 import { cn } from "../lib/cn.js";
 import EmployerCard from "../components/EmployerCard.jsx";
 import EmployerListItem from "../components/EmployerListItem.jsx";
@@ -252,9 +253,6 @@ export default function Employers() {
   });
 
   const today = todayStr();
-  const in7Days = addDays(today, 7);
-  const days30Ago = addDays(today, -30);
-  const days90Ago = addDays(today, -90);
 
   function setFilter(setter) {
     return function (value) { setter(value); setPage(1); };
@@ -333,39 +331,12 @@ export default function Employers() {
   }
 
   const term = search.trim().toLowerCase();
+  const filterValues = {
+    industry: industryFilter, city: cityFilter, stage: stageFilter, developer: developerFilter,
+    openings: openingsFilter, hiringMethod: hiringMethodFilter, followUp: followUpFilter, contact: contactFilter
+  };
   const matched = employers.filter(function (e) {
-    if (industryFilter && e.industry !== industryFilter) return false;
-    if (cityFilter && (e.city || "").trim() !== cityFilter) return false;
-    if (stageFilter && e.partnershipStage !== stageFilter) return false;
-    if (developerFilter && (e.assignedJobDeveloperEmail || "").trim() !== developerFilter) return false;
-    if (hiringMethodFilter && e.preferredHiringMethod !== hiringMethodFilter) return false;
-
-    const openCount = openPositionsByEmployer[e.id] || 0;
-    if (openingsFilter === "yes" && openCount === 0) return false;
-    if (openingsFilter === "no" && openCount > 0) return false;
-
-    if (followUpFilter) {
-      const due = e.nextFollowUpDate;
-      if (followUpFilter === "none" && due) return false;
-      if (followUpFilter === "due" && (!due || due > today)) return false;
-      if (followUpFilter === "overdue" && (!due || due >= today)) return false;
-      // "Due soon" is today through a week out -- an overdue follow-up is its
-      // own bucket, so it deliberately doesn't also show up here.
-      if (followUpFilter === "soon" && (!due || due < today || due > in7Days)) return false;
-    }
-
-    if (contactFilter) {
-      const last = e.lastMeetingDate;
-      if (contactFilter === "never" && last) return false;
-      if (contactFilter === "30" && (!last || last < days30Ago)) return false;
-      if (contactFilter === "90" && (!last || last < days90Ago)) return false;
-      if (contactFilter === "stale" && (!last || last >= days90Ago)) return false;
-    }
-
-    if (!term) return true;
-    const hay = [e.businessName, e.contactName, e.city, e.contactEmail, e.hrContactName, industryLabelByKey[e.industry]]
-      .join(" ").toLowerCase();
-    return hay.indexOf(term) !== -1;
+    return matchesEmployer(e, filterValues, { today, term, openPositionsByEmployer, industryLabelByKey });
   });
 
   // Most-open-positions isn't a column, so it sorts off the count map rather

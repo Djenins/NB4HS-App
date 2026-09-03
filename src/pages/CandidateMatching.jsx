@@ -28,11 +28,12 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { AlertTriangle, Briefcase, Car, FileText, MapPin, RotateCcw, Search, Send, ShieldCheck, Target, UserSearch } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { computeMatchScore, isCandidateEligible, matchBucket } from "../lib/candidateMatching.js";
+import { computeMatchScore, isCandidateEligible } from "../lib/candidateMatching.js";
 import { createReferral } from "../lib/clientsData.js";
 import { clientDisplayName } from "../lib/clients.js";
 import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, WORK_AUTH_STATUSES, employmentStatusLabel } from "../lib/jobProfile.js";
 import { todayStr } from "../lib/utils.js";
+import { matchesCandidate } from "../lib/workforceFilters.js";
 import CandidateMatchCard from "../components/CandidateMatchCard.jsx";
 import CandidateMatchListItem from "../components/CandidateMatchListItem.jsx";
 import JobOpeningPickerCard from "../components/JobOpeningPickerCard.jsx";
@@ -172,24 +173,12 @@ export default function CandidateMatching() {
   }
 
   const term = search.trim().toLowerCase();
+  const filterValues = {
+    match: matchFilter, referral: referralFilter, resume: resumeFilter, workAuth: workAuthFilter,
+    status: statusFilter, city: cityFilter, barrier: barrierFilter, transportation: transportationFilter
+  };
   const matched = ranked.filter(function (entry) {
-    const c = entry.jobClient;
-    if (matchFilter && matchBucket(entry.score).key !== matchFilter) return false;
-    if (referralFilter === "referred" && !isReferred(c.id)) return false;
-    if (referralFilter === "not_referred" && isReferred(c.id)) return false;
-    if (resumeFilter === "yes" && !c.hasResume) return false;
-    if (resumeFilter === "no" && c.hasResume) return false;
-    if (workAuthFilter && c.workAuthorization !== workAuthFilter) return false;
-    if (statusFilter && c.employmentStatus !== statusFilter) return false;
-    if (cityFilter && (c.city || "").trim() !== cityFilter) return false;
-    if (barrierFilter === "__none" && (c.barriers || []).length > 0) return false;
-    if (barrierFilter && barrierFilter !== "__none" && (c.barriers || []).indexOf(barrierFilter) === -1) return false;
-    if (transportationFilter === "yes" && !(c.transportation || "").trim()) return false;
-    if (transportationFilter === "no" && (c.transportation || "").trim()) return false;
-    if (!term) return true;
-    const hay = [clientDisplayName(c), c.city, employmentStatusLabel(c.employmentStatus), (c.skills || []).join(" ")]
-      .join(" ").toLowerCase();
-    return hay.indexOf(term) !== -1;
+    return matchesCandidate(entry, filterValues, { term, isReferred });
   });
   const sorted = matched.slice().sort(SORTERS[sort]);
 
