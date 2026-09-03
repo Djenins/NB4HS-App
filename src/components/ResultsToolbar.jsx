@@ -1,7 +1,12 @@
 // ResultsToolbar.jsx -- the compact bar under a results list: result count
-// on the left, sort control and List/Grid toggle on the right. Shared by the
-// Job Openings and Candidate Matching pages; each supplies its own sort
-// options, which only ever cover fields the records actually carry.
+// on the left, sort control and view toggle on the right. Shared by the Job
+// Openings, Candidate Matching and Referrals pages; each supplies its own
+// sort options, which only ever cover fields the records actually carry.
+//
+// The view toggle defaults to List/Grid. Referrals passes its own `views`
+// instead (Board/List) because a kanban board, not a card grid, is that
+// page's second layout -- the toggle is about which layout, not about a
+// fixed pair of layouts.
 import { LayoutGrid, List } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
@@ -13,9 +18,15 @@ import { Card } from "./ui/card.jsx";
 // the same way ModuleNav.jsx does.
 const TOGGLE_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal transform-none";
 
-export default function ResultsToolbar({ id, total, sort, onSortChange, sortOptions, view, onViewChange }) {
+const DEFAULT_VIEWS = [
+  { value: "list", icon: List, labelKey: "listViewLabel" },
+  { value: "grid", icon: LayoutGrid, labelKey: "gridViewLabel" }
+];
+
+export default function ResultsToolbar({ id, total, sort, onSortChange, sortOptions, view, onViewChange, views }) {
   const t = useT();
   const selectId = (id || "results") + "-sort";
+  const viewOptions = views || DEFAULT_VIEWS;
 
   return (
     <Card className="flex flex-col gap-3 px-5 py-4 shadow-card hover:shadow-card sm:flex-row sm:items-center sm:justify-between">
@@ -37,28 +48,24 @@ export default function ResultsToolbar({ id, total, sort, onSortChange, sortOpti
         </select>
 
         <div className="flex items-center gap-1 rounded-[10px] border border-border p-1">
-          <button
-            type="button"
-            onClick={function () { onViewChange("list"); }}
-            aria-label={t("listViewLabel")}
-            title={t("listViewLabel")}
-            aria-pressed={view === "list"}
-            className={cn(TOGGLE_RESET, "flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors",
-              view === "list" ? "bg-primary-tint text-primary" : "text-muted hover:bg-background")}
-          >
-            <List className="h-[18px] w-[18px]" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={function () { onViewChange("grid"); }}
-            aria-label={t("gridViewLabel")}
-            title={t("gridViewLabel")}
-            aria-pressed={view === "grid"}
-            className={cn(TOGGLE_RESET, "flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors",
-              view === "grid" ? "bg-primary-tint text-primary" : "text-muted hover:bg-background")}
-          >
-            <LayoutGrid className="h-[18px] w-[18px]" aria-hidden="true" />
-          </button>
+          {viewOptions.map(function (o) {
+            const Icon = o.icon;
+            const label = t(o.labelKey);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={function () { onViewChange(o.value); }}
+                aria-label={label}
+                title={label}
+                aria-pressed={view === o.value}
+                className={cn(TOGGLE_RESET, "flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors",
+                  view === o.value ? "bg-primary-tint text-primary" : "text-muted hover:bg-background")}
+              >
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+              </button>
+            );
+          })}
         </div>
       </div>
     </Card>
