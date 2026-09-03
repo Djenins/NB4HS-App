@@ -81,6 +81,7 @@ export default function ResetPassword() {
                       type={showPw ? "text" : "password"}
                       id="new-password"
                       autoComplete="new-password"
+                      placeholder={t("phNewPassword")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-12 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -107,6 +108,7 @@ export default function ResetPassword() {
                       type={showPw ? "text" : "password"}
                       id="confirm-password"
                       autoComplete="new-password"
+                      placeholder={t("phConfirmPassword")}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"

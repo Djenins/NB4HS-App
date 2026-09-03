@@ -97,6 +97,7 @@ export default function QRCode() {
                   className="min-w-0 flex-1 bg-transparent text-sm font-medium text-card-foreground outline-none"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder={t("phKioskUrl")}
                   aria-label={t("checkInUrl")}
                 />
                 <button type="button" onClick={copyLink} className="shrink-0 text-muted hover:text-card-foreground" aria-label={t("copyLink")}>

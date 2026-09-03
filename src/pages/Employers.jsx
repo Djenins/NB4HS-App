@@ -183,7 +183,7 @@ function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
             <div>
               <label htmlFor="new-employer-notes" className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyNotesLabel")}</label>
               <textarea
-                id="new-employer-notes" rows={2} value={fields.notes} onChange={(e) => setField("notes", e.target.value)}
+                id="new-employer-notes" rows={2} placeholder={t("phCompanyNotes")} value={fields.notes} onChange={(e) => setField("notes", e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
               />
             </div>

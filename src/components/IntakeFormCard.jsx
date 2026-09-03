@@ -333,19 +333,19 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             <div className="space-y-5">
               <Section number={1} icon={MapPin} title="Personal Information">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="First and Last Name" value={f.fullName} onChange={(v) => set("fullName", v)} />
+                  <Field label="First and Last Name" placeholder="First and last name" value={f.fullName} onChange={(v) => set("fullName", v)} />
                   <Field label="DOB" type="date" value={f.dob} onChange={(v) => set("dob", v)} />
                 </div>
                 <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Address" value={f.address} onChange={(v) => set("address", v)} />
-                  <Field label="City" value={f.city} onChange={(v) => set("city", v)} />
-                  <Field label="State" value={f.state} onChange={(v) => set("state", v)} />
+                  <Field label="Address" placeholder="Street address, apartment, suite, etc." value={f.address} onChange={(v) => set("address", v)} />
+                  <Field label="City" placeholder="e.g. Providence" value={f.city} onChange={(v) => set("city", v)} />
+                  <Field label="State" placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Zip Code" value={f.zip} onChange={(v) => set("zip", v)} />
-                  <Field label="Telephone" value={f.phone} onChange={(v) => set("phone", v)} />
-                  <Field label="Email" value={f.email} onChange={(v) => set("email", v)} />
+                  <Field label="Zip Code" placeholder="e.g. 02903" value={f.zip} onChange={(v) => set("zip", v)} />
+                  <Field label="Telephone" placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
+                  <Field label="Email" placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
                 </div>
                 <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
                 <RadioGroup label="Race/Ethnicity" name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
@@ -357,8 +357,8 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
 
               <Section number={2} icon={Phone} title="Emergency Contact">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Name" value={f.ecName} onChange={(v) => set("ecName", v)} />
-                  <Field label="Telephone" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
+                  <Field label="Name" placeholder="Full name" value={f.ecName} onChange={(v) => set("ecName", v)} />
+                  <Field label="Telephone" placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
                 </div>
                 <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
                 <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
@@ -390,7 +390,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 </div>
                 <RadioGroup label="Immigration Status" name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
                 {f.immigrationStatus === "Pending Case" && (
-                  <Field label="Pending Case Detail" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
+                  <Field label="Pending Case Detail" placeholder="Describe the pending case" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
                 )}
                 <Field label="What kind of job are you looking for?" placeholder="e.g. Customer Service, Office Assistant, Driver" value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -411,9 +411,9 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                   <RadioGroup label="Medical Insurance?" name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
                 </div>
                 <RadioGroup label="Medical Health Condition" name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.medicalHealthCondition === "Other" && <Field label="Medical Health Condition (Other)" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
+                {f.medicalHealthCondition === "Other" && <Field label="Medical Health Condition (Other)" placeholder="Please specify" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
                 <RadioGroup label="Mental Health Condition" name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.mentalHealthCondition === "Other" && <Field label="Mental Health Condition (Other)" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
+                {f.mentalHealthCondition === "Other" && <Field label="Mental Health Condition (Other)" placeholder="Please specify" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
               </Section>
 
               <Section number={7} icon={UsersRound} title="Family Composition">
@@ -422,12 +422,12 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                   <div key={i} className="overflow-hidden rounded-lg border border-border">
                     <div className="border-b border-border bg-primary-tint px-3 py-2 text-sm font-semibold text-primary">Child {i + 1}</div>
                     <div className="space-y-3 p-3">
-                      <Field label="Name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                      <Field label="Name" placeholder="Child's full name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
                         <Field label="Age" type="text" inputMode="numeric" placeholder="e.g. 8" value={c.age} onChange={(v) => setChild(i, "age", v)} />
                         <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
                       </div>
-                      <Field label="School" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                      <Field label="School" placeholder="e.g. Roosevelt Elementary" value={c.school} onChange={(v) => setChild(i, "school", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
                         <Field label="Grade" placeholder="e.g. 3rd" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
                         <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
@@ -448,12 +448,12 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
           <Section number={9} icon={ShieldCheck} title="Authorization for Release of Information">
             <RadioGroup label="I authorize the release of my information" name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Client Name (Print)" value={f.clientName} onChange={(v) => set("clientName", v)} />
+              <Field label="Client Name (Print)" placeholder="Type full name" value={f.clientName} onChange={(v) => set("clientName", v)} />
               <Field label="Client Signature" value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder="Type full name to sign" />
               <Field label="Client Date" type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Case Manager Name (Print)" value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
+              <Field label="Case Manager Name (Print)" placeholder="Type full name" value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
               <Field label="Case Manager Signature" value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder="Type full name to sign" />
               <Field label="Case Manager Date" type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
             </div>

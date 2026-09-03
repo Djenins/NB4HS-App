@@ -54,14 +54,14 @@ function EditPlacementModal({ record, onSave, onCancel }) {
       <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("editLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hourlyWageLabel")}</label><input type="number" step="0.01" className={inputClass} value={fields.hourlyWage} onChange={(e) => setField("hourlyWage", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hoursPerWeekLabel")}</label><input className={inputClass} value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorNameLabel")}</label><input className={inputClass} value={fields.supervisorName} onChange={(e) => setField("supervisorName", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorContactLabel")}</label><input className={inputClass} value={fields.supervisorContact} onChange={(e) => setField("supervisorContact", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hourlyWageLabel")}</label><input type="number" step="0.01" className={inputClass} value={fields.hourlyWage} onChange={(e) => setField("hourlyWage", e.target.value)} placeholder={t("phHourlyWage")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hoursPerWeekLabel")}</label><input className={inputClass} value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} placeholder={t("phHoursPerWeek")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorNameLabel")}</label><input className={inputClass} value={fields.supervisorName} onChange={(e) => setField("supervisorName", e.target.value)} placeholder={t("phSupervisorName")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorContactLabel")}</label><input className={inputClass} value={fields.supervisorContact} onChange={(e) => setField("supervisorContact", e.target.value)} placeholder={t("phSupervisorContact")} /></div>
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("benefitsLabel")}</label>
-          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} />
+          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} placeholder={t("phBenefits")} />
         </div>
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
           <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>

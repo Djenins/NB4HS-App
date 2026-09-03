@@ -23,7 +23,7 @@ export default function EndPlacementModal({ onSave, onCancel }) {
           <div>
             <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("reasonForLeavingLabel")}</label>
             <textarea
-              rows={3} value={reason} onChange={(e) => setReason(e.target.value)}
+              rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("phEndReason")}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
             />
           </div>

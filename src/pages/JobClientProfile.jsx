@@ -133,14 +133,14 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
       <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("personalInformationLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("phone")}</label><input className={inputClass} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("email")}</label><input className={inputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Transportation</label><input className={inputClass} value={fields.transportation} onChange={(e) => setField("transportation", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Preferred Language</label><input className={inputClass} value={fields.preferredLanguage} onChange={(e) => setField("preferredLanguage", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Secondary Language</label><input className={inputClass} value={fields.secondaryLanguage} onChange={(e) => setField("secondaryLanguage", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("phone")}</label><input className={inputClass} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} placeholder={t("phPhone")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("email")}</label><input className={inputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("phAddress")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} placeholder={t("phCity")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} placeholder={t("phZip")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Transportation</label><input className={inputClass} value={fields.transportation} onChange={(e) => setField("transportation", e.target.value)} placeholder={t("phTransportation")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Preferred Language</label><input className={inputClass} value={fields.preferredLanguage} onChange={(e) => setField("preferredLanguage", e.target.value)} placeholder={t("phPreferredLanguage")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Secondary Language</label><input className={inputClass} value={fields.secondaryLanguage} onChange={(e) => setField("secondaryLanguage", e.target.value)} placeholder={t("phSecondaryLanguage")} /></div>
         </div>
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
           <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
@@ -162,8 +162,8 @@ function AddApplicationModal({ onSave, onCancel }) {
       <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addApplicationBtn")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyLabel")} *</label><input className={inputClass} value={fields.company} onChange={(e) => setField("company", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("positionLabel")} *</label><input className={inputClass} value={fields.position} onChange={(e) => setField("position", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyLabel")} *</label><input className={inputClass} value={fields.company} onChange={(e) => setField("company", e.target.value)} placeholder={t("phCompany")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("positionLabel")} *</label><input className={inputClass} value={fields.position} onChange={(e) => setField("position", e.target.value)} placeholder={t("phPositionTitle")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("appliedDateLabel")}</label><DatePicker id="app-applied-date" value={fields.appliedDate} onChange={(v) => setField("appliedDate", v)} /></div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("statusLabel")}</label>
@@ -181,7 +181,7 @@ function AddApplicationModal({ onSave, onCancel }) {
         {fields.interviewDate && (
           <div className="mt-3">
             <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("interviewNotesLabel")}</label>
-            <input className={inputClass} value={fields.interviewNotes} onChange={(e) => setField("interviewNotes", e.target.value)} />
+            <input className={inputClass} value={fields.interviewNotes} onChange={(e) => setField("interviewNotes", e.target.value)} placeholder={t("phInterviewNotes")} />
           </div>
         )}
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
@@ -201,7 +201,7 @@ function AddNoteModal({ onSave, onCancel }) {
       <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
         <textarea
-          value={content} onChange={(e) => setContent(e.target.value)} rows={4}
+          value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
         />
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 12, marginBottom: 0 }}>

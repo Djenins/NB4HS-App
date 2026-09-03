@@ -160,19 +160,19 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
                   </select>
                 </Field>
                 <Field id="appt-first-name" label={t("firstName")} required>
-                  <input type="text" id="appt-first-name" className={cn(fieldInputClass, errors.indexOf("firstName") !== -1 && "border-accent bg-tint-danger")} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+                  <input type="text" id="appt-first-name" className={cn(fieldInputClass, errors.indexOf("firstName") !== -1 && "border-accent bg-tint-danger")} placeholder={t("phFirstName")} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} />
                 </Field>
                 <Field id="appt-last-name" label={t("lastName")} required>
-                  <input type="text" id="appt-last-name" className={cn(fieldInputClass, errors.indexOf("lastName") !== -1 && "border-accent bg-tint-danger")} value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+                  <input type="text" id="appt-last-name" className={cn(fieldInputClass, errors.indexOf("lastName") !== -1 && "border-accent bg-tint-danger")} placeholder={t("phLastName")} value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
                 </Field>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field id="appt-phone" label={t("phone")}>
-                  <input type="text" id="appt-phone" className={fieldInputClass} value={form.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
+                  <input type="text" id="appt-phone" className={fieldInputClass} placeholder={t("phPhone")} value={form.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
                 </Field>
                 <Field id="appt-email" label={t("email")}>
-                  <input type="text" id="appt-email" className={fieldInputClass} value={form.email} onChange={(e) => setField("email", e.target.value)} />
+                  <input type="text" id="appt-email" className={fieldInputClass} placeholder={t("phEmail")} value={form.email} onChange={(e) => setField("email", e.target.value)} />
                 </Field>
                 <Field id="appt-staff-select" label={t(staffLabelKey)}>
                   <select id="appt-staff-select" value={form.staffEmail} onChange={(e) => setField("staffEmail", e.target.value)} className={fieldInputClass}>
@@ -192,7 +192,7 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
               </div>
 
               <Field id="appt-reason" label={t("apptReasonLabel")}>
-                <textarea id="appt-reason" rows={2} className="min-h-0 w-full rounded-lg border border-border bg-background p-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={form.reason} onChange={(e) => setField("reason", e.target.value)} />
+                <textarea id="appt-reason" rows={2} className="min-h-0 w-full rounded-lg border border-border bg-background p-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" placeholder={t("apptReasonPlaceholder")} value={form.reason} onChange={(e) => setField("reason", e.target.value)} />
               </Field>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -206,7 +206,7 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
                 {form.repeat !== "none" ? (
                   <Field id="appt-occurrences" label={t("apptOccurrencesLabel")}>
                     <input
-                      type="number" id="appt-occurrences" min={2} max={52} className={fieldInputClass}
+                      type="number" id="appt-occurrences" min={2} max={52} className={fieldInputClass} placeholder={t("phOccurrences")}
                       value={form.occurrences} onChange={(e) => setField("occurrences", e.target.value)}
                     />
                   </Field>

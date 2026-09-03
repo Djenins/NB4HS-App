@@ -182,7 +182,7 @@ function AddNoteModal({ onSave, onCancel }) {
         <div className="mb-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
           <textarea
-            value={content} onChange={(e) => setContent(e.target.value)} rows={4}
+            value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
@@ -285,7 +285,7 @@ function LogCommunicationModal({ onSave, onCancel }) {
         <div className="mb-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationSummaryLabel")}</label>
           <textarea
-            value={summary} onChange={(e) => setSummary(e.target.value)} rows={3}
+            value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={t("phCommunicationSummary")}
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
