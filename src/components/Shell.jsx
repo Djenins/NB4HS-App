@@ -22,7 +22,7 @@
 // vocabulary, not the mockup's literal (partly fictional) item labels.
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
@@ -45,6 +45,34 @@ function NavIcon({ name, className }) {
   return <Cmp className={className} strokeWidth={2} />;
 }
 
+// Below this width the sidebar is always icon-only, regardless of the
+// user's stored preference: at 264px wide it would otherwise eat most of a
+// phone screen, and the collapsed rail already has everything it needs
+// (icons, badges, tooltips). 767px is the app's existing phone/tablet
+// boundary -- main.css already switches layouts at 768px.
+//
+// This deliberately does NOT write config.sidebarCollapsed. The stored value
+// stays whatever the user last chose on a wide screen, so rotating a tablet
+// or resizing a window back doesn't silently rewrite their preference.
+const MOBILE_SIDEBAR_QUERY = "(max-width: 767px)";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(MOBILE_SIDEBAR_QUERY).matches
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const mql = window.matchMedia(MOBILE_SIDEBAR_QUERY);
+    const onChange = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
 // main.css still has a global `button, .btn{ min-height:52px; padding:12px
 // 20px; border:2px solid transparent; font-weight:600; }` rule for the
 // rest of the app's plain (non-Tailwind) buttons. Tailwind's preflight
@@ -60,6 +88,11 @@ function NavItem({ v, lang, collapsed, badgeCount }) {
   const link = (
     <NavLink
       to={navPath(v)}
+      // Collapsed, the link's only content is an icon. The tooltip below
+      // covers a mouse, but not a screen reader or a touch device (Radix
+      // tooltips don't open on tap) -- which is every phone, now that the
+      // rail is the mobile default. So name the link itself.
+      aria-label={collapsed ? navLabel(v, lang) : undefined}
       className={({ isActive }) =>
         cn(
           "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text no-underline transition-colors hover:bg-white/5 hover:text-sidebar-text-active",
@@ -276,7 +309,8 @@ export default function Shell() {
     jobdeveloper: pendingApptCount(data.appointments, "job_developer")
   };
   const showStudentSearch = items.indexOf("students") !== -1;
-  const collapsed = showSidebar && !!config.sidebarCollapsed;
+  const isMobile = useIsMobile();
+  const collapsed = showSidebar && (isMobile || !!config.sidebarCollapsed);
   const displayName = session ? (session.currentUserName || session.currentUserEmail || "") : "";
   const nameParts = displayName.trim().split(/\s+/).filter(Boolean);
   const initials = (nameParts.length ? (nameParts[0].charAt(0) + (nameParts[1] ? nameParts[1].charAt(0) : "")) : "?").toUpperCase();
@@ -300,18 +334,20 @@ export default function Shell() {
                     <div className="truncate text-[11px] font-medium text-sidebar-text">{t("appTitle")}</div>
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ sidebarCollapsed: !collapsed })}
-                  aria-label={collapsed ? t("expandSidebarLabel") : t("collapseSidebarLabel")}
-                  title={collapsed ? t("expandSidebarLabel") : t("collapseSidebarLabel")}
-                  className={cn(BTN_RESET, "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-text hover:bg-white/10 hover:text-white", collapsed && "hidden")}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </button>
+                {!isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => updateConfig({ sidebarCollapsed: !collapsed })}
+                    aria-label={collapsed ? t("expandSidebarLabel") : t("collapseSidebarLabel")}
+                    title={collapsed ? t("expandSidebarLabel") : t("collapseSidebarLabel")}
+                    className={cn(BTN_RESET, "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-text hover:bg-white/10 hover:text-white", collapsed && "hidden")}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
-              {collapsed && (
+              {collapsed && !isMobile && (
                 <button
                   type="button"
                   onClick={() => updateConfig({ sidebarCollapsed: false })}
