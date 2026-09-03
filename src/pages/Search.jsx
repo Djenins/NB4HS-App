@@ -614,39 +614,39 @@ export default function Search() {
               <div className="grid grid-2">
                 <div className="field">
                   <label className="required" htmlFor="edit-visit-firstName">{t("firstName")}</label>
-                  <input id="edit-visit-firstName" value={editForm.firstName} onChange={(e) => setEditField("firstName", e.target.value)} required />
+                  <input id="edit-visit-firstName" placeholder={t("phFirstName")} value={editForm.firstName} onChange={(e) => setEditField("firstName", e.target.value)} required />
                 </div>
                 <div className="field">
                   <label className="required" htmlFor="edit-visit-lastName">{t("lastName")}</label>
-                  <input id="edit-visit-lastName" value={editForm.lastName} onChange={(e) => setEditField("lastName", e.target.value)} required />
+                  <input id="edit-visit-lastName" placeholder={t("phLastName")} value={editForm.lastName} onChange={(e) => setEditField("lastName", e.target.value)} required />
                 </div>
               </div>
               <div className="grid grid-2">
                 <div className="field">
                   <label htmlFor="edit-visit-phone">{t("phone")}</label>
-                  <input id="edit-visit-phone" type="tel" value={editForm.phone} onChange={(e) => setEditField("phone", formatPhone(e.target.value))} />
+                  <input id="edit-visit-phone" type="tel" placeholder={t("phPhone")} value={editForm.phone} onChange={(e) => setEditField("phone", formatPhone(e.target.value))} />
                 </div>
                 <div className="field">
                   <label htmlFor="edit-visit-email">{t("email")}</label>
-                  <input id="edit-visit-email" type="email" value={editForm.email} onChange={(e) => setEditField("email", e.target.value)} />
+                  <input id="edit-visit-email" type="email" placeholder={t("phEmail")} value={editForm.email} onChange={(e) => setEditField("email", e.target.value)} />
                 </div>
               </div>
               <div className="field">
                 <label htmlFor="edit-visit-address">{t("address")}</label>
-                <input id="edit-visit-address" value={editForm.address} onChange={(e) => setEditField("address", e.target.value)} />
+                <input id="edit-visit-address" placeholder={t("phAddress")} value={editForm.address} onChange={(e) => setEditField("address", e.target.value)} />
               </div>
               <div className="grid grid-3">
                 <div className="field">
                   <label htmlFor="edit-visit-city">{t("city")}</label>
-                  <input id="edit-visit-city" value={editForm.city} onChange={(e) => setEditField("city", e.target.value)} />
+                  <input id="edit-visit-city" placeholder={t("phCity")} value={editForm.city} onChange={(e) => setEditField("city", e.target.value)} />
                 </div>
                 <div className="field">
                   <label htmlFor="edit-visit-state">{t("state")}</label>
-                  <input id="edit-visit-state" value={editForm.state} onChange={(e) => setEditField("state", e.target.value)} />
+                  <input id="edit-visit-state" placeholder={t("phState")} value={editForm.state} onChange={(e) => setEditField("state", e.target.value)} />
                 </div>
                 <div className="field">
                   <label htmlFor="edit-visit-zip">{t("zip")}</label>
-                  <input id="edit-visit-zip" value={editForm.zip} onChange={(e) => setEditField("zip", e.target.value)} />
+                  <input id="edit-visit-zip" placeholder={t("phZip")} value={editForm.zip} onChange={(e) => setEditField("zip", e.target.value)} />
                 </div>
               </div>
               <div className="field">
@@ -675,7 +675,7 @@ export default function Search() {
               )}
               <div className="field">
                 <label htmlFor="edit-visit-notes">{t("notes")}</label>
-                <textarea id="edit-visit-notes" value={editForm.notes} onChange={(e) => setEditField("notes", e.target.value)} />
+                <textarea id="edit-visit-notes" placeholder={t("phNotes")} value={editForm.notes} onChange={(e) => setEditField("notes", e.target.value)} />
               </div>
               <div className="mt-5 flex justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={closeEditVisit}>{t("cancelLabel")}</Button>

@@ -102,7 +102,7 @@ export default function ReferralFormModal({ referral, jobClients, jobOpenings, j
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
+          <textarea rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phReferralNotes")} />
         </div>
 
         <div className="pill-row" style={{ justifyContent: "space-between", marginTop: 16, marginBottom: 0 }}>

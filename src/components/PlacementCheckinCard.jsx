@@ -55,19 +55,19 @@ export default function PlacementCheckinCard({ checkin, onUpdate }) {
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("attendanceNotesLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.attendanceNotes} onChange={(e) => setField("attendanceNotes", e.target.value)} />
+          <textarea rows={2} className={textareaClass} value={fields.attendanceNotes} onChange={(e) => setField("attendanceNotes", e.target.value)} placeholder={t("phAttendanceNotes")} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("employerFeedbackLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.employerFeedback} onChange={(e) => setField("employerFeedback", e.target.value)} />
+          <textarea rows={2} className={textareaClass} value={fields.employerFeedback} onChange={(e) => setField("employerFeedback", e.target.value)} placeholder={t("phEmployerFeedback")} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("participantFeedbackLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.participantFeedback} onChange={(e) => setField("participantFeedback", e.target.value)} />
+          <textarea rows={2} className={textareaClass} value={fields.participantFeedback} onChange={(e) => setField("participantFeedback", e.target.value)} placeholder={t("phParticipantFeedback")} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
+          <textarea rows={2} className={textareaClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCheckinNotes")} />
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-3">

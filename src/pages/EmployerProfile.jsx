@@ -115,7 +115,7 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
       <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("companyInformationLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("businessNameLabel")}</label><input className={inputClass} value={fields.businessName} onChange={(e) => setField("businessName", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("businessNameLabel")}</label><input className={inputClass} value={fields.businessName} onChange={(e) => setField("businessName", e.target.value)} placeholder={t("phBusinessName")} /></div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("industryLabel")}</label>
             <select className={inputClass} value={fields.industry} onChange={(e) => setField("industry", e.target.value)}>
@@ -123,16 +123,16 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
               {industries.map((i) => <option key={i.key} value={i.key}>{i.en}</option>)}
             </select>
           </div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("websiteLabel")}</label><input className={inputClass} value={fields.website} onChange={(e) => setField("website", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactNameLabel")}</label><input className={inputClass} value={fields.contactName} onChange={(e) => setField("contactName", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactPhoneLabel")}</label><input className={inputClass} value={fields.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactEmailLabel")}</label><input className={inputClass} value={fields.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactNameLabel")}</label><input className={inputClass} value={fields.hrContactName} onChange={(e) => setField("hrContactName", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactPhoneLabel")}</label><input className={inputClass} value={fields.hrContactPhone} onChange={(e) => setField("hrContactPhone", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactEmailLabel")}</label><input className={inputClass} value={fields.hrContactEmail} onChange={(e) => setField("hrContactEmail", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("websiteLabel")}</label><input className={inputClass} value={fields.website} onChange={(e) => setField("website", e.target.value)} placeholder={t("phWebsite")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("phAddress")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} placeholder={t("phCity")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} placeholder={t("phZip")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactNameLabel")}</label><input className={inputClass} value={fields.contactName} onChange={(e) => setField("contactName", e.target.value)} placeholder={t("phContactName")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactPhoneLabel")}</label><input className={inputClass} value={fields.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} placeholder={t("phPhone")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactEmailLabel")}</label><input className={inputClass} value={fields.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} placeholder={t("phEmail")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactNameLabel")}</label><input className={inputClass} value={fields.hrContactName} onChange={(e) => setField("hrContactName", e.target.value)} placeholder={t("phContactName")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactPhoneLabel")}</label><input className={inputClass} value={fields.hrContactPhone} onChange={(e) => setField("hrContactPhone", e.target.value)} placeholder={t("phPhone")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactEmailLabel")}</label><input className={inputClass} value={fields.hrContactEmail} onChange={(e) => setField("hrContactEmail", e.target.value)} placeholder={t("phEmail")} /></div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("preferredCommunicationLabel")}</label>
             <select className={inputClass} value={fields.preferredCommunication} onChange={(e) => setField("preferredCommunication", e.target.value)}>
@@ -143,7 +143,7 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyNotesLabel")}</label>
-          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
+          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCompanyNotes")} />
         </div>
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
           <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
@@ -214,7 +214,7 @@ function AddActivityModal({ onSave, onCancel }) {
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.summary} onChange={(e) => setField("summary", e.target.value)} />
+          <textarea rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.summary} onChange={(e) => setField("summary", e.target.value)} placeholder={t("phActivitySummary")} />
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-card-foreground">
           <input type="checkbox" checked={fields.followUpRequired} onChange={(e) => setField("followUpRequired", e.target.checked)} />
@@ -237,7 +237,7 @@ function AddNoteModal({ onSave, onCancel }) {
       <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
         <textarea
-          value={content} onChange={(e) => setContent(e.target.value)} rows={4}
+          value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
         />
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 12, marginBottom: 0 }}>

@@ -160,15 +160,15 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("positionLabel")} required>
-                <input className={inputClass + (errors.indexOf("title") !== -1 ? " border-accent" : "")} value={fields.title} onChange={(e) => setField("title", e.target.value)} />
+                <input className={inputClass + (errors.indexOf("title") !== -1 ? " border-accent" : "")} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phPositionTitle")} />
               </Field>
               <Field label={t("departmentLabel")}>
-                <input className={inputClass} value={fields.department} onChange={(e) => setField("department", e.target.value)} />
+                <input className={inputClass} value={fields.department} onChange={(e) => setField("department", e.target.value)} placeholder={t("phDepartment")} />
               </Field>
             </div>
-            <Field label={t("descriptionLabel")}><textarea rows={3} className={textareaClass} value={fields.description} onChange={(e) => setField("description", e.target.value)} /></Field>
-            <Field label={t("responsibilitiesLabel")}><textarea rows={3} className={textareaClass} value={fields.responsibilities} onChange={(e) => setField("responsibilities", e.target.value)} /></Field>
-            <Field label={t("requirementsLabel")}><textarea rows={3} className={textareaClass} value={fields.requirements} onChange={(e) => setField("requirements", e.target.value)} /></Field>
+            <Field label={t("descriptionLabel")}><textarea rows={3} className={textareaClass} value={fields.description} onChange={(e) => setField("description", e.target.value)} placeholder={t("phJobDescription")} /></Field>
+            <Field label={t("responsibilitiesLabel")}><textarea rows={3} className={textareaClass} value={fields.responsibilities} onChange={(e) => setField("responsibilities", e.target.value)} placeholder={t("phResponsibilities")} /></Field>
+            <Field label={t("requirementsLabel")}><textarea rows={3} className={textareaClass} value={fields.requirements} onChange={(e) => setField("requirements", e.target.value)} placeholder={t("phRequirements")} /></Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("educationLabel")}>
                 <select className={inputClass} value={fields.education} onChange={(e) => setField("education", e.target.value)}>
@@ -197,8 +197,8 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
                   {PAY_TYPES.map((p) => <option key={p.key} value={p.key}>{p.en}</option>)}
                 </select>
               </Field>
-              <Field label={t("payMinLabel")}><input type="number" className={inputClass} value={fields.payMin} onChange={(e) => setField("payMin", e.target.value)} /></Field>
-              <Field label={t("payMaxLabel")}><input type="number" className={inputClass + (errors.indexOf("payMax") !== -1 ? " border-accent" : "")} value={fields.payMax} onChange={(e) => setField("payMax", e.target.value)} /></Field>
+              <Field label={t("payMinLabel")}><input type="number" className={inputClass} value={fields.payMin} onChange={(e) => setField("payMin", e.target.value)} placeholder={t("phPayMin")} /></Field>
+              <Field label={t("payMaxLabel")}><input type="number" className={inputClass + (errors.indexOf("payMax") !== -1 ? " border-accent" : "")} value={fields.payMax} onChange={(e) => setField("payMax", e.target.value)} placeholder={t("phPayMax")} /></Field>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("employmentTypeLabel")}>
@@ -207,11 +207,11 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
                   {EMPLOYMENT_TYPES.map((et) => <option key={et.key} value={et.key}>{et.en}</option>)}
                 </select>
               </Field>
-              <Field label={t("scheduleLabel")}><input className={inputClass} value={fields.schedule} onChange={(e) => setField("schedule", e.target.value)} /></Field>
-              <Field label={t("hoursPerWeekLabel")}><input className={inputClass} value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} /></Field>
-              <Field label={t("openingsCountLabel")}><input type="number" min="1" className={inputClass} value={fields.openingsCount} onChange={(e) => setField("openingsCount", Number(e.target.value) || 1)} /></Field>
+              <Field label={t("scheduleLabel")}><input className={inputClass} value={fields.schedule} onChange={(e) => setField("schedule", e.target.value)} placeholder={t("phSchedule")} /></Field>
+              <Field label={t("hoursPerWeekLabel")}><input className={inputClass} value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} placeholder={t("phHoursPerWeek")} /></Field>
+              <Field label={t("openingsCountLabel")}><input type="number" min="1" className={inputClass} value={fields.openingsCount} onChange={(e) => setField("openingsCount", Number(e.target.value) || 1)} placeholder={t("phOpeningsCount")} /></Field>
             </div>
-            <Field label={t("benefitsLabel")}><textarea rows={2} className={textareaClass} value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} /></Field>
+            <Field label={t("benefitsLabel")}><textarea rows={2} className={textareaClass} value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} placeholder={t("phBenefits")} /></Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("jobStartDateLabel")}><DatePicker id="job-opening-start-date" value={fields.startDate} onChange={(v) => setField("startDate", v)} /></Field>
               <Field label={t("applicationDeadlineLabel")}><DatePicker id="job-opening-deadline" value={fields.applicationDeadline} onChange={(v) => setField("applicationDeadline", v)} /></Field>
@@ -240,9 +240,9 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
               <Field label={t("applyWebsiteLabel")}><input className={inputClass} value={fields.applyWebsite} onChange={(e) => setField("applyWebsite", e.target.value)} placeholder="https://" /></Field>
             )}
             {fields.applyMethod === "email" && (
-              <Field label={t("applyEmailLabel")}><input className={inputClass} value={fields.applyEmail} onChange={(e) => setField("applyEmail", e.target.value)} /></Field>
+              <Field label={t("applyEmailLabel")}><input className={inputClass} value={fields.applyEmail} onChange={(e) => setField("applyEmail", e.target.value)} placeholder={t("phApplyEmail")} /></Field>
             )}
-            <Field label={t("internalNotesLabel")}><textarea rows={3} className={textareaClass} value={fields.internalNotes} onChange={(e) => setField("internalNotes", e.target.value)} /></Field>
+            <Field label={t("internalNotesLabel")}><textarea rows={3} className={textareaClass} value={fields.internalNotes} onChange={(e) => setField("internalNotes", e.target.value)} placeholder={t("phInternalNotes")} /></Field>
           </div>
         )}
 

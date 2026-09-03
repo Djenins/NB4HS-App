@@ -101,28 +101,28 @@ function AddHouseholdDetails({ open, onToggle }) {
                 <label htmlFor="new-food-client-first-name">{t("firstName")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="user" />
-                  <input type="text" id="new-food-client-first-name" className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+                  <input type="text" id="new-food-client-first-name" placeholder={t("phFirstName")} className={errors.indexOf("firstName") !== -1 ? "field-invalid" : ""} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
                 </div>
               </div>
               <div className="field">
                 <label htmlFor="new-food-client-last-name">{t("lastName")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="user" />
-                  <input type="text" id="new-food-client-last-name" className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+                  <input type="text" id="new-food-client-last-name" placeholder={t("phLastName")} className={errors.indexOf("lastName") !== -1 ? "field-invalid" : ""} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
                 </div>
               </div>
               <div className="field">
                 <label htmlFor="new-food-client-phone">{t("phone")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="phone" />
-                  <input type="tel" id="new-food-client-phone" className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
+                  <input type="tel" id="new-food-client-phone" placeholder={t("phPhone")} className={errors.indexOf("phone") !== -1 ? "field-invalid" : ""} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
                 </div>
               </div>
               <div className="field">
                 <label htmlFor="new-food-client-email">{t("email")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="mail" />
-                  <input type="text" id="new-food-client-email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+                  <input type="text" id="new-food-client-email" placeholder={t("phEmail")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
                 </div>
               </div>
               <div className="field">
@@ -161,14 +161,14 @@ function AddHouseholdDetails({ open, onToggle }) {
                 <label htmlFor="new-food-client-city">{t("city")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="city" />
-                  <input type="text" id="new-food-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+                  <input type="text" id="new-food-client-city" placeholder={t("phCity")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
                 </div>
               </div>
               <div className="field">
                 <label htmlFor="new-food-client-zip">{t("zip")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="hash" />
-                  <input type="text" id="new-food-client-zip" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+                  <input type="text" id="new-food-client-zip" placeholder={t("phZip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
                 </div>
               </div>
             </div>

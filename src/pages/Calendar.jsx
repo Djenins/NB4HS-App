@@ -88,8 +88,8 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
       <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{label}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarPersonName")}</label><input className={inputClass} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarPersonName")}</label><input className={inputClass} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDate")} *</label><input type="date" className={inputClass} value={fields.date} onChange={(e) => setField("date", e.target.value)} /></div>
           {type === "appointment" && (
             <div>
@@ -105,7 +105,7 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label>
-          <input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
+          <input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} />
         </div>
         <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
           <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
