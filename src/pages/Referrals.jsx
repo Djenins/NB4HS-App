@@ -31,7 +31,7 @@
 // wrong.
 import { useState } from "react";
 import { Briefcase, Building2, CalendarCheck, CalendarDays, Flag, KanbanSquare, List, Plus, RotateCcw, Send, UserRound } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { isCandidateEligible } from "../lib/candidateMatching.js";
@@ -72,19 +72,23 @@ export default function Referrals() {
   const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
+  // See JobOpenings.jsx -- the dashboard's KPI cards hand the matching filter
+  // through router state so the card's number and this list agree.
+  const location = useLocation();
+  const initialFilters = (location.state && location.state.filters) || {};
   const [dropHover, setDropHover] = useState(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null);
 
   const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState(initialFilters.stage || "");
   const [employerFilter, setEmployerFilter] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
   const [developerFilter, setDeveloperFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [interviewFilter, setInterviewFilter] = useState("");
   const [sort, setSort] = useState("newest");
-  const [view, setView] = useState("board");
+  const [view, setView] = useState(initialFilters.stage ? "list" : "board");
 
   const referrals = data.referrals || [];
   const eligibleJobClients = (data.jobClients || []).filter(isCandidateEligible);

@@ -1362,7 +1362,12 @@ export var STR = {
   noJobClientsTitle: { en: "No job seekers yet", ht: "Poko gen moun k ap chèche travay", fr: "Aucun demandeur d'emploi" },
   noJobClientsDesc: { en: "Add a client to start building your caseload and tracking their job search.", ht: "Ajoute yon kliyan pou kòmanse bati chaj travay ou epi swiv rechèch travay li.", fr: "Ajoutez un client pour constituer votre portefeuille et suivre sa recherche d'emploi." },
   noMatchingJobClientsTitle: { en: "No matching job seekers", ht: "Pa gen moun ki koresponn", fr: "Aucun demandeur d'emploi correspondant" },
-  noMatchingJobClientsDesc: { en: "Try adjusting your search or filters to see more of your caseload.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis nan chaj travay ou.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de votre portefeuille." }
+  noMatchingJobClientsDesc: { en: "Try adjusting your search or filters to see more of your caseload.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis nan chaj travay ou.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de votre portefeuille." },
+
+  // ---- Workforce Dashboard: KPI drill-through ----
+  viewListLabel: { en: "View list", ht: "Gade lis la", fr: "Voir la liste" },
+  referralLabel: { en: "Referral", ht: "Referans", fr: "Référence" },
+  followUpDueTodayOrOverdueLabel: { en: "Due Today or Overdue", ht: "Dwe Jodi a oswa an Reta", fr: "Dû Aujourd'hui ou en Retard" }
 };
 
 export function t(key, lang) {

@@ -16,6 +16,7 @@
 // education, experience, english_level_required, transportation_required
 // and status -- so no new columns or lookup tables are involved.
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Briefcase, Building2, Car, Flag, GraduationCap, Languages, MapPin, Plus, RotateCcw, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -56,6 +57,11 @@ export default function JobOpenings() {
   const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
+  // WorkforceDashboard.jsx's KPI cards link here with the filter that
+  // reproduces the number they showed, so the list a staffer lands on is
+  // exactly the set the card counted.
+  const location = useLocation();
+  const initialFilters = (location.state && location.state.filters) || {};
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [industryFilter, setIndustryFilter] = useState("");
@@ -64,7 +70,7 @@ export default function JobOpenings() {
   const [experienceFilter, setExperienceFilter] = useState("");
   const [englishFilter, setEnglishFilter] = useState("");
   const [transportationFilter, setTransportationFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialFilters.status || "");
   const [sort, setSort] = useState("recent");
   const [view, setView] = useState("list");
   const [page, setPage] = useState(1);
