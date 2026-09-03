@@ -1,30 +1,58 @@
 // JobOpenings.jsx -- standalone Job Openings list, Phase 2 of the Employer &
-// Job Opportunity Management module. Same Tailwind/shadcn table idiom as
-// JobDeveloper.jsx, plus the JobOpeningWizard.jsx create/edit modal and
-// JobOpeningDetailModal.jsx read-only view.
+// Job Opportunity Management module. This file owns the page's state (search
+// term, the eight filters, sort, list/grid view, pagination) and the
+// create/edit/archive/delete actions; the presentation is split across
+// components/JobOpeningFilters.jsx (search + filter panel),
+// components/JobOpeningResultsToolbar.jsx, components/JobOpeningListItem.jsx,
+// components/JobOpeningGridCard.jsx and components/JobOpeningsEmptyState.jsx.
+// Add Job -- from the header or from the empty state -- opens the one
+// existing JobOpeningWizard.jsx modal, and View still opens
+// JobOpeningDetailModal.jsx. Nothing here touches the module's navigation
+// (pages/Workforce.jsx / components/ModuleNav.jsx) or the app shell.
+//
+// The filters read the fields the job_openings rows already carry --
+// employers.city (Location), the employer's industry, employment_type,
+// education, experience, english_level_required, transportation_required
+// and status -- so no new columns or lookup tables are involved.
 import { useState } from "react";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { Briefcase, Building2, Car, Flag, GraduationCap, Languages, MapPin, Plus, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createJobOpening, deleteJobOpening, updateJobOpening } from "../lib/clientsData.js";
 import {
-  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES,
-  educationLevelLabel, employmentTypeLabel, englishLevelLabel, formatPayRange, jobOpeningSortKey, statusBadgeVariant, statusLabel
+  EDUCATION_LEVELS, EMPLOYMENT_TYPES, ENGLISH_LEVEL_REQUIREMENTS, EXPERIENCE_LEVELS, JOB_OPENING_STATUSES, jobOpeningSortKey
 } from "../lib/jobOpenings.js";
-import { hasReachedInterview } from "../lib/referrals.js";
-import { activeIndustryList, fmtDateLong } from "../lib/utils.js";
+import { activeIndustryList } from "../lib/utils.js";
 import { paginateList } from "../lib/pagination.js";
-import EmptyState from "../components/EmptyState.jsx";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
+import JobOpeningFilters from "../components/JobOpeningFilters.jsx";
+import JobOpeningGridCard from "../components/JobOpeningGridCard.jsx";
+import JobOpeningListItem from "../components/JobOpeningListItem.jsx";
+import JobOpeningResultsToolbar from "../components/JobOpeningResultsToolbar.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
+import JobOpeningsEmptyState from "../components/JobOpeningsEmptyState.jsx";
 import Pagination from "../components/Pagination.jsx";
-import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent } from "../components/ui/card.jsx";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+
+// Turns a { key, en } constant list into the option shape the filter tiles
+// take, with the "all" entry first.
+function optionsFrom(list, allLabel) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+}
+
+// Secondary comparators. The primary one is always jobOpeningSortKey (direct
+// employer opportunities ahead of imported feed jobs -- a product rule from
+// the module spec, not a display preference), so each of these only breaks
+// ties within a group.
+const SORTERS = {
+  recent: function (a, b) { return (b.postedDate || "").localeCompare(a.postedDate || ""); },
+  oldest: function (a, b) { return (a.postedDate || "").localeCompare(b.postedDate || ""); },
+  title: function (a, b) { return (a.title || "").localeCompare(b.title || ""); },
+  employer: function (a, b) { return (a.employerName || "").localeCompare(b.employerName || ""); }
+};
 
 export default function JobOpenings() {
-  const { data, requestConfirm, showToast } = useApp();
+  const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -36,6 +64,8 @@ export default function JobOpenings() {
   const [englishFilter, setEnglishFilter] = useState("");
   const [transportationFilter, setTransportationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sort, setSort] = useState("recent");
+  const [view, setView] = useState("list");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [adding, setAdding] = useState(false);
@@ -44,12 +74,65 @@ export default function JobOpenings() {
 
   const employers = data.employers || [];
   const openings = data.jobOpenings || [];
+  const referrals = data.referrals || [];
   const employerIndustryById = {};
-  employers.forEach((e) => { employerIndustryById[e.id] = e.industry; });
-  const cities = Array.from(new Set(openings.map((o) => o.employerCity).filter(Boolean))).sort();
+  employers.forEach(function (e) { employerIndustryById[e.id] = e.industry; });
+  const cities = Array.from(new Set(openings.map(function (o) { return o.employerCity; }).filter(Boolean))).sort();
+
+  // Every filter resets to page 1 the moment it changes, so a selection can
+  // never leave the user stranded on a page that no longer exists.
+  function setFilter(setter) {
+    return function (value) { setter(value); setPage(1); };
+  }
+
+  const filters = [
+    {
+      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
+    },
+    {
+      key: "industry", icon: Building2, label: t("industryLabel"), value: industryFilter, onChange: setFilter(setIndustryFilter),
+      options: [{ value: "", label: t("allIndustriesLabel") }].concat(
+        activeIndustryList(data.customIndustries, data.disabledIndustries).map(function (i) { return { value: i.key, label: i.en }; })
+      )
+    },
+    {
+      key: "employmentType", icon: Briefcase, label: t("employmentTypeLabel"), value: employmentTypeFilter,
+      onChange: setFilter(setEmploymentTypeFilter), options: optionsFrom(EMPLOYMENT_TYPES, t("allEmploymentTypesLabel"))
+    },
+    {
+      key: "education", icon: GraduationCap, label: t("educationLevelFilterLabel"), value: educationFilter,
+      onChange: setFilter(setEducationFilter), options: optionsFrom(EDUCATION_LEVELS, t("allEducationLevelsLabel"))
+    },
+    {
+      key: "experience", icon: TrendingUp, label: t("experienceLevelFilterLabel"), value: experienceFilter,
+      onChange: setFilter(setExperienceFilter), options: optionsFrom(EXPERIENCE_LEVELS, t("allExperienceLevelsLabel"))
+    },
+    {
+      key: "english", icon: Languages, label: t("englishLevelFilterLabel"), value: englishFilter,
+      onChange: setFilter(setEnglishFilter), options: optionsFrom(ENGLISH_LEVEL_REQUIREMENTS, t("allEnglishLevelsLabel"))
+    },
+    {
+      key: "transportation", icon: Car, label: t("transportationLabel"), value: transportationFilter,
+      onChange: setFilter(setTransportationFilter),
+      options: [{ value: "", label: t("anyLabel") }, { value: "yes", label: t("yesOption") }, { value: "no", label: t("noOption") }]
+    },
+    {
+      key: "status", icon: Flag, label: t("statusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
+      options: optionsFrom(JOB_OPENING_STATUSES, t("allStatusesLabel"))
+    }
+  ];
+  const activeFilterCount = filters.filter(function (f) { return Boolean(f.value); }).length;
+
+  function clearAll() {
+    setSearch("");
+    setCityFilter(""); setIndustryFilter(""); setEmploymentTypeFilter(""); setEducationFilter("");
+    setExperienceFilter(""); setEnglishFilter(""); setTransportationFilter(""); setStatusFilter("");
+    setPage(1);
+  }
 
   const term = search.trim().toLowerCase();
-  const matched = openings.filter((o) => {
+  const matched = openings.filter(function (o) {
     if (cityFilter && o.employerCity !== cityFilter) return false;
     if (industryFilter && employerIndustryById[o.employerId] !== industryFilter) return false;
     if (employmentTypeFilter && o.employmentType !== employmentTypeFilter) return false;
@@ -60,11 +143,25 @@ export default function JobOpenings() {
     if (transportationFilter === "no" && o.transportationRequired) return false;
     if (statusFilter && o.status !== statusFilter) return false;
     if (!term) return true;
-    const hay = ((o.title || "") + " " + (o.employerName || "")).toLowerCase();
+    // Title + employer + the free-text fields a "keyword" would sensibly
+    // reach (department, description, requirements, skills).
+    const hay = [
+      o.title, o.employerName, o.department, o.description, o.responsibilities, o.requirements,
+      (o.skills || []).join(" ")
+    ].join(" ").toLowerCase();
     return hay.indexOf(term) !== -1;
   });
-  const sorted = matched.slice().sort((a, b) => jobOpeningSortKey(a) - jobOpeningSortKey(b) || (b.postedDate || "").localeCompare(a.postedDate || ""));
+  const sorted = matched.slice().sort(function (a, b) {
+    return jobOpeningSortKey(a) - jobOpeningSortKey(b) || SORTERS[sort](a, b);
+  });
   const paged = paginateList(sorted, page, pageSize);
+
+  const sortOptions = [
+    { value: "recent", label: t("sortMostRecentLabel") },
+    { value: "oldest", label: t("sortOldestLabel") },
+    { value: "title", label: t("sortJobTitleAzLabel") },
+    { value: "employer", label: t("sortEmployerAzLabel") }
+  ];
 
   async function createFromWizard(fields, status) {
     await createJobOpening(Object.assign({}, fields, { status }));
@@ -86,139 +183,81 @@ export default function JobOpenings() {
     if (!ok) return;
     await deleteJobOpening(o.id);
   }
+  function referCandidate(o) {
+    navigate("/candidatematching", { state: { openingId: o.id } });
+  }
+  function referralCountFor(o) {
+    return referrals.filter(function (r) { return r.jobOpeningId === o.id; }).length;
+  }
 
-  const selectClass = "h-11 min-h-0 rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+  const rowProps = {
+    lang, onView: setViewing, onEdit: setEditing, onRefer: referCandidate,
+    onArchive: archiveOpening, onDelete: removeOpening
+  };
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="mb-1">{t("jobOpeningsTitle")}</h1>
           <p className="m-0 text-sm text-muted">{t("jobOpeningsDesc")}</p>
         </div>
-        <Button size="lg" className="gap-2" onClick={() => setAdding(true)}>
-          <Plus className="h-4 w-4" /> {t("addJobBtn")}
+        <Button onClick={function () { setAdding(true); }} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
+          <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addJobBtn")}
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="space-y-4 p-5">
-          <input
-            type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder={t("jobOpeningSearchPlaceholder")} aria-label={t("jobOpeningSearchPlaceholder")}
-            className="h-12 min-h-0 w-full rounded-xl border border-border bg-background px-4 text-base text-card-foreground focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15"
-          />
+      <JobOpeningFilters
+        search={search}
+        onSearchChange={function (value) { setSearch(value); setPage(1); }}
+        filters={filters}
+        activeCount={activeFilterCount}
+        onClearAll={clearAll}
+      />
 
-          <div className="flex flex-wrap gap-3">
-            <select aria-label={t("city")} value={cityFilter} onChange={(e) => { setCityFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allCitiesLabel")}</option>
-              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select aria-label={t("industryLabel")} value={industryFilter} onChange={(e) => { setIndustryFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allIndustriesLabel")}</option>
-              {activeIndustryList(data.customIndustries, data.disabledIndustries).map((i) => <option key={i.key} value={i.key}>{i.en}</option>)}
-            </select>
-            <select aria-label={t("employmentTypeLabel")} value={employmentTypeFilter} onChange={(e) => { setEmploymentTypeFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allEmploymentTypesLabel")}</option>
-              {EMPLOYMENT_TYPES.map((et) => <option key={et.key} value={et.key}>{et.en}</option>)}
-            </select>
-            <select aria-label={t("educationLabel")} value={educationFilter} onChange={(e) => { setEducationFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allEducationLevelsLabel")}</option>
-              {EDUCATION_LEVELS.map((l) => <option key={l.key} value={l.key}>{l.en}</option>)}
-            </select>
-            <select aria-label={t("experienceLabel")} value={experienceFilter} onChange={(e) => { setExperienceFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allExperienceLevelsLabel")}</option>
-              {EXPERIENCE_LEVELS.map((l) => <option key={l.key} value={l.key}>{l.en}</option>)}
-            </select>
-            <select aria-label={t("englishLevelRequiredLabel")} value={englishFilter} onChange={(e) => { setEnglishFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allEnglishLevelsLabel")}</option>
-              {ENGLISH_LEVEL_REQUIREMENTS.map((l) => <option key={l.key} value={l.key}>{l.en}</option>)}
-            </select>
-            <select aria-label={t("transportationRequiredLabel")} value={transportationFilter} onChange={(e) => { setTransportationFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("anyTransportationLabel")}</option>
-              <option value="yes">{t("yesOption")}</option>
-              <option value="no">{t("noOption")}</option>
-            </select>
-            <select aria-label={t("statusLabel")} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className={selectClass}>
-              <option value="">{t("allStatusesLabel")}</option>
-              {JOB_OPENING_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
-            </select>
-          </div>
-
-          {paged.items.length ? (
-            <div className="overflow-auto rounded-xl border border-border">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("positionLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("companyLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("locationLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("payLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("employmentTypeLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("openingsCountLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("referralsLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("totalInterviewsLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("totalHiresLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("statusLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("postedDateLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("actionsLabel")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paged.items.map((o) => {
-                    const openingReferrals = (data.referrals || []).filter((r) => r.jobOpeningId === o.id);
-                    const interviews = openingReferrals.filter((r) => hasReachedInterview(r.status)).length;
-                    const hires = openingReferrals.filter((r) => r.status === "hired").length;
-                    return (
-                      <tr key={o.id} className="hover:bg-background">
-                        <td className="px-3 py-3 text-sm font-bold text-card-foreground">{o.title}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{o.employerName || "—"}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{o.employerCity || "—"}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{formatPayRange(o) || "—"}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{employmentTypeLabel(o.employmentType) || "—"}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{o.openingsCount}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{openingReferrals.length}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{interviews}</td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{hires}</td>
-                        <td className="px-3 py-3"><Badge variant={statusBadgeVariant(o.status)}>{statusLabel(o.status)}</Badge></td>
-                        <td className="px-3 py-3 text-sm text-card-foreground">{fmtDateLong(o.postedDate)}</td>
-                        <td className="px-3 py-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t("actionsLabel")}>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => setViewing(o)}>{t("viewLabel")}</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => setEditing(o)}>{t("editLabel")}</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => navigate("/candidatematching", { state: { openingId: o.id } })}>{t("referCandidateActionLabel")}</DropdownMenuItem>
-                              {o.status !== "archived" && <DropdownMenuItem onSelect={() => archiveOpening(o)}>{t("archiveLabel")}</DropdownMenuItem>}
-                              <DropdownMenuItem onSelect={() => removeOpening(o)} className="text-accent focus:bg-tint-danger">{t("deleteLabel")}</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+      <div className="mt-5">
+        {paged.items.length ? (
+          view === "grid" ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {paged.items.map(function (o) {
+                return <JobOpeningGridCard key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
+              })}
             </div>
           ) : (
-            <EmptyState icon="jobdeveloper" message={t("noJobOpeningsYet")} />
-          )}
-
-          <Pagination
-            page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
-            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelClients")}
-            onChange={(delta) => setPage(paged.page + delta)}
+            <div className="flex flex-col gap-3">
+              {paged.items.map(function (o) {
+                return <JobOpeningListItem key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
+              })}
+            </div>
+          )
+        ) : (
+          <JobOpeningsEmptyState
+            filtered={openings.length > 0}
+            onAdd={function () { setAdding(true); }}
+            onClearAll={clearAll}
           />
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
-      {adding && <JobOpeningWizard employers={employers} onSave={createFromWizard} onCancel={() => setAdding(false)} />}
-      {editing && <JobOpeningWizard jobOpening={editing} employers={employers} onSave={updateFromWizard} onCancel={() => setEditing(null)} />}
-      {viewing && <JobOpeningDetailModal jobOpening={viewing} onClose={() => setViewing(null)} />}
+      <div className="mt-5">
+        <JobOpeningResultsToolbar
+          total={sorted.length}
+          sort={sort}
+          onSortChange={function (value) { setSort(value); setPage(1); }}
+          sortOptions={sortOptions}
+          view={view}
+          onViewChange={setView}
+        />
+        <Pagination
+          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+          onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+          onChange={function (delta) { setPage(paged.page + delta); }}
+        />
+      </div>
+
+      {adding && <JobOpeningWizard employers={employers} onSave={createFromWizard} onCancel={function () { setAdding(false); }} />}
+      {editing && <JobOpeningWizard jobOpening={editing} employers={employers} onSave={updateFromWizard} onCancel={function () { setEditing(null); }} />}
+      {viewing && <JobOpeningDetailModal jobOpening={viewing} onClose={function () { setViewing(null); }} />}
     </>
   );
 }
