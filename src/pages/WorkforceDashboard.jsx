@@ -39,6 +39,7 @@ import { computeRetentionRate } from "../lib/placements.js";
 import { fmtDateLong, todayStr } from "../lib/utils.js";
 import { cn } from "../lib/cn.js";
 import DashboardOpeningRow from "../components/DashboardOpeningRow.jsx";
+import { SectionCard, SectionEmpty } from "../components/SectionCard.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card } from "../components/ui/card.jsx";
 
@@ -69,22 +70,6 @@ function KpiCard({ icon: Icon, tint, label, value, onDrill, drillLabel }) {
       </Wrapper>
     </Card>
   );
-}
-
-function SectionCard({ title, action, children }) {
-  return (
-    <Card className="p-5 shadow-card hover:shadow-card sm:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[15px] font-bold text-card-foreground">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </Card>
-  );
-}
-
-function SectionEmpty({ message }) {
-  return <p className="m-0 py-8 text-center text-sm text-muted">{message}</p>;
 }
 
 const ACTIVITY_ICON = { opening: FileText, referral: UserPlus, interview: CalendarClock, placement: CheckCircle2, followup: Phone };
