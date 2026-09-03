@@ -688,7 +688,7 @@ export var STR = {
   jobOpeningAdded: { en: "Job opening added.", ht: "Pozisyon travay ajoute.", fr: "Poste ajouté." },
   jobOpeningUpdated: { en: "Job opening updated.", ht: "Pozisyon travay mizajou.", fr: "Poste mis à jour." },
   removeJobOpeningConfirm: { en: "Remove this job opening? This can't be undone.", ht: "Retire pozisyon travay sa a? Sa pa ka anile.", fr: "Supprimer ce poste ? Ceci est irréversible." },
-  jobOpeningSearchPlaceholder: { en: "Search job openings by title…", ht: "Chèche pozisyon travay pa tit…", fr: "Rechercher des postes par titre…" },
+  jobOpeningSearchPlaceholder: { en: "Search job openings by title, keyword, or employer…", ht: "Chèche pozisyon travay pa tit, mo kle, oswa anplwayè…", fr: "Rechercher des postes par titre, mot-clé ou employeur…" },
   noJobOpeningsYet: { en: "No job openings yet.", ht: "Poko gen pozisyon travay.", fr: "Aucun poste pour l'instant." },
   allEmploymentTypesLabel: { en: "All Employment Types", ht: "Tout Kalite Travay", fr: "Tous les Types d'Emploi" },
   allEducationLevelsLabel: { en: "All Education Levels", ht: "Tout Nivo Edikasyon", fr: "Tous les Niveaux d'Éducation" },
@@ -1229,7 +1229,32 @@ export var STR = {
   calendarNoEventsRange: { en: "No events scheduled for this period.", ht: "Pa gen evènman pwograme pou peryòd sa a.", fr: "Aucun événement prévu pour cette période." },
   calendarNoMatches: { en: "No events match your search or filter.", ht: "Pa gen evènman ki koresponn ak rechèch ou oswa filtè ou.", fr: "Aucun événement ne correspond à votre recherche ou à votre filtre." },
   calendarLoadError: { en: "We couldn\u2019t load the calendar. Please try again.", ht: "Nou pa t kapab chaje kalandriye a. Tanpri eseye ankò.", fr: "Nous n\u2019avons pas pu charger le calendrier. Veuillez réessayer." },
-  calendarRetry: { en: "Try again", ht: "Eseye ankò", fr: "Réessayer" }
+  calendarRetry: { en: "Try again", ht: "Eseye ankò", fr: "Réessayer" },
+
+  // ---- Job Openings page: search / filter panel / results toolbar ----
+  clearAllLabel: { en: "Clear all", ht: "Efase tout", fr: "Tout effacer" },
+  hideFiltersLabel: { en: "Hide filters", ht: "Kache filtè", fr: "Masquer les filtres" },
+  showFiltersLabel: { en: "Show filters", ht: "Montre filtè", fr: "Afficher les filtres" },
+  transportationLabel: { en: "Transportation", ht: "Transpò", fr: "Transport" },
+  educationLevelFilterLabel: { en: "Education Level", ht: "Nivo Edikasyon", fr: "Niveau d'Éducation" },
+  experienceLevelFilterLabel: { en: "Experience Level", ht: "Nivo Eksperyans", fr: "Niveau d'Expérience" },
+  englishLevelFilterLabel: { en: "English Level", ht: "Nivo Anglè", fr: "Niveau d'Anglais" },
+  anyLabel: { en: "Any", ht: "Nenpòt", fr: "Peu importe" },
+  resultLabel: { en: "result", ht: "rezilta", fr: "résultat" },
+  resultsLabel: { en: "results", ht: "rezilta", fr: "résultats" },
+  sortByFieldLabel: { en: "Sort by", ht: "Triye pa", fr: "Trier par" },
+  sortMostRecentLabel: { en: "Most Recent", ht: "Pi Resan", fr: "Plus Récents" },
+  sortOldestLabel: { en: "Oldest", ht: "Pi Ansyen", fr: "Plus Anciens" },
+  sortJobTitleAzLabel: { en: "Job Title A–Z", ht: "Tit Travay A–Z", fr: "Intitulé du Poste A–Z" },
+  sortEmployerAzLabel: { en: "Employer A–Z", ht: "Anplwayè A–Z", fr: "Employeur A–Z" },
+  listViewLabel: { en: "List view", ht: "Vi lis", fr: "Vue liste" },
+  gridViewLabel: { en: "Grid view", ht: "Vi kadriyaj", fr: "Vue grille" },
+  matchLabel: { en: "Match", ht: "Kandida", fr: "Candidat" },
+  matchesLabel: { en: "Matches", ht: "Kandida", fr: "Candidats" },
+  noJobOpeningsTitle: { en: "No job openings yet", ht: "Poko gen pozisyon travay", fr: "Aucun poste pour l'instant" },
+  noJobOpeningsDesc: { en: "Add a job to get started and connect clients with great employment opportunities.", ht: "Ajoute yon travay pou kòmanse epi konekte kliyan yo ak bon opòtinite travay.", fr: "Ajoutez un poste pour commencer et connecter les clients à de belles opportunités d'emploi." },
+  noMatchingJobOpeningsTitle: { en: "No matching job openings", ht: "Pa gen pozisyon travay ki koresponn", fr: "Aucun poste correspondant" },
+  noMatchingJobOpeningsDesc: { en: "Try adjusting your search or filters to see more results.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis rezilta.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de résultats." }
 };
 
 export function t(key, lang) {
