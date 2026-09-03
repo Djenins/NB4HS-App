@@ -1254,7 +1254,32 @@ export var STR = {
   noJobOpeningsTitle: { en: "No job openings yet", ht: "Poko gen pozisyon travay", fr: "Aucun poste pour l'instant" },
   noJobOpeningsDesc: { en: "Add a job to get started and connect clients with great employment opportunities.", ht: "Ajoute yon travay pou kòmanse epi konekte kliyan yo ak bon opòtinite travay.", fr: "Ajoutez un poste pour commencer et connecter les clients à de belles opportunités d'emploi." },
   noMatchingJobOpeningsTitle: { en: "No matching job openings", ht: "Pa gen pozisyon travay ki koresponn", fr: "Aucun poste correspondant" },
-  noMatchingJobOpeningsDesc: { en: "Try adjusting your search or filters to see more results.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis rezilta.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de résultats." }
+  noMatchingJobOpeningsDesc: { en: "Try adjusting your search or filters to see more results.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis rezilta.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de résultats." },
+
+  // ---- Candidate Matching page: opening rail, candidate filters, results ----
+  jobOpeningLabel: { en: "Job Opening", ht: "Pozisyon Travay", fr: "Poste" },
+  candidateSearchPlaceholder: { en: "Search candidates by name, skill, or city…", ht: "Chèche kandida pa non, konpetans, oswa vil…", fr: "Rechercher des candidats par nom, compétence ou ville…" },
+  matchQualityLabel: { en: "Match Quality", ht: "Kalite Matche", fr: "Qualité de Correspondance" },
+  allMatchQualitiesLabel: { en: "All Matches", ht: "Tout Matche", fr: "Toutes les Correspondances" },
+  referralStatusLabel: { en: "Referral Status", ht: "Estati Referans", fr: "Statut de Référence" },
+  notYetReferredLabel: { en: "Not Yet Referred", ht: "Poko Refere", fr: "Pas Encore Référé" },
+  allWorkAuthorizationsLabel: { en: "All Work Authorizations", ht: "Tout Otorizasyon Travay", fr: "Toutes les Autorisations" },
+  allEmploymentStatusesLabel: { en: "All Employment Statuses", ht: "Tout Estati Travay", fr: "Tous les Statuts d'Emploi" },
+  barriersLabel: { en: "Barriers", ht: "Baryè", fr: "Obstacles" },
+  noBarriersReportedLabel: { en: "No Barriers Reported", ht: "Pa gen Baryè Rapòte", fr: "Aucun Obstacle Signalé" },
+  hasTransportationLabel: { en: "Has Transportation", ht: "Gen Transpò", fr: "A un Transport" },
+  noTransportationLabel: { en: "No Transportation", ht: "Pa gen Transpò", fr: "Sans Transport" },
+  matchScoreLabel: { en: "{score}% match", ht: "{score}% matche", fr: "{score} % de correspondance" },
+  noMatchedSkillsLabel: { en: "No matched skills", ht: "Pa gen konpetans ki matche", fr: "Aucune compétence correspondante" },
+  sortBestMatchLabel: { en: "Best Match", ht: "Pi Bon Matche", fr: "Meilleure Correspondance" },
+  sortCandidateNameAzLabel: { en: "Name A–Z", ht: "Non A–Z", fr: "Nom A–Z" },
+  sortNewestIntakeLabel: { en: "Newest Intake", ht: "Pi Nouvo Enskripsyon", fr: "Admission la Plus Récente" },
+  sortOldestIntakeLabel: { en: "Oldest Intake", ht: "Pi Ansyen Enskripsyon", fr: "Admission la Plus Ancienne" },
+  selectJobOpeningDesc: { en: "Choose a job opening from the list to see ranked candidate matches.", ht: "Chwazi yon pozisyon travay nan lis la pou wè kandida ki matche yo.", fr: "Choisissez un poste dans la liste pour voir les candidats correspondants." },
+  noEligibleCandidatesTitle: { en: "No eligible candidates", ht: "Pa gen kandida ki kalifye", fr: "Aucun candidat éligible" },
+  noEligibleCandidatesDesc: { en: "Only active job seekers who are still looking for work appear here.", ht: "Se sèlman moun k ap chèche travay ki aktif ki parèt isit la.", fr: "Seuls les demandeurs d'emploi actifs et toujours en recherche apparaissent ici." },
+  noMatchingCandidatesTitle: { en: "No matching candidates", ht: "Pa gen kandida ki koresponn", fr: "Aucun candidat correspondant" },
+  noMatchingCandidatesDesc: { en: "Try adjusting your search or filters to see more candidates.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis kandida.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de candidats." }
 };
 
 export function t(key, lang) {

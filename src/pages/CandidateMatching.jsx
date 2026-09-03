@@ -1,7 +1,20 @@
-// CandidateMatching.jsx -- split layout: pick a job opening on the left,
-// see ranked matching candidates on the right. Reachable directly from the
-// nav, or via JobOpenings.jsx's "Refer Candidate" row action, which passes
-// the opening id through router state so it's pre-selected on arrival.
+// CandidateMatching.jsx -- split layout: pick a job opening on the left, see
+// ranked matching candidates on the right. Reachable directly from the nav,
+// or via JobOpenings.jsx's "Refer Candidate" row action, which passes the
+// opening id through router state so it's pre-selected on arrival.
+//
+// The page's chrome is the same vocabulary as JobOpenings.jsx --
+// components/SearchFilterPanel.jsx, components/ResultsToolbar.jsx and
+// components/ResultsEmptyState.jsx are literally the same components -- with
+// the ranked candidate list in place of the openings list. This file owns
+// the state (which opening, the opening-rail search, the candidate search
+// and its seven filters, sort, list/grid view) and the refer action.
+//
+// Every candidate filter reads a field job_clients already carries: the
+// computed match bucket, existing referral rows, has_resume, work_authorization,
+// employment_status, city, barriers and the transportation note. No scoring
+// input and no candidate attribute is invented for the sake of a tile --
+// same scope rule candidateMatching.js already documents.
 //
 // `alreadyReferred` below is a client-side check against in-memory
 // data.referrals -- fast, but racy (two staff, or two tabs, could both pass
@@ -13,44 +26,179 @@
 // `referringId` covers the same-tab double-click case even faster.
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
+import { AlertTriangle, Briefcase, Car, FileText, MapPin, RotateCcw, Search, Send, ShieldCheck, Target, UserSearch } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { computeMatchScore, isCandidateEligible } from "../lib/candidateMatching.js";
+import { computeMatchScore, isCandidateEligible, matchBucket } from "../lib/candidateMatching.js";
 import { createReferral } from "../lib/clientsData.js";
-import { statusBadgeVariant, statusLabel } from "../lib/jobOpenings.js";
+import { clientDisplayName } from "../lib/clients.js";
+import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, WORK_AUTH_STATUSES, employmentStatusLabel } from "../lib/jobProfile.js";
 import { todayStr } from "../lib/utils.js";
 import CandidateMatchCard from "../components/CandidateMatchCard.jsx";
-import { Badge } from "../components/ui/badge.jsx";
-import { Card, CardContent } from "../components/ui/card.jsx";
+import CandidateMatchListItem from "../components/CandidateMatchListItem.jsx";
+import JobOpeningPickerCard from "../components/JobOpeningPickerCard.jsx";
+import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
+import ResultsToolbar from "../components/ResultsToolbar.jsx";
+import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
+import { Card } from "../components/ui/card.jsx";
+
+function optionsFrom(list, allLabel) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+}
+
+// Secondary comparators; the ranked order is always best-match-first unless
+// the user picks otherwise. Intake date is the only date job_clients has.
+const SORTERS = {
+  match: function (a, b) { return b.score - a.score; },
+  name: function (a, b) { return clientDisplayName(a.jobClient).localeCompare(clientDisplayName(b.jobClient)); },
+  newest: function (a, b) { return (b.jobClient.intakeDate || "").localeCompare(a.jobClient.intakeDate || ""); },
+  oldest: function (a, b) { return (a.jobClient.intakeDate || "").localeCompare(b.jobClient.intakeDate || ""); }
+};
 
 export default function CandidateMatching() {
   const { data, session, showToast } = useApp();
   const t = useT();
   const location = useLocation();
-  const [search, setSearch] = useState("");
+  const [openingSearch, setOpeningSearch] = useState("");
   const [activeOnly, setActiveOnly] = useState(true);
   const [selectedId, setSelectedId] = useState(location.state && location.state.openingId ? location.state.openingId : null);
   const [referringId, setReferringId] = useState(null);
 
+  const [search, setSearch] = useState("");
+  const [matchFilter, setMatchFilter] = useState("");
+  const [referralFilter, setReferralFilter] = useState("");
+  const [resumeFilter, setResumeFilter] = useState("");
+  const [workAuthFilter, setWorkAuthFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [barrierFilter, setBarrierFilter] = useState("");
+  const [transportationFilter, setTransportationFilter] = useState("");
+  const [sort, setSort] = useState("match");
+  const [view, setView] = useState("list");
+
   const employers = data.employers || [];
   const employerById = {};
-  employers.forEach((e) => { employerById[e.id] = e; });
+  employers.forEach(function (e) { employerById[e.id] = e; });
+  const referrals = data.referrals || [];
 
-  const term = search.trim().toLowerCase();
-  const openings = (data.jobOpenings || []).filter((o) => {
+  // ---- left rail: choose the opening ----
+  const openingTerm = openingSearch.trim().toLowerCase();
+  const openings = (data.jobOpenings || []).filter(function (o) {
     if (activeOnly && o.status !== "active") return false;
-    if (!term) return true;
-    return ((o.title || "") + " " + (o.employerName || "")).toLowerCase().indexOf(term) !== -1;
+    if (!openingTerm) return true;
+    return ((o.title || "") + " " + (o.employerName || "")).toLowerCase().indexOf(openingTerm) !== -1;
   });
 
-  const selectedOpening = openings.find((o) => o.id === selectedId) || (data.jobOpenings || []).find((o) => o.id === selectedId);
+  const selectedOpening = openings.find(function (o) { return o.id === selectedId; })
+    || (data.jobOpenings || []).find(function (o) { return o.id === selectedId; });
   const employer = selectedOpening ? employerById[selectedOpening.employerId] : null;
 
+  // ---- right pane: rank, then filter, then sort ----
+  const eligible = (data.jobClients || []).filter(isCandidateEligible);
   const ranked = selectedOpening
-    ? (data.jobClients || [])
-        .filter(isCandidateEligible)
-        .map((c) => ({ jobClient: c, score: computeMatchScore(c, selectedOpening) }))
-        .sort((a, b) => b.score - a.score)
+    ? eligible.map(function (c) { return { jobClient: c, score: computeMatchScore(c, selectedOpening) }; })
     : [];
+
+  const cities = Array.from(new Set(eligible.map(function (c) { return (c.city || "").trim(); }).filter(Boolean))).sort();
+
+  function setFilter(setter) {
+    return function (value) { setter(value); };
+  }
+
+  const filters = [
+    {
+      key: "match", icon: Target, label: t("matchQualityLabel"), value: matchFilter, onChange: setFilter(setMatchFilter),
+      options: [
+        { value: "", label: t("allMatchQualitiesLabel") },
+        { value: "strong", label: t("matchStrongLabel") },
+        { value: "good", label: t("matchGoodLabel") },
+        { value: "possible", label: t("matchPossibleLabel") }
+      ]
+    },
+    {
+      key: "referral", icon: Send, label: t("referralStatusLabel"), value: referralFilter, onChange: setFilter(setReferralFilter),
+      options: [
+        { value: "", label: t("anyLabel") },
+        { value: "not_referred", label: t("notYetReferredLabel") },
+        { value: "referred", label: t("alreadyReferredLabel") }
+      ]
+    },
+    {
+      key: "resume", icon: FileText, label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
+      options: [
+        { value: "", label: t("anyLabel") },
+        { value: "yes", label: t("resumeOnFileLabel") },
+        { value: "no", label: t("noResumeOnFileLabel") }
+      ]
+    },
+    {
+      key: "workAuth", icon: ShieldCheck, label: t("workAuthorizationLabel"), value: workAuthFilter,
+      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
+    },
+    {
+      key: "status", icon: Briefcase, label: t("employmentStatusLabel"), value: statusFilter,
+      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
+    },
+    {
+      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
+    },
+    {
+      key: "barrier", icon: AlertTriangle, label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
+      options: [{ value: "", label: t("anyLabel") }, { value: "__none", label: t("noBarriersReportedLabel") }]
+        .concat(BARRIERS_TO_EMPLOYMENT.map(function (b) { return { value: b.key, label: b.en }; }))
+    },
+    {
+      key: "transportation", icon: Car, label: t("transportationLabel"), value: transportationFilter,
+      onChange: setFilter(setTransportationFilter),
+      options: [
+        { value: "", label: t("anyLabel") },
+        { value: "yes", label: t("hasTransportationLabel") },
+        { value: "no", label: t("noTransportationLabel") }
+      ]
+    }
+  ];
+  const activeFilterCount = filters.filter(function (f) { return Boolean(f.value); }).length;
+
+  function clearAll() {
+    setSearch("");
+    setMatchFilter(""); setReferralFilter(""); setResumeFilter(""); setWorkAuthFilter("");
+    setStatusFilter(""); setCityFilter(""); setBarrierFilter(""); setTransportationFilter("");
+  }
+
+  function isReferred(jobClientId) {
+    return referrals.some(function (r) {
+      return r.jobClientId === jobClientId && selectedOpening && r.jobOpeningId === selectedOpening.id;
+    });
+  }
+
+  const term = search.trim().toLowerCase();
+  const matched = ranked.filter(function (entry) {
+    const c = entry.jobClient;
+    if (matchFilter && matchBucket(entry.score).key !== matchFilter) return false;
+    if (referralFilter === "referred" && !isReferred(c.id)) return false;
+    if (referralFilter === "not_referred" && isReferred(c.id)) return false;
+    if (resumeFilter === "yes" && !c.hasResume) return false;
+    if (resumeFilter === "no" && c.hasResume) return false;
+    if (workAuthFilter && c.workAuthorization !== workAuthFilter) return false;
+    if (statusFilter && c.employmentStatus !== statusFilter) return false;
+    if (cityFilter && (c.city || "").trim() !== cityFilter) return false;
+    if (barrierFilter === "__none" && (c.barriers || []).length > 0) return false;
+    if (barrierFilter && barrierFilter !== "__none" && (c.barriers || []).indexOf(barrierFilter) === -1) return false;
+    if (transportationFilter === "yes" && !(c.transportation || "").trim()) return false;
+    if (transportationFilter === "no" && (c.transportation || "").trim()) return false;
+    if (!term) return true;
+    const hay = [clientDisplayName(c), c.city, employmentStatusLabel(c.employmentStatus), (c.skills || []).join(" ")]
+      .join(" ").toLowerCase();
+    return hay.indexOf(term) !== -1;
+  });
+  const sorted = matched.slice().sort(SORTERS[sort]);
+
+  const sortOptions = [
+    { value: "match", label: t("sortBestMatchLabel") },
+    { value: "name", label: t("sortCandidateNameAzLabel") },
+    { value: "newest", label: t("sortNewestIntakeLabel") },
+    { value: "oldest", label: t("sortOldestIntakeLabel") }
+  ];
 
   async function refer(jobClientId) {
     if (referringId) return;
@@ -72,6 +220,46 @@ export default function CandidateMatching() {
     }
   }
 
+  function renderResults() {
+    if (!selectedOpening) {
+      return (
+        <ResultsEmptyState
+          icon={UserSearch} title={t("selectJobOpeningLabel")} description={t("selectJobOpeningDesc")}
+        />
+      );
+    }
+    if (ranked.length === 0) {
+      return (
+        <ResultsEmptyState
+          icon={UserSearch} title={t("noEligibleCandidatesTitle")} description={t("noEligibleCandidatesDesc")}
+        />
+      );
+    }
+    if (sorted.length === 0) {
+      return (
+        <ResultsEmptyState
+          icon={Search} title={t("noMatchingCandidatesTitle")} description={t("noMatchingCandidatesDesc")}
+          actionLabel={t("clearAllLabel")} actionIcon={RotateCcw} actionVariant="secondary" onAction={clearAll}
+        />
+      );
+    }
+
+    const rows = sorted.map(function (entry) {
+      const Row = view === "grid" ? CandidateMatchCard : CandidateMatchListItem;
+      return (
+        <Row
+          key={entry.jobClient.id} jobClient={entry.jobClient} jobOpening={selectedOpening} employer={employer}
+          score={entry.score} alreadyReferred={isReferred(entry.jobClient.id)} referring={!!referringId}
+          onRefer={function () { refer(entry.jobClient.id); }}
+        />
+      );
+    });
+
+    return view === "grid"
+      ? <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{rows}</div>
+      : <div className="flex flex-col gap-3">{rows}</div>;
+  }
+
   return (
     <>
       <div className="mb-5">
@@ -79,59 +267,59 @@ export default function CandidateMatching() {
         <p className="m-0 text-sm text-muted">{t("candidateMatchingDesc")}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <input
-              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("jobOpeningSearchPlaceholder")} aria-label={t("jobOpeningSearchPlaceholder")}
-              className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-            />
-            <label className="flex items-center gap-2 text-sm text-card-foreground">
-              <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
-              {t("activeOnlyLabel")}
-            </label>
-            {openings.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted">{t("noActiveJobOpeningsMessage")}</p>
-            ) : (
-              <div className="max-h-[70vh] space-y-1.5 overflow-y-auto">
-                {openings.map((o) => (
-                  <button
-                    key={o.id} type="button" onClick={() => setSelectedId(o.id)}
-                    className={
-                      "block w-full min-h-0 rounded-lg border p-2.5 text-left " +
-                      (o.id === selectedId ? "border-primary bg-primary-tint" : "border-border bg-background hover:border-[#b7c0d1]")
-                    }
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-bold text-card-foreground">{o.title}</span>
-                      <Badge variant={statusBadgeVariant(o.status)}>{statusLabel(o.status)}</Badge>
-                    </div>
-                    <div className="mt-0.5 truncate text-xs text-muted">{o.employerName}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[340px_1fr]">
+        <Card className="p-5 shadow-card hover:shadow-card lg:sticky lg:top-4">
+          <h2 className="m-0 text-[15px] font-bold text-card-foreground">{t("jobOpeningLabel")}</h2>
 
-        <div>
-          {!selectedOpening ? (
-            <Card><CardContent className="p-10 text-center text-sm text-muted">{t("selectJobOpeningLabel")}</CardContent></Card>
-          ) : ranked.length === 0 ? (
-            <Card><CardContent className="p-10 text-center text-sm text-muted">{t("noCandidatesMatchMessage")}</CardContent></Card>
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" aria-hidden="true" />
+            <input
+              type="text" value={openingSearch} onChange={function (e) { setOpeningSearch(e.target.value); }}
+              placeholder={t("jobOpeningSearchPlaceholder")} aria-label={t("jobOpeningSearchPlaceholder")}
+              className="h-[52px] min-h-0 w-full rounded-[12px] border border-border bg-card py-0 pl-12 pr-4 text-base text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2"
+            />
+          </div>
+
+          <label className="m-0 mt-3 flex items-center gap-2 text-sm font-medium text-card-foreground">
+            <input type="checkbox" checked={activeOnly} onChange={function (e) { setActiveOnly(e.target.checked); }} />
+            {t("activeOnlyLabel")}
+          </label>
+
+          {openings.length === 0 ? (
+            <p className="m-0 py-8 text-center text-sm text-muted">{t("noActiveJobOpeningsMessage")}</p>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {ranked.map(({ jobClient, score }) => {
-                const alreadyReferred = (data.referrals || []).some((r) => r.jobClientId === jobClient.id && r.jobOpeningId === selectedOpening.id);
-                return (
-                  <CandidateMatchCard
-                    key={jobClient.id} jobClient={jobClient} jobOpening={selectedOpening} employer={employer}
-                    score={score} alreadyReferred={alreadyReferred} referring={!!referringId} onRefer={() => refer(jobClient.id)}
-                  />
-                );
+            <div className="mt-3 flex max-h-[calc(100vh-320px)] flex-col gap-2 overflow-y-auto">
+              {openings.map(function (o) {
+                return <JobOpeningPickerCard key={o.id} opening={o} selected={o.id === selectedId} onSelect={setSelectedId} />;
               })}
             </div>
+          )}
+        </Card>
+
+        <div className="flex flex-col gap-5">
+          {selectedOpening && (
+            <SearchFilterPanel
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder={t("candidateSearchPlaceholder")}
+              filters={filters}
+              activeCount={activeFilterCount}
+              onClearAll={clearAll}
+            />
+          )}
+
+          {renderResults()}
+
+          {selectedOpening && ranked.length > 0 && (
+            <ResultsToolbar
+              id="candidate-matches"
+              total={sorted.length}
+              sort={sort}
+              onSortChange={setSort}
+              sortOptions={sortOptions}
+              view={view}
+              onViewChange={setView}
+            />
           )}
         </div>
       </div>

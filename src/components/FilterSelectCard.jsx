@@ -1,10 +1,10 @@
-// JobOpeningFilterCard.jsx -- one compact filter tile on the Job Openings
-// page (JobOpeningFilters.jsx): pale-blue icon square, filter name, the
-// current selection, chevron. The control itself is a real <select>
-// stretched transparently across the tile, so keyboard, screen-reader and
-// mobile behaviour stay native and the tile is purely presentational.
+// FilterSelectCard.jsx -- one compact filter tile in a SearchFilterPanel
+// grid: pale-blue icon square, filter name, the current selection, chevron.
+// Shared by the Job Openings and Candidate Matching pages.
 //
-// Two project traps handled here:
+// The control itself is a real <select> stretched transparently across the
+// tile, so keyboard, screen-reader and mobile behaviour stay native and the
+// tile is purely presentational. Two project traps handled here:
 //   * main.css styles the bare `select` tag app-wide (min-height:52px,
 //     14px radius, its own background chevron) because Tailwind's preflight
 //     is off -- the overlay cancels all of it and rides on opacity-0, so
@@ -14,7 +14,7 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "../lib/cn.js";
 
-export default function JobOpeningFilterCard({ icon: Icon, label, value, options, onChange }) {
+export default function FilterSelectCard({ icon: Icon, label, value, options, onChange }) {
   const selected = options.filter(function (o) { return o.value === value; })[0];
   const active = Boolean(value);
 
