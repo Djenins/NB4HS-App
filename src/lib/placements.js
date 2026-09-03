@@ -47,12 +47,14 @@ export function checkinState(checkin) {
 
 // Honest, disclosed definition: among placements old enough to evaluate
 // (start_date at least 90 days ago), the percentage still active today.
+// `today` is optional and defaults to the real clock; passing it lets
+// workforceMetrics.test.js pin a date instead of testing a moving target.
 // This is a point-in-time snapshot, not a time-travel-accurate calculation
 // -- there's no historical status log to do better than that. Returns null
 // (not 0) when there are no eligible placements yet, so callers can render
 // "--" instead of a misleading 0%.
-export function computeRetentionRate(placements) {
-  var cutoff = addDays(todayStr(), -90);
+export function computeRetentionRate(placements, today) {
+  var cutoff = addDays(today || todayStr(), -90);
   var eligible = (placements || []).filter(function (p) { return p.startDate && p.startDate <= cutoff; });
   if (eligible.length === 0) return null;
   var retained = eligible.filter(function (p) { return p.currentStatus === "active"; }).length;

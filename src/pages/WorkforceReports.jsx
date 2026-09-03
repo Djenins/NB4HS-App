@@ -32,6 +32,10 @@ import {
   inRange, previousRange, rangeForPreset, trendPct
 } from "../lib/reports_data.js";
 import { computeRetentionRate } from "../lib/placements.js";
+import {
+  countInRange, employersAddedItems, hireItems, interviewItems, jobsPostedItems,
+  placementItems, referralItems, retentionSplit, topCounts
+} from "../lib/workforceMetrics.js";
 import { cn } from "../lib/cn.js";
 import { addDays, fmtDateLong, fullIndustryList, todayStr } from "../lib/utils.js";
 import BarList from "../components/BarList.jsx";
@@ -76,8 +80,6 @@ function KpiCard({ icon: Icon, tint, iconColor, value, label, pct, none, t }) {
   );
 }
 
-function countInRange(items, r) { return items.filter((i) => i.date && inRange(i, r.from, r.to)).length; }
-
 export default function WorkforceReports() {
   const { data, lang, showToast } = useApp();
   const t = useT();
@@ -97,74 +99,63 @@ export default function WorkforceReports() {
   const placements = data.placements || [];
   const profiles = data.profiles || [];
 
-  const jobsPostedItems = jobOpenings.map((o) => ({ date: o.postedDate }));
-  const placementsItems = placements.map((p) => ({ date: p.startDate }));
-  const employersAddedItems = employers.map((e) => ({ date: (e.createdAt || "").slice(0, 10) }));
-  const referralsItems = referrals.map((r) => ({ date: r.referralDate }));
-  const interviewsItems = referrals.filter((r) => r.interviewDate).map((r) => ({ date: r.interviewDate }));
-  // Hires -- there's no dedicated stage-change log, so "when it became
-  // Hired" is only knowable as "last time this referral row was touched."
-  // Disclosed approximation, kept deliberately distinct from the Placements
-  // chart (actual tracked-placement records, which can lag behind a hire).
-  const hiresItems = referrals.filter((r) => r.status === "hired").map((r) => ({ date: (r.updatedAt || "").slice(0, 10) }));
+  const jobsPosted = jobsPostedItems(jobOpenings);
+  const placementsSeries = placementItems(placements);
+  const employersAdded = employersAddedItems(employers);
+  const referralsSeries = referralItems(referrals);
+  const interviews = interviewItems(referrals);
+  const hires = hireItems(referrals);
 
   function kpiFor(items) {
     const cur = countInRange(items, range);
     const prev = countInRange(items, prevRange);
     return { value: cur, trend: trendPct(cur, prev) };
   }
-  const jobsPostedKpi = kpiFor(jobsPostedItems);
-  const placementsKpi = kpiFor(placementsItems);
-  const employersAddedKpi = kpiFor(employersAddedItems);
-  const referralsKpi = kpiFor(referralsItems);
-  const interviewsKpi = kpiFor(interviewsItems);
-  const hiresKpi = kpiFor(hiresItems);
+  const jobsPostedKpi = kpiFor(jobsPosted);
+  const placementsKpi = kpiFor(placementsSeries);
+  const employersAddedKpi = kpiFor(employersAdded);
+  const referralsKpi = kpiFor(referralsSeries);
+  const interviewsKpi = kpiFor(interviews);
+  const hiresKpi = kpiFor(hires);
   const retentionRate = computeRetentionRate(placements);
 
-  const jobsPostedTrend = computeDailyTrend(jobsPostedItems, range);
-  const placementsTrend = computeDailyTrend(placementsItems, range);
-  const employersAddedTrend = computeDailyTrend(employersAddedItems, range);
-  const referralsTrend = computeDailyTrend(referralsItems, range);
-  const interviewsTrend = computeDailyTrend(interviewsItems, range);
-  const hiresTrend = computeDailyTrend(hiresItems, range);
+  const jobsPostedTrend = computeDailyTrend(jobsPosted, range);
+  const placementsTrend = computeDailyTrend(placementsSeries, range);
+  const employersAddedTrend = computeDailyTrend(employersAdded, range);
+  const referralsTrend = computeDailyTrend(referralsSeries, range);
+  const interviewsTrend = computeDailyTrend(interviews, range);
+  const hiresTrend = computeDailyTrend(hires, range);
 
   const cutoff90 = addDays(todayStr(), -90);
-  const eligiblePlacements = placements.filter((p) => p.startDate && p.startDate <= cutoff90);
-  const retainedCount = eligiblePlacements.filter((p) => p.currentStatus === "active").length;
-  const notRetainedCount = eligiblePlacements.length - retainedCount;
+  const retention = retentionSplit(placements, cutoff90);
 
-  const placementsInRange = placements.filter((p) => inRange({ date: p.startDate }, range.from, range.to));
-  const employerCounts = {};
-  placementsInRange.forEach((p) => { if (p.employerName) employerCounts[p.employerName] = (employerCounts[p.employerName] || 0) + 1; });
-  const topHiringEmployers = Object.entries(employerCounts).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 8);
+  const placementsInRange = placements.filter(function (p) { return inRange({ date: p.startDate }, range.from, range.to); });
+  const topHiringEmployers = topCounts(placementsInRange, function (p) { return p.employerName; }, 8);
 
   const employerById = {};
-  employers.forEach((e) => { employerById[e.id] = e; });
+  employers.forEach(function (e) { employerById[e.id] = e; });
   const industryList = fullIndustryList(data.customIndustries);
-  function industryLabelFor(key) { const found = industryList.find((i) => i.key === key); return found ? found.en : key; }
-  const industryCounts = {};
-  placementsInRange.forEach((p) => {
+  function industryLabelFor(key) { const found = industryList.find(function (i) { return i.key === key; }); return found ? found.en : key; }
+  const topIndustries = topCounts(placementsInRange, function (p) {
     const emp = employerById[p.employerId];
-    if (!emp || !emp.industry) return;
-    var label = industryLabelFor(emp.industry);
-    industryCounts[label] = (industryCounts[label] || 0) + 1;
-  });
-  const topIndustries = Object.entries(industryCounts).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 8);
+    return emp && emp.industry ? industryLabelFor(emp.industry) : "";
+  }, 8);
 
-  const referralsInRange = referrals.filter((r) => inRange({ date: r.referralDate }, range.from, range.to));
+  const referralsInRange = referrals.filter(function (r) { return inRange({ date: r.referralDate }, range.from, range.to); });
   const profileByEmail = {};
-  profiles.forEach((p) => { if (p.email) profileByEmail[p.email] = p; });
-  const devCounts = {};
-  referralsInRange.filter((r) => r.status === "hired").forEach((r) => {
-    if (!r.assignedJobDeveloperEmail) return;
-    var label = (profileByEmail[r.assignedJobDeveloperEmail] && profileByEmail[r.assignedJobDeveloperEmail].name) || r.assignedJobDeveloperEmail;
-    devCounts[label] = (devCounts[label] || 0) + 1;
-  });
-  const topJobDevelopers = Object.entries(devCounts).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 8);
+  profiles.forEach(function (p) { if (p.email) profileByEmail[p.email] = p; });
+  const topJobDevelopers = topCounts(
+    referralsInRange.filter(function (r) { return r.status === "hired"; }),
+    function (r) {
+      if (!r.assignedJobDeveloperEmail) return "";
+      return (profileByEmail[r.assignedJobDeveloperEmail] && profileByEmail[r.assignedJobDeveloperEmail].name) || r.assignedJobDeveloperEmail;
+    },
+    8
+  );
 
   const yearOptions = Array.from(new Set(placements.map((p) => (p.startDate || "").slice(0, 4)).filter(Boolean).concat([String(currentYear)]))).sort();
-  const monthlyPlacements = computeMonthlyCounts(placementsItems, selectedYear);
-  const annualPlacements = computeAnnualCounts(placementsItems, currentYear - 4, currentYear);
+  const monthlyPlacements = computeMonthlyCounts(placementsSeries, selectedYear);
+  const annualPlacements = computeAnnualCounts(placementsSeries, currentYear - 4, currentYear);
 
   function handleExportCSV() { exportWorkforceCSV(placements, range); showToast(t("exportCSV") + " ✓"); }
   function handleExportExcel() { exportWorkforceExcel(placements, range); showToast(t("exportExcel") + " ✓"); }
@@ -304,16 +295,16 @@ export default function WorkforceReports() {
         </div>
 
         <SectionCard title={t("retentionRateLabel")}>
-              {eligiblePlacements.length === 0 ? (
+              {retention.eligible === 0 ? (
               <SectionEmpty message={t("noReportDataMessage")} />
             ) : (
               <DashChart
                 type="doughnut"
                 labels={[t("retainedLabel"), t("notRetainedLabel")]}
-                datasets={[{ data: [retainedCount, notRetainedCount] }]}
+                datasets={[{ data: [retention.retained, retention.notRetained] }]}
                 fallback={
                   <p className="py-6 text-center text-sm text-card-foreground">
-                    {retentionRate}% {t("retainedLabel").toLowerCase()} ({retainedCount} / {eligiblePlacements.length} {t("eligiblePlacementsLabel")})
+                    {retentionRate}% {t("retainedLabel").toLowerCase()} ({retention.retained} / {retention.eligible} {t("eligiblePlacementsLabel")})
                   </p>
                 }
               />
