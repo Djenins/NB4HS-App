@@ -32,10 +32,14 @@ import {
   AlertCircle, ArrowRight, Briefcase, Building2, CalendarClock, CheckCircle2, FileText, Percent, Phone, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { isCandidateEligible } from "../lib/candidateMatching.js";
 import { fetchAllEmployerActivity } from "../lib/clientsData.js";
 import { activityTypeLabel, EMPLOYER_PARTNERSHIP_STAGES, partnershipStageLabel } from "../lib/employerProfile.js";
 import { computeRetentionRate } from "../lib/placements.js";
+import {
+  countActiveEmployers, countActiveJobOpenings, countCandidatesAwaitingReferral, countFollowUpsDue,
+  countInterviewsScheduled, countPlacementsThisMonth, employerStageCounts, mergeActivityFeed,
+  recentOpenings, referralCountForOpening
+} from "../lib/workforceMetrics.js";
 import { fmtDateLong, todayStr } from "../lib/utils.js";
 import { cn } from "../lib/cn.js";
 import DashboardOpeningRow from "../components/DashboardOpeningRow.jsx";
@@ -96,20 +100,16 @@ export default function WorkforceDashboard() {
   const employerById = {};
   employers.forEach((e) => { employerById[e.id] = e; });
 
-  const activeEmployers = employers.filter((e) => e.active !== false).length;
-  const activeJobOpenings = jobOpenings.filter((o) => o.status === "active").length;
-  const referredClientIds = new Set(referrals.map((r) => r.jobClientId));
-  const candidatesAwaitingReferral = jobClients.filter((c) => isCandidateEligible(c) && !referredClientIds.has(c.id)).length;
-  const interviewsScheduled = referrals.filter((r) => r.status === "interview").length;
-  const thisMonthPrefix = today.slice(0, 7);
-  const placementsThisMonth = placements.filter((p) => (p.startDate || "").slice(0, 7) === thisMonthPrefix).length;
+  const activeEmployers = countActiveEmployers(employers);
+  const activeJobOpenings = countActiveJobOpenings(jobOpenings);
+  const candidatesAwaitingReferral = countCandidatesAwaitingReferral(jobClients, referrals);
+  const interviewsScheduled = countInterviewsScheduled(referrals);
+  const placementsThisMonth = countPlacementsThisMonth(placements, today);
   const retentionRate = computeRetentionRate(placements);
-  const followUpsDue = employers.filter((e) => e.nextFollowUpDate && e.nextFollowUpDate <= today).length;
+  const followUpsDue = countFollowUpsDue(employers, today);
 
-  const recentOpenings = jobOpenings.slice().sort((a, b) => (b.postedDate || "").localeCompare(a.postedDate || "")).slice(0, 8);
-  const referralCountFor = (openingId) => referrals.filter((r) => r.jobOpeningId === openingId).length;
-
-  const stageCounts = EMPLOYER_PARTNERSHIP_STAGES.map((s) => ({ ...s, count: employers.filter((e) => e.partnershipStage === s.key).length }));
+  const recent = recentOpenings(jobOpenings, 8);
+  const stageCounts = employerStageCounts(employers, EMPLOYER_PARTNERSHIP_STAGES);
 
   const feedItems = []
     .concat(jobOpenings.map((o) => ({ date: o.postedDate, type: "opening", text: o.employerName + " " + t("activityPostedOpeningLabel") + " " + o.title })))
@@ -117,9 +117,8 @@ export default function WorkforceDashboard() {
     .concat(referrals.filter((r) => r.interviewDate).map((r) => ({ date: r.interviewDate, type: "interview", text: r.participantName + " " + t("activityInterviewScheduledLabel") + " " + r.employerName })))
     .concat(placements.map((p) => ({ date: p.startDate, type: "placement", text: p.participantName + " " + t("activityPlacedLabel") + " " + p.employerName + " (" + p.positionTitle + ")" })))
     .concat(employerActivity.map((a) => ({ date: a.date, type: "followup", text: activityTypeLabel(a.type) + " " + t("activityWithLabel") + " " + (employerById[a.employerId] ? employerById[a.employerId].businessName : "") })))
-    .filter((item) => item.date)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 15);
+    .slice();
+  const feed = mergeActivityFeed(feedItems, 15);
 
   function drill(path, filters) {
     return function () { navigate(path, { state: { filters } }); };
@@ -163,10 +162,10 @@ export default function WorkforceDashboard() {
             </Button>
           }
         >
-          {recentOpenings.length === 0 ? <SectionEmpty message={t("noJobOpeningsYet")} /> : (
+          {recent.length === 0 ? <SectionEmpty message={t("noJobOpeningsYet")} /> : (
             <div className="flex flex-col gap-2">
-              {recentOpenings.map(function (o) {
-                return <DashboardOpeningRow key={o.id} opening={o} referralCount={referralCountFor(o.id)} />;
+              {recent.map(function (o) {
+                return <DashboardOpeningRow key={o.id} opening={o} referralCount={referralCountForOpening(referrals, o.id)} />;
               })}
             </div>
           )}
@@ -194,9 +193,9 @@ export default function WorkforceDashboard() {
         </SectionCard>
 
         <SectionCard title={t("recentEmployerActivityLabel")}>
-          {feedItems.length === 0 ? <SectionEmpty message={t("noRecentActivityMessage")} /> : (
+          {feed.length === 0 ? <SectionEmpty message={t("noRecentActivityMessage")} /> : (
             <div className="flex flex-col">
-              {feedItems.map(function (item, i) {
+              {feed.map(function (item, i) {
                 const Icon = ACTIVITY_ICON[item.type] || FileText;
                 return (
                   <div key={i} className="flex items-center gap-3 border-b border-border py-2.5 text-sm last:border-b-0">
