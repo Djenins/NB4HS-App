@@ -1331,7 +1331,26 @@ export var STR = {
   noPlacementsTitle: { en: "No placements yet", ht: "Poko gen plasman", fr: "Aucun placement pour l'instant" },
   noPlacementsDesc: { en: "Record a placement when a candidate is hired to start tracking retention check-ins.", ht: "Anrejistre yon plasman lè yo anboche yon kandida pou kòmanse swiv kontwòl retansyon yo.", fr: "Enregistrez un placement lorsqu'un candidat est embauché pour suivre les rendez-vous de rétention." },
   noMatchingPlacementsTitle: { en: "No matching placements", ht: "Pa gen plasman ki koresponn", fr: "Aucun placement correspondant" },
-  noMatchingPlacementsDesc: { en: "Try adjusting your search or filters to see more placements.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis plasman.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de placements." }
+  noMatchingPlacementsDesc: { en: "Try adjusting your search or filters to see more placements.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis plasman.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de placements." },
+
+  // ---- Employer Directory: filter panel / results toolbar ----
+  hasOpenPositionsLabel: { en: "Has Open Positions", ht: "Gen Pozisyon Ouvè", fr: "Avec Postes Ouverts" },
+  noOpenPositionsLabel: { en: "No Open Positions", ht: "Pa gen Pozisyon Ouvè", fr: "Sans Postes Ouverts" },
+  allHiringMethodsLabel: { en: "All Hiring Methods", ht: "Tout Metòd Anbochaj", fr: "Toutes les Méthodes d'Embauche" },
+  followUpOverdueFilterLabel: { en: "Follow-Up Overdue", ht: "Swivi an Reta", fr: "Suivi en Retard" },
+  followUpSoonLabel: { en: "Due in Next 7 Days", ht: "Dwe nan 7 Pwochen Jou", fr: "Dû dans les 7 Jours" },
+  followUpNoneLabel: { en: "None Scheduled", ht: "Pa gen Pwograme", fr: "Aucun Programmé" },
+  contactOver90Label: { en: "Over 90 Days Ago", ht: "Plis pase 90 Jou", fr: "Il y a Plus de 90 Jours" },
+  contactNeverLabel: { en: "Never Contacted", ht: "Pa Janm Kontakte", fr: "Jamais Contacté" },
+  sortBusinessNameAzLabel: { en: "Business Name A–Z", ht: "Non Biznis A–Z", fr: "Nom d'Entreprise A–Z" },
+  sortBusinessNameZaLabel: { en: "Business Name Z–A", ht: "Non Biznis Z–A", fr: "Nom d'Entreprise Z–A" },
+  sortMostOpenPositionsLabel: { en: "Most Open Positions", ht: "Plis Pozisyon Ouvè", fr: "Le Plus de Postes Ouverts" },
+  sortNewestPartnerLabel: { en: "Newest Partner", ht: "Patnè Pi Resan", fr: "Partenaire le Plus Récent" },
+  sortRecentContactLabel: { en: "Most Recent Contact", ht: "Kontak Pi Resan", fr: "Contact le Plus Récent" },
+  noEmployersTitle: { en: "No employers yet", ht: "Poko gen anplwayè", fr: "Aucun employeur pour l'instant" },
+  noEmployersDesc: { en: "Add an employer to start building your partner network and posting their job openings.", ht: "Ajoute yon anplwayè pou kòmanse bati rezo patnè ou epi pibliye pozisyon travay yo.", fr: "Ajoutez un employeur pour développer votre réseau de partenaires et publier leurs offres." },
+  noMatchingEmployersTitle: { en: "No matching employers", ht: "Pa gen anplwayè ki koresponn", fr: "Aucun employeur correspondant" },
+  noMatchingEmployersDesc: { en: "Try adjusting your search or filters to see more employers.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis anplwayè.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus d'employeurs." }
 };
 
 export function t(key, lang) {
