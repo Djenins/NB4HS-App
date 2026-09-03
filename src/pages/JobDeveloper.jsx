@@ -1,32 +1,51 @@
-// JobDeveloper.jsx -- Tailwind/shadcn redesign pass (same idiom as
-// CaseManagement.jsx/Students.jsx), reusing every existing
-// clients.js/appointments.js lib helper and the AppointmentsSection/
-// JobClientCard/Pagination/DatePicker components as-is. Only the
-// presentation layer changed: the "Add a Client" <details className="card">
-// accordion became a collapsible Card, and legacy .field/.grid form markup
-// became Tailwind form-section layouts matching CaseManagement.jsx's
-// AddClientCard idiom.
+// JobDeveloper.jsx -- the job-seeker caseload, on the same chrome as the
+// rest of the module: components/SearchFilterPanel.jsx,
+// components/ResultsToolbar.jsx and components/ResultsEmptyState.jsx around
+// JobClientListItem (default) and JobClientGridCard. The 10-column table
+// those two replace kept its whole vocabulary in the move -- the bulk-select
+// checkbox, the profile link, work-permit and resume state, the follow-up
+// chip -- and bulk selection works identically in either layout.
+//
+// The Follow-Ups Due KPI stays clickable, but it no longer owns a filter of
+// its own: it drives the Follow-Up filter tile, and the tile drives it back.
+// One piece of state, so the card's pressed look, the tile's value, the
+// active-filter count and Clear all can never disagree about whether the
+// list is filtered.
+//
+// The Add a Client form and AppointmentsSection are this page's own
+// workflows and are left as they were, except that the add form now starts
+// collapsed -- this is a caseload, so it should open on the clients rather
+// than on an empty form, and the header's Add Client button still expands
+// and scrolls to it.
+//
+// Every filter reads a field job_clients already carries -- employment_status,
+// pipeline_stage, has_resume, work_authorization, city, barriers,
+// intake_date -- or the follow-up map computeFollowUps() already builds from
+// the applications rows. No new column.
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, Calendar, CalendarClock, ChevronDown, ChevronUp, FileCheck2, MoreHorizontal, Plus, Trash2, User, UserPlus, Users, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Briefcase, Calendar, CalendarClock, CalendarDays, ChevronDown, ChevronUp, FileCheck2, FileText, MapPin, Plus, RotateCcw, ShieldCheck, Trash2, TrendingUp, User, UserPlus, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient, clientMatchesSearch } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetchAllApplications, updateJobClient } from "../lib/clientsData.js";
-import { computeFollowUps } from "../lib/jobProfile.js";
+import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, JOB_PIPELINE_STAGES, WORK_AUTH_STATUSES, computeFollowUps, pipelineStageIndex } from "../lib/jobProfile.js";
 import { paginateList } from "../lib/pagination.js";
 import { sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
-import { formatPhone, todayStr } from "../lib/utils.js";
+import { addDays, formatPhone, todayStr } from "../lib/utils.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import { uploadClientFile } from "../lib/clientsData.js";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
-import EmptyState from "../components/EmptyState.jsx";
-import JobClientCard from "../components/JobClientCard.jsx";
+import JobClientGridCard from "../components/JobClientGridCard.jsx";
+import JobClientListItem from "../components/JobClientListItem.jsx";
 import Pagination from "../components/Pagination.jsx";
+import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
+import ResultsToolbar from "../components/ResultsToolbar.jsx";
+import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
@@ -252,8 +271,23 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
   );
 }
 
+// Barriers, intake-date windows and the follow-up map are the three filters
+// that aren't a plain field comparison; everything else compares a
+// job_clients column directly.
+const SORTERS = {
+  name_az: null,   // handled by sortStudentsList, which the page already used
+  name_za: null,
+  newest_intake: function (a, b) { return (b.intakeDate || "").localeCompare(a.intakeDate || ""); },
+  oldest_intake: function (a, b) { return (a.intakeDate || "").localeCompare(b.intakeDate || ""); },
+  stage: function (a, b) { return pipelineStageIndex(a.pipelineStage) - pipelineStageIndex(b.pipelineStage); }
+};
+
+function optionsFrom(list, allLabel) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+}
+
 export default function JobDeveloper() {
-  const { data, requestConfirm } = useApp();
+  const { data, lang, requestConfirm } = useApp();
   const t = useT();
   const [interviewsScheduled, setInterviewsScheduled] = useState(0);
   useEffect(() => {
@@ -273,9 +307,19 @@ export default function JobDeveloper() {
   }, [data.jobClients]);
   const followUps = computeFollowUps(applications, todayStr());
   const followUpsDueCount = Object.keys(followUps).length;
-  const [followUpOnly, setFollowUpOnly] = useState(false);
-  const [opens, setOpens] = useState({ addJobClient: true, appointments: false });
+
+  const [opens, setOpens] = useState({ addJobClient: false, appointments: false });
   const [search, setSearch] = useState("");
+  const [followUpFilter, setFollowUpFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState("");
+  const [resumeFilter, setResumeFilter] = useState("");
+  const [workAuthFilter, setWorkAuthFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [barrierFilter, setBarrierFilter] = useState("");
+  const [intakeFilter, setIntakeFilter] = useState("");
+  const [sort, setSort] = useState("name_az");
+  const [view, setView] = useState("list");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState(() => new Set());
@@ -288,13 +332,110 @@ export default function JobDeveloper() {
   // initialClientId prop for the pre-fill half.
   const scheduleClientId = location.state && location.state.openAppointments ? location.state.appointmentClientId : undefined;
 
+  const jobClients = data.jobClients || [];
+  const cities = Array.from(new Set(jobClients.map(function (c) { return (c.city || "").trim(); }).filter(Boolean))).sort();
+
+  function setFilter(setter) {
+    return function (value) { setter(value); setPage(1); };
+  }
+
+  const filters = [
+    {
+      key: "followUp", icon: AlertCircle, label: t("followUpColumnLabel"), value: followUpFilter,
+      onChange: setFilter(setFollowUpFilter),
+      options: [
+        { value: "", label: t("anyLabel") },
+        { value: "due", label: t("followUpDueLabel") },
+        { value: "none", label: t("followUpNoneDueLabel") }
+      ]
+    },
+    {
+      key: "status", icon: Briefcase, label: t("employmentStatusLabel"), value: statusFilter,
+      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
+    },
+    {
+      key: "stage", icon: TrendingUp, label: t("pipelineStageLabel"), value: stageFilter,
+      onChange: setFilter(setStageFilter), options: optionsFrom(JOB_PIPELINE_STAGES, t("allStagesLabel"))
+    },
+    {
+      key: "resume", icon: FileText, label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
+      options: [
+        { value: "", label: t("anyLabel") },
+        { value: "yes", label: t("resumeOnFileLabel") },
+        { value: "no", label: t("noResumeOnFileLabel") }
+      ]
+    },
+    {
+      key: "workAuth", icon: ShieldCheck, label: t("workAuthorizationLabel"), value: workAuthFilter,
+      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
+    },
+    {
+      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
+    },
+    {
+      key: "barrier", icon: AlertTriangle, label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
+      options: [{ value: "", label: t("anyLabel") }, { value: "__none", label: t("noBarriersReportedLabel") }]
+        .concat(BARRIERS_TO_EMPLOYMENT.map(function (b) { return { value: b.key, label: b.en }; }))
+    },
+    {
+      key: "intake", icon: CalendarDays, label: t("intakeDateLabel"), value: intakeFilter, onChange: setFilter(setIntakeFilter),
+      options: [
+        { value: "", label: t("anyTimeLabel") },
+        { value: "30", label: t("last30DaysLabel") },
+        { value: "90", label: t("last90DaysLabel") },
+        { value: "180", label: t("last180DaysLabel") }
+      ]
+    }
+  ];
+  const activeFilterCount = filters.filter(function (f) { return Boolean(f.value); }).length;
+
+  function clearAll() {
+    setSearch("");
+    setFollowUpFilter(""); setStatusFilter(""); setStageFilter(""); setResumeFilter("");
+    setWorkAuthFilter(""); setCityFilter(""); setBarrierFilter(""); setIntakeFilter("");
+    setPage(1);
+  }
+
+  const intakeCutoff = intakeFilter ? addDays(todayStr(), -(Number(intakeFilter) - 1)) : "";
   const term = search.trim().toLowerCase();
-  const matched = (data.jobClients || [])
-    .filter((c) => clientMatchesSearch("job", c, term))
-    .filter((c) => !followUpOnly || followUps[c.id]);
-  const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
+  const matched = jobClients.filter(function (c) {
+    if (!clientMatchesSearch("job", c, term)) return false;
+    if (followUpFilter === "due" && !followUps[c.id]) return false;
+    if (followUpFilter === "none" && followUps[c.id]) return false;
+    if (statusFilter && c.employmentStatus !== statusFilter) return false;
+    if (stageFilter && c.pipelineStage !== stageFilter) return false;
+    if (resumeFilter === "yes" && !c.hasResume) return false;
+    if (resumeFilter === "no" && c.hasResume) return false;
+    if (workAuthFilter && c.workAuthorization !== workAuthFilter) return false;
+    if (cityFilter && (c.city || "").trim() !== cityFilter) return false;
+    if (barrierFilter === "__none" && (c.barriers || []).length > 0) return false;
+    if (barrierFilter && barrierFilter !== "__none" && (c.barriers || []).indexOf(barrierFilter) === -1) return false;
+    if (intakeCutoff && (!c.intakeDate || c.intakeDate < intakeCutoff)) return false;
+    return true;
+  });
+
+  // Name sorting keeps going through sortStudentsList, which is what this
+  // page always used and what the rest of the app sorts people by; Z-A is
+  // just that list reversed rather than a second, subtly different collation.
+  let sorted;
+  if (sort === "name_az" || sort === "name_za") {
+    sorted = sortStudentsList(matched.map(function (c) { return { firstName: c.firstName, lastName: c.lastName, __ref: c }; }))
+      .map(function (w) { return w.__ref; });
+    if (sort === "name_za") sorted = sorted.reverse();
+  } else {
+    sorted = matched.slice().sort(SORTERS[sort]);
+  }
   const paged = paginateList(sorted, page, pageSize);
-  const allOnPageSelected = paged.items.length > 0 && paged.items.every((c) => selected.has(c.id));
+  const allOnPageSelected = paged.items.length > 0 && paged.items.every(function (c) { return selected.has(c.id); });
+
+  const sortOptions = [
+    { value: "name_az", label: t("sortClientNameAzLabel") },
+    { value: "name_za", label: t("sortClientNameZaLabel") },
+    { value: "newest_intake", label: t("sortNewestIntakeLabel") },
+    { value: "oldest_intake", label: t("sortOldestIntakeLabel") },
+    { value: "stage", label: t("sortPipelineStageLabel") }
+  ];
 
   function toggleSelect(id) {
     setSelected((prev) => {
@@ -342,15 +483,48 @@ export default function JobDeveloper() {
     setSelected(new Set());
   }
 
-  const jobClients = data.jobClients || [];
   const totalClients = jobClients.length;
   const activelyLooking = jobClients.filter((c) => c.employmentStatus === "actively_looking").length;
   const employed = jobClients.filter((c) => c.employmentStatus === "employed").length;
   const resumesCompleted = jobClients.filter((c) => c.hasResume).length;
 
+  function renderResults() {
+    if (jobClients.length === 0) {
+      return (
+        <ResultsEmptyState
+          icon={Users} title={t("noJobClientsTitle")} description={t("noJobClientsDesc")}
+          actionLabel={t("addClientShortcutBtn")} actionIcon={Plus} onAction={scrollToAddClient}
+        />
+      );
+    }
+    if (paged.items.length === 0) {
+      return (
+        <ResultsEmptyState
+          icon={Users} title={t("noMatchingJobClientsTitle")} description={t("noMatchingJobClientsDesc")}
+          actionLabel={t("clearAllLabel")} actionIcon={RotateCcw} actionVariant="secondary" onAction={clearAll}
+        />
+      );
+    }
+
+    const rows = paged.items.map(function (c) {
+      const Row = view === "grid" ? JobClientGridCard : JobClientListItem;
+      return (
+        <Row
+          key={c.id} client={c} lang={lang} onRemove={function () { removeClient(c.id); }}
+          selected={selected.has(c.id)} onToggleSelect={function () { toggleSelect(c.id); }}
+          followUp={followUps[c.id]}
+        />
+      );
+    });
+
+    return view === "grid"
+      ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{rows}</div>
+      : <div className="flex flex-col gap-3">{rows}</div>;
+  }
+
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="mb-1">{t("jobDeveloperTitle")}</h1>
           <p className="m-0 text-sm text-muted">{t("jobDeveloperDesc")}</p>
@@ -358,8 +532,8 @@ export default function JobDeveloper() {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="lg" variant="secondary" className="gap-2">
-                {t("actionsLabel")} <ChevronDown className="h-4 w-4" />
+              <Button variant="secondary" className="h-12 gap-2 rounded-[12px] px-5 text-[15px]">
+                {t("actionsLabel")} <ChevronDown className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -373,8 +547,8 @@ export default function JobDeveloper() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="lg" className="gap-2" onClick={scrollToAddClient}>
-            <Plus className="h-4 w-4" /> {t("addClientShortcutBtn")}
+          <Button onClick={scrollToAddClient} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
+            <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addClientShortcutBtn")}
           </Button>
         </div>
       </div>
@@ -382,7 +556,8 @@ export default function JobDeveloper() {
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-6">
         <KpiStat
           icon={AlertCircle} tint="bg-tint-danger text-accent" label={t("statFollowUpsDueLabel")} value={followUpsDueCount} sub={t("statActionNeededLabel")}
-          onClick={() => { setFollowUpOnly((v) => !v); setPage(1); }} active={followUpOnly}
+          onClick={function () { setFollowUpFilter(followUpFilter === "due" ? "" : "due"); setPage(1); }}
+          active={followUpFilter === "due"}
         />
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalJobClientsLabel")} value={totalClients} sub={t("statAllTimeLabel")} />
         <KpiStat icon={Calendar} tint="bg-tint-success text-success" label={t("statActivelyLookingLabel")} value={activelyLooking} sub={t("statCurrentlyLookingLabel")} />
@@ -390,15 +565,6 @@ export default function JobDeveloper() {
         <KpiStat icon={User} tint="bg-tint-warn text-gold-ink" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
         <KpiStat icon={FileCheck2} tint="bg-cyan-100 text-cyan-700" label={t("statResumesCompletedLabel")} value={resumesCompleted} sub={t("statUpToDateLabel")} />
       </div>
-
-      {followUpOnly && (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-accent-soft bg-tint-danger px-4 py-2.5 text-sm font-semibold text-accent">
-          {t("followUpFilterActiveLabel")}
-          <Button variant="ghost" size="sm" className="gap-1.5 text-accent hover:bg-accent-tint" onClick={() => setFollowUpOnly(false)}>
-            <X className="h-3.5 w-3.5" /> {t("clearFilters")}
-          </Button>
-        </div>
-      )}
 
       <AddJobClientCard forwardRef={addClientRef} collapsed={!opens.addJobClient} onToggle={() => setOpen("addJobClient", !opens.addJobClient)} />
       <div ref={appointmentsRef}>
@@ -413,61 +579,52 @@ export default function JobDeveloper() {
         />
       </div>
 
-      <Card className="mt-5">
-        <CardContent className="p-5">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder={t("jobClientSearchPlaceholder")}
-            aria-label={t("jobClientSearchPlaceholder")}
-            className="h-12 min-h-0 w-full rounded-xl border border-border bg-background px-4 text-base text-card-foreground focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15"
-          />
+      {jobClients.length > 0 && (
+        <SearchFilterPanel
+          className="mt-5"
+          search={search}
+          onSearchChange={function (value) { setSearch(value); setPage(1); }}
+          searchPlaceholder={t("jobClientSearchPlaceholder")}
+          filters={filters}
+          activeCount={activeFilterCount}
+          onClearAll={clearAll}
+        />
+      )}
 
+      {paged.items.length > 0 && (
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <label className="m-0 flex items-center gap-2 text-sm font-medium text-card-foreground">
+            <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} aria-label={t("selectAllLabel")} />
+            {t("selectAllLabel")}
+          </label>
           <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
-            <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}><Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}</Button>
+            <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}>
+              <Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}
+            </Button>
           </BulkActionsBar>
+        </div>
+      )}
 
-          {paged.items.length ? (
-            <div className="mt-4 overflow-auto rounded-xl border border-border">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="bg-card px-3 py-3 shadow-[0_1px_0_var(--border)]">
-                      <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} aria-label={t("selectAllLabel")} />
-                    </th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("nameLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("phoneLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("emailLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("address")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("workPermitLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("resumeLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("intakeDateLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("followUpColumnLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("actionsLabel")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paged.items.map((c) => (
-                    <JobClientCard
-                      key={c.id} client={c} onRemove={() => removeClient(c.id)}
-                      selected={selected.has(c.id)} onToggleSelect={() => toggleSelect(c.id)}
-                      followUp={followUps[c.id]}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mt-4"><EmptyState icon="jobdeveloper" message={t("noJobClientsYet")} /></div>
-          )}
+      <div className="mt-4">{renderResults()}</div>
+
+      {jobClients.length > 0 && (
+        <div className="mt-5">
+          <ResultsToolbar
+            id="job-clients"
+            total={sorted.length}
+            sort={sort}
+            onSortChange={function (value) { setSort(value); setPage(1); }}
+            sortOptions={sortOptions}
+            view={view}
+            onViewChange={setView}
+          />
           <Pagination
             page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
-            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelClients")}
-            onChange={(delta) => setPage(paged.page + delta)}
+            onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+            onChange={function (delta) { setPage(paged.page + delta); }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </>
   );
 }
