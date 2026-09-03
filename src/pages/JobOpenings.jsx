@@ -2,9 +2,10 @@
 // Job Opportunity Management module. This file owns the page's state (search
 // term, the eight filters, sort, list/grid view, pagination) and the
 // create/edit/archive/delete actions; the presentation is split across
-// components/JobOpeningFilters.jsx (search + filter panel),
-// components/JobOpeningResultsToolbar.jsx, components/JobOpeningListItem.jsx,
-// components/JobOpeningGridCard.jsx and components/JobOpeningsEmptyState.jsx.
+// components/SearchFilterPanel.jsx (search + filter panel),
+// components/ResultsToolbar.jsx, components/JobOpeningListItem.jsx,
+// components/JobOpeningGridCard.jsx and components/ResultsEmptyState.jsx --
+// the first two and the empty state are shared with Candidate Matching.
 // Add Job -- from the header or from the empty state -- opens the one
 // existing JobOpeningWizard.jsx modal, and View still opens
 // JobOpeningDetailModal.jsx. Nothing here touches the module's navigation
@@ -15,7 +16,7 @@
 // education, experience, english_level_required, transportation_required
 // and status -- so no new columns or lookup tables are involved.
 import { useState } from "react";
-import { Briefcase, Building2, Car, Flag, GraduationCap, Languages, MapPin, Plus, TrendingUp } from "lucide-react";
+import { Briefcase, Building2, Car, Flag, GraduationCap, Languages, MapPin, Plus, RotateCcw, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createJobOpening, deleteJobOpening, updateJobOpening } from "../lib/clientsData.js";
@@ -25,13 +26,13 @@ import {
 import { activeIndustryList } from "../lib/utils.js";
 import { paginateList } from "../lib/pagination.js";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
-import JobOpeningFilters from "../components/JobOpeningFilters.jsx";
 import JobOpeningGridCard from "../components/JobOpeningGridCard.jsx";
 import JobOpeningListItem from "../components/JobOpeningListItem.jsx";
-import JobOpeningResultsToolbar from "../components/JobOpeningResultsToolbar.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
-import JobOpeningsEmptyState from "../components/JobOpeningsEmptyState.jsx";
 import Pagination from "../components/Pagination.jsx";
+import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
+import ResultsToolbar from "../components/ResultsToolbar.jsx";
+import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 
 // Turns a { key, en } constant list into the option shape the filter tiles
@@ -207,9 +208,10 @@ export default function JobOpenings() {
         </Button>
       </div>
 
-      <JobOpeningFilters
+      <SearchFilterPanel
         search={search}
         onSearchChange={function (value) { setSearch(value); setPage(1); }}
+        searchPlaceholder={t("jobOpeningSearchPlaceholder")}
         filters={filters}
         activeCount={activeFilterCount}
         onClearAll={clearAll}
@@ -231,16 +233,23 @@ export default function JobOpenings() {
             </div>
           )
         ) : (
-          <JobOpeningsEmptyState
-            filtered={openings.length > 0}
-            onAdd={function () { setAdding(true); }}
-            onClearAll={clearAll}
-          />
+          openings.length > 0 ? (
+            <ResultsEmptyState
+              icon={Briefcase} title={t("noMatchingJobOpeningsTitle")} description={t("noMatchingJobOpeningsDesc")}
+              actionLabel={t("clearAllLabel")} actionIcon={RotateCcw} actionVariant="secondary" onAction={clearAll}
+            />
+          ) : (
+            <ResultsEmptyState
+              icon={Briefcase} title={t("noJobOpeningsTitle")} description={t("noJobOpeningsDesc")}
+              actionLabel={t("addJobBtn")} actionIcon={Plus} onAction={function () { setAdding(true); }}
+            />
+          )
         )}
       </div>
 
       <div className="mt-5">
-        <JobOpeningResultsToolbar
+        <ResultsToolbar
+          id="job-openings"
           total={sorted.length}
           sort={sort}
           onSortChange={function (value) { setSort(value); setPage(1); }}

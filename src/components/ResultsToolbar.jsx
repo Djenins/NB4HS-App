@@ -1,7 +1,7 @@
-// JobOpeningResultsToolbar.jsx -- the compact bar under the Job Openings
-// results: result count on the left, sort control and List/Grid toggle on
-// the right. Sort options only cover fields every job opening actually
-// carries (posted date, title, employer name).
+// ResultsToolbar.jsx -- the compact bar under a results list: result count
+// on the left, sort control and List/Grid toggle on the right. Shared by the
+// Job Openings and Candidate Matching pages; each supplies its own sort
+// options, which only ever cover fields the records actually carry.
 import { LayoutGrid, List } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
@@ -13,8 +13,9 @@ import { Card } from "./ui/card.jsx";
 // the same way ModuleNav.jsx does.
 const TOGGLE_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal transform-none";
 
-export default function JobOpeningResultsToolbar({ total, sort, onSortChange, sortOptions, view, onViewChange }) {
+export default function ResultsToolbar({ id, total, sort, onSortChange, sortOptions, view, onViewChange }) {
   const t = useT();
+  const selectId = (id || "results") + "-sort";
 
   return (
     <Card className="flex flex-col gap-3 px-5 py-4 shadow-card hover:shadow-card sm:flex-row sm:items-center sm:justify-between">
@@ -23,11 +24,11 @@ export default function JobOpeningResultsToolbar({ total, sort, onSortChange, so
       </p>
 
       <div className="flex items-center gap-3">
-        <label htmlFor="job-openings-sort" className="m-0 whitespace-nowrap text-sm font-medium text-muted">
+        <label htmlFor={selectId} className="m-0 whitespace-nowrap text-sm font-medium text-muted">
           {t("sortByFieldLabel")}
         </label>
         <select
-          id="job-openings-sort"
+          id={selectId}
           value={sort}
           onChange={function (e) { onSortChange(e.target.value); }}
           className="h-10 min-h-0 rounded-[10px] border border-border bg-card py-0 pl-3 text-sm font-medium text-card-foreground focus:border-primary focus:outline-none focus:ring-2"
