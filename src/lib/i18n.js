@@ -1350,7 +1350,19 @@ export var STR = {
   noEmployersTitle: { en: "No employers yet", ht: "Poko gen anplwayè", fr: "Aucun employeur pour l'instant" },
   noEmployersDesc: { en: "Add an employer to start building your partner network and posting their job openings.", ht: "Ajoute yon anplwayè pou kòmanse bati rezo patnè ou epi pibliye pozisyon travay yo.", fr: "Ajoutez un employeur pour développer votre réseau de partenaires et publier leurs offres." },
   noMatchingEmployersTitle: { en: "No matching employers", ht: "Pa gen anplwayè ki koresponn", fr: "Aucun employeur correspondant" },
-  noMatchingEmployersDesc: { en: "Try adjusting your search or filters to see more employers.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis anplwayè.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus d'employeurs." }
+  noMatchingEmployersDesc: { en: "Try adjusting your search or filters to see more employers.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis anplwayè.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus d'employeurs." },
+
+  // ---- Job Developer caseload: filter panel / results toolbar ----
+  followUpDueLabel: { en: "Follow-Up Due", ht: "Swivi Dwe", fr: "Suivi à Faire" },
+  followUpNoneDueLabel: { en: "No Follow-Up Due", ht: "Pa gen Swivi Dwe", fr: "Aucun Suivi à Faire" },
+  pipelineStageLabel: { en: "Pipeline Stage", ht: "Etap Pipeline", fr: "Étape du Pipeline" },
+  last180DaysLabel: { en: "Last 180 Days", ht: "180 Dènye Jou", fr: "180 Derniers Jours" },
+  sortClientNameAzLabel: { en: "Name A–Z", ht: "Non A–Z", fr: "Nom A–Z" },
+  sortClientNameZaLabel: { en: "Name Z–A", ht: "Non Z–A", fr: "Nom Z–A" },
+  noJobClientsTitle: { en: "No job seekers yet", ht: "Poko gen moun k ap chèche travay", fr: "Aucun demandeur d'emploi" },
+  noJobClientsDesc: { en: "Add a client to start building your caseload and tracking their job search.", ht: "Ajoute yon kliyan pou kòmanse bati chaj travay ou epi swiv rechèch travay li.", fr: "Ajoutez un client pour constituer votre portefeuille et suivre sa recherche d'emploi." },
+  noMatchingJobClientsTitle: { en: "No matching job seekers", ht: "Pa gen moun ki koresponn", fr: "Aucun demandeur d'emploi correspondant" },
+  noMatchingJobClientsDesc: { en: "Try adjusting your search or filters to see more of your caseload.", ht: "Eseye chanje rechèch ou a oswa filtè yo pou wè plis nan chaj travay ou.", fr: "Essayez d'ajuster votre recherche ou vos filtres pour voir plus de votre portefeuille." }
 };
 
 export function t(key, lang) {
