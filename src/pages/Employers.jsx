@@ -19,6 +19,7 @@
 // counts the job_openings / placements rows that already point at the
 // employer. No new column.
 import { useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Briefcase, Building2, CalendarClock, CalendarDays, ChevronDown, ChevronUp, Flag, Handshake, MapPin, Plus, RotateCcw, UserPlus, UserRound } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
@@ -209,17 +210,21 @@ const SORTERS = {
 export default function Employers() {
   const { data, lang, requestConfirm } = useApp();
   const t = useT();
+  // See JobOpenings.jsx -- the dashboard's KPI cards and pipeline tiles hand
+  // the matching filter through router state.
+  const location = useLocation();
+  const initialFilters = (location.state && location.state.filters) || {};
   // The directory, not the form, is what this page is for -- so the add card
   // starts collapsed and the header button opens it on demand.
   const [opens, setOpens] = useState({ addEmployer: false });
   const [search, setSearch] = useState("");
   const [industryFilter, setIndustryFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
-  const [stageFilter, setStageFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState(initialFilters.stage || "");
   const [developerFilter, setDeveloperFilter] = useState("");
   const [openingsFilter, setOpeningsFilter] = useState("");
   const [hiringMethodFilter, setHiringMethodFilter] = useState("");
-  const [followUpFilter, setFollowUpFilter] = useState("");
+  const [followUpFilter, setFollowUpFilter] = useState(initialFilters.followUp || "");
   const [contactFilter, setContactFilter] = useState("");
   const [sort, setSort] = useState("name_az");
   const [view, setView] = useState("grid");
@@ -296,6 +301,11 @@ export default function Employers() {
       onChange: setFilter(setFollowUpFilter),
       options: [
         { value: "", label: t("anyLabel") },
+        // "due" is due-today-or-earlier -- the exact definition the dashboard's
+        // Employer Follow-Ups Due card counts, so that card's number and this
+        // filtered list are always the same set. "overdue" stays strictly
+        // past-due for the narrower question.
+        { value: "due", label: t("followUpDueTodayOrOverdueLabel") },
         { value: "overdue", label: t("followUpOverdueFilterLabel") },
         { value: "soon", label: t("followUpSoonLabel") },
         { value: "none", label: t("followUpNoneLabel") }
@@ -337,6 +347,7 @@ export default function Employers() {
     if (followUpFilter) {
       const due = e.nextFollowUpDate;
       if (followUpFilter === "none" && due) return false;
+      if (followUpFilter === "due" && (!due || due > today)) return false;
       if (followUpFilter === "overdue" && (!due || due >= today)) return false;
       // "Due soon" is today through a week out -- an overdue follow-up is its
       // own bucket, so it deliberately doesn't also show up here.
