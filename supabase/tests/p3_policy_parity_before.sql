@@ -14,16 +14,25 @@
 -- Workforce Development Access is compared three ways: all off, all on, and
 -- as it is set on the live database.
 --
--- The policies on these tables don't look at the row, so evaluating each
--- policy's expression as the person is the whole answer.
+-- Policies that don't look at the row are evaluated as the person. For
+-- tables whose policies do (assigned_to, created_by...), a module's test
+-- first creates p3_probes (label, row as jsonb, '$me' standing for the person)
+-- -- see p3d_probes.sql. Then each policy is evaluated against every probe
+-- row with the person's identity (auth.uid()) but as the table owner, the way
+-- a policy expression sees a candidate row. Exists-subqueries in a policy
+-- then see every row; they're the same before and after, so the comparison
+-- of the role part still holds.
+--
+--   p3.wf_modes  which Workforce settings to compare (default off,on,live)
 
 create temp table p3_tables (tbl text primary key) on commit drop;
 insert into p3_tables
 select btrim(t) from unnest(string_to_array(coalesce(nullif(current_setting('p3.tables', true), ''),
   'students,classes,sessions,past_session_students'), ',')) t;
--- Answers a migration changes on purpose: (account type, workforce setting,
--- table, was, now). Filled in by the migration's own test, after this script.
-create temp table p3_expected (role text, wf text, tbl text, was boolean, now boolean) on commit drop;
+-- Answers a migration changes on purpose: (account type or '*', workforce
+-- setting, table, was, now, and optionally a persona pattern such as
+-- '%/staff_reports:program_admin'). Filled in by the migration's own test.
+create temp table p3_expected (role text, wf text, tbl text, was boolean, now boolean, persona_like text) on commit drop;
 
 create temp table p3_personas (persona text primary key, user_id uuid) on commit drop;
 create temp table p3_snap (phase text, wf text, persona text, tbl text, cmd text, kind text, ok boolean) on commit drop;
@@ -62,6 +71,7 @@ language plpgsql
 as $$
 declare
   per record;
+  pr record;
   aud text;
   c_tbl text[]; c_cmd text[]; c_kind text[]; c_expr text[];
   res boolean;
@@ -94,9 +104,34 @@ begin
 
     if per.user_id is null then
       perform set_config('request.jwt.claims', '{"role":"anon"}', true);
-      set local role anon;
     else
       perform set_config('request.jwt.claims', json_build_object('sub', per.user_id, 'role', 'authenticated')::text, true);
+    end if;
+
+    if to_regclass('pg_temp.p3_probes') is not null then
+      -- Row mode: every expression against every probe row, as the owner.
+      for i in 1 .. array_length(c_tbl, 1) loop
+        for pr in select * from p3_probes loop
+          res := false;
+          if c_expr[i] is not null then
+            begin
+              execute format('select coalesce((%s), false) from (select (jsonb_populate_record(null::public.%I, $1)).*) as %I',
+                             c_expr[i], c_tbl[i], c_tbl[i])
+                into res
+                using replace(pr.data::text, '"$me"', coalesce(to_json(per.user_id::text)::text, 'null'))::jsonb;
+            exception when others then
+              res := false;
+            end;
+          end if;
+          out_rows := out_rows || array[per.persona || '|' || c_tbl[i] || '|' || c_cmd[i] || '|' || c_kind[i] || '@' || pr.label || '|' || coalesce(res, false)];
+        end loop;
+      end loop;
+      continue;
+    end if;
+
+    if per.user_id is null then
+      set local role anon;
+    else
       set local role authenticated;
     end if;
     for i in 1 .. array_length(c_tbl, 1) loop
@@ -124,9 +159,25 @@ $$;
 
 -- All off, all on, then as it is set now.
 create temp table p3_wf_saved on commit drop as select role, enabled from public.workforce_role_access;
-update public.workforce_role_access set enabled = false;
-select pg_temp.p3_snapshot('before', 'off');
-update public.workforce_role_access set enabled = true;
-select pg_temp.p3_snapshot('before', 'on');
-update public.workforce_role_access w set enabled = s.enabled from p3_wf_saved s where s.role = w.role;
-select pg_temp.p3_snapshot('before', 'live');
+create function pg_temp.p3_snapshot_all(p_phase text)
+returns void
+language plpgsql
+as $$
+declare
+  modes text[] := string_to_array(coalesce(nullif(current_setting('p3.wf_modes', true), ''), 'off,on,live'), ',');
+begin
+  if 'off' = any (modes) then
+    update public.workforce_role_access set enabled = false;
+    perform pg_temp.p3_snapshot(p_phase, 'off');
+  end if;
+  if 'on' = any (modes) then
+    update public.workforce_role_access set enabled = true;
+    perform pg_temp.p3_snapshot(p_phase, 'on');
+  end if;
+  update public.workforce_role_access w set enabled = s.enabled from p3_wf_saved s where s.role = w.role;
+  if 'live' = any (modes) then
+    perform pg_temp.p3_snapshot(p_phase, 'live');
+  end if;
+end;
+$$;
+select pg_temp.p3_snapshot_all('before');
