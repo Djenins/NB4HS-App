@@ -36,7 +36,16 @@ function SortButton({ label, active, dir, onClick }) {
   );
 }
 
-export function DataTable({ columns, rows, getRowId, sort, onSort, selection, renderCard, loading, empty, caption, maxHeight = "65vh", className }) {
+// `stackBelow` ("lg" default, or "xl") picks where rows stack: a table in a
+// half-width column needs the wider breakpoint. Literal classes, so
+// Tailwind's scanner sees both.
+const STACK = {
+  lg: { table: "hidden lg:block", cards: "lg:hidden" },
+  xl: { table: "hidden xl:block", cards: "xl:hidden" }
+};
+
+export function DataTable({ columns, rows, getRowId, sort, onSort, selection, renderCard, loading, empty, caption, maxHeight = "65vh", stackBelow = "lg", className }) {
+  const stack = STACK[stackBelow] || STACK.lg;
   const visible = columns.filter((c) => !c.hidden);
   const allSelected = !!selection && rows.length > 0 && rows.every((r) => selection.selected.has(getRowId(r)));
 
@@ -51,7 +60,7 @@ export function DataTable({ columns, rows, getRowId, sort, onSort, selection, re
 
   return (
     <div className={className}>
-      <div className={cn("overflow-auto rounded-control border border-border", renderCard && "hidden lg:block")} style={{ maxHeight }}>
+      <div className={cn("overflow-auto rounded-control border border-border", renderCard && stack.table)} style={{ maxHeight }}>
         <table className="w-full border-collapse text-ui tabular-nums">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
@@ -106,7 +115,7 @@ export function DataTable({ columns, rows, getRowId, sort, onSort, selection, re
       {renderCard ? (
         // Divided rows, not cards: the list already sits inside a card, and a
         // card inside a card squeezes the content at phone width.
-        <ul className="m-0 list-none divide-y divide-line-subtle p-0 lg:hidden">
+        <ul className={cn("m-0 list-none divide-y divide-line-subtle p-0", stack.cards)}>
           {rows.map((row) => <li key={getRowId(row)} className="py-4 first:pt-1 last:pb-1">{renderCard(row)}</li>)}
         </ul>
       ) : null}

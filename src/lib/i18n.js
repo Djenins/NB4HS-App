@@ -1644,7 +1644,62 @@ export var STR = {
   searchNoResultsHint: { en: "Try a different name, phone or email, or clear the filters.", ht: "Eseye yon lòt non, telefòn oswa imèl, oswa efase filt yo.", fr: "Essayez un autre nom, téléphone ou e-mail, ou effacez les filtres." },
   searchEmptyTitle: { en: "No visits recorded yet", ht: "Poko gen okenn vizit anrejistre", fr: "Aucune visite enregistrée pour l'instant" },
   searchEmptyHint: { en: "Visits appear here as people check in at the front desk.", ht: "Vizit yo parèt isit la lè moun yo enskri nan resepsyon an.", fr: "Les visites apparaissent ici lorsque les personnes s'enregistrent à l'accueil." },
-  last7DaysHint: { en: "Last 7 days", ht: "7 dènye jou yo", fr: "7 derniers jours" }
+  last7DaysHint: { en: "Last 7 days", ht: "7 dènye jou yo", fr: "7 derniers jours" },
+
+  // ---- Batch 3a: Client Profile + intake form ----
+  clientRecordSectionsLabel: { en: "Client record sections", ht: "Seksyon dosye kliyan", fr: "Sections du dossier client" },
+  clientNotFoundTitle: { en: "Client not found", ht: "Nou pa jwenn kliyan an", fr: "Client introuvable" },
+  clientAppointmentsEmptyHint: { en: "Schedule one through the client's program.", ht: "Pwograme youn atravè pwogram kliyan an.", fr: "Planifiez-en un via le programme du client." },
+  clientNotesEmptyHint: { en: "Add a note to record a conversation or follow-up.", ht: "Ajoute yon nòt pou anrejistre yon konvèsasyon oswa yon swivi.", fr: "Ajoutez une note pour consigner une conversation ou un suivi." },
+  clientDocumentsEmptyHint: { en: "Upload an ID, resume or other file to keep it with this record.", ht: "Telechaje yon ID, yon CV oswa lòt fichye pou kenbe l ak dosye sa a.", fr: "Téléversez une pièce d'identité, un CV ou un autre fichier pour le garder dans ce dossier." },
+  clientCommunicationsEmptyHint: { en: "Log calls, emails and visits so the whole team can see them.", ht: "Anrejistre apèl, imèl ak vizit pou tout ekip la ka wè yo.", fr: "Consignez les appels, e-mails et visites pour que toute l'équipe les voie." },
+  clientProgramsEmptyHint: { en: "Add this client to a program to start tracking services.", ht: "Ajoute kliyan sa a nan yon pwogram pou kòmanse swiv sèvis yo.", fr: "Ajoutez ce client à un programme pour commencer le suivi des services." },
+  clientServicesEmptyHint: { en: "Services appear here once the client is enrolled in a program.", ht: "Sèvis yo ap parèt la yon fwa kliyan an enskri nan yon pwogram.", fr: "Les services apparaissent ici une fois le client inscrit à un programme." },
+  clientActivityEmptyHint: { en: "Notes, documents, calls and appointments will show here as they're added.", ht: "Nòt, dokiman, apèl ak randevou ap parèt la lè yo ajoute yo.", fr: "Les notes, documents, appels et rendez-vous apparaîtront ici au fur et à mesure." },
+  intakeFormTitle: { en: "Client Intake Form", ht: "Fòm Enskripsyon Kliyan", fr: "Formulaire d'admission du client" },
+  intakeSaveFormBtn: { en: "Save Form", ht: "Sove Fòm nan", fr: "Enregistrer le formulaire" },
+  intakeDownloadFilledBtn: { en: "Download Filled Form (PDF)", ht: "Telechaje Fòm Ranpli a (PDF)", fr: "Télécharger le formulaire rempli (PDF)" },
+  intakeExportPdfBtn: { en: "Export as PDF", ht: "Ekspòte an PDF", fr: "Exporter en PDF" },
+  intakeClearFormBtn: { en: "Clear Form", ht: "Efase Fòm nan", fr: "Effacer le formulaire" },
+  intakeSaveError: { en: "Couldn't save the form. Try again.", ht: "Nou pa t ka sove fòm nan. Eseye ankò.", fr: "Impossible d'enregistrer le formulaire. Réessayez." },
+  intakeSavedAtLabel: { en: "Saved", ht: "Sove", fr: "Enregistré" },
+  intakeChildLabel: { en: "Child", ht: "Pitit", fr: "Enfant" },
+  intakeAddChildBtn: { en: "Add another child", ht: "Ajoute yon lòt pitit", fr: "Ajouter un autre enfant" },
+
+  // ---- Batch 3a: Students ----
+  noClassroomsTitle: { en: "No classrooms yet", ht: "Pa gen klasrom ankò", fr: "Aucune salle de classe pour l'instant" },
+  noClassroomsHint: { en: "Add a classroom to start placing students.", ht: "Ajoute yon klasrom pou kòmanse mete elèv.", fr: "Ajoutez une salle de classe pour commencer à placer des étudiants." },
+  classroomEmptyHint: { en: "Drag a student here from the waiting list.", ht: "Trennen yon elèv soti nan lis datant lan mete l la a.", fr: "Faites glisser un étudiant ici depuis la liste d'attente." },
+  studentsNoResultsHint: { en: "Try a different name, phone or ID, or clear the filters.", ht: "Eseye yon lòt non, telefòn oswa ID, oswa efase filt yo.", fr: "Essayez un autre nom, téléphone ou ID, ou effacez les filtres." },
+  waitingListEmptyTitle: { en: "No one is on the waiting list", ht: "Pa gen pèsonn sou lis datant lan", fr: "Personne sur la liste d'attente" },
+  waitingListEmptyHint: { en: "Enroll a student below, or drag one here from a classroom.", ht: "Enskri yon elèv anba a, oswa trennen youn soti nan yon klasrom.", fr: "Inscrivez un étudiant ci-dessous, ou faites-en glisser un depuis une salle." },
+  noPastRosterHint: { en: "Use “Upload a Past Session's Roster” below to add students to this session.", ht: "Itilize “Telechaje Lis Elèv yon Sesyon Pase” anba a pou ajoute elèv nan sesyon sa a.", fr: "Utilisez « Importer la Liste d'une Session Passée » ci-dessous pour ajouter des étudiants à cette session." },
+
+  // ---- Batch 3a: Case Management, Assessments, My Caseload ----
+  expandSectionLabel: { en: "Expand section", ht: "Louvri seksyon an", fr: "Développer la section" },
+  collapseSectionLabel: { en: "Collapse section", ht: "Fèmen seksyon an", fr: "Réduire la section" },
+  apptEmptyHint: { en: "Schedule one with the form; it will appear here.", ht: "Pwograme youn ak fòm nan; l ap parèt isit la.", fr: "Planifiez-en un avec le formulaire ; il apparaîtra ici." },
+  caseNotesHeading: { en: "Case notes", ht: "Nòt ka a", fr: "Notes du dossier" },
+  caseNotesEmptyHint: { en: "Write the first note below.", ht: "Ekri premye nòt la anba a.", fr: "Écrivez la première note ci-dessous." },
+  caseNoteNewLabel: { en: "New note", ht: "Nouvo nòt", fr: "Nouvelle note" },
+  caseNoteGrantLabel: { en: "Tag to grant (optional)", ht: "Make pou yon sibvansyon (opsyonèl)", fr: "Associer à une subvention (facultatif)" },
+  caseClientsEmptyHint: { en: "Add a client with the form above, or import a spreadsheet.", ht: "Ajoute yon kliyan ak fòm ki anlè a, oswa enpòte yon fichye.", fr: "Ajoutez un client avec le formulaire ci-dessus ou importez un fichier." },
+  caseClientsNoResultsTitle: { en: "No clients match your search", ht: "Pa gen kliyan ki koresponn ak rechèch ou", fr: "Aucun client ne correspond à votre recherche" },
+  caseClientsNoResultsHint: { en: "Try a different name, email or immigration status.", ht: "Eseye yon lòt non, imèl oswa estati imigrasyon.", fr: "Essayez un autre nom, e-mail ou statut d'immigration." },
+  assessmentsEmptyTitle: { en: "No students enrolled yet", ht: "Poko gen elèv enskri", fr: "Aucun élève inscrit pour l'instant" },
+  assessmentsEmptyHint: { en: "Enroll students on the Students page; their pretest and posttest scores appear here.", ht: "Enskri elèv yo nan paj Elèv la; pwen pretès ak pòstès yo ap parèt isit la.", fr: "Inscrivez des élèves sur la page Élèves ; leurs scores de prétest et post-test apparaîtront ici." },
+  assessmentsGoToStudents: { en: "Go to Students", ht: "Ale nan Elèv", fr: "Aller aux Élèves" },
+  assessmentsNoResultsTitle: { en: "No students match these filters", ht: "Pa gen elèv ki koresponn ak filt sa yo", fr: "Aucun élève ne correspond à ces filtres" },
+  assessmentsNoResultsHint: { en: "Try a different name or student ID, or clear the filters.", ht: "Eseye yon lòt non oswa nimewo elèv, oswa efase filt yo.", fr: "Essayez un autre nom ou numéro d'élève, ou effacez les filtres." },
+  myCaseloadSubtitle: { en: "Appointments assigned to you across Case Management and Workforce, at a glance.", ht: "Randevou yo asiyen ba ou nan Jesyon Ka ak Fòs Travay, an yon sèl koudèy.", fr: "Les rendez-vous qui vous sont attribués en Gestion de cas et Emploi, en un coup d'œil." },
+  myCaseloadMyClientsLabel: { en: "My Clients", ht: "Kliyan mwen yo", fr: "Mes clients" },
+  myCaseloadNeedsSchedulingLabel: { en: "Needs Scheduling", ht: "Bezwen pwograme", fr: "À planifier" },
+  myCaseloadOverdueEmptyTitle: { en: "Nothing overdue", ht: "Anyen pa an reta", fr: "Rien en retard" },
+  myCaseloadOverdueEmptyHint: { en: "Every scheduled appointment assigned to you is upcoming or already completed.", ht: "Tout randevou ki pwograme pou ou yo ap vini oswa yo deja fini.", fr: "Tous vos rendez-vous planifiés sont à venir ou déjà terminés." },
+  myCaseloadNeedsSchedulingEmptyTitle: { en: "No requests waiting", ht: "Pa gen demann k ap tann", fr: "Aucune demande en attente" },
+  myCaseloadNeedsSchedulingEmptyHint: { en: "No client requests are waiting on you to schedule a time.", ht: "Pa gen okenn demann kliyan k ap tann ou pwograme yon lè.", fr: "Aucune demande de client n'attend que vous fixiez un horaire." },
+  myCaseloadUpcomingEmptyTitle: { en: "No upcoming appointments", ht: "Pa gen randevou k ap vini", fr: "Aucun rendez-vous à venir" },
+  myCaseloadUpcomingEmptyHint: { en: "Appointments assigned to you in Case Management or Workforce will appear here.", ht: "Randevou yo asiyen ba ou nan Jesyon Ka oswa Fòs Travay ap parèt isit la.", fr: "Les rendez-vous qui vous sont attribués en Gestion de cas ou Emploi apparaîtront ici." }
 };
 
 export function t(key, lang) {

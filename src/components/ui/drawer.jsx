@@ -70,9 +70,11 @@ export function Drawer({ open, onClose, className, ...rest }) {
 // A label/value row for a drawer or detail panel.
 export function DetailRow({ label, children, className }) {
   return (
-    <div className={cn("flex items-baseline justify-between gap-4 border-b border-line-subtle py-2.5 last:border-b-0", className)}>
+    // flex-wrap + ml-auto: a value too long for the row drops to its own
+    // line whole, instead of breaking a phone number mid-way.
+    <div className={cn("flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-line-subtle py-2.5 last:border-b-0", className)}>
       <dt className="text-meta text-muted">{label}</dt>
-      <dd className="m-0 text-right text-ui font-semibold tabular-nums text-card-foreground">{children}</dd>
+      <dd className="m-0 ml-auto max-w-full text-right text-ui font-semibold tabular-nums text-card-foreground [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }

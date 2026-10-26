@@ -49,7 +49,7 @@ export const DropdownMenuSeparator = forwardRef(function DropdownMenuSeparator({
 });
 
 export const DropdownMenuLabel = forwardRef(function DropdownMenuLabel({ className, ...props }, ref) {
-  return <DropdownMenuPrimitive.Label ref={ref} className={cn("px-2.5 py-1.5 text-xs font-semibold text-muted", className)} {...props} />;
+  return <DropdownMenuPrimitive.Label ref={ref} className={cn("px-2.5 py-1.5 text-meta font-semibold text-muted", className)} {...props} />;
 });
 
 // A menu item that toggles something on or off (e.g. column visibility),

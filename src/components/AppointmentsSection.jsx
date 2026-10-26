@@ -2,8 +2,11 @@
 // existing appointments, shared by Case Management and Job Developer.
 // Ported from appointments.js's renderAppointmentsCard()/
 // attachAppointmentsSectionHandlers()/attachAppointmentRowActionHandlers().
-import { useEffect, useRef, useState } from "react";
-import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
+// Presentation is on the NB4HS Operate design system (a collapsible
+// SectionCard, Field controls, a divided appointment list); props, the
+// open/onToggle contract and every data call are unchanged.
+import { useEffect, useId, useRef, useState } from "react";
+import { CalendarClock, ChevronDown } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { sortedAppointments } from "../lib/appointments.js";
 import { clientDisplayName } from "../lib/clients.js";
@@ -13,30 +16,21 @@ import {
 import { cn } from "../lib/cn.js";
 import { formatPhone } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
-import EmptyState from "./EmptyState.jsx";
 import AppointmentRow from "./AppointmentRow.jsx";
 import { Button } from "./ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
+import { EmptyState } from "./ui/empty-state.jsx";
+import { Field, Input, Select, Textarea } from "./ui/field.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
+import { SectionCard } from "./ui/section-card.jsx";
 
 const EMPTY_FORM = { clientId: "", firstName: "", lastName: "", phone: "", email: "", staffEmail: "", date: "", time: "", reason: "", repeat: "none", occurrences: "6" };
 
 const REPEAT_INTERVAL_DAYS = { weekly: 7, biweekly: 14 };
 
-const fieldInputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
-function Field({ id, label, required, invalid, children }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
-        {label}{required ? <span className="text-accent"> *</span> : null}
-      </label>
-      {children}
-    </div>
-  );
-}
-
 export default function AppointmentsSection({ open, onToggle, meetingWith, clientList, staffList, staffLabelKey, initialClientId }) {
   const { data, session, requestConfirm, showToast } = useApp();
   const t = useT();
+  const bodyId = useId();
   // Defaults the staff-assignment dropdown to whoever's currently signed in,
   // if they're one of the eligible staff -- same as the original.
   const [form, setForm] = useState(() => {
@@ -128,118 +122,117 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
     await deleteAppointment(id);
   }
 
+  const invalid = (name) => errors.indexOf(name) !== -1 || undefined;
+
   return (
-    <Card className="mb-5">
-      <CardHeader className="space-y-0">
-        <button
-          type="button"
+    <SectionCard
+      title={t("appointmentsTitle")}
+      description={t("appointmentsDesc")}
+      flush={!open}
+      className="mb-5"
+      action={
+        <IconButton
+          variant="secondary"
+          label={open ? t("collapseSectionLabel") : t("expandSectionLabel")}
+          aria-expanded={!!open}
+          aria-controls={bodyId}
           onClick={() => onToggle(!open)}
-          aria-expanded={open}
-          className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
         >
-          {open ? <ChevronUp className="h-4 w-4 shrink-0 text-muted" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted" />}
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-            <CalendarClock className="h-4.5 w-4.5" />
-          </span>
-          <CardTitle className="m-0">{t("appointmentsTitle")}</CardTitle>
-        </button>
-      </CardHeader>
+          <ChevronDown className={cn("transition-transform duration-fast", open && "rotate-180")} aria-hidden="true" />
+        </IconButton>
+      }
+    >
       {open ? (
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted">{t("appointmentsDesc")}</p>
+        <div id={bodyId} className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <h3 className="m-0 text-section font-semibold text-card-foreground">{t("scheduleApptTitle")}</h3>
 
-          <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-3 lg:col-span-2">
-              <h4 className="m-0 text-sm font-bold text-card-foreground">{t("scheduleApptTitle")}</h4>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Field id="appt-client-select" label={t("apptClientSelectLabel")}>
-                  <select id="appt-client-select" value={form.clientId} onChange={(e) => pickClient(e.target.value)} className={fieldInputClass}>
-                    <option value="">{t("apptNewClientOption")}</option>
-                    {(clientList || []).map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
-                  </select>
-                </Field>
-                <Field id="appt-first-name" label={t("firstName")} required>
-                  <input type="text" id="appt-first-name" className={cn(fieldInputClass, errors.indexOf("firstName") !== -1 && "border-accent bg-tint-danger")} placeholder={t("phFirstName")} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-                </Field>
-                <Field id="appt-last-name" label={t("lastName")} required>
-                  <input type="text" id="appt-last-name" className={cn(fieldInputClass, errors.indexOf("lastName") !== -1 && "border-accent bg-tint-danger")} placeholder={t("phLastName")} value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Field id="appt-phone" label={t("phone")}>
-                  <input type="text" id="appt-phone" className={fieldInputClass} placeholder={t("phPhone")} value={form.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
-                </Field>
-                <Field id="appt-email" label={t("email")}>
-                  <input type="text" id="appt-email" className={fieldInputClass} placeholder={t("phEmail")} value={form.email} onChange={(e) => setField("email", e.target.value)} />
-                </Field>
-                <Field id="appt-staff-select" label={t(staffLabelKey)}>
-                  <select id="appt-staff-select" value={form.staffEmail} onChange={(e) => setField("staffEmail", e.target.value)} className={fieldInputClass}>
-                    <option value="">{t("apptUnassignedOption")}</option>
-                    {(staffList || []).map((u) => <option key={u.id} value={u.email}>{u.email}</option>)}
-                  </select>
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field id="appt-date" label={t("apptDateLabel")}>
-                  <DatePicker id="appt-date" value={form.date} onChange={(v) => setField("date", v)} />
-                </Field>
-                <Field id="appt-time" label={t("apptTimeLabel")}>
-                  <input type="time" id="appt-time" className={fieldInputClass} value={form.time} onChange={(e) => setField("time", e.target.value)} />
-                </Field>
-              </div>
-
-              <Field id="appt-reason" label={t("apptReasonLabel")}>
-                <textarea id="appt-reason" rows={2} className="min-h-0 w-full rounded-lg border border-border bg-background p-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" placeholder={t("apptReasonPlaceholder")} value={form.reason} onChange={(e) => setField("reason", e.target.value)} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <Field label={t("apptClientSelectLabel")} htmlFor="appt-client-select">
+                <Select id="appt-client-select" value={form.clientId} onChange={(e) => pickClient(e.target.value)}>
+                  <option value="">{t("apptNewClientOption")}</option>
+                  {(clientList || []).map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
+                </Select>
               </Field>
+              <Field label={t("firstName")} htmlFor="appt-first-name" required>
+                <Input id="appt-first-name" aria-invalid={invalid("firstName")} placeholder={t("phFirstName")} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+              </Field>
+              <Field label={t("lastName")} htmlFor="appt-last-name" required>
+                <Input id="appt-last-name" aria-invalid={invalid("lastName")} placeholder={t("phLastName")} value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+              </Field>
+              <Field label={t("phone")} htmlFor="appt-phone">
+                <Input id="appt-phone" type="tel" placeholder={t("phPhone")} value={form.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
+              </Field>
+              <Field label={t("email")} htmlFor="appt-email">
+                <Input id="appt-email" type="email" placeholder={t("phEmail")} value={form.email} onChange={(e) => setField("email", e.target.value)} />
+              </Field>
+              <Field label={t(staffLabelKey)} htmlFor="appt-staff-select">
+                <Select id="appt-staff-select" value={form.staffEmail} onChange={(e) => setField("staffEmail", e.target.value)}>
+                  <option value="">{t("apptUnassignedOption")}</option>
+                  {(staffList || []).map((u) => <option key={u.id} value={u.email}>{u.email}</option>)}
+                </Select>
+              </Field>
+            </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field id="appt-repeat" label={t("apptRepeatLabel")}>
-                  <select id="appt-repeat" value={form.repeat} onChange={(e) => setField("repeat", e.target.value)} className={fieldInputClass}>
-                    <option value="none">{t("apptRepeatNone")}</option>
-                    <option value="weekly">{t("apptRepeatWeekly")}</option>
-                    <option value="biweekly">{t("apptRepeatBiweekly")}</option>
-                  </select>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t("apptDateLabel")} htmlFor="appt-date">
+                <div className="ds-control">
+                  <DatePicker id="appt-date" value={form.date} onChange={(v) => setField("date", v)} />
+                </div>
+              </Field>
+              <Field label={t("apptTimeLabel")} htmlFor="appt-time">
+                <Input type="time" id="appt-time" value={form.time} onChange={(e) => setField("time", e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label={t("apptReasonLabel")} htmlFor="appt-reason">
+              <Textarea id="appt-reason" rows={2} placeholder={t("apptReasonPlaceholder")} value={form.reason} onChange={(e) => setField("reason", e.target.value)} />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t("apptRepeatLabel")} htmlFor="appt-repeat">
+                <Select id="appt-repeat" value={form.repeat} onChange={(e) => setField("repeat", e.target.value)}>
+                  <option value="none">{t("apptRepeatNone")}</option>
+                  <option value="weekly">{t("apptRepeatWeekly")}</option>
+                  <option value="biweekly">{t("apptRepeatBiweekly")}</option>
+                </Select>
+              </Field>
+              {form.repeat !== "none" ? (
+                <Field label={t("apptOccurrencesLabel")} htmlFor="appt-occurrences">
+                  <Input
+                    type="number" id="appt-occurrences" min={2} max={52} className="tabular-nums" placeholder={t("phOccurrences")}
+                    value={form.occurrences} onChange={(e) => setField("occurrences", e.target.value)}
+                  />
                 </Field>
-                {form.repeat !== "none" ? (
-                  <Field id="appt-occurrences" label={t("apptOccurrencesLabel")}>
-                    <input
-                      type="number" id="appt-occurrences" min={2} max={52} className={fieldInputClass} placeholder={t("phOccurrences")}
-                      value={form.occurrences} onChange={(e) => setField("occurrences", e.target.value)}
-                    />
-                  </Field>
-                ) : null}
-              </div>
-
-              <Button onClick={schedule}>{form.repeat === "none" ? t("scheduleApptBtn") : t("scheduleApptSeriesBtn")}</Button>
+              ) : null}
             </div>
 
-            <div className="rounded-xl border border-border">
-              {apptList.length ? (
-                <div className="divide-y divide-border p-1">
-                  {apptList.map((a) => (
-                    <AppointmentRow
-                      key={a.id}
-                      appt={a}
-                      onConfirm={() => updateAppointmentStatus(a.id, "scheduled")}
-                      onComplete={() => updateAppointmentStatus(a.id, "completed")}
-                      onCancel={() => cancelAppt(a.id)}
-                      onCancelSeries={a.seriesId ? () => cancelSeries(a.seriesId) : undefined}
-                      onDelete={() => deleteAppt(a.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center p-6">
-                  <EmptyState icon="calendar" message={t("noAppointmentsYet")} />
-                </div>
-              )}
-            </div>
+            <Button onClick={schedule}>{form.repeat === "none" ? t("scheduleApptBtn") : t("scheduleApptSeriesBtn")}</Button>
           </div>
-        </CardContent>
+
+          {/* The list sits beside the form at lg, under it below; a hairline
+              separates them instead of a nested bordered box. */}
+          <div className="min-w-0 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            {apptList.length ? (
+              <div className="divide-y divide-line-subtle">
+                {apptList.map((a) => (
+                  <AppointmentRow
+                    key={a.id}
+                    appt={a}
+                    onConfirm={() => updateAppointmentStatus(a.id, "scheduled")}
+                    onComplete={() => updateAppointmentStatus(a.id, "completed")}
+                    onCancel={() => cancelAppt(a.id)}
+                    onCancelSeries={a.seriesId ? () => cancelSeries(a.seriesId) : undefined}
+                    onDelete={() => deleteAppt(a.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState compact icon={CalendarClock} title={t("noAppointmentsYet")} description={t("apptEmptyHint")} />
+            )}
+          </div>
+        </div>
       ) : null}
-    </Card>
+    </SectionCard>
   );
 }

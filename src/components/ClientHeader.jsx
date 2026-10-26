@@ -1,95 +1,110 @@
-// ClientHeader.jsx -- the master-client identity header shown at the top of
-// the unified Client Profile page (src/pages/ClientProfile.jsx). Purely
-// presentational + action callbacks -- the page owns what "Edit Profile"/
-// "Add to Program" actually do.
-import { CalendarPlus, FileText, MessageSquarePlus, MoreHorizontal, Pencil, UserPlus } from "lucide-react";
+// ClientHeader.jsx -- the record-page header of the unified Client Profile
+// page (src/pages/ClientProfile.jsx): back link, initials avatar, the
+// person's name as the page's h1 (entity title, text-heading), the NB ID and
+// status as meta, a contact line, then the profile actions. It follows
+// ui/page-header.jsx's anatomy but is hand-built because PageHeader has no
+// avatar slot. Purely presentational + action callbacks -- the page owns
+// what "Edit Profile"/"Add to Program" actually do.
+import {
+  ArrowLeft, CalendarDays, CalendarPlus, FileText, Mail, MapPin, MessageSquarePlus, MoreHorizontal, Pencil, Phone, UserPlus
+} from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
-import { avatarColorFor } from "./StudentCard.jsx";
+import { avatarColorFor } from "../lib/avatarTone.js";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
-import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
-import { Card, CardContent } from "./ui/card.jsx";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.jsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
 
-function DisabledActionButton({ icon: Icon, label, tooltip }) {
-  const t = useT();
+function ContactItem({ icon: Icon, label, children }) {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span>
-            <Button variant="outline" size="sm" className="gap-1.5" disabled>
-              <Icon className="h-3.5 w-3.5" /> {label}
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{tooltip || t("clientActionComingSoon")}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <dt className="sr-only">{label}</dt>
+      <dd className="m-0 min-w-0 break-words">{children}</dd>
+    </div>
   );
 }
 
-export default function ClientHeader({ client, name, onEditProfile, onAddToProgram, onScheduleAppointment, onAddNote, onUploadDocument, onToggleStatus }) {
+export default function ClientHeader({ client, name, onBack, onEditProfile, onAddToProgram, onScheduleAppointment, onAddNote, onUploadDocument, onToggleStatus }) {
   const t = useT();
   const isActive = client.status !== "inactive";
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
+    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        {onBack ? (
+          <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t("back")}
+          </Button>
+        ) : null}
         <div className="flex items-start gap-4">
-          <Avatar className="h-14 w-14 shrink-0">
-            <AvatarFallback className={avatarColorFor(name) + " text-lg"}>{initialsOf(client)}</AvatarFallback>
+          <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
+            <AvatarFallback className={avatarColorFor(name) + " text-section"}>{initialsOf(client)}</AvatarFallback>
           </Avatar>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="m-0 text-xl">{name}</h1>
+          <div className="min-w-0">
+            {/* m-0 and explicit weight: main.css still styles bare h1 at 2rem/800. */}
+            <h1 className="m-0 text-heading font-bold text-card-foreground [text-wrap:balance]">{name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <NbIdBadge nbId={client.nbId} />
-              <Badge variant={isActive ? "success" : "neutral"}>{isActive ? t("statusActive") : t("statusInactive")}</Badge>
+              <StatusBadge domain="client" status={isActive ? "active" : "inactive"}>
+                {isActive ? t("statusActive") : t("statusInactive")}
+              </StatusBadge>
             </div>
-            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-              <span>{formatPhone(client.phone) || "—"}</span>
-              <span>{client.email || "—"}</span>
-              <span>{formatAddress(client) || "—"}</span>
-              <span>{t("intakeDateLabel")}: {fmtDateLong(client.intakeDate)}</span>
-            </div>
+            <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
+              <ContactItem icon={Phone} label={t("phone")}><span className="tabular-nums">{formatPhone(client.phone) || "—"}</span></ContactItem>
+              <ContactItem icon={Mail} label={t("email")}>{client.email || "—"}</ContactItem>
+              <ContactItem icon={MapPin} label={t("address")}>{formatAddress(client) || "—"}</ContactItem>
+              <ContactItem icon={CalendarDays} label={t("intakeDateLabel")}>
+                <span>{t("intakeDateLabel")}: <span className="tabular-nums">{fmtDateLong(client.intakeDate)}</span></span>
+              </ContactItem>
+            </dl>
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="secondary" className="gap-1.5" onClick={onEditProfile}>
-            <Pencil className="h-3.5 w-3.5" /> {t("editProfileBtn")}
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={onAddToProgram}>
-            <UserPlus className="h-3.5 w-3.5" /> {t("addToProgramBtn")}
-          </Button>
-          {onScheduleAppointment ? (
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={onScheduleAppointment}>
-              <CalendarPlus className="h-3.5 w-3.5" /> {t("scheduleAppointmentBtn")}
-            </Button>
-          ) : (
-            <DisabledActionButton icon={CalendarPlus} label={t("scheduleAppointmentBtn")} tooltip={t("scheduleAppointmentDisabledTooltip")} />
-          )}
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}>
-            <MessageSquarePlus className="h-3.5 w-3.5" /> {t("addNoteBtn")}
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onUploadDocument}>
-            <FileText className="h-3.5 w-3.5" /> {t("uploadDocumentBtn")}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" aria-label={t("moreActionsBtn")}><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={onToggleStatus}>
-                {isActive ? t("deactivateClientBtn") : t("activateClientBtn")}
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Button onClick={onAddToProgram}>
+          <UserPlus className="h-4 w-4" aria-hidden="true" /> {t("addToProgramBtn")}
+        </Button>
+        <Button variant="secondary" onClick={onEditProfile}>
+          <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
+        </Button>
+        {/* Two visible actions; the rest live in More so the header offers one
+            clear next step. Each tab also carries its own add button. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconButton label={t("moreActionsBtn")} variant="secondary" size="lg">
+              <MoreHorizontal aria-hidden="true" />
+            </IconButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[14rem]">
+            {onScheduleAppointment ? (
+              <DropdownMenuItem onSelect={onScheduleAppointment}>
+                <CalendarPlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("scheduleAppointmentBtn")}
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardContent>
-    </Card>
+            ) : (
+              <DropdownMenuItem disabled className="flex-col items-start gap-0.5">
+                <span className="flex items-center gap-2"><CalendarPlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("scheduleAppointmentBtn")}</span>
+                <span className="pl-6 text-meta font-normal text-muted">{t("scheduleAppointmentDisabledTooltip")}</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={onAddNote}>
+              <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onUploadDocument}>
+              <FileText className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onToggleStatus}>
+              {isActive ? t("deactivateClientBtn") : t("activateClientBtn")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
   );
 }

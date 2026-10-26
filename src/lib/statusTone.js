@@ -9,7 +9,33 @@
 const STATUS_TONES = {
   // Visitor log (Search, Check-Out)
   "visit:in": "success",
-  "visit:out": "neutral"
+  "visit:out": "neutral",
+
+  // Client records and program enrollment (Client Profile)
+  "client:active": "success",
+  "client:inactive": "neutral",
+  "enrollment:active": "success",
+  "enrollment:inactive": "neutral",
+  "enrollment:droppedOut": "warning",
+  "enrollment:waitlisted": "warning",
+
+  // Classes and assessments (Students, Assessments)
+  "classroom:open": "info",
+  "classroom:full": "warning",
+  "outcome:completed": "success",
+  "assessment:posttestMissing": "warning",
+  "assessment:gain": "success",
+  "assessment:noGain": "neutral",
+  "assessment:completed": "success",
+
+  // Appointments (Client Profile, Case Management, Job Developer)
+  "appointment:requested": "warning",
+  "appointment:scheduled": "info",
+  "appointment:completed": "success",
+  "appointment:cancelled": "neutral",
+
+  // Client communications log
+  "communication:followup": "warning"
 };
 
 export function statusTone(domain, status) {
