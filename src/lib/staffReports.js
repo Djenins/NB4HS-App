@@ -386,6 +386,20 @@ export async function fetchReportHistory(id) {
   };
 }
 
+// Email copies of report notices (p6b): queue counts, the last error and
+// whether sending is set up. Null when the queue doesn't exist yet.
+export async function fetchQueueHealth() {
+  const { data, error } = await supabase.rpc("outbound_queue_health");
+  if (error) return null;
+  const h = (data || [])[0];
+  if (!h) return null;
+  return {
+    queued: h.queued || 0, sending: h.sending || 0, sent7d: h.sent_7d || 0, failed: h.failed || 0,
+    oldestQueuedAt: h.oldest_queued_at || null, lastError: h.last_error || "", lastErrorAt: h.last_error_at || null,
+    configured: !!h.configured
+  };
+}
+
 export async function fetchOverview(periodId) {
   const { data, error } = await supabase.rpc("staff_reports_overview", { p_period_id: periodId });
   if (error) throw error;

@@ -26,7 +26,8 @@ vi.mock("../lib/staffReports.js", async (importOriginal) => {
     fetchMyProgramOptions: () => Promise.resolve(["organization", "case_management"]),
     fetchSchedules: stub("fetchSchedules"), fetchReportHistory: stub("fetchReportHistory"), createDraft: stub("createDraft"),
     saveDraft: stub("saveDraft"), submitReport: stub("submitReport"), fetchReport: stub("fetchReport"), startReview: stub("startReview"),
-    requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport")
+    requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport"),
+    fetchQueueHealth: () => (api.fetchQueueHealth ? api.fetchQueueHealth() : Promise.resolve(null))
   };
 });
 vi.mock("../lib/programStaff.js", async (importOriginal) => ({
@@ -181,6 +182,14 @@ describe("Staff Reports review", () => {
     versions: [{ version: 1, submittedAt: "2026-11-16T15:00:00Z", content: Object.assign({}, blankReport, { activities: "Ran two workshops" }) }],
     reviews: [{ id: 1, actorId: "u-jane", action: "submitted", version: 1, comment: "", createdAt: "2026-11-16T15:00:00Z" }]
   };
+
+  it("shows email queue health in settings, saying when sending isn't set up", async () => {
+    setup("administrator", {}, "u-boss");
+    api.fetchQueueHealth = vi.fn().mockResolvedValue({ queued: 3, sending: 0, sent7d: 0, failed: 1, lastError: "provider 403", lastErrorAt: null, configured: false });
+    renderAt("/staffreports");
+    expect(await screen.findByText(en("srEmailNotConfigured"))).toBeTruthy();
+    expect(screen.getByText(/provider 403/)).toBeTruthy();
+  });
 
   it("sends a non-reviewer administrator back to settings instead of the report", async () => {
     setup("administrator", {}, "u-boss");

@@ -1,15 +1,16 @@
 // ReportingSettings.jsx -- Staff Reports' configuration section, for holders
-// of staff_reports.schedule.manage. Two cards: the biweekly schedule (with a
-// preview of the next deadlines computed the same way the database does),
-// and who reviews. Who reports follows roles (staff_reports.submit, managed
+// of staff_reports.schedule.manage. Three cards: the biweekly schedule (with
+// a preview of the next deadlines computed the same way the database does),
+// who reviews, and the health of the email copies (p6b) so a provider
+// outage is visible instead of silent. Who reports follows roles (staff_reports.submit, managed
 // under Administration -> Roles); granting "Reviewer" is what lets someone
 // read other staff's reports -- being an administrator does not.
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { fetchProgramStaff, setProgramRole } from "../../lib/programStaff.js";
 import {
-  REVIEWER_ROLES, dueAtFor, fetchSchedules, fmtDueAt, fmtPeriod, localDateIn, periodForDate, periodForIndex, updateSchedule
+  REVIEWER_ROLES, dueAtFor, fetchQueueHealth, fetchSchedules, fmtDueAt, fmtPeriod, localDateIn, periodForDate, periodForIndex, updateSchedule
 } from "../../lib/staffReports.js";
 import { roleLabel } from "../../lib/utils.js";
 import EmptyState from "../EmptyState.jsx";
@@ -185,6 +186,35 @@ function PeopleCard() {
   );
 }
 
+function EmailCard() {
+  const { lang } = useApp();
+  const t = useT();
+  const [health, setHealth] = useState(undefined);
+  useEffect(() => { fetchQueueHealth().then(setHealth); }, []);
+  if (!health) return null;
+  const stats = [["srEmailQueued", health.queued], ["srEmailSent7d", health.sent7d], ["srEmailFailed", health.failed]];
+  return (
+    <SectionCard title={t("srEmailTitle")}>
+      <div className="info-callout mb-4">
+        <Mail className="icon h-5 w-5" aria-hidden="true" />
+        <p>{t(health.configured ? "srEmailConfigured" : "srEmailNotConfigured")}</p>
+      </div>
+      <dl className="m-0 grid grid-cols-3 gap-3">
+        {stats.map(([label, value]) => (
+          <div key={label} className="rounded-lg bg-background px-4 py-3">
+            <dt className="text-xs font-semibold text-muted">{t(label)}</dt>
+            <dd className={"m-0 mt-1 text-2xl font-bold " + (label === "srEmailFailed" && value ? "text-accent" : "text-card-foreground")}>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {health.lastError ? (
+        <p className="!mb-0 !mt-3 !text-xs text-muted">{t("srEmailLastError")}: {health.lastError}{health.lastErrorAt ? " · " + fmtDueAt(health.lastErrorAt, "America/New_York", lang) : ""}</p>
+      ) : null}
+      <p className="!mb-0 !mt-3 !text-xs text-muted">{t("srEmailPrivacy")}</p>
+    </SectionCard>
+  );
+}
+
 export default function ReportingSettings() {
   const t = useT();
   const [schedules, setSchedules] = useState(null);
@@ -204,6 +234,7 @@ export default function ReportingSettings() {
     <div className="grid gap-5">
       {schedules.map((s) => <ScheduleCard key={s.id + n} schedule={s} onSaved={load} />)}
       <PeopleCard />
+      <EmailCard />
     </div>
   );
 }
