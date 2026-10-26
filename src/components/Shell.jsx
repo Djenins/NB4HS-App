@@ -253,6 +253,9 @@ export default function Shell() {
   const { data, session, authLoading, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
   const location = useLocation();
+  // Must stay above the early returns below: hooks have to run in the same
+  // order every render, and the first render (authLoading) returns early.
+  const isMobile = useIsMobile();
 
   // Wait for Supabase to finish restoring any existing session before
   // deciding to redirect -- otherwise a valid session in localStorage loses
@@ -309,7 +312,6 @@ export default function Shell() {
     jobdeveloper: pendingApptCount(data.appointments, "job_developer")
   };
   const showStudentSearch = items.indexOf("students") !== -1;
-  const isMobile = useIsMobile();
   const collapsed = showSidebar && (isMobile || !!config.sidebarCollapsed);
   const displayName = session ? (session.currentUserName || session.currentUserEmail || "") : "";
   const nameParts = displayName.trim().split(/\s+/).filter(Boolean);

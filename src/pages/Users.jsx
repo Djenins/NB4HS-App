@@ -76,6 +76,11 @@ export default function Users() {
   // login from an authenticated session without that API. So this hands the
   // temp password to the admin, then sends them back to sign back in as
   // themselves once they're done sharing it.
+  //
+  // The new profile starts *inactive* (handle_new_user, since the
+  // stage0a migration) -- otherwise anyone holding the
+  // public anon key could sign themselves up with any role. The admin
+  // checks the role shown on the row and activates it with its toggle.
   async function addUser() {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();

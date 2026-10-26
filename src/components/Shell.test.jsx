@@ -13,11 +13,18 @@ import { t as translate } from "../lib/i18n.js";
 
 const updateConfig = vi.fn();
 let config = { theme: "light", sidebarCollapsed: false };
+let authLoading = false;
 
-vi.mock("../context/AppContext.jsx", () => ({
+// useT is a real hook here (useCallback, like the real one): React only
+// catches a hook-order change once a component has stateful hooks before
+// its early return, so a plain-function mock would hide that class of bug.
+vi.mock("../context/AppContext.jsx", async () => {
+  const { useCallback } = await import("react");
+  return {
   useApp: () => ({
     session: { role: "administrator", currentUserName: "Ada Lovelace" },
     data: { students: [], classes: [], appointments: [], workforceRoleAccess: [] },
+    authLoading,
     config,
     updateConfig,
     kiosk: false,
@@ -31,8 +38,9 @@ vi.mock("../context/AppContext.jsx", () => ({
     requestConfirm: vi.fn(),
     showToast: vi.fn()
   }),
-  useT: () => (key) => translate(key, "en")
-}));
+  useT: () => useCallback((key) => translate(key, "en"), [])
+  };
+});
 
 import Shell from "./Shell.jsx";
 
@@ -97,5 +105,22 @@ describe("Shell sidebar", () => {
     renderShell();
     expect(navLabelVisible()).toBe(false);
     expect(screen.queryAllByRole("button", { name: translate("expandSidebarLabel", "en") }).length).toBeGreaterThan(0);
+  });
+});
+
+// Regression: Shell returns null while the Supabase session is still being
+// restored. A hook called below that early return (useIsMobile used to be)
+// made the second render -- once authLoading flips false -- call more hooks
+// than the first, and React crashed the whole tree on any full page load.
+describe("Shell auth gate", () => {
+  it("survives authLoading flipping from true to false", () => {
+    setViewport(false);
+    config = { theme: "light", sidebarCollapsed: false };
+    authLoading = true;
+    const { container, rerender } = renderShell();
+    expect(container).toBeEmptyDOMElement();
+    authLoading = false;
+    expect(() => rerender(<MemoryRouter initialEntries={["/dashboard"]}><Shell /></MemoryRouter>)).not.toThrow();
+    expect(navLabelVisible()).toBe(true);
   });
 });

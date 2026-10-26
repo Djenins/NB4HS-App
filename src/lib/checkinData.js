@@ -180,14 +180,50 @@ export async function fetchVisits() {
   if (error) { console.warn("fetchVisits failed", error); return []; }
   return data.map(visitFromRow);
 }
+// Goes through the kiosk_create_visit() RPC rather than a raw INSERT: the
+// anonymous kiosk has no SELECT on `visits` (stage0b migration), so
+// insert().select() can't hand back the new row -- the RPC returns just the
+// caller's own row. Staff check-ins use the same path.
 export async function createVisit(record) {
-  const { data, error } = await supabase.from("visits").insert(visitToRow(record)).select().single();
+  const { data, error } = await supabase.rpc("kiosk_create_visit", { p_visit: visitToRow(record) });
   if (error) throw error;
   return visitFromRow(data);
 }
+// Student tap-in on the kiosk. The server copies the student's contact
+// details and class service/staff onto the visit itself, so the kiosk never
+// needs them -- it only ever holds names (see fetchKioskRoster below).
+// Resolves to { id } of the new visit; a repeat check-in the same day still
+// rejects with code 23505 from the (student_id, visit_date) unique index.
+export async function checkInStudentVisit(studentId, visitDate) {
+  const { data, error } = await supabase.rpc("kiosk_student_check_in", { p_student_id: studentId, p_visit_date: visitDate });
+  if (error) throw error;
+  return { id: data };
+}
+
+// ---------- kiosk (anonymous session) ----------
+// What a signed-out kiosk loads instead of fetchVisits()/fetchStudents():
+// open visits (names only, for tap-to-check-out), today's student check-ins
+// without names (for the already-checked-in guard), the class rosters
+// (names + class), and a bare count for the landing page.
+
+export async function fetchKioskVisits(visitDate) {
+  const { data, error } = await supabase.rpc("kiosk_visits", { p_visit_date: visitDate });
+  if (error) { console.warn("fetchKioskVisits failed", error); return []; }
+  return data.map(visitFromRow);
+}
+export async function fetchKioskRoster() {
+  const { data, error } = await supabase.rpc("kiosk_roster");
+  if (error) { console.warn("fetchKioskRoster failed", error); return []; }
+  return data.map(studentFromRow);
+}
+export async function fetchVisitCount() {
+  const { data, error } = await supabase.rpc("public_visit_count");
+  if (error) { console.warn("fetchVisitCount failed", error); return 0; }
+  return Number(data) || 0;
+}
 // Search.jsx's edit-visit action -- staff-only (see the visits_update RLS
-// policy: `authenticated` only, unlike visits_insert/visits_select which are
-// `public` for the anonymous kiosk session).
+// policy: active staff only; the anonymous kiosk goes through the kiosk_*
+// RPCs above instead of touching the table).
 export async function updateVisit(id, patch) {
   const { data, error } = await supabase.from("visits").update(visitPatchToRow(patch)).eq("id", id).select().single();
   if (error) throw error;
