@@ -17,6 +17,7 @@ import EmptyState from "../EmptyState.jsx";
 import { SectionCard } from "../SectionCard.jsx";
 import { Button } from "../ui/button.jsx";
 import { REPORT_CONTROL, ReportContent, ReportHistory, ReportStatusBadge, fmtStamp, useProgramLabels } from "./ReportParts.jsx";
+import ReportAttachments from "./ReportAttachments.jsx";
 
 export default function ReportReview({ reportId }) {
   const { data, lang, session, showToast, can } = useApp();
@@ -159,6 +160,8 @@ export default function ReportReview({ reportId }) {
               )}
             </SectionCard>
           )}
+
+          <SectionCard title={t("srAttachments")}><ReportAttachments report={report} editable={false} /></SectionCard>
 
           <SectionCard title={t("srHistory")}><ReportHistory history={history} /></SectionCard>
 

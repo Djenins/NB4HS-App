@@ -3,7 +3,7 @@
 // (mirroring the database rules), dashboard counts and CSV export.
 import { describe, expect, it } from "vitest";
 import {
-  ORGANIZATION, cleanOutcomes, currentPeriodGroup, daysUntilDue, dueAtFor, filterReportRows, isOverdue, localDateIn, missingFields,
+  ATTACHMENT_MAX_BYTES, ORGANIZATION, attachmentProblem, attachmentRemovable, cleanOutcomes, fmtBytes, safeFileName, currentPeriodGroup, daysUntilDue, dueAtFor, filterReportRows, isOverdue, localDateIn, missingFields,
   periodForDate, periodForIndex, programsLabel, reportPermissions, summarizeExpectations, toCsv, zonedTimeToUtc
 } from "./staffReports.js";
 
@@ -180,5 +180,32 @@ describe("programsLabel", () => {
 describe("toCsv", () => {
   it("quotes cells and neutralizes spreadsheet formulas", () => {
     expect(toCsv(["Name", "Note"], [["Jane \"JP\" Pierre", "=SUM(A1)"]])).toBe('"Name","Note"\r\n"Jane ""JP"" Pierre","\'=SUM(A1)"');
+  });
+});
+
+describe("attachments", () => {
+  const pdf = { name: "Sign-in.pdf", type: "application/pdf", size: 2000 };
+  it("accepts the allowed types up to 10 MB and 5 files", () => {
+    expect(attachmentProblem(pdf, 0)).toBe(null);
+    expect(attachmentProblem({ name: "a.exe", type: "application/x-msdownload", size: 10 }, 0)).toBe("type");
+    expect(attachmentProblem({ name: "big.pdf", type: "application/pdf", size: ATTACHMENT_MAX_BYTES + 1 }, 0)).toBe("size");
+    expect(attachmentProblem({ name: "empty.pdf", type: "application/pdf", size: 0 }, 0)).toBe("size");
+    expect(attachmentProblem(pdf, 5)).toBe("count");
+  });
+  it("makes storage-safe names that still read like the original", () => {
+    expect(safeFileName("../../etc/passwd")).toBe("passwd");
+    expect(safeFileName("C:\\Users\\me\\Rapò Oktòb #3.PDF")).toBe("Rapo Oktob -3.pdf");
+    expect(safeFileName(".pdf")).toBe(".pdf");
+    expect(safeFileName("x".repeat(300) + ".docx").length).toBe(100);
+  });
+  it("lets files added since the last submission be removed, only while editable", () => {
+    const att = { createdAt: "2026-11-20T10:00:00Z" };
+    expect(attachmentRemovable(att, { status: "draft", submittedAt: null })).toBe(true);
+    expect(attachmentRemovable(att, { status: "revision_requested", submittedAt: "2026-11-16T10:00:00Z" })).toBe(true);
+    expect(attachmentRemovable(att, { status: "revision_requested", submittedAt: "2026-11-21T10:00:00Z" })).toBe(false);
+    expect(attachmentRemovable(att, { status: "submitted", submittedAt: null })).toBe(false);
+  });
+  it("formats sizes", () => {
+    expect([fmtBytes(500), fmtBytes(2048), fmtBytes(3 * 1024 * 1024)]).toEqual(["500 B", "2 KB", "3.0 MB"]);
   });
 });

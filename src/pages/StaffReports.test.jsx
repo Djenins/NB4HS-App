@@ -27,7 +27,9 @@ vi.mock("../lib/staffReports.js", async (importOriginal) => {
     fetchSchedules: stub("fetchSchedules"), fetchReportHistory: stub("fetchReportHistory"), createDraft: stub("createDraft"),
     saveDraft: stub("saveDraft"), submitReport: stub("submitReport"), fetchReport: stub("fetchReport"), startReview: stub("startReview"),
     requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport"),
-    fetchQueueHealth: () => (api.fetchQueueHealth ? api.fetchQueueHealth() : Promise.resolve(null))
+    fetchQueueHealth: () => (api.fetchQueueHealth ? api.fetchQueueHealth() : Promise.resolve(null)),
+    fetchAttachments: () => (api.fetchAttachments ? api.fetchAttachments() : Promise.resolve([])),
+    uploadAttachment: stub("uploadAttachment")
   };
 });
 vi.mock("../lib/programStaff.js", async (importOriginal) => ({
@@ -164,6 +166,23 @@ describe("My Reports", () => {
     expect(app.requestConfirm).toHaveBeenCalled();
     expect(api.saveDraft).toHaveBeenCalledWith("r1", expect.objectContaining({ programs: ["case_management"] }));
     expect(await screen.findByText(en("srSubmittedTitle"))).toBeTruthy();
+  });
+
+  it("uploads allowed files and refuses ones that are too large", async () => {
+    setup("staff");
+    api.fetchMyExpectations = vi.fn().mockResolvedValue([]);
+    api.fetchReports = vi.fn().mockResolvedValue([blankReport]);
+    api.uploadAttachment = vi.fn().mockResolvedValue();
+    renderAt("/myreports/r1");
+    await screen.findByRole("button", { name: en("srAttachAdd") });
+    const input = document.getElementById("attach-r1");
+    const ok = new File(["x"], "sign-in.pdf", { type: "application/pdf" });
+    const big = new File(["x"], "scan.pdf", { type: "application/pdf" });
+    Object.defineProperty(big, "size", { value: 11 * 1024 * 1024 });
+    fireEvent.change(input, { target: { files: [ok, big] } });
+    await waitFor(() => expect(api.uploadAttachment).toHaveBeenCalledTimes(1));
+    expect(api.uploadAttachment).toHaveBeenCalledWith("r1", ok);
+    expect(app.showToast).toHaveBeenCalledWith(en("srAttachProblem_size").replace("{name}", "scan.pdf"));
   });
 
   it("shows a submitted report read-only", async () => {

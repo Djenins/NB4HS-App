@@ -15,6 +15,7 @@ import {
 import { fmtTime } from "../../lib/utils.js";
 import { Button } from "../ui/button.jsx";
 import { REPORT_CONTROL, useProgramLabels } from "./ReportParts.jsx";
+import ReportAttachments from "./ReportAttachments.jsx";
 
 const AUTOSAVE_MS = 3000;
 const FIELDS = [
@@ -262,6 +263,11 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
             <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={busy}
               invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
           ))}
+
+          <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
+            <legend className="mb-1 text-sm font-semibold text-card-foreground">{t("srAttachments")}</legend>
+            <ReportAttachments report={report} editable={!busy} />
+          </fieldset>
 
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
