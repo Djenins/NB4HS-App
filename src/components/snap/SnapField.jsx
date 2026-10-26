@@ -1,16 +1,17 @@
-// SnapField.jsx -- labelled controls for the SNAP module's forms. Option
-// lists are code lists from lib/outreachContacts.js; each code's label is
-// the i18n key `<labelPrefix><code>` (e.g. snapLang_ht), so the database
+// SnapField.jsx -- labelled controls for the Outreach module's forms.
+// Option lists are either code lists from lib/outreachContacts.js, labelled
+// by the i18n key `<labelPrefix><code>` (e.g. snapLang_ht), or a program's
+// configured options, labelled by `labelFor(code)`. Either way the database
 // stores stable codes and every language reads its own label.
 export const SNAP_CONTROL = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-60";
 
-export function SnapSelect({ id, label, value, options, labelPrefix, emptyLabel, onChange, disabled, t }) {
+export function SnapSelect({ id, label, value, options, labelPrefix, labelFor, emptyLabel, onChange, disabled, t }) {
   return (
     <div className="grid gap-1.5">
       <label htmlFor={id} className="text-xs font-semibold text-muted">{label}</label>
       <select id={id} className={SNAP_CONTROL} value={value || ""} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
-        {options.map((o) => <option key={o} value={o}>{t(labelPrefix + o)}</option>)}
+        {options.map((o) => <option key={o} value={o}>{labelFor ? labelFor(o) : t(labelPrefix + o)}</option>)}
       </select>
     </div>
   );

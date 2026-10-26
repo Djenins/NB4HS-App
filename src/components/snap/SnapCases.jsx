@@ -1,11 +1,13 @@
-// SnapCases.jsx -- the SNAP Outreach "Cases" section. Lists the cases the
+// SnapCases.jsx -- an outreach program's "Cases" section. Lists the cases the
 // caller may see (RLS: workers their own, supervisors/program admins all),
-// opens new cases for an existing SNAP contact, and opens SnapCaseDetail.
+// opens new cases for an existing program contact, and opens SnapCaseDetail.
 // `intent` ("new") comes from the dashboard's quick actions.
 import { useEffect, useState } from "react";
 import { FolderPlus, Search } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
-import { ASSISTANCE_TYPES, createCase, fetchCaseStages, fetchCases, filterCases, stageLabel } from "../../lib/assistanceCases.js";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
+import { createCase, fetchCaseStages, fetchCases, filterCases, stageLabel } from "../../lib/assistanceCases.js";
+import { optionsFor } from "../../lib/outreachPrograms.js";
 import { fetchOutreachContacts } from "../../lib/outreachContacts.js";
 import { fmtDateLong, todayStr } from "../../lib/utils.js";
 import EmptyState from "../EmptyState.jsx";
@@ -19,10 +21,11 @@ import SnapCaseDetail from "./SnapCaseDetail.jsx";
 const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
 
 function NewCase({ onCreated, onClose }) {
-  const { data, session, showToast } = useApp();
+  const { data, lang, session, showToast } = useApp();
   const t = useT();
+  const { program, programRole, options } = useOutreachProgram();
   const userId = session ? session.id : null;
-  const lead = ["supervisor", "program_admin"].indexOf((data.programRoles || {}).snap) !== -1;
+  const lead = programRole === "supervisor" || programRole === "program_admin";
   const [contacts, setContacts] = useState([]);
   const [contactId, setContactId] = useState("");
   const [requested, setRequested] = useState([]);
@@ -30,7 +33,7 @@ function NewCase({ onCreated, onClose }) {
   const [assignedTo, setAssignedTo] = useState(userId);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { fetchOutreachContacts("snap").then((rows) => setContacts(rows.filter((c) => c.status === "active"))).catch(() => {}); }, []);
+  useEffect(() => { fetchOutreachContacts(program).then((rows) => setContacts(rows.filter((c) => c.status === "active"))).catch(() => {}); }, [program]);
 
   async function submit(e) {
     e.preventDefault();
@@ -38,7 +41,7 @@ function NewCase({ onCreated, onClose }) {
     if (!contact) return;
     setBusy(true);
     try {
-      const created = await createCase(contact, { assistanceRequested: requested, followUpDate, assignedTo: lead ? assignedTo : userId }, userId);
+      const created = await createCase(program, contact, { assistanceRequested: requested, followUpDate, assignedTo: lead ? assignedTo : userId }, userId);
       showToast(t("snapCaseCreated"));
       onCreated(created);
     } catch (err) {
@@ -65,11 +68,11 @@ function NewCase({ onCreated, onClose }) {
           <fieldset className="m-0 border-0 p-0">
             <legend className="mb-1.5 text-xs font-semibold text-muted">{t("snapAssistanceRequested")}</legend>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {ASSISTANCE_TYPES.map((code) => (
-                <label key={code} className="flex items-center gap-1.5 text-sm text-card-foreground">
-                  <input type="checkbox" checked={requested.indexOf(code) !== -1}
-                    onChange={() => setRequested((r) => (r.indexOf(code) !== -1 ? r.filter((x) => x !== code) : r.concat([code])))} />
-                  {t("snapAssist_" + code)}
+              {optionsFor(options, "assistance_type").map((o) => (
+                <label key={o.key} className="flex items-center gap-1.5 text-sm text-card-foreground">
+                  <input type="checkbox" checked={requested.indexOf(o.key) !== -1}
+                    onChange={() => setRequested((r) => (r.indexOf(o.key) !== -1 ? r.filter((x) => x !== o.key) : r.concat([o.key])))} />
+                  {o.labels[lang] || o.labels.en}
                 </label>
               ))}
             </div>
@@ -101,6 +104,7 @@ function NewCase({ onCreated, onClose }) {
 export default function SnapCases({ intent }) {
   const { data, lang, session } = useApp();
   const t = useT();
+  const { program } = useOutreachProgram();
   const userId = session ? session.id : null;
   const [cases, setCases] = useState(null);
   const [stages, setStages] = useState([]);
@@ -112,7 +116,7 @@ export default function SnapCases({ intent }) {
   const [openId, setOpenId] = useState(null);
 
   function load() {
-    return Promise.all([fetchCases("snap"), fetchCaseStages("snap")])
+    return Promise.all([fetchCases(program), fetchCaseStages(program)])
       .then(([rows, st]) => { setCases(rows); setStages(st); setLoadError(false); })
       .catch((err) => { console.warn("fetchCases failed", err); setLoadError(true); });
   }

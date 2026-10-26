@@ -5,6 +5,7 @@
 // no reason to invent new names for things that already had good ones.
 import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
+import { hasOutreachAccess } from "./outreachPrograms.js";
 
 // The 7 Workforce Development pages -- deliberately NOT hardcoded into any
 // role's base array below. Whether a role gets them is decided at the
@@ -17,9 +18,10 @@ import { t } from "./i18n.js";
 var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports"];
 
 // `programRoles` is the signed-in user's own program memberships
-// ({ snap: "worker" }, from program_staff). SNAP Outreach shows for anyone
-// holding a SNAP role, and for administrators -- who manage SNAP staff but
-// only see the sections snapSectionsFor() (programStaff.js) gives them.
+// ({ snap: "worker" }, from program_staff). Outreach shows for anyone
+// holding a role in any outreach program, and for administrators -- who
+// manage program staff but only see the sections outreachSectionsFor()
+// (outreachPrograms.js) gives them.
 export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   var base;
   if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
@@ -29,7 +31,7 @@ export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   else if (role === "job_developer") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
   else return [];
 
-  if (role === "administrator" || (programRoles && programRoles.snap)) base = base.concat(["snap"]);
+  if (hasOutreachAccess(role, programRoles)) base = base.concat(["outreach"]);
 
   var hasWorkforceAccess = role === "administrator" || (workforceAllowedRoles || []).indexOf(role) !== -1;
   if (!hasWorkforceAccess) return base;
@@ -63,7 +65,7 @@ export function navLabel(v, lang) {
     students: t("navStudents", lang),
     assessments: t("navAssessments", lang),
     casemanagement: t("navCaseManagement", lang),
-    snap: t("navSnapOutreach", lang),
+    outreach: t("navOutreach", lang),
     workforce: t("navSectionWorkforceDevelopment", lang),
     jobdeveloper: t("navJobDeveloper", lang),
     workforcedashboard: t("navWorkforceDashboard", lang),

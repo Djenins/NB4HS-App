@@ -1,4 +1,4 @@
-// snapTasks.js -- SNAP follow-up tasks (the `tasks` table, stage2b
+// snapTasks.js -- outreach follow-up tasks (the `tasks` table, stage2b
 // migration) and the dashboard aggregate. Workers see tasks assigned to or
 // created by them; supervisors and program admins see the program's. A new
 // case gets an "Initial follow-up" task automatically (automation_key
@@ -70,7 +70,7 @@ export function completionRate(dueInRange, doneInRange) {
 // ---------- data ----------
 
 export async function fetchTasks(filters) {
-  let query = supabase.from("tasks").select("*, clients(first_name, last_name)").eq("program", "snap");
+  let query = supabase.from("tasks").select("*, clients(first_name, last_name)").eq("program", filters.program);
   if (filters && filters.caseId) query = query.eq("case_id", filters.caseId);
   if (filters && filters.assignedTo) query = query.eq("assigned_to", filters.assignedTo);
   const { data, error } = await query.order("due_date", { ascending: true, nullsFirst: false });
@@ -80,7 +80,7 @@ export async function fetchTasks(filters) {
 
 export async function createTask(fields, createdBy) {
   const { error } = await supabase.from("tasks").insert({
-    program: "snap", title: fields.title.trim().slice(0, 200), description: (fields.description || "").trim().slice(0, TASK_TEXT_MAX) || null,
+    program: fields.program, title: fields.title.trim().slice(0, 200), description: (fields.description || "").trim().slice(0, TASK_TEXT_MAX) || null,
     assigned_to: fields.assignedTo || createdBy, priority: fields.priority || "normal", due_date: fields.dueDate || null,
     client_id: fields.clientId || null, case_id: fields.caseId || null, created_by: createdBy
   });
@@ -99,16 +99,16 @@ export async function updateTask(id, patch) {
   if (count === 0) throw new Error("not permitted");
 }
 
-export async function fetchSnapDashboard(from, to) {
-  const { data, error } = await supabase.rpc("snap_dashboard", { p_from: from, p_to: to });
+export async function fetchOutreachDashboard(program, from, to) {
+  const { data, error } = await supabase.rpc("outreach_dashboard", { p_program: program, p_from: from, p_to: to });
   if (error) throw error;
   return data;
 }
 
-export async function fetchRecentActivity(limit) {
+export async function fetchRecentActivity(program, limit) {
   const { data, error } = await supabase.from("outreach_interactions")
     .select("id, type, outcome, occurred_at, staff_id, clients(first_name, last_name)")
-    .eq("program", "snap").order("occurred_at", { ascending: false }).limit(limit || 8);
+    .eq("program", program).order("occurred_at", { ascending: false }).limit(limit || 8);
   if (error) throw error;
   return data.map((r) => ({
     id: r.id, type: r.type, outcome: r.outcome || "", occurredAt: r.occurred_at, staffId: r.staff_id,

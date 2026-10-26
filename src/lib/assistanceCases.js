@@ -1,15 +1,15 @@
-// assistanceCases.js -- SNAP assistance cases, their configurable stages,
-// stage history and case notes (stage2b_cases_tasks_dashboard migration).
+// assistanceCases.js -- outreach assistance cases, their configurable
+// stages, stage history and case notes (stage2b_cases_tasks_dashboard and
+// outreach_o1_programs_and_options migrations). Assistance types and closure
+// reasons are per-program option lists (outreachPrograms.js).
 // The database enforces the rules (closure reason, supervisor review,
 // milestone dates, assigned-only access for workers); the pure helpers here
 // mirror them so the UI only offers what will succeed.
 //
-// NB4HS assists with SNAP; it never records an eligibility decision. Stages
+// NB4HS assists with applications; it never records an eligibility decision. Stages
 // and milestones describe NB4HS's own work.
 import { supabase } from "./supabase.js";
 
-export var ASSISTANCE_TYPES = ["application_help", "recertification", "general_information", "document_help", "interview_preparation", "ebt_card_help", "other"];
-export var CLOSURE_REASONS = ["assistance_completed", "participant_declined", "unable_to_contact", "referred_elsewhere", "moved_away", "duplicate_case", "other"];
 export var NOTE_MAX = 4000;
 
 function caseFromRow(row) {
@@ -38,7 +38,7 @@ function casePatchToRow(patch) {
 }
 function stageFromRow(row) {
   return { key: row.key, labels: { en: row.label_en, ht: row.label_ht, fr: row.label_fr }, sortOrder: row.sort_order,
-    isTerminal: row.is_terminal, requiresReview: row.requires_review, active: row.active };
+    isTerminal: row.is_terminal, requiresReview: row.requires_review, milestone: row.milestone || null, active: row.active };
 }
 
 // ---------- pure helpers ----------
@@ -46,6 +46,13 @@ function stageFromRow(row) {
 export function stageLabel(stages, key, lang) {
   var s = (stages || []).find(function (x) { return x.key === key; });
   return s ? (s.labels[lang] || s.labels.en) : key;
+}
+
+// The stage configured to record a milestone ("application_assisted",
+// "referred_external"), or null when the program has none -- its label
+// names the milestone (SNAP: "Referred to Rhode Island DHS").
+export function milestoneStage(stages, milestone) {
+  return (stages || []).find(function (s) { return s.milestone === milestone; }) || null;
 }
 
 // Mirrors assistance_cases RLS: leads edit and reassign any case and decide
@@ -93,21 +100,21 @@ export function filterCases(cases, opts) {
 // ---------- data ----------
 
 export async function fetchCaseStages(program) {
-  const { data, error } = await supabase.from("program_case_stages").select("*").eq("program", program || "snap").order("sort_order");
+  const { data, error } = await supabase.from("program_case_stages").select("*").eq("program", program).order("sort_order");
   if (error) throw error;
   return data.map(stageFromRow);
 }
 
 export async function fetchCases(program) {
   const { data, error } = await supabase.from("assistance_cases")
-    .select("*, clients(nb_id, first_name, last_name)").eq("program", program || "snap").order("opened_at", { ascending: false });
+    .select("*, clients(nb_id, first_name, last_name)").eq("program", program).order("opened_at", { ascending: false });
   if (error) throw error;
   return data.map(caseFromRow);
 }
 
-export async function createCase(contact, fields, createdBy) {
+export async function createCase(program, contact, fields, createdBy) {
   const { data, error } = await supabase.from("assistance_cases").insert({
-    program: "snap", client_id: contact.clientId, outreach_contact_id: contact.id,
+    program, client_id: contact.clientId, outreach_contact_id: contact.id,
     assigned_to: fields.assignedTo || createdBy, created_by: createdBy,
     assistance_requested: fields.assistanceRequested || [], follow_up_date: fields.followUpDate || null
   }).select("*, clients(nb_id, first_name, last_name)").single();

@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t as translate } from "../../lib/i18n.js";
+import { withProgram } from "../../test/outreachProgram.jsx";
 
 let app;
 vi.mock("../../context/AppContext.jsx", () => ({
@@ -40,7 +41,7 @@ function renderAs(programRole, userId) {
     data: { programRoles: { snap: programRole }, clients, profiles: [{ id: userId, name: "Me", active: true }, { id: "w-other", name: "Other Worker", active: true }] },
     showToast: vi.fn()
   };
-  return render(<MemoryRouter><SnapContacts /></MemoryRouter>);
+  return render(<MemoryRouter>{withProgram(<SnapContacts />, { programRole })}</MemoryRouter>);
 }
 
 beforeEach(() => {
@@ -67,7 +68,8 @@ describe("SnapContacts", () => {
     fireEvent.change(screen.getByLabelText(en("snapFindPersonPlaceholder")), { target: { value: "marie" } });
     fireEvent.click(await screen.findByRole("button", { name: en("snapAddExisting") }));
     await waitFor(() => expect(api.createOutreachContact).toHaveBeenCalled());
-    expect(api.createOutreachContact.mock.calls[0][2]).toBe("c1");
+    expect(api.createOutreachContact.mock.calls[0][0]).toBe("snap");
+    expect(api.createOutreachContact.mock.calls[0][3]).toBe("c1");
   });
 
   it("shows when a found client is already a SNAP contact", async () => {
