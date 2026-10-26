@@ -1,5 +1,9 @@
 -- Phase 2, part A -- staff accounts, positions and roles administration
--- (plans/unified-access-architecture.md §6, §13 Phase 2). NOT YET APPLIED.
+-- (plans/unified-access-architecture.md §6, §13 Phase 2).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026180000), after a
+-- rolled-back dry run with supabase/tests/p2_admin_check.sql. Afterwards both
+-- p2_admin_check.sql and p1_access_check.sql (parity) passed against the live
+-- database. The admin-users Edge Function was deployed the same day.
 --
 -- What it adds, for the new Administration area (/admin):
 --   * Roles & Permissions and Staff Positions switch on (implemented = true),
