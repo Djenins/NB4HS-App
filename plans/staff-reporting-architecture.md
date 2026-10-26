@@ -1,6 +1,6 @@
 # Staff Biweekly Reporting — Architecture Proposal
 
-Status: **approved 2026-10-26. Stage R1 built; its migration applied 2026-10-26 (version 20261026075822).**
+Status: **approved 2026-10-26. Stage R1 live (migration 20261026075822, PR #31). Stage R2 (reminders) live (migration 20261026155659).**
 Organization-wide module (not part of SNAP / Outreach). Staff submit a report every two weeks to the
 Executive Director, Bernard Georges, and to any other explicitly granted reviewer.
 
@@ -214,7 +214,7 @@ only after you confirm.
 | Stage | Contents | Tests |
 |---|---|---|
 | **R1 — Core reporting** | departments, staff_departments, schedules, periods, staff_reports, versions, reviews, `notifications.link`, `staff_reports` program roles; RPCs + RLS + audit; My Reports (drafts, autosave, submit, revise); Staff Reports (overview, table, detail, acknowledge, request revision); Schedule tab; bell links; in-app notifications for submit/revision/ack | deadline/period math incl. DST (Nov 1 2026, Mar 14 2027) and midnight/date boundaries; status transitions; validation; duplicate prevention; multi-department expectations; nav/route guard by role; page tests for draft→resume→submit and reviewer actions; SQL `begin…rollback` script for RLS: staff can't read others', can't spoof `staff_id`, can't change status, non-reviewer admin can't read |
-| **R2 — Reminders & overdue** | `report_reminders_sent`, `staff_reports_tick()`, hourly pg_cron job; overdue status in dashboard | reminder due-time calc per offset; dedupe on re-run; cancellation after submission; overdue + grace |
+| **R2 — Reminders & overdue** | `staff_report_notices_sent`, `staff_reports_tick()`, hourly pg_cron job; overdue status in dashboard | reminder due-time calc per offset; dedupe on re-run; cancellation after submission; overdue + grace |
 | **R3 — Email** | `outbound_messages`, pg_net, Edge Function `send-outbound`, templates, retry/backoff, queue health card | queue claim, retry/backoff, failure after N, "sent" only on provider 2xx, submission survives provider failure (function tested with a stubbed provider) |
 | **R4 — Attachments & export** | private bucket + policies, upload/download with signed URLs, CSV export, print/PDF | type/size limits, attachment access follows report access |
 
