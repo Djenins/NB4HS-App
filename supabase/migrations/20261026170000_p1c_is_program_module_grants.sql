@@ -1,4 +1,8 @@
--- Phase 1, part C -- one grant p1b missed. NOT YET APPLIED.
+-- Phase 1, part C -- one grant p1b missed.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026170000), after a
+-- rolled-back dry run. Verified afterwards: anon can no longer execute it,
+-- authenticated still can, and no Phase 1 security-definer function is
+-- executable by anon.
 --
 -- is_program_module() was created without a revoke, so the default PUBLIC
 -- grant let anonymous visitors call it (Supabase security advisor). It only
