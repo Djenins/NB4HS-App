@@ -726,6 +726,8 @@ export var STR = {
   switchToLightMode: { en: "Switch to light mode", ht: "Chanje an mòd klè", fr: "Passer en mode clair" },
   noUsersYet: { en: "No accounts yet.", ht: "Pa gen kont ankò.", fr: "Aucun compte pour l'instant." },
   cannotDeleteSelf: { en: "You can't remove the account you're currently logged in as.", ht: "Ou pa ka retire kont w ap itilize kounye a.", fr: "Vous ne pouvez pas supprimer le compte avec lequel vous êtes actuellement connecté." },
+  confirmMakeAdministrator: { en: "Make {name} an administrator? Administrators can manage every staff account and setting.", ht: "Fè {name} tounen yon administratè? Administratè yo ka jere tout kont anplwaye ak tout paramèt.", fr: "Faire de {name} un administrateur ? Les administrateurs peuvent gérer tous les comptes du personnel et tous les paramètres." },
+  changeRoleFor: { en: "Role for {name}", ht: "Wòl pou {name}", fr: "Rôle de {name}" },
   userActionError: { en: "Couldn't save that change. Please try again.", ht: "Nou pa t kapab sove chanjman sa a. Tanpri eseye ankò.", fr: "Impossible d'enregistrer ce changement. Veuillez réessayer." },
   newUserCreatedSignInAgain: { en: "Account created but inactive. Sign back in as yourself, then activate it on this page and share the password.", ht: "Kont kreye men li pa aktif. Konekte ankò kòm ou menm, epi aktive li sou paj sa a epi pataje modpas la.", fr: "Compte créé mais inactif. Reconnectez-vous en tant que vous-même, puis activez-le sur cette page et partagez le mot de passe." },
   duplicateEmail: { en: "An account with that email already exists.", ht: "Gen deja yon kont ak imèl sa a.", fr: "Un compte avec cet e-mail existe déjà." },
