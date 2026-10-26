@@ -1,6 +1,10 @@
 -- Phase 3, part F -- the shared tables move from account-type checks to
 -- permissions (plans/unified-access-architecture.md §4, §13 Phase 3). The
--- last Phase 3 part. NOT YET APPLIED.
+-- last Phase 3 part.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026240000), after a
+-- rolled-back dry run (row-mode parity up and down). Afterwards on live:
+-- reverse row-mode parity matched the old rules on all 80,640 answers; the
+-- p1, p2 and p3a checks passed. No has_role() policy remains in public.
 --
 -- NOBODY'S ACCESS CHANGES. Several of these policies look at the row (a
 -- note's visibility and department, who created an event, whose
