@@ -27,7 +27,7 @@ function initialsOfName(name, email) {
 }
 
 export default function Users() {
-  const { data, lang, session, showToast } = useApp();
+  const { data, lang, session, showToast, requestConfirm } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -36,7 +36,7 @@ export default function Users() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState(ROLES[0]);
+  const [role, setRole] = useState("staff");
 
   const currentEmail = (session && session.currentUserEmail || "").toLowerCase();
 
@@ -49,6 +49,15 @@ export default function Users() {
 
   async function toggleActive(u) {
     await updateProfile(u.id, { active: u.active === false }).catch(() => { showToast(t("userActionError")); });
+  }
+
+  // Role changes are administrator-only server-side (profiles_prevent_self_escalation
+  // reverts anyone else's attempt). Since Phase 0 a signup can no longer ask for
+  // 'administrator', so promoting someone happens here, with a confirmation.
+  async function changeRole(u, nextRole) {
+    if (nextRole === u.role) return;
+    if (nextRole === "administrator" && !(await requestConfirm(t("confirmMakeAdministrator").replace("{name}", u.name || u.email)))) return;
+    await updateProfile(u.id, { role: nextRole }).catch(() => { showToast(t("userActionError")); });
   }
 
   // Deactivates rather than deletes the Supabase Auth account -- actually
@@ -82,7 +91,7 @@ export default function Users() {
     if (exists) { showToast(t("duplicateEmail")); return; }
     const { error } = await signUpStaff(trimmedEmail, password, trimmedName, role);
     if (error) { showToast(error.message || t("fixErrors")); return; }
-    setName(""); setEmail(""); setPassword(""); setRole(ROLES[0]);
+    setName(""); setEmail(""); setPassword(""); setRole("staff");
     showToast(t("newUserCreatedSignInAgain"));
     navigate("/staff-login");
   }
@@ -171,8 +180,23 @@ export default function Users() {
                         </td>
                         <td className="px-4 py-3.5 align-middle text-card-foreground">{u.email}</td>
                         <td className="px-4 py-3.5 align-middle">
-                          <Badge variant="success">{roleLabel(u.role, lang)}</Badge>
-                          {isSelf && <Badge variant="default" className="ml-1.5">{t("thisIsYou")}</Badge>}
+                          {isSelf ? (
+                            <>
+                              <Badge variant="success">{roleLabel(u.role, lang)}</Badge>
+                              <Badge variant="default" className="ml-1.5">{t("thisIsYou")}</Badge>
+                            </>
+                          ) : (
+                            <div className="relative inline-block">
+                              <select
+                                value={u.role} onChange={(e) => changeRole(u, e.target.value)}
+                                aria-label={t("changeRoleFor").replace("{name}", u.name || u.email)}
+                                className="h-9 min-h-0 appearance-none rounded-lg border border-border bg-card py-1.5 pl-3 pr-8 text-sm font-semibold text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                              >
+                                {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
+                              </select>
+                              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3.5 align-middle">
                           {isActive

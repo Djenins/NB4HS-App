@@ -738,13 +738,8 @@ export async function fetchAppointments() {
   if (error) { console.warn("fetchAppointments failed", error); return []; }
   return data.map(appointmentFromRow);
 }
-// No .select() chained here -- the anon kiosk appointment-request flow
-// inserts as an unauthenticated client, and the `appointments_select` RLS
-// policy is authenticated-only, so a chained .select().single() would fail
-// to read the just-inserted row back and Postgrest reports that as an RLS
-// violation on the whole request even though the insert itself succeeded.
-// Neither caller (ApptRequest.jsx, AppointmentsSection.jsx) uses the
-// returned row, so skipping the read-back avoids the false failure.
+// Staff-created appointments (AppointmentsSection.jsx). Clients requesting
+// their own go through requestAppointment() below instead.
 export async function createAppointment(fields) {
   const { error } = await supabase.from("appointments").insert(appointmentToRow(fields));
   if (error) throw error;
@@ -819,12 +814,25 @@ export async function deleteAppointment(id) {
 }
 
 // Public-safe staff picker for the kiosk/client-facing appointment request
-// form (no login) -- reads the `staff_directory` view (name/email/role only,
-// active case managers + job developers), not the full `profiles` table.
+// form (no login) -- the public_appointment_staff() RPC returns id, name and
+// role of active case managers + job developers, never their email.
 export async function fetchStaffDirectory() {
-  const { data, error } = await supabase.from("staff_directory").select("*").order("name");
+  const { data, error } = await supabase.rpc("public_appointment_staff");
   if (error) { console.warn("fetchStaffDirectory failed", error); return []; }
-  return data;
+  return data || [];
+}
+
+// A client's own appointment request (no login). Goes through the
+// request_appointment() RPC, which always files it as 'requested' from source
+// 'client' and resolves the assignee from the picked staff id server-side --
+// anonymous callers can no longer insert into `appointments` directly.
+export async function requestAppointment(fields) {
+  const { error } = await supabase.rpc("request_appointment", {
+    p_first_name: fields.firstName, p_last_name: fields.lastName, p_phone: fields.phone,
+    p_email: fields.email || "", p_date: fields.date, p_time: fields.time, p_reason: fields.reason || "",
+    p_staff_id: fields.staffId || null, p_meeting_with: fields.meetingWith || "case_manager"
+  });
+  if (error) throw error;
 }
 
 // ---------- unified notes / documents / communications ----------
