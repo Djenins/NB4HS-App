@@ -44,7 +44,8 @@ function NotificationRow({ n, appt, onApprove, onCancel }) {
 
   return (
     <div className={cn("border-b border-border px-3 py-2.5 last:border-0", !n.read && "bg-primary-tint")}>
-      <div className="text-sm font-semibold text-card-foreground">{n.title}</div>
+      {/* Server-written reminders store English text; show known types in the reader's language. */}
+      <div className="text-sm font-semibold text-card-foreground">{n.type === "snap_task_due" ? t("snapNotifTaskDue") : n.title}</div>
       <div className="mt-0.5 text-xs text-muted">{n.message}</div>
       {appt && (
         <>
