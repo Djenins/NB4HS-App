@@ -254,7 +254,7 @@ Every phase preserves routes, permissions, data calls and business logic; change
 |---|---|---|
 | 3a Participants ✅ | Students, Client Profile, Case Management, Assessments, My Caseload | Record-page template, `Dialog` migration, tables |
 | 3b Dashboards and reports ✅ | Dashboard, Reports, Workforce Dashboard, Workforce Reports, SNAP Dashboard | One `KpiCard`, chart cards, range `SegmentedControl` |
-| 3c Workforce | Job Developer, Employers, Job Openings, Candidate Matching, Referrals, Placements, the three profiles, 6 modals | FilterBar promoted to standard, toolbar above results, pagination everywhere, `Tabs` |
+| 3c Workforce ✅ | Job Developer, Employers, Job Openings, Candidate Matching, Referrals, Placements, the three profiles, 6 modals | FilterBar promoted to standard, toolbar above results, pagination everywhere, `Tabs` |
 | 3d Outreach (SNAP and future programs) | `Outreach.jsx` shell, Contacts, Cases, Tasks, Staff, the detail modals | PageHeaders, `DataTable` with phone cards, Skeletons, `EmptyState` |
 | 3e Programs and admin | Food Distribution, Manage, Settings, Users, QR Code | The legacy-CSS pages: remove about 60 inline styles |
 | 3f Calendar | Calendar | Switch to the shared tokens and components; four small fixes; looks the same |

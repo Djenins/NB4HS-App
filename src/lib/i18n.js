@@ -2066,7 +2066,46 @@ export var STR = {
   grantAttributionEmptyHint: { en: "Tag visits from Search and case notes from Case Management to see a breakdown here.", ht: "Make vizit nan Rechèch ak nòt dosye nan Jesyon Ka pou wè detay la isit la.", fr: "Étiquetez les visites dans Recherche et les notes dans Gestion des dossiers pour voir la répartition ici." },
 
   // ---- Shared TrendDelta (report KPI hint, short form on phones) ----
-  noChangeShort: { en: "No change", ht: "Pa gen chanjman", fr: "Aucun changement" }
+  noChangeShort: { en: "No change", ht: "Pa gen chanjman", fr: "Aucun changement" },
+
+  // ---- Shared ResultsToolbar ----
+  resultsLayoutLabel: { en: "Layout", ht: "Afichaj", fr: "Affichage" },
+
+  // ---- Batch 3c: Job Developer and Employers ----
+  kpiFilterActiveHint: { en: "Showing these clients only", ht: "Se kliyan sa yo sèlman ki parèt", fr: "Seuls ces clients sont affichés" },
+
+  // ---- Batch 3c: Job Openings and Candidate Matching ----
+  addJobOpeningTitle: { en: "Add job opening", ht: "Ajoute pozisyon travay", fr: "Ajouter un poste" },
+  editJobOpeningTitle: { en: "Edit job opening", ht: "Modifye pozisyon travay", fr: "Modifier le poste" },
+  wizardStepsLabel: { en: "Steps", ht: "Etap yo", fr: "Étapes" },
+  removeValueLabel: { en: "Remove {value}", ht: "Retire {value}", fr: "Retirer {value}" },
+  jobOpeningPickerEmptyDesc: { en: "Clear the search or turn off Active Only to see more openings.", ht: "Efase rechèch la oswa retire Aktif Sèlman pou wè plis pozisyon.", fr: "Effacez la recherche ou désactivez Actifs seulement pour voir plus de postes." },
+  showAllJobOpeningsLabel: { en: "Show all job openings", ht: "Montre tout pozisyon travay yo", fr: "Afficher tous les postes" },
+
+  // ---- Batch 3c: Referrals and Placements ----
+  referralBoardDragHint: { en: "Drag a card to another column to change its stage, or click it to edit.", ht: "Trennen yon kat nan yon lòt kolòn pou chanje etap li, oswa klike sou li pou modifye.", fr: "Faites glisser une carte vers une autre colonne pour changer son étape, ou cliquez dessus pour la modifier." },
+  checkinsDoneCount: { en: "{n} of {total} done", ht: "{n} sou {total} fini", fr: "{n} sur {total} faits" },
+  endPlacementDesc: { en: "This marks the placement as ended and records the end date and reason.", ht: "Sa a make plasman an kòm fini epi li anrejistre dat fen an ak rezon an.", fr: "Cela marque le placement comme terminé et enregistre la date de fin et le motif." },
+
+  // ---- Batch 3c: Job Seeker and Employer profiles ----
+  preferredLanguageLabel: { en: "Preferred language", ht: "Lang li prefere", fr: "Langue préférée" },
+  secondaryLanguageLabel: { en: "Secondary language", ht: "Dezyèm lang", fr: "Langue secondaire" },
+  jobClientRecordSectionsLabel: { en: "Job seeker record sections", ht: "Seksyon dosye moun k ap chèche travay", fr: "Sections du dossier du demandeur d'emploi" },
+  employerRecordSectionsLabel: { en: "Employer record sections", ht: "Seksyon dosye anplwayè", fr: "Sections du dossier employeur" },
+  applicationsTabLabel: { en: "Applications", ht: "Aplikasyon", fr: "Candidatures" },
+  employmentDetailsLabel: { en: "Employment details", ht: "Detay sou travay", fr: "Détails de l'emploi" },
+  addSkillLabel: { en: "Add a skill", ht: "Ajoute yon konpetans", fr: "Ajouter une compétence" },
+  removeSkillLabel: { en: "Remove skill", ht: "Retire konpetans", fr: "Retirer la compétence" },
+  activityApplicationSubmitted: { en: "Applied", ht: "Aplike", fr: "A postulé" },
+  jobApplicationsEmptyHint: { en: "Log each job application to track its status and next step.", ht: "Anrejistre chak aplikasyon pou swiv estati li ak pwochen etap la.", fr: "Enregistrez chaque candidature pour suivre son statut et la prochaine étape." },
+  jobInterviewsEmptyHint: { en: "Interviews show here when an application has an interview date.", ht: "Entèvyou yo parèt isit lè yon aplikasyon gen yon dat entèvyou.", fr: "Les entretiens apparaissent ici quand une candidature a une date d'entretien." },
+  employerNotFoundTitle: { en: "Employer not found", ht: "Nou pa jwenn anplwayè a", fr: "Employeur introuvable" },
+  editPartnershipBtn: { en: "Edit partnership", ht: "Modifye patenarya", fr: "Modifier le partenariat" },
+  employerOpeningsEmptyHint: { en: "Add a job opening to start referring candidates.", ht: "Ajoute yon pozisyon pou kòmanse refere kandida.", fr: "Ajoutez un poste pour commencer à référer des candidats." },
+  employerCandidatesEmptyHint: { en: "Candidates appear here once someone is referred to this employer.", ht: "Kandida yo parèt isit yon fwa yo refere yon moun bay anplwayè sa a.", fr: "Les candidats apparaissent ici dès qu'une personne est référée à cet employeur." },
+  employerPlacementsEmptyHint: { en: "Placements appear here when a candidate is hired.", ht: "Plasman yo parèt isit lè yo anboche yon kandida.", fr: "Les placements apparaissent ici quand un candidat est embauché." },
+  employerDocumentsEmptyHint: { en: "Upload agreements or other files to keep them with this employer.", ht: "Telechaje akò oswa lòt fichye pou kenbe yo ak anplwayè sa a.", fr: "Téléversez des accords ou d'autres fichiers pour les garder avec cet employeur." },
+  employerActivityEmptyHint: { en: "Log calls, meetings and visits to keep a history of this partnership.", ht: "Anrejistre apèl, reyinyon ak vizit pou kenbe istwa patenarya sa a.", fr: "Enregistrez appels, réunions et visites pour garder l'historique de ce partenariat." }
 };
 
 export function t(key, lang) {

@@ -1,108 +1,139 @@
 // EmployerProfile.jsx -- CRM-style Employer Profile page. Phase 1 (Employer
-// info/notes/activity/documents) mirrors JobClientProfile.jsx's structure
-// (header card + tab strip + SectionCard/FieldRow/modal idioms) almost
-// verbatim. Phase 2 lit up the Job Openings tab with real data (and the
-// Total Positions/Active Openings metrics) once job_openings existed;
-// Phase 3/4 did the same for Candidates (data.referrals, filtered to this
-// employer) and Placements (data.placements, linking into
-// /placements/:placementId) -- both tabs are real now, not placeholders.
+// info/notes/activity/documents) mirrors JobClientProfile.jsx's structure.
+// Phase 2 lit up the Job Openings tab with real data (and the Total
+// Positions/Active Openings metrics) once job_openings existed; Phase 3/4 did
+// the same for Candidates (data.referrals, filtered to this employer) and
+// Placements (data.placements, linking into /placements/:placementId) --
+// both tabs are real now, not placeholders.
+//
+// Layout follows the record-page template (ClientProfile.jsx +
+// ClientHeader.jsx): ghost back link, identity header with two visible
+// actions and a More menu, a summary card with the partnership tracker, then
+// <Tabs> with counts and a TabPanel of SectionCards. Lists inside a panel
+// are divided rows; every edit is a ui Dialog form. JobOpeningWizard and
+// JobOpeningDetailModal are their own components and are called unchanged.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Download, FileText, MessageSquarePlus, Paperclip, Pencil, Plus, Trash2, UploadCloud
+  ArrowLeft, Briefcase, Building2, CalendarClock, ChevronRight, Download, Factory, FileText, Handshake, Mail, MapPin,
+  MessageSquarePlus, MoreHorizontal, Paperclip, Pencil, Phone, Plus, StickyNote, Trash2, UploadCloud, UserCheck, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import {
-  ACTIVITY_TYPES, activityTypeLabel, businessInitials, EMPLOYER_PARTNERSHIP_STAGES,
-  partnershipStageBadgeVariant, partnershipStageLabel, PREFERRED_COMMUNICATION_METHODS, PREFERRED_HIRING_METHODS,
+  ACTIVITY_TYPES, activityTypeLabel, businessInitials,
+  partnershipStageLabel, PREFERRED_COMMUNICATION_METHODS, PREFERRED_HIRING_METHODS,
   preferredCommunicationLabel, preferredHiringMethodLabel
 } from "../lib/employerProfile.js";
 import {
   createEmployerActivity, createEmployerDocument, createEmployerNote, createJobOpening, deleteEmployerDocument,
   fetchEmployerActivity, fetchEmployerDocuments, fetchEmployerNotes, getFileSignedUrl, updateEmployer, uploadClientFile
 } from "../lib/clientsData.js";
-import { employmentTypeLabel, formatPayRange, jobOpeningSortKey, statusBadgeVariant, statusLabel } from "../lib/jobOpenings.js";
-import { hasReachedInterview, stageBadgeVariant as referralStageBadgeVariant, stageLabel as referralStageLabel } from "../lib/referrals.js";
-import { computeRetentionRate, placementStatusBadgeVariant, placementStatusLabel } from "../lib/placements.js";
+import { employmentTypeLabel, formatPayRange, jobOpeningSortKey, statusLabel } from "../lib/jobOpenings.js";
+import { hasReachedInterview, stageLabel as referralStageLabel } from "../lib/referrals.js";
+import { computeRetentionRate, placementStatusLabel } from "../lib/placements.js";
+import { avatarColorFor } from "../lib/avatarTone.js";
+import { cn } from "../lib/cn.js";
 import { activeIndustryList, formatAddress, formatPhone, fmtDateLong } from "../lib/utils.js";
-import { avatarColorFor } from "../components/StudentCard.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
-import { Badge } from "../components/ui/badge.jsx";
-import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent } from "../components/ui/card.jsx";
+import { Button, BUTTON_RESET } from "../components/ui/button.jsx";
+import { Card } from "../components/ui/card.jsx";
+import { Dialog } from "../components/ui/dialog.jsx";
+import { DetailRow } from "../components/ui/drawer.jsx";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from "../components/ui/dropdown-menu.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { Field, Input, Select, Textarea } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { StatusBadge } from "../components/ui/status-badge.jsx";
+import { TabPanel, Tabs } from "../components/ui/tabs.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import EmployerPipelineTracker from "../components/EmployerPipelineTracker.jsx";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
 
 const TAB_KEYS = ["overview", "jobOpenings", "candidates", "placements", "documents", "activity", "notes"];
 const TAB_LABEL = {
   overview: "clientTabOverview", jobOpenings: "employerTabJobOpenings", candidates: "employerTabCandidates",
   placements: "employerTabPlacements", documents: "clientTabDocuments", activity: "employerTabActivity", notes: "clientTabNotes"
 };
+const TAB_ID_BASE = "employer-profile";
 
-function SectionCard({ title, action, children }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="m-0 text-sm font-bold text-card-foreground">{title}</h3>
-          {action}
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
+// One list row inside a flush SectionCard: hairline between rows, card padding.
+const ROW = "border-b border-line-subtle px-5 py-4 last:border-b-0 sm:px-6";
+// A whole row that opens something: the <li> carries the rule, the button
+// fills it with the same padding and a sunken hover.
+const ROW_ITEM = "border-b border-line-subtle last:border-b-0";
+const ROW_BUTTON =
+  BUTTON_RESET + " flex w-full items-center justify-between gap-3 px-5 py-4 text-left text-card-foreground transition-colors duration-fast " +
+  "hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6";
+
+const FILE_INPUT = "h-auto py-1.5 file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-primary-tint file:px-3 file:py-1.5 file:text-ui file:font-semibold file:text-primary [@media(pointer:coarse)]:h-auto";
 
 function FieldRow({ label, value }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-semibold text-card-foreground">{value || "—"}</span>
-    </div>
-  );
-}
-
-function MetricTile({ label, value }) {
-  return (
-    <div className="rounded-xl border border-border p-3 text-center">
-      <div className="text-2xl font-extrabold tracking-tight text-card-foreground">{value}</div>
-      <div className="mt-1 text-xs font-semibold text-muted">{label}</div>
-    </div>
-  );
+  return <DetailRow label={label}>{value || "—"}</DetailRow>;
 }
 
 // Documents live in Supabase Storage (private bucket) -- resolves a
-// short-lived signed URL on click, same idiom as JobClientProfile.jsx.
-function StorageDownloadLink({ path, fileName, children, className }) {
+// short-lived signed URL on click and hands it to a temporary <a download>.
+async function downloadStorageFile(path, fileName) {
+  const url = await getFileSignedUrl(path);
+  if (url) {
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName || "";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+}
+
+// A real button (not an href="#" link) that fetches the signed URL; spins
+// while it resolves so a second click can't start a second download.
+function DownloadButton({ path, fileName, label, iconOnly }) {
   const [loading, setLoading] = useState(false);
-  async function handleClick(e) {
-    e.preventDefault();
+  async function onClick() {
     if (loading) return;
     setLoading(true);
-    const url = await getFileSignedUrl(path);
-    setLoading(false);
-    if (url) {
-      const a = document.createElement("a");
-      a.href = url; a.download = fileName || "";
-      document.body.appendChild(a); a.click(); a.remove();
-    }
+    try { await downloadStorageFile(path, fileName); } finally { setLoading(false); }
+  }
+  if (iconOnly) {
+    return (
+      <IconButton label={label} onClick={onClick} disabled={loading} aria-busy={loading || undefined}>
+        <Download aria-hidden="true" />
+      </IconButton>
+    );
   }
   return (
-    <a href="#" onClick={handleClick} className={className}>
-      {children}
-    </a>
+    <Button variant="ghost" size="sm" onClick={onClick} loading={loading}>
+      {loading ? null : <Download className="h-4 w-4" aria-hidden="true" />}{label}
+    </Button>
   );
 }
 
-const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+// Runs an async save with the footer button in its loading state, so a
+// double-click can't submit twice. The caller closes the dialog on success.
+function useSaving() {
+  const [saving, setSaving] = useState(false);
+  async function run(fn) {
+    setSaving(true);
+    try { await fn(); } finally { setSaving(false); }
+  }
+  return [saving, run];
+}
+
+function DialogFooter({ onCancel, saving, disabled, submitLabel }) {
+  const t = useT();
+  return (
+    <>
+      <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>{t("cancelLabel")}</Button>
+      <Button type="submit" loading={saving} disabled={disabled}>{submitLabel}</Button>
+    </>
+  );
+}
 
 function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [fields, setFields] = useState({
     businessName: record.businessName || "", industry: record.industry || "", website: record.website || "",
     street: record.street || "", city: record.city || "", zip: record.zip || "",
@@ -111,54 +142,63 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
     preferredCommunication: record.preferredCommunication || "", notes: record.notes || ""
   });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+  function text(name, labelKey, phKey, extra) {
+    const id = "employer-" + name;
+    return (
+      <Field label={t(labelKey)} htmlFor={id}>
+        <Input id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
+      </Field>
+    );
+  }
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("companyInformationLabel")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("businessNameLabel")}</label><input className={inputClass} value={fields.businessName} onChange={(e) => setField("businessName", e.target.value)} placeholder={t("phBusinessName")} /></div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("industryLabel")}</label>
-            <select className={inputClass} value={fields.industry} onChange={(e) => setField("industry", e.target.value)}>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("companyInformationLabel")}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); run(() => onSave(fields)); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={t("saveLabel")} />}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {text("businessName", "businessNameLabel", "phBusinessName", { "data-autofocus": true })}
+          <Field label={t("industryLabel")} htmlFor="employer-industry">
+            <Select id="employer-industry" value={fields.industry} onChange={(e) => setField("industry", e.target.value)}>
               <option value="">{t("pleaseSelect")}</option>
               {industries.map((i) => <option key={i.key} value={i.key}>{i.en}</option>)}
-            </select>
-          </div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("websiteLabel")}</label><input className={inputClass} value={fields.website} onChange={(e) => setField("website", e.target.value)} placeholder={t("phWebsite")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("phAddress")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} placeholder={t("phCity")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} placeholder={t("phZip")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactNameLabel")}</label><input className={inputClass} value={fields.contactName} onChange={(e) => setField("contactName", e.target.value)} placeholder={t("phContactName")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactPhoneLabel")}</label><input className={inputClass} value={fields.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} placeholder={t("phPhone")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("contactEmailLabel")}</label><input className={inputClass} value={fields.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} placeholder={t("phEmail")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactNameLabel")}</label><input className={inputClass} value={fields.hrContactName} onChange={(e) => setField("hrContactName", e.target.value)} placeholder={t("phContactName")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactPhoneLabel")}</label><input className={inputClass} value={fields.hrContactPhone} onChange={(e) => setField("hrContactPhone", e.target.value)} placeholder={t("phPhone")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hrContactEmailLabel")}</label><input className={inputClass} value={fields.hrContactEmail} onChange={(e) => setField("hrContactEmail", e.target.value)} placeholder={t("phEmail")} /></div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("preferredCommunicationLabel")}</label>
-            <select className={inputClass} value={fields.preferredCommunication} onChange={(e) => setField("preferredCommunication", e.target.value)}>
+            </Select>
+          </Field>
+          {text("website", "websiteLabel", "phWebsite", { type: "url" })}
+          {text("street", "address", "phAddress")}
+          {text("city", "city", "phCity")}
+          {text("zip", "zip", "phZip")}
+          {text("contactName", "contactNameLabel", "phContactName")}
+          {text("contactPhone", "contactPhoneLabel", "phPhone", { type: "tel" })}
+          {text("contactEmail", "contactEmailLabel", "phEmail", { type: "email" })}
+          {text("hrContactName", "hrContactNameLabel", "phContactName")}
+          {text("hrContactPhone", "hrContactPhoneLabel", "phPhone", { type: "tel" })}
+          {text("hrContactEmail", "hrContactEmailLabel", "phEmail", { type: "email" })}
+          <Field label={t("preferredCommunicationLabel")} htmlFor="employer-preferred-communication">
+            <Select id="employer-preferred-communication" value={fields.preferredCommunication} onChange={(e) => setField("preferredCommunication", e.target.value)}>
               <option value="">{t("pleaseSelect")}</option>
               {PREFERRED_COMMUNICATION_METHODS.map((m) => <option key={m.key} value={m.key}>{m.en}</option>)}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyNotesLabel")}</label>
-          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCompanyNotes")} />
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
-        </div>
+        <Field label={t("companyNotesLabel")} htmlFor="employer-notes">
+          <Textarea id="employer-notes" rows={2} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCompanyNotes")} />
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function EditPartnershipModal({ record, jobDevelopers, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [fields, setFields] = useState({
     partnerSince: record.partnerSince || "", lastMeetingDate: record.lastMeetingDate || "", nextFollowUpDate: record.nextFollowUpDate || "",
     assignedJobDeveloperEmail: record.assignedJobDeveloperEmail || "", preferredHiringMethod: record.preferredHiringMethod || ""
@@ -166,117 +206,220 @@ function EditPartnershipModal({ record, jobDevelopers, onSave, onCancel }) {
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("partnershipInformationLabel")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("partnerSinceLabel")}</label><DatePicker id="employer-partner-since" value={fields.partnerSince} onChange={(v) => setField("partnerSince", v)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("lastMeetingDateLabel")}</label><DatePicker id="employer-last-meeting" value={fields.lastMeetingDate} onChange={(v) => setField("lastMeetingDate", v)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("nextFollowUpDateLabel")}</label><DatePicker id="employer-next-follow-up" value={fields.nextFollowUpDate} onChange={(v) => setField("nextFollowUpDate", v)} /></div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("assignedJobDeveloperLabel")}</label>
-            <select className={inputClass} value={fields.assignedJobDeveloperEmail} onChange={(e) => setField("assignedJobDeveloperEmail", e.target.value)}>
-              <option value="">{t("pleaseSelect")}</option>
-              {jobDevelopers.map((u) => <option key={u.id} value={u.email}>{u.name || u.email}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("preferredHiringMethodLabel")}</label>
-            <select className={inputClass} value={fields.preferredHiringMethod} onChange={(e) => setField("preferredHiringMethod", e.target.value)}>
-              <option value="">{t("pleaseSelect")}</option>
-              {PREFERRED_HIRING_METHODS.map((m) => <option key={m.key} value={m.key}>{m.en}</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
-        </div>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("partnershipInformationLabel")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); run(() => onSave(fields)); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={t("saveLabel")} />}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label={t("partnerSinceLabel")} htmlFor="employer-partner-since">
+          <DatePicker id="employer-partner-since" value={fields.partnerSince} onChange={(v) => setField("partnerSince", v)} />
+        </Field>
+        <Field label={t("lastMeetingDateLabel")} htmlFor="employer-last-meeting">
+          <DatePicker id="employer-last-meeting" value={fields.lastMeetingDate} onChange={(v) => setField("lastMeetingDate", v)} />
+        </Field>
+        <Field label={t("nextFollowUpDateLabel")} htmlFor="employer-next-follow-up">
+          <DatePicker id="employer-next-follow-up" value={fields.nextFollowUpDate} onChange={(v) => setField("nextFollowUpDate", v)} />
+        </Field>
+        <Field label={t("assignedJobDeveloperLabel")} htmlFor="employer-assigned-jd">
+          <Select id="employer-assigned-jd" value={fields.assignedJobDeveloperEmail} onChange={(e) => setField("assignedJobDeveloperEmail", e.target.value)}>
+            <option value="">{t("pleaseSelect")}</option>
+            {jobDevelopers.map((u) => <option key={u.id} value={u.email}>{u.name || u.email}</option>)}
+          </Select>
+        </Field>
+        <Field label={t("preferredHiringMethodLabel")} htmlFor="employer-hiring-method">
+          <Select id="employer-hiring-method" value={fields.preferredHiringMethod} onChange={(e) => setField("preferredHiringMethod", e.target.value)}>
+            <option value="">{t("pleaseSelect")}</option>
+            {PREFERRED_HIRING_METHODS.map((m) => <option key={m.key} value={m.key}>{m.en}</option>)}
+          </Select>
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function AddActivityModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [fields, setFields] = useState({ date: "", type: "call", summary: "", followUpRequired: false });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("addActivityBtn")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("date")}</label><DatePicker id="employer-activity-date" value={fields.date} onChange={(v) => setField("date", v)} /></div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("activityTypeFieldLabel")}</label>
-            <select className={inputClass} value={fields.type} onChange={(e) => setField("type", e.target.value)}>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("addActivityBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (fields.summary.trim()) run(() => onSave(fields)); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!fields.summary.trim()} submitLabel={t("saveLabel")} />}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("date")} htmlFor="employer-activity-date">
+            <DatePicker id="employer-activity-date" value={fields.date} onChange={(v) => setField("date", v)} />
+          </Field>
+          <Field label={t("activityTypeFieldLabel")} htmlFor="employer-activity-type">
+            <Select id="employer-activity-type" value={fields.type} onChange={(e) => setField("type", e.target.value)}>
               {ACTIVITY_TYPES.map((a) => <option key={a.key} value={a.key}>{a.en}</option>)}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.summary} onChange={(e) => setField("summary", e.target.value)} placeholder={t("phActivitySummary")} />
-        </div>
-        <label className="mt-3 flex items-center gap-2 text-sm text-card-foreground">
-          <input type="checkbox" checked={fields.followUpRequired} onChange={(e) => setField("followUpRequired", e.target.checked)} />
+        <Field label={t("noteContentLabel")} htmlFor="employer-activity-summary" required>
+          <Textarea id="employer-activity-summary" rows={3} value={fields.summary} onChange={(e) => setField("summary", e.target.value)} placeholder={t("phActivitySummary")} />
+        </Field>
+        <label className="m-0 flex cursor-pointer items-center gap-2.5 text-ui font-medium text-card-foreground">
+          <input type="checkbox" checked={fields.followUpRequired} onChange={(e) => setField("followUpRequired", e.target.checked)} className="h-4 w-4 cursor-pointer accent-primary" />
           {t("followUpRequiredLabel")}
         </label>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!fields.summary.trim()} onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function AddNoteModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [content, setContent] = useState("");
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
-        <textarea
-          value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-        />
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 12, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!content.trim()} onClick={() => onSave(content)}>{t("saveLabel")}</Button>
-        </div>
-      </div>
-    </div>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("addNoteBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (content.trim()) run(() => onSave(content)); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!content.trim()} submitLabel={t("saveLabel")} />}
+    >
+      <Field label={t("noteContentLabel")} htmlFor="employer-note-content" required>
+        <Textarea id="employer-note-content" value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")} data-autofocus />
+      </Field>
+    </Dialog>
   );
 }
 
 function UploadDocumentModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [fileName, setFileName] = useState("");
   const fileRef = useRef(null);
-  function submit() {
+  function submit(e) {
+    e.preventDefault();
     const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
     if (!file) return;
-    onSave({ category: "other", fileName: file.name, file });
+    run(() => onSave({ category: "other", fileName: file.name, file }));
   }
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
-        <input
-          ref={fileRef} type="file" onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
-          className="block w-full text-sm text-card-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary"
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("uploadDocumentBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!fileName} submitLabel={t("saveLabel")} />}
+    >
+      <Field label={t("documentFileLabel")} htmlFor="employer-document-file" required>
+        <Input
+          id="employer-document-file" ref={fileRef} type="file" data-autofocus
+          onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
+          className={FILE_INPUT}
         />
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 12, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!fileName} onClick={submit}>{t("saveLabel")}</Button>
+      </Field>
+    </Dialog>
+  );
+}
+
+function ContactItem({ icon: Icon, label, children }) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <dt className="sr-only">{label}</dt>
+      <dd className="m-0 min-w-0 break-words">{children}</dd>
+    </div>
+  );
+}
+
+// Identity header -- ClientHeader's anatomy for an employer: back link,
+// initials avatar, business name as the page h1, partnership stage, contact
+// line, two visible actions and the rest under More.
+function EmployerHeader({ record, industryName, onBack, onAddJob, onEditCompany, onEditPartnership, onAddActivity, onAddNote, onUploadDocument }) {
+  const t = useT();
+  return (
+    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          {t("navEmployers")}
+        </Button>
+        <div className="flex items-start gap-4">
+          <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
+            <AvatarFallback className={avatarColorFor(record.businessName) + " text-section"}>{businessInitials(record.businessName)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <h1 className="m-0 break-words text-heading font-bold text-card-foreground [text-wrap:balance]">{record.businessName}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge domain="employer" status={record.partnershipStage}>{partnershipStageLabel(record.partnershipStage)}</StatusBadge>
+            </div>
+            <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
+              {industryName ? <ContactItem icon={Factory} label={t("industryLabel")}>{industryName}</ContactItem> : null}
+              <ContactItem icon={Phone} label={t("contactPhoneLabel")}><span className="tabular-nums">{formatPhone(record.contactPhone) || "—"}</span></ContactItem>
+              {record.contactEmail ? <ContactItem icon={Mail} label={t("contactEmailLabel")}>{record.contactEmail}</ContactItem> : null}
+              <ContactItem icon={MapPin} label={t("address")}>{formatAddress(record) || "—"}</ContactItem>
+            </dl>
+          </div>
         </div>
       </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Button onClick={onAddJob}>
+          <Plus className="h-4 w-4" aria-hidden="true" /> {t("addJobBtn")}
+        </Button>
+        <Button variant="secondary" onClick={onEditCompany}>
+          <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconButton label={t("moreActionsBtn")} variant="secondary" size="lg">
+              <MoreHorizontal aria-hidden="true" />
+            </IconButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[14rem]">
+            <DropdownMenuItem onSelect={onEditPartnership}>
+              <Handshake className="h-4 w-4 text-muted" aria-hidden="true" />{t("editPartnershipBtn")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onAddActivity}>
+              <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" />{t("addActivityBtn")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAddNote}>
+              <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onUploadDocument}>
+              <UploadCloud className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
+}
+
+// One metric in the overview's Metrics section: a sunken well inside the
+// card (not a card in a card), tabular value over a meta label.
+function MetricTile({ label, value }) {
+  return (
+    <div className="flex flex-col-reverse gap-1 rounded-control bg-surface-sunken px-3 py-3">
+      <dt className="text-meta font-medium text-muted">{label}</dt>
+      <dd className="m-0 text-heading font-bold tabular-nums text-card-foreground">{value}</dd>
     </div>
   );
 }
@@ -321,12 +464,24 @@ export default function EmployerProfile() {
   }, [employerId]);
 
   if (!record) {
-    return <Card><CardContent className="p-10 text-center text-sm text-muted">{t("employerNotFoundMessage")}</CardContent></Card>;
+    return (
+      <Card>
+        <EmptyState
+          variant="no-results"
+          icon={Building2}
+          title={t("employerNotFoundTitle")}
+          description={t("employerNotFoundMessage")}
+          action={<Button variant="secondary" onClick={() => navigate("/employers")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("navEmployers")}</Button>}
+        />
+      </Card>
+    );
   }
 
   const industries = activeIndustryList(data.customIndustries, data.disabledIndustries);
   const jobDevelopers = activeJobDevelopers(data.profiles);
   const assignedName = (data.profiles || []).find((p) => p.email === record.assignedJobDeveloperEmail);
+  const industryMatch = record.industry ? industries.find((i) => i.key === record.industry) : null;
+  const industryName = record.industry ? (industryMatch ? industryMatch.en : record.industry) : "";
 
   async function updateRecord(patch) {
     await updateEmployer(employerId, patch);
@@ -369,57 +524,45 @@ export default function EmployerProfile() {
     }
   }
 
+  const TAB_COUNTS = {
+    jobOpenings: employerOpenings.length, candidates: employerReferrals.length, placements: employerPlacements.length,
+    documents: documents.length, activity: activity.length, notes: notes.length
+  };
+  const tabItems = TAB_KEYS.map((key) => ({ value: key, label: t(TAB_LABEL[key]), count: TAB_COUNTS[key] || null }));
+
+  const addJobAction = <Button size="sm" variant="secondary" onClick={() => setAddingJobOpening(true)}><Plus className="h-4 w-4" aria-hidden="true" />{t("addJobBtn")}</Button>;
+  const addActivityAction = <Button size="sm" variant="secondary" onClick={() => setAddingActivity(true)}><Plus className="h-4 w-4" aria-hidden="true" />{t("addActivityBtn")}</Button>;
+
   return (
     <>
-      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/employers")}>
-        <ArrowLeft className="h-3.5 w-3.5" /> {t("navEmployers")}
-      </Button>
+      <EmployerHeader
+        record={record} industryName={industryName}
+        onBack={() => navigate("/employers")}
+        onAddJob={() => setAddingJobOpening(true)}
+        onEditCompany={() => setEditingCompany(true)}
+        onEditPartnership={() => setEditingPartnership(true)}
+        onAddActivity={() => setAddingActivity(true)}
+        onAddNote={() => setAddingNote(true)}
+        onUploadDocument={() => setUploadingDocument(true)}
+      />
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0">
-              <AvatarFallback className={avatarColorFor(record.businessName) + " text-lg"}>{businessInitials(record.businessName)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="m-0 text-xl">{record.businessName}</h1>
-                <Badge variant={partnershipStageBadgeVariant(record.partnershipStage)}>{partnershipStageLabel(record.partnershipStage)}</Badge>
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-                {record.industry && <span>{industries.find((i) => i.key === record.industry) ? industries.find((i) => i.key === record.industry).en : record.industry}</span>}
-                <span>{formatPhone(record.contactPhone) || "—"}</span>
-                <span>{formatAddress(record) || "—"}</span>
-              </div>
-              <div className="mt-3"><EmployerPipelineTracker stage={record.partnershipStage} onChange={(s) => updateRecord({ partnershipStage: s })} /></div>
-            </div>
-          </div>
-        </CardContent>
+      {/* Summary: where this employer is in the partnership pipeline. */}
+      <Card className="mb-6 p-5 sm:p-6">
+        <p className="m-0 mb-3 text-meta font-semibold text-muted">{t("partnershipStageLabel")}</p>
+        <EmployerPipelineTracker stage={record.partnershipStage} onChange={(s) => updateRecord({ partnershipStage: s })} />
       </Card>
 
-      <Card className="mt-5">
-        <div className="flex flex-wrap gap-1 overflow-x-auto border-b border-border px-3 pt-2">
-          {TAB_KEYS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={
-                "shrink-0 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors " +
-                (tab === key ? "border-b-2 border-primary text-primary" : "text-muted hover:text-card-foreground")
-              }
-            >
-              {t(TAB_LABEL[key])}
-            </button>
-          ))}
-        </div>
-        <CardContent className="p-5">
-          {tab === "overview" && (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[65fr_35fr]">
-              <div className="space-y-6">
-                <SectionCard title={t("companyInformationLabel")} action={
-                  <Button size="icon" variant="ghost" onClick={() => setEditingCompany(true)} aria-label={t("editProfileBtn")}><Pencil className="h-3.5 w-3.5" /></Button>
-                }>
+      <Tabs label={t("employerRecordSectionsLabel")} value={tab} onChange={setTab} items={tabItems} idBase={TAB_ID_BASE} className="mb-5" />
+
+      <TabPanel idBase={TAB_ID_BASE} value={tab}>
+        {tab === "overview" && (
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,65fr)_minmax(0,35fr)]">
+            <div className="flex min-w-0 flex-col gap-6">
+              <SectionCard
+                title={t("companyInformationLabel")}
+                action={<IconButton label={t("editProfileBtn")} onClick={() => setEditingCompany(true)}><Pencil aria-hidden="true" /></IconButton>}
+              >
+                <dl className="m-0">
                   <FieldRow label={t("websiteLabel")} value={record.website} />
                   <FieldRow label={t("address")} value={formatAddress(record)} />
                   <FieldRow label={t("contactNameLabel")} value={record.contactName} />
@@ -430,210 +573,245 @@ export default function EmployerProfile() {
                   <FieldRow label={t("hrContactEmailLabel")} value={record.hrContactEmail} />
                   <FieldRow label={t("preferredCommunicationLabel")} value={preferredCommunicationLabel(record.preferredCommunication)} />
                   <FieldRow label={t("companyNotesLabel")} value={record.notes} />
-                </SectionCard>
+                </dl>
+              </SectionCard>
 
-                <SectionCard title={t("metricsLabel")}>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    <MetricTile label={t("totalPositionsLabel")} value={totalPositions} />
-                    <MetricTile label={t("totalReferralsLabel")} value={totalReferralsCount} />
-                    <MetricTile label={t("totalInterviewsLabel")} value={interviewsCount} />
-                    <MetricTile label={t("totalHiresLabel")} value={hiresCount} />
-                    <MetricTile label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
-                    <MetricTile label={t("activeOpeningsLabel")} value={activeOpeningsCount} />
-                  </div>
-                </SectionCard>
+              <SectionCard title={t("metricsLabel")}>
+                <dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <MetricTile label={t("totalPositionsLabel")} value={totalPositions} />
+                  <MetricTile label={t("totalReferralsLabel")} value={totalReferralsCount} />
+                  <MetricTile label={t("totalInterviewsLabel")} value={interviewsCount} />
+                  <MetricTile label={t("totalHiresLabel")} value={hiresCount} />
+                  <MetricTile label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
+                  <MetricTile label={t("activeOpeningsLabel")} value={activeOpeningsCount} />
+                </dl>
+              </SectionCard>
 
-                <SectionCard title={t("employerTabActivity")} action={<Button size="sm" variant="secondary" onClick={() => setTab("activity")}>{t("viewAllBtn")}</Button>}>
-                  {activity.length === 0 ? <p className="text-sm text-muted">{t("noActivityYet")}</p> : (
-                    <div className="space-y-2">
-                      {activity.slice(0, 3).map((a) => (
-                        <div key={a.id} className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
-                          <div>
-                            <span className="font-semibold text-card-foreground">{activityTypeLabel(a.type)}</span>
-                            {a.summary && <span className="ml-2 text-muted">{a.summary}</span>}
-                          </div>
-                          <span className="shrink-0 text-xs text-muted">{fmtDateLong(a.date)}</span>
+              <SectionCard
+                title={t("employerTabActivity")}
+                action={<Button size="sm" variant="secondary" onClick={() => setTab("activity")}>{t("viewAllBtn")}</Button>}
+                flush={activity.length > 0}
+              >
+                {activity.length === 0 ? <p className="m-0 text-meta text-muted">{t("noActivityYet")}</p> : (
+                  <ul className="m-0 list-none p-0">
+                    {activity.slice(0, 3).map((a) => (
+                      <li key={a.id} className={ROW + " flex items-start justify-between gap-3 py-3"}>
+                        <div className="min-w-0">
+                          <div className="text-ui font-semibold text-card-foreground">{activityTypeLabel(a.type)}</div>
+                          {a.summary ? <div className="mt-0.5 line-clamp-2 break-words text-meta text-muted">{a.summary}</div> : null}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </SectionCard>
-              </div>
+                        <span className="shrink-0 text-meta text-muted tabular-nums">{fmtDateLong(a.date)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SectionCard>
+            </div>
 
-              <div className="space-y-6">
-                <SectionCard title={t("partnershipInformationLabel")} action={
-                  <Button size="icon" variant="ghost" onClick={() => setEditingPartnership(true)} aria-label={t("editProfileBtn")}><Pencil className="h-3.5 w-3.5" /></Button>
-                }>
+            <div className="flex min-w-0 flex-col gap-6">
+              <SectionCard
+                title={t("partnershipInformationLabel")}
+                action={<IconButton label={t("editPartnershipBtn")} onClick={() => setEditingPartnership(true)}><Pencil aria-hidden="true" /></IconButton>}
+              >
+                <dl className="m-0">
                   <FieldRow label={t("partnerSinceLabel")} value={fmtDateLong(record.partnerSince)} />
                   <FieldRow label={t("lastMeetingDateLabel")} value={fmtDateLong(record.lastMeetingDate)} />
                   <FieldRow label={t("nextFollowUpDateLabel")} value={fmtDateLong(record.nextFollowUpDate)} />
                   <FieldRow label={t("assignedJobDeveloperLabel")} value={assignedName ? (assignedName.name || assignedName.email) : ""} />
                   <FieldRow label={t("preferredHiringMethodLabel")} value={preferredHiringMethodLabel(record.preferredHiringMethod)} />
-                </SectionCard>
+                </dl>
+              </SectionCard>
 
-                <SectionCard title={t("latestNoteLabel")} action={<Button size="sm" variant="ghost" onClick={() => setTab("notes")}>{t("viewAllBtn")}</Button>}>
-                  {notes.length === 0 ? <p className="text-sm text-muted">{t("noNotesYet")}</p> : (
-                    <div>
-                      <p className="text-xs text-muted">{fmtDateLong(notes[0].date)}</p>
-                      <p className="mt-1 text-sm text-card-foreground">{notes[0].content}</p>
-                      <p className="mt-1.5 text-xs font-semibold text-muted">— {notes[0].staffName || "—"}</p>
-                    </div>
-                  )}
-                </SectionCard>
+              <SectionCard title={t("latestNoteLabel")} action={<Button size="sm" variant="ghost" onClick={() => setTab("notes")}>{t("viewAllBtn")}</Button>}>
+                {notes.length === 0 ? <p className="m-0 text-meta text-muted">{t("noNotesYet")}</p> : (
+                  <div>
+                    <p className="m-0 text-meta text-muted tabular-nums">{fmtDateLong(notes[0].date)}</p>
+                    <p className="m-0 mt-1 whitespace-pre-wrap text-body text-card-foreground">{notes[0].content}</p>
+                    <p className="m-0 mt-1.5 text-meta font-semibold text-muted">— {notes[0].staffName || "—"}</p>
+                  </div>
+                )}
+              </SectionCard>
 
-                <SectionCard title={t("clientTabDocuments")} action={<Button size="sm" variant="ghost" onClick={() => setTab("documents")}>{t("viewAllBtn")}</Button>}>
-                  {documents.length === 0 ? <p className="text-sm text-muted">{t("noDocumentsYet")}</p> : (
-                    <div className="space-y-2">
-                      {documents.slice(0, 3).map((d) => (
-                        <div key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <FileText className="h-4 w-4 shrink-0 text-accent" />
-                            <div className="min-w-0">
-                              <div className="truncate font-semibold text-card-foreground">{d.fileName}</div>
-                              <div className="text-xs text-muted">{fmtDateLong(d.uploadedAt)}</div>
-                            </div>
+              <SectionCard title={t("clientTabDocuments")} action={<Button size="sm" variant="ghost" onClick={() => setTab("documents")}>{t("viewAllBtn")}</Button>} flush={documents.length > 0}>
+                {documents.length === 0 ? <p className="m-0 text-meta text-muted">{t("noDocumentsYet")}</p> : (
+                  <ul className="m-0 list-none p-0">
+                    {documents.slice(0, 3).map((d) => (
+                      <li key={d.id} className={ROW + " flex items-center justify-between gap-3 py-3"}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                          <div className="min-w-0">
+                            <div className="truncate text-ui font-semibold text-card-foreground">{d.fileName}</div>
+                            <div className="text-meta text-muted tabular-nums">{fmtDateLong(d.uploadedAt)}</div>
                           </div>
-                          <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="shrink-0 text-muted hover:text-primary">
-                            <Download className="h-4 w-4" />
-                          </StorageDownloadLink>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </SectionCard>
-              </div>
+                        <DownloadButton iconOnly path={d.storagePath} fileName={d.fileName} label={t("downloadLabel") + ": " + d.fileName} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SectionCard>
             </div>
-          )}
+          </div>
+        )}
 
-          {tab === "jobOpenings" && (
-            <div>
-              <div className="mb-3 flex justify-end"><Button size="sm" className="gap-1.5" onClick={() => setAddingJobOpening(true)}><Plus className="h-3.5 w-3.5" /> {t("addJobBtn")}</Button></div>
-              {employerOpenings.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noJobOpeningsYet")}</p> : (
-                <div className="space-y-2">
-                  {employerOpenings.map((o) => (
-                    <Card key={o.id}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                      <button type="button" onClick={() => setViewingJobOpening(o)} className="border-0 bg-transparent p-0 text-left">
-                        <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{o.title}</div>
-                        <div className="mt-1 text-xs text-muted">
-                          {employmentTypeLabel(o.employmentType)}{formatPayRange(o) ? " · " + formatPayRange(o) : ""} · {t("postedDateLabel")} {fmtDateLong(o.postedDate)}
+        {tab === "jobOpenings" && (
+          <SectionCard title={t("employerTabJobOpenings")} action={addJobAction} flush>
+            {employerOpenings.length === 0 ? (
+              <EmptyState
+                compact icon={Briefcase} title={t("noJobOpeningsYet")} description={t("employerOpeningsEmptyHint")}
+                action={<Button variant="secondary" onClick={() => setAddingJobOpening(true)}><Plus className="h-4 w-4" aria-hidden="true" />{t("addJobBtn")}</Button>}
+              />
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {employerOpenings.map((o) => (
+                  <li key={o.id} className={ROW_ITEM}>
+                    <button type="button" onClick={() => setViewingJobOpening(o)} className={cn(ROW_BUTTON, "flex-wrap")}>
+                      <div className="min-w-0">
+                        <div className="break-words text-ui font-semibold text-primary">{o.title}</div>
+                        <div className="mt-1 text-meta text-muted">
+                          {employmentTypeLabel(o.employmentType)}{formatPayRange(o) ? " · " + formatPayRange(o) : ""} · {t("postedDateLabel")} <span className="tabular-nums">{fmtDateLong(o.postedDate)}</span>
                         </div>
-                      </button>
-                      <Badge variant={statusBadgeVariant(o.status)}>{statusLabel(o.status)}</Badge>
-                    </CardContent></Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                      </div>
+                      <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status)}</StatusBadge>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        )}
 
-          {tab === "candidates" && (
-            employerReferrals.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noReferralsYetLabel")}</p> : (
-              <div className="space-y-2">
+        {tab === "candidates" && (
+          <SectionCard title={t("employerTabCandidates")} flush>
+            {employerReferrals.length === 0 ? (
+              <EmptyState compact icon={Users} title={t("noReferralsYetLabel")} description={t("employerCandidatesEmptyHint")} />
+            ) : (
+              <ul className="m-0 list-none p-0">
                 {employerReferrals.map((r) => (
-                  <Card key={r.id}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                    <div>
-                      <div className="text-sm font-bold text-card-foreground">{r.participantName}</div>
-                      <div className="mt-0.5 text-xs text-muted">{r.positionTitle} · {t("referralDateLabel")} {fmtDateLong(r.referralDate)}</div>
+                  <li key={r.id} className={ROW + " flex flex-wrap items-center justify-between gap-3"}>
+                    <div className="min-w-0">
+                      <div className="break-words text-ui font-semibold text-card-foreground">{r.participantName}</div>
+                      <div className="mt-0.5 text-meta text-muted">
+                        {r.positionTitle} · {t("referralDateLabel")} <span className="tabular-nums">{fmtDateLong(r.referralDate)}</span>
+                      </div>
                     </div>
-                    <Badge variant={referralStageBadgeVariant(r.status)}>{referralStageLabel(r.status)}</Badge>
-                  </CardContent></Card>
+                    <StatusBadge domain="referral" status={r.status}>{referralStageLabel(r.status)}</StatusBadge>
+                  </li>
                 ))}
-              </div>
-            )
-          )}
+              </ul>
+            )}
+          </SectionCard>
+        )}
 
-          {tab === "placements" && (
-            employerPlacements.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noPlacementsYet")}</p> : (
-              <div className="space-y-2">
+        {tab === "placements" && (
+          <SectionCard title={t("employerTabPlacements")} flush>
+            {employerPlacements.length === 0 ? (
+              <EmptyState compact icon={UserCheck} title={t("noPlacementsYet")} description={t("employerPlacementsEmptyHint")} />
+            ) : (
+              <ul className="m-0 list-none p-0">
                 {employerPlacements.map((p) => (
-                  <button key={p.id} type="button" onClick={() => navigate("/placements/" + p.id)} className="block w-full min-h-0 border-0 bg-transparent p-0 text-left">
-                    <Card><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                      <div>
-                        <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{p.participantName}</div>
-                        <div className="mt-0.5 text-xs text-muted">{p.positionTitle} · {t("jobStartDateLabel")} {fmtDateLong(p.startDate)}</div>
+                  <li key={p.id} className={ROW_ITEM}>
+                    <button type="button" onClick={() => navigate("/placements/" + p.id)} className={ROW_BUTTON}>
+                      <div className="min-w-0">
+                        <div className="break-words text-ui font-semibold text-primary">{p.participantName}</div>
+                        <div className="mt-0.5 text-meta text-muted">
+                          {p.positionTitle} · {t("jobStartDateLabel")} <span className="tabular-nums">{fmtDateLong(p.startDate)}</span>
+                        </div>
                       </div>
-                      <Badge variant={placementStatusBadgeVariant(p.currentStatus)}>{placementStatusLabel(p.currentStatus)}</Badge>
-                    </CardContent></Card>
-                  </button>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <StatusBadge domain="placement" status={p.currentStatus}>{placementStatusLabel(p.currentStatus)}</StatusBadge>
+                        <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
+                      </span>
+                    </button>
+                  </li>
                 ))}
-              </div>
-            )
-          )}
+              </ul>
+            )}
+          </SectionCard>
+        )}
 
-          {tab === "documents" && (
-            <div>
-              <div className="mb-3 flex justify-end"><Button size="sm" className="gap-1.5" onClick={() => setUploadingDocument(true)}><UploadCloud className="h-3.5 w-3.5" /> {t("uploadDocumentBtn")}</Button></div>
-              {documents.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noDocumentsYet")}</p> : (
-                <div className="space-y-2">
-                  {documents.map((d) => (
-                    <Card key={d.id}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="h-4 w-4 text-primary" />
-                        <div>
-                          <div className="text-sm font-bold text-card-foreground">{d.fileName}</div>
-                          <div className="text-xs text-muted">{t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
+        {tab === "documents" && (
+          <SectionCard
+            title={t("clientTabDocuments")}
+            action={<Button size="sm" variant="secondary" onClick={() => setUploadingDocument(true)}><UploadCloud className="h-4 w-4" aria-hidden="true" />{t("uploadDocumentBtn")}</Button>}
+            flush
+          >
+            {documents.length === 0 ? (
+              <EmptyState compact icon={FileText} title={t("noDocumentsYet")} description={t("employerDocumentsEmptyHint")} />
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {documents.map((d) => (
+                  <li key={d.id} className={ROW + " flex flex-wrap items-center justify-between gap-3"}>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip bg-tone-info-bg text-tone-info-ink">
+                        <Paperclip className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="break-words text-ui font-semibold text-card-foreground">{d.fileName}</div>
+                        <div className="mt-0.5 text-meta text-muted">
+                          {t("uploadedByLabel")}: {d.uploadedBy || "—"} · <span className="tabular-nums">{fmtDateLong(d.uploadedAt)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-                          <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-                        </StorageDownloadLink>
-                        <button
-                          type="button"
-                          title={t("deleteLabel")}
-                          onClick={() => deleteDocument(d)}
-                          className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-accent"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </CardContent></Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <DownloadButton path={d.storagePath} fileName={d.fileName} label={t("downloadLabel")} />
+                      <IconButton label={t("deleteLabel") + ": " + d.fileName} variant="danger" onClick={() => deleteDocument(d)}>
+                        <Trash2 aria-hidden="true" />
+                      </IconButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        )}
 
-          {tab === "activity" && (
-            <div>
-              <div className="mb-3 flex justify-end"><Button size="sm" className="gap-1.5" onClick={() => setAddingActivity(true)}><Plus className="h-3.5 w-3.5" /> {t("addActivityBtn")}</Button></div>
-              {activity.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noActivityYet")}</p> : (
-                <div className="space-y-2">
-                  {activity.map((a) => (
-                    <Card key={a.id}><CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-card-foreground">{activityTypeLabel(a.type)}</span>
-                        <div className="flex items-center gap-2">
-                          {a.followUpRequired && <Badge variant="warn">{t("followUpRequiredLabel")}</Badge>}
-                          <Badge>{fmtDateLong(a.date)}</Badge>
-                        </div>
-                      </div>
-                      {a.summary && <p className="mt-1.5 text-sm text-muted">{a.summary}</p>}
-                      <p className="mt-1.5 text-xs font-semibold text-muted">— {a.staffName || "—"}</p>
-                    </CardContent></Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        {tab === "activity" && (
+          <SectionCard title={t("employerTabActivity")} action={addActivityAction} flush>
+            {activity.length === 0 ? (
+              <EmptyState compact icon={CalendarClock} title={t("noActivityYet")} description={t("employerActivityEmptyHint")} />
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {activity.map((a) => (
+                  <li key={a.id} className={ROW}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-ui font-semibold text-card-foreground">
+                        {activityTypeLabel(a.type)} · <span className="tabular-nums">{fmtDateLong(a.date)}</span>
+                      </span>
+                      {a.followUpRequired ? <StatusBadge domain="employerActivity" status="followup">{t("followUpRequiredLabel")}</StatusBadge> : null}
+                    </div>
+                    {a.summary ? <p className="m-0 mt-1.5 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{a.summary}</p> : null}
+                    <p className="m-0 mt-1.5 text-meta font-semibold text-muted">— {a.staffName || "—"}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        )}
 
-          {tab === "notes" && (
-            <div>
-              <div className="mb-3 flex justify-end"><Button size="sm" className="gap-1.5" onClick={() => setAddingNote(true)}><MessageSquarePlus className="h-3.5 w-3.5" /> {t("addNoteBtn")}</Button></div>
-              {notes.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noNotesYet")}</p> : (
-                <div className="space-y-2">
-                  {notes.map((n) => (
-                    <Card key={n.id}><CardContent className="p-4">
-                      <span className="text-sm font-bold text-card-foreground">{n.staffName || "—"} · {fmtDateLong(n.date)}</span>
-                      <p className="mt-1.5 text-sm text-card-foreground">{n.content}</p>
-                    </CardContent></Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {tab === "notes" && (
+          <SectionCard
+            title={t("clientTabNotes")}
+            action={<Button size="sm" variant="secondary" onClick={() => setAddingNote(true)}><MessageSquarePlus className="h-4 w-4" aria-hidden="true" />{t("addNoteBtn")}</Button>}
+            flush
+          >
+            {notes.length === 0 ? (
+              <EmptyState compact icon={StickyNote} title={t("noNotesYet")} description={t("clientNotesEmptyHint")} />
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {notes.map((n) => (
+                  <li key={n.id} className={ROW}>
+                    <span className="text-ui font-semibold text-card-foreground">
+                      {n.staffName || "—"} · <span className="tabular-nums">{fmtDateLong(n.date)}</span>
+                    </span>
+                    <p className="m-0 mt-2 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{n.content}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        )}
+      </TabPanel>
 
       {editingCompany && <EditCompanyInfoModal record={record} industries={industries} onSave={async (fields) => { await updateRecord(fields); setEditingCompany(false); }} onCancel={() => setEditingCompany(false)} />}
       {editingPartnership && <EditPartnershipModal record={record} jobDevelopers={jobDevelopers} onSave={async (fields) => { await updateRecord(fields); setEditingPartnership(false); }} onCancel={() => setEditingPartnership(false)} />}

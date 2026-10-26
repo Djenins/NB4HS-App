@@ -23,7 +23,7 @@ const DISC = {
   violet: "bg-tone-violet-chip text-tone-violet-ink"
 };
 
-export function KpiCard({ label, value, icon: Icon, tone = "info", hint, trend, href, onClick, className }) {
+export function KpiCard({ label, value, icon: Icon, tone = "info", hint, trend, href, onClick, pressed, className }) {
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -48,6 +48,19 @@ export function KpiCard({ label, value, icon: Icon, tone = "info", hint, trend, 
   const surface = "block rounded-surface border border-border bg-card p-4 text-left shadow-card sm:p-5";
   const interactive = "w-full transition-[box-shadow,border-color] duration-base hover:border-line-strong hover:shadow-raised focus-visible:outline-none focus-visible:ring-2";
   if (href) return <Link to={href} className={cn(surface, interactive, "no-underline", className)}>{body}</Link>;
-  if (onClick) return <button type="button" onClick={onClick} className={cn(BUTTON_RESET, surface, interactive, className)}>{body}</button>;
+  // `pressed` (true/false) makes a clickable card a toggle -- e.g. a KPI
+  // that filters the list below -- and shows its on state as a primary ring.
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={pressed == null ? undefined : !!pressed}
+        className={cn(BUTTON_RESET, surface, interactive, pressed && "border-primary ring-2", className)}
+      >
+        {body}
+      </button>
+    );
+  }
   return <div className={cn(surface, className)}>{body}</div>;
 }

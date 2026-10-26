@@ -1,14 +1,15 @@
 // section-card.jsx -- a titled card section: the building block of record
 // pages, dashboards and settings. `flush` drops the body padding for a
 // table or list that runs edge to edge. With no children (a collapsed
-// section) only the header renders, padded evenly top and bottom.
+// section) only the header renders, padded evenly top and bottom. Extra
+// props (id, aria-*) pass through to the card, e.g. for a scroll anchor.
 import { cn } from "../../lib/cn.js";
 import { Card } from "./card.jsx";
 
-export function SectionCard({ title, description, action, footer, flush, className, children }) {
+export function SectionCard({ title, description, action, footer, flush, className, children, ...rest }) {
   const hasBody = children != null && children !== false;
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("overflow-hidden", className)} {...rest}>
       {title || action ? (
         <div className={cn("flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6", hasBody ? "pb-3" : "pb-5")}>
           <div className="min-w-0">

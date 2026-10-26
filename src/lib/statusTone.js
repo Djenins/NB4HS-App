@@ -61,7 +61,57 @@ const STATUS_TONES = {
   "referral:hired": "success",
   "referral:not_selected": "neutral",
   "placement:active": "success",
-  "placement:ended": "neutral"
+  "placement:ended": "neutral",
+
+  // Workforce job seekers (employment status, documents, follow-ups) and employer partnership stage
+  "employment:not_started": "neutral",
+  "employment:assessment_needed": "warning",
+  "employment:resume_needed": "warning",
+  "employment:resume_in_progress": "info",
+  "employment:job_ready": "info",
+  "employment:actively_looking": "info",
+  "employment:applied": "info",
+  "employment:interview_scheduled": "violet",
+  "employment:offer_received": "success",
+  "employment:employed": "success",
+  "employment:follow_up_needed": "warning",
+  "employment:closed": "neutral",
+  "workPermit:yes": "info",
+  "workPermit:no": "neutral",
+  "resume:onFile": "success",
+  "resume:none": "neutral",
+  "followUp:overdue": "danger",
+  "followUp:dueToday": "warning",
+  "employer:prospect": "neutral",
+  "employer:contacted": "info",
+  "employer:meeting_scheduled": "warning",
+  "employer:partner": "success",
+  "employer:hiring": "success",
+  "employer:inactive": "neutral",
+
+  // Candidate Matching: match strength and candidate flags
+  "match:strong": "success",
+  "match:good": "info",
+  "match:possible": "neutral",
+  "candidate:resume": "success",
+  "candidate:noResume": "neutral",
+  "candidate:workAuth": "neutral",
+  "candidate:barrier": "warning",
+
+  // Placement retention check-ins (due = past due, so danger)
+  "checkin:completed": "success",
+  "checkin:due": "danger",
+  "checkin:upcoming": "neutral",
+
+  // Job applications (Job Seeker profile) and employer activity log
+  "application:applied": "info",
+  "application:under_review": "warning",
+  "application:interview_scheduled": "warning",
+  "application:offer_received": "success",
+  "application:hired": "success",
+  "application:not_selected": "neutral",
+  "application:withdrawn": "neutral",
+  "employerActivity:followup": "warning"
 };
 
 export function statusTone(domain, status) {
