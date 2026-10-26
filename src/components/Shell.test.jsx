@@ -68,14 +68,24 @@ function setViewport(size) {
 
 const renderShell = () => render(<MemoryRouter initialEntries={["/dashboard"]}><Shell /></MemoryRouter>);
 // The Dashboard nav item: a text node when expanded, an aria-label when
-// collapsed to the icon rail.
-const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).length > 0;
+// collapsed to the icon rail. The topbar breadcrumb names the page too, so
+// only the sidebar's copy counts.
+const inBreadcrumb = (el) => !!el.closest('[aria-label="' + translate("breadcrumbLabel", "en") + '"]');
+const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).some((el) => !inBreadcrumb(el));
 const iconOnlyLink = () => screen.queryByRole("link", { name: translate("navDashboard", "en") });
 
 describe("Shell sidebar", () => {
   beforeEach(() => {
     updateConfig.mockClear();
     config = { theme: "light", sidebarCollapsed: false };
+  });
+
+  it("shows a workspace › page breadcrumb in the topbar", () => {
+    setViewport("desktop");
+    renderShell();
+    const crumb = screen.getByRole("navigation", { name: translate("breadcrumbLabel", "en") });
+    expect(crumb.textContent).toContain(translate("wsHome", "en"));
+    expect(crumb.textContent).toContain(translate("navDashboard", "en"));
   });
 
   it("shows full-width nav labels on a desktop viewport", () => {

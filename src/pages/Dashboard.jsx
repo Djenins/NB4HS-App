@@ -15,7 +15,7 @@ import { CalendarDays, Clock3, DoorOpen, GraduationCap, LogIn, ShoppingBasket, U
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { allDistributions } from "../lib/clients.js";
-import { navItemsForRole } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import { computeDailyTrend, computeStats, fmtHour, inRange, rangeForPreset } from "../lib/reports_data.js";
 import { classesMeetingToday, studentsForClass } from "../lib/students.js";
 import { dateStrFromDate, fmtDuration, fmtTime, fullServiceList, labelFor, todayStr } from "../lib/utils.js";
@@ -161,8 +161,8 @@ export default function Dashboard() {
   // Food Distribution has its own nav item (Administrator + Staff only) --
   // only show its dashboard numbers to roles that actually have access to
   // that section, same gate as the nav itself.
-  const role = session ? session.role : null;
-  const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
+  const { items: navItems } = useNavItems();
+  const showFoodStats = navItems.indexOf("fooddistribution") !== -1;
   const distributions = allDistributions(data.foodClients);
   const distWeekRange = rangeForPreset("week");
   const distMonthRange = rangeForPreset("month");

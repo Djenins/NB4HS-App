@@ -33,7 +33,10 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
-import { navItemsForRole, navPath } from "../lib/nav.js";
+import { navPath } from "../lib/nav.js";
+import { fetchMyPermissions } from "../lib/permissions.js";
+import { resolveNavItems } from "../lib/useNavItems.js";
+import { AUTH_MODEL, landingItem } from "../lib/workspaces.js";
 import { totalEnrolledCount } from "../lib/students.js";
 import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
@@ -92,11 +95,18 @@ export default function StaffLogin() {
       showToast(t("loginError"));
       return;
     }
-    const items = navItemsForRole(profile.role);
+    // Land on the first page of their primary workspace (or their first
+    // page) -- decided by the same rule as the sidebar.
+    const permissions = AUTH_MODEL === "permissions" ? await fetchMyPermissions() : [];
+    const { items } = resolveNavItems({
+      model: AUTH_MODEL, role: profile.role, workforceRoleAccess: data.workforceRoleAccess, programRoles: {},
+      permissions, permissionsLoaded: true
+    });
     let pending = 0;
     if (profile.role === "case_manager" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "case_manager");
     if (profile.role === "job_developer" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "job_developer");
-    navigate(navPath(items[0] || "dashboard"));
+    const landing = landingItem(items, profile.primary_workspace);
+    navigate(landing ? navPath(landing) : "/");
     if (pending > 0) showToast(t("pendingRequestsToast").replace("{n}", pending));
   }
 

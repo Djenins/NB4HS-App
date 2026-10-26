@@ -15,7 +15,9 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { BarChart3, Briefcase, Building2, ContactRound, LayoutGrid, Send, UserSearch, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { enabledWorkforceRoles, navItemsForRole } from "../lib/nav.js";
+import { navPath } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
+import { landingItem } from "../lib/workspaces.js";
 import ModuleNav from "../components/ModuleNav.jsx";
 import JobDeveloper from "./JobDeveloper.jsx";
 import WorkforceDashboard from "./WorkforceDashboard.jsx";
@@ -43,14 +45,16 @@ const TABS = [
 ];
 
 export default function Workforce() {
-  const { session, data } = useApp();
+  const { session } = useApp();
   const t = useT();
-  const role = session ? session.role : null;
-  const items = role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
+  const { items } = useNavItems();
   const visibleTabs = TABS.filter((tab) => items.indexOf(tab.key) !== -1);
   const [tabOverride, setTabOverride] = useState(null);
 
-  if (visibleTabs.length === 0) return <Navigate to="/dashboard" replace />;
+  if (visibleTabs.length === 0) {
+    const landing = landingItem(items, session && session.primaryWorkspace);
+    return <Navigate to={landing ? navPath(landing) : "/"} replace />;
+  }
 
   const tab = tabOverride && visibleTabs.some((vt) => vt.key === tabOverride) ? tabOverride : visibleTabs[0].key;
   const ActiveComponent = visibleTabs.find((vt) => vt.key === tab).Component;

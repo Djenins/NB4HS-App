@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { navItemsForRole } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import { fetchAllApplications, fetchAllDistributions, subscribeClientsTable } from "../lib/clientsData.js";
 import { applicationStatusLabel, pipelineStageLabel } from "../lib/jobProfile.js";
 import {
@@ -112,8 +112,8 @@ export default function Reports() {
 
   // Food Distribution is Administrator/Staff only -- only show its numbers
   // here to roles that actually have that nav item, same gate as the nav.
-  const role = session ? session.role : null;
-  const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
+  const { items: navItems } = useNavItems();
+  const showFoodStats = navItems.indexOf("fooddistribution") !== -1;
 
   // food_distributions is its own table (not embedded on data.foodClients),
   // so it's fetched here directly -- same pattern FoodDistribution.jsx uses
@@ -137,7 +137,7 @@ export default function Reports() {
   const distVolumeTrend = computeDailyValueTrend(distributions, range, (d) => parseQuantity(d.quantity));
 
   // Job Developer outcome/funnel reporting.
-  const showJobStats = navItemsForRole(role).indexOf("jobdeveloper") !== -1;
+  const showJobStats = navItems.indexOf("jobdeveloper") !== -1;
   const [applications, setApplications] = useState([]);
   useEffect(() => {
     if (!showJobStats) return undefined;

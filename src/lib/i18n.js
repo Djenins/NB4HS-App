@@ -2090,6 +2090,16 @@ export var STR = {
   // ---- Shared TrendDelta (report KPI hint, short form on phones) ----
   noChangeShort: { en: "No change", ht: "Pa gen chanjman", fr: "Aucun changement" },
 
+  // ---- Workspaces (Phase 4) ----
+  // Kreyòl and French follow the English until translated.
+  wsHome: { en: "Home", ht: "Home", fr: "Home" },
+  wsSnap: { en: "SNAP Outreach", ht: "SNAP Outreach", fr: "SNAP Outreach" },
+  wsSwitchLabel: { en: "Workspace", ht: "Workspace", fr: "Workspace" },
+  wsCurrent: { en: "Current workspace", ht: "Current workspace", fr: "Current workspace" },
+  navMainLabel: { en: "Main navigation", ht: "Main navigation", fr: "Main navigation" },
+  openMenuLabel: { en: "Open menu", ht: "Open menu", fr: "Open menu" },
+  breadcrumbLabel: { en: "You are here", ht: "You are here", fr: "You are here" },
+
   // ---- Administration (Phase 2): staff accounts, roles, positions ----
   // Kreyòl and French follow the English until translated.
   adminAccessCol: { en: "Access", ht: "Access", fr: "Access" },

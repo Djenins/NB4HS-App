@@ -94,26 +94,26 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<Shell />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/mycaseload" element={<MyCaseload />} />
-          <Route path="/checkin" element={<CheckIn />} />
-          <Route path="/checkin/student" element={<CheckInStudent />} />
-          <Route path="/checkin/visitor" element={<CheckInVisitor />} />
-          <Route path="/checkin/success" element={<CheckInSuccess />} />
-          <Route path="/checkout" element={<CheckOut />} />
-          <Route path="/checkout/scan-success" element={<CheckOutScanSuccess />} />
+          <Route path="/dashboard" element={<RequireRoute routeKey="dashboard"><Dashboard /></RequireRoute>} />
+          <Route path="/mycaseload" element={<RequireRoute routeKey="mycaseload"><MyCaseload /></RequireRoute>} />
+          <Route path="/checkin" element={<RequireRoute routeKey="checkin" kiosk><CheckIn /></RequireRoute>} />
+          <Route path="/checkin/student" element={<RequireRoute routeKey="checkin" kiosk><CheckInStudent /></RequireRoute>} />
+          <Route path="/checkin/visitor" element={<RequireRoute routeKey={["checkin", "search"]} kiosk><CheckInVisitor /></RequireRoute>} />
+          <Route path="/checkin/success" element={<RequireRoute routeKey={["checkin", "search"]} kiosk><CheckInSuccess /></RequireRoute>} />
+          <Route path="/checkout" element={<RequireRoute routeKey="checkout" kiosk><CheckOut /></RequireRoute>} />
+          <Route path="/checkout/scan-success" element={<RequireRoute routeKey="checkout" kiosk><CheckOutScanSuccess /></RequireRoute>} />
           <Route path="/appointments/request" element={<ApptRequest />} />
           <Route path="/appointments/request/success" element={<ApptRequestSuccess />} />
           <Route path="/appointments/lookup" element={<AppointmentLookup />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/fooddistribution" element={<FoodDistribution />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/qrcode" element={<QRCode />} />
+          <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
+          <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
+          <Route path="/fooddistribution" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
+          <Route path="/calendar" element={<RequireRoute routeKey="calendar"><CalendarPage /></RequireRoute>} />
+          <Route path="/qrcode" element={<RequireRoute routeKey="qrcode"><QRCode /></RequireRoute>} />
           <Route path="/manage" element={<RequireRoute routeKey="manage"><Manage /></RequireRoute>} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/assessments" element={<Assessments />} />
-          <Route path="/casemanagement" element={<CaseManagement />} />
+          <Route path="/students" element={<RequireRoute routeKey="students"><Students /></RequireRoute>} />
+          <Route path="/assessments" element={<RequireRoute routeKey="assessments"><Assessments /></RequireRoute>} />
+          <Route path="/casemanagement" element={<RequireRoute routeKey="casemanagement"><CaseManagement /></RequireRoute>} />
           <Route path="/myreports" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
           <Route path="/myreports/:reportId" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
           <Route path="/staffreports" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
@@ -121,9 +121,9 @@ export default function App() {
           <Route path="/outreach/:program?/:section?" element={<RequireRoute routeKey="outreach"><Outreach /></RequireRoute>} />
           {/* SNAP Outreach became a program inside Outreach (O1); keep old links working. */}
           <Route path="/snap/*" element={<Navigate to="/outreach/snap" replace />} />
-          <Route path="/workforce" element={<Workforce />} />
-          <Route path="/jobdeveloper" element={<JobDeveloper />} />
-          <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
+          <Route path="/workforce" element={<RequireRoute routeKey="workforce"><Workforce /></RequireRoute>} />
+          <Route path="/jobdeveloper" element={<RequireRoute routeKey="jobdeveloper"><JobDeveloper /></RequireRoute>} />
+          <Route path="/jobdeveloper/:clientId" element={<RequireRoute routeKey="jobdeveloper"><JobClientProfile /></RequireRoute>} />
           <Route path="/workforcedashboard" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />
           <Route path="/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
           <Route path="/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
@@ -133,7 +133,7 @@ export default function App() {
           <Route path="/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />
           <Route path="/placements/:placementId" element={<RequireRoute routeKey="placements"><PlacementDetail /></RequireRoute>} />
           <Route path="/workforcereports" element={<RequireRoute routeKey="workforcereports"><WorkforceReports /></RequireRoute>} />
-          <Route path="/clients/:nbId" element={<ClientProfile />} />
+          <Route path="/clients/:nbId" element={<RequireRoute routeKey="clients"><ClientProfile /></RequireRoute>} />
           {/* Administration is gated by the new permissions inside Admin.jsx. */}
           <Route path="/admin/:section?/:id?" element={<Admin />} />
           <Route path="/users" element={<Navigate to="/admin/users" replace />} />
