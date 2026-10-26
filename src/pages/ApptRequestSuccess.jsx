@@ -23,7 +23,7 @@ export default function ApptRequestSuccess() {
   const navigate = useNavigate();
 
   return (
-    <div className="appt-request flex w-full flex-1 flex-col">
+    <div className="appt-request flex min-h-full w-full flex-1 flex-col">
       <div className="m-auto flex w-full max-w-[880px] flex-col items-center rounded-[22px] border border-border bg-card p-6 text-center shadow-card sm:p-9">
         <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto object-contain sm:h-14" />
 
