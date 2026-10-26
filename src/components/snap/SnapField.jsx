@@ -3,7 +3,9 @@
 // by the i18n key `<labelPrefix><code>` (e.g. snapLang_ht), or a program's
 // configured options, labelled by `labelFor(code)`. Either way the database
 // stores stable codes and every language reads its own label.
-export const SNAP_CONTROL = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-60";
+// py-0 cancels main.css's 12px top/bottom padding on inputs and selects (it
+// clips the text in a 40px box); selects keep room on the right for the chevron.
+export const SNAP_CONTROL = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 py-0 [&:is(select)]:pr-9 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-60";
 
 export function SnapSelect({ id, label, value, options, labelPrefix, labelFor, emptyLabel, onChange, disabled, t }) {
   return (

@@ -19,7 +19,9 @@ import { Badge } from "../ui/badge.jsx";
 import { snapRoleLabelKey } from "./snapRoleLabel.js";
 
 const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
-const SELECT = "h-9 min-h-0 rounded-lg border border-border bg-background px-2.5 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50";
+// py-0: main.css gives every select 12px top/bottom padding, which leaves no
+// room for the text in a 36px box; pr-9 keeps it clear of the chevron.
+const SELECT = "h-9 min-h-0 rounded-lg border border-border bg-background py-0 pl-2.5 pr-9 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50";
 
 function initials(name, email) {
   const parts = ((name || "").trim() || email || "").split(/\s+/).filter(Boolean);
