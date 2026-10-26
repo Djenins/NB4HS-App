@@ -46,7 +46,7 @@ export default function Workforce() {
   const { session, data } = useApp();
   const t = useT();
   const role = session ? session.role : null;
-  const items = role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
+  const items = role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
   const visibleTabs = TABS.filter((tab) => items.indexOf(tab.key) !== -1);
   const [tabOverride, setTabOverride] = useState(null);
 

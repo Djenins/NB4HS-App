@@ -28,6 +28,7 @@ import {
 import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } from "../lib/sessionsData.js";
 import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
+import { fetchMyProgramRoles } from "../lib/programStaff.js";
 
 const AppContext = createContext(null);
 
@@ -247,6 +248,22 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; unsubscribe(); };
   }, [session]);
 
+  // The signed-in user's own program roles ({ snap: "worker" }) -- drives
+  // whether the SNAP Outreach sidebar entry and its sections show (see
+  // nav.js / programStaff.js). Refetched by the SNAP staff settings after a
+  // role change, since that can change the current user's own access.
+  const [programRoles, setProgramRoles] = useState({});
+  const refetchProgramRoles = useCallback(
+    () => fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
+    [session]
+  );
+  useEffect(() => {
+    if (!session || !session.id) { setProgramRoles({}); return undefined; }
+    let cancelled = false;
+    fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
+    return () => { cancelled = true; };
+  }, [session]);
+
   const markNotifRead = useCallback((id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
     return markNotificationRead(id);
@@ -312,12 +329,12 @@ export function AppProvider({ children }) {
       visitsOnFile: signedIn ? visits.length : kioskVisitCount,
       clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
-      currentSession, sessionHistory, pastSessionStudents, profiles
+      currentSession, sessionHistory, pastSessionStudents, profiles, programRoles
     }),
     [
       localData, visits, students, classes, signedIn, kioskVisitCount, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
-      currentSession, sessionHistory, pastSessionStudents, profiles
+      currentSession, sessionHistory, pastSessionStudents, profiles, programRoles
     ]
   );
 
@@ -438,11 +455,11 @@ export function AppProvider({ children }) {
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
-    refetchStudents, refetchVisits
+    refetchStudents, refetchVisits, refetchProgramRoles
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits
+    refetchVisits, refetchProgramRoles
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

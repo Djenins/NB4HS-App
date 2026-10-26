@@ -236,3 +236,40 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 - `clients` remain readable by every *active* staff role, incl. receptionist — a product decision, not changed here.
 - Adding a user still swaps the admin's browser session (pre-existing; fixing needs a server-side admin function).
 - Leaked-password protection is a dashboard toggle (Auth → Passwords) — not something a migration can set.
+
+---
+
+## Decisions recorded
+
+| # | Question | Decision (2026-10-26) |
+|---|---|---|
+| 1 | Where SNAP schema changes go | Live project, additive only, applied after each PR is reviewed |
+| 3 | Role model | Separate program-scoped roles (`program_staff`), on top of `profiles.role` |
+| 4 | Admins and case notes | Administrators manage SNAP staff/settings but read participant data only if they also hold a SNAP role |
+| 5–10 | Contacts, worker visibility, pg_cron, messaging, funder/retention, languages | Open — needed before Stage 2 |
+
+## Stage 1 report — roles, audit log, navigation
+
+Branch `Djenins/snap-stage1-foundation`.
+
+**Database** — `supabase/migrations/20261026130000_stage1_program_staff_and_audit.sql` (**not yet applied**; additive only):
+- `program_staff (user_id, program, program_role, active, granted_by, …)`, PK `(user_id, program)`; `program` CHECK `('snap')`, `program_role` CHECK `('worker','supervisor','program_admin')`.
+- `has_program_role(program, roles[])` — active profile + active membership; **no admin bypass**. `can_manage_program(program)` — admin or that program's program admin.
+- RLS: own row (if active staff), supervisors/program admins see the team; only `can_manage_program` writes. Revoking deactivates instead of deleting.
+- `audit_events` (append-only, field *names* only, readable by admins and the program's admins) + generic `audit_row_change()` trigger, attached to `program_staff`; no-op updates aren't logged. `set_updated_at()` helper.
+
+**App**
+- `src/lib/programStaff.js` — data access + `snapSectionsFor()` / `canManageProgram()` (mirror the RLS rules).
+- `AppContext` loads the signed-in user's own program roles (`data.programRoles`) and exposes `refetchProgramRoles`.
+- Sidebar: **SNAP Outreach** under Programs for administrators and SNAP role holders (`nav.js`, `constants.js`, `navIcons.js`); `/snap` behind `RequireRoute`.
+- `pages/SnapOutreach.jsx` with `ModuleNav`: **Overview** (members; honest "being set up" state + scope note that DHS decides eligibility) and **Staff & Access** (admins/program admins; assign/revoke SNAP roles on active staff). Sections are added only once they work.
+- i18n en/ht/fr for the module (ht/fr need a native-speaker check).
+
+**Tests executed**
+- Migration run on a throwaway local Postgres 17 against a stub of the live auth/profile helpers: 21 role checks pass (worker/supervisor/admin/program admin/inactive/anon visibility; who can grant; CHECK constraints; audit rows, actor, changed fields, no-op skip; audit not writable directly).
+- `vitest` 198/198 (new: access rules + nav entry, SnapOutreach component tests for worker/admin/no-access/role write/load error). `vite build` passes.
+- Browser (signed out): kiosk unaffected; `/snap` redirects to the landing page. Signed-in staff screens not exercised in a browser (no staff credentials) — covered by component tests.
+
+**Rollout:** apply the migration (either before or after deploying — if the app ships first, administrators see a "couldn't load SNAP staff" message in Staff & Access until it's applied; nobody else sees SNAP). Then an administrator assigns the first SNAP program admin.
+
+**Known limitations:** no live updates of `program_staff` across tabs (the settings table reloads after each change); supervisors see who's on the team but can't change it; audit log has no UI yet (Stage 5).

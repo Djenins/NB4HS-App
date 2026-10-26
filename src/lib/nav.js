@@ -16,7 +16,11 @@ import { t } from "./i18n.js";
 // is unrelated and stays hardcoded per-role as before.
 var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports"];
 
-export function navItemsForRole(role, workforceAllowedRoles) {
+// `programRoles` is the signed-in user's own program memberships
+// ({ snap: "worker" }, from program_staff). SNAP Outreach shows for anyone
+// holding a SNAP role, and for administrators -- who manage SNAP staff but
+// only see the sections snapSectionsFor() (programStaff.js) gives them.
+export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   var base;
   if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
   else if (role === "staff") base = ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
@@ -24,6 +28,8 @@ export function navItemsForRole(role, workforceAllowedRoles) {
   else if (role === "case_manager") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
   else if (role === "job_developer") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
   else return [];
+
+  if (role === "administrator" || (programRoles && programRoles.snap)) base = base.concat(["snap"]);
 
   var hasWorkforceAccess = role === "administrator" || (workforceAllowedRoles || []).indexOf(role) !== -1;
   if (!hasWorkforceAccess) return base;
@@ -57,6 +63,7 @@ export function navLabel(v, lang) {
     students: t("navStudents", lang),
     assessments: t("navAssessments", lang),
     casemanagement: t("navCaseManagement", lang),
+    snap: t("navSnapOutreach", lang),
     workforce: t("navSectionWorkforceDevelopment", lang),
     jobdeveloper: t("navJobDeveloper", lang),
     workforcedashboard: t("navWorkforceDashboard", lang),

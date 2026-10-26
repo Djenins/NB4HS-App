@@ -14,7 +14,7 @@ export default function RequireRoute({ routeKey, children }) {
   const { session, authLoading, data } = useApp();
   if (authLoading) return null;
   const role = session ? session.role : null;
-  const allowed = role && navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)).indexOf(routeKey) !== -1;
+  const allowed = role && navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles).indexOf(routeKey) !== -1;
   if (!allowed) return <Navigate to="/dashboard" replace />;
   return children;
 }
