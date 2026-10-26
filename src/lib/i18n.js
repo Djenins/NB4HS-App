@@ -1635,7 +1635,16 @@ export var STR = {
   // ---- Workforce Dashboard: KPI drill-through ----
   viewListLabel: { en: "View list", ht: "Gade lis la", fr: "Voir la liste" },
   referralLabel: { en: "Referral", ht: "Referans", fr: "Référence" },
-  followUpDueTodayOrOverdueLabel: { en: "Due Today or Overdue", ht: "Dwe Jodi a oswa an Reta", fr: "Dû Aujourd'hui ou en Retard" }
+  followUpDueTodayOrOverdueLabel: { en: "Due Today or Overdue", ht: "Dwe Jodi a oswa an Reta", fr: "Dû Aujourd'hui ou en Retard" },
+
+  // ---- Visitor Search on the design system (grant tagging was English-only) ----
+  tagGrantLabel: { en: "Tag grant", ht: "Make sibvansyon", fr: "Associer une subvention" },
+  grantLabel: { en: "Grant", ht: "Sibvansyon", fr: "Subvention" },
+  noGrantOption: { en: "No grant", ht: "Pa gen sibvansyon", fr: "Aucune subvention" },
+  searchNoResultsHint: { en: "Try a different name, phone or email, or clear the filters.", ht: "Eseye yon lòt non, telefòn oswa imèl, oswa efase filt yo.", fr: "Essayez un autre nom, téléphone ou e-mail, ou effacez les filtres." },
+  searchEmptyTitle: { en: "No visits recorded yet", ht: "Poko gen okenn vizit anrejistre", fr: "Aucune visite enregistrée pour l'instant" },
+  searchEmptyHint: { en: "Visits appear here as people check in at the front desk.", ht: "Vizit yo parèt isit la lè moun yo enskri nan resepsyon an.", fr: "Les visites apparaissent ici lorsque les personnes s'enregistrent à l'accueil." },
+  last7DaysHint: { en: "Last 7 days", ht: "7 dènye jou yo", fr: "7 derniers jours" }
 };
 
 export function t(key, lang) {

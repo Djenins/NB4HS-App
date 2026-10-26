@@ -1,17 +1,19 @@
-// card.jsx -- shadcn/ui-style Card primitives. Visually equivalent to the
-// existing plain-CSS .card class (var(--card) bg, var(--radius), soft
-// shadow, hover elevation) so cards look consistent whether a page uses
-// the old .card class or this new component -- just expressed as Tailwind
-// utilities pointing at the same CSS variables, for the Dashboard/Shell
-// redesign pass.
+// card.jsx -- shadcn/ui-style Card primitives on the design system's surface
+// recipe: --card fill, hairline border, 16px surface radius, soft resting
+// shadow. Cards don't lift on hover by default -- that implied every card
+// was clickable. An interactive card opts in with `interactive`.
 import { forwardRef } from "react";
 import { cn } from "../../lib/cn.js";
 
-export const Card = forwardRef(function Card({ className, ...props }, ref) {
+export const Card = forwardRef(function Card({ className, interactive, ...props }, ref) {
   return (
     <div
       ref={ref}
-      className={cn("rounded-xl border border-border bg-card text-card-foreground shadow-card transition-shadow hover:shadow-card-hover", className)}
+      className={cn(
+        "rounded-surface border border-border bg-card text-card-foreground shadow-card",
+        interactive && "transition-[box-shadow,border-color] duration-base hover:border-line-strong hover:shadow-raised",
+        className
+      )}
       {...props}
     />
   );
@@ -21,12 +23,14 @@ export const CardHeader = forwardRef(function CardHeader({ className, ...props }
   return <div ref={ref} className={cn("flex flex-col gap-1 p-6", className)} {...props} />;
 });
 
+// m-0 on the heading and description: main.css still gives bare h1-h3/p a
+// bottom margin, which would otherwise double the card's own spacing.
 export const CardTitle = forwardRef(function CardTitle({ className, ...props }, ref) {
-  return <h3 ref={ref} className={cn("text-base font-bold leading-tight tracking-tight text-card-foreground", className)} {...props} />;
+  return <h3 ref={ref} className={cn("m-0 text-section font-semibold text-card-foreground", className)} {...props} />;
 });
 
 export const CardDescription = forwardRef(function CardDescription({ className, ...props }, ref) {
-  return <p ref={ref} className={cn("text-sm text-muted", className)} {...props} />;
+  return <p ref={ref} className={cn("m-0 text-meta text-muted", className)} {...props} />;
 });
 
 export const CardContent = forwardRef(function CardContent({ className, ...props }, ref) {

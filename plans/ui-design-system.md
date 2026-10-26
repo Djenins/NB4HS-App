@@ -242,7 +242,7 @@ Every phase preserves routes, permissions, data calls and business logic; change
 - Add the tokens in §2.1–2.3 to `main.css` and `tailwind.config.js`, alias the old names to the new ones, and fix the Inter loading.
 - Pages keep rendering identically, because aliases cover the old names.
 
-**Phase 2: primitives plus the representative page**
+**Phase 2: primitives plus the representative page**  _(built: branch `Djenins/design-system-components`; awaiting approval gate 2)_
 - Build the §2.4 components.
 - Migrate **Participants Search** (`/search`). It exercises nearly every component: header with menu, filters, a table with a phone card fallback, status badges, pagination, three modals, empty, loading and error states.
 - Validate with screenshots, `/impeccable critique`, then `/impeccable document` to write DESIGN.md.
