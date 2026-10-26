@@ -1,5 +1,6 @@
 -- SNAP Outreach Stage 2a -- outreach contacts, contact consent, activity log
--- (plans/snap-outreach-architecture.md §4). ADDITIVE ONLY. NOT YET APPLIED.
+-- (plans/snap-outreach-architecture.md §4). ADDITIVE ONLY. APPLIED to
+-- vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026070013) after PR #25 review.
 --
 -- Decisions (2026-10-26):
 -- * Every outreach contact is a minimal `clients` record (NB ID, name, one
