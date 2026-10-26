@@ -153,7 +153,9 @@ export default function MyReports() {
           onSubmitted={(submitted) => {
             setReports((prev) => prev.map((r) => (r.id === submitted.id ? submitted : r)));
             setJustSubmitted(submitted);
-            window.scrollTo(0, 0);
+            // The floating content panel (Shell.jsx) scrolls, not the window.
+            const panel = document.querySelector(".content-col--floating");
+            if (panel) panel.scrollTo(0, 0); else window.scrollTo(0, 0);
           }}
           onDiscarded={() => { showToast(t("srDraftDiscarded")); back(); }}
           onBack={back}
