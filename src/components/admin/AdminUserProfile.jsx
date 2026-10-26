@@ -350,8 +350,9 @@ export default function AdminUserProfile({ userId }) {
     const out = [];
     if (status === "invited" && can("admin.users.invite")) out.push({ key: "resend", label: t("adminResendInvite"), icon: Mail, variant: "secondary" });
     if (status === "active" && can("admin.users.edit")) out.push({ key: "reset", label: t("adminSendReset"), icon: KeyRound, variant: "secondary" });
-    if ((status === "active" || status === "invited") && account.sessionCount > 0 && can("admin.users.revoke_sessions")) out.push({ key: "signout", label: t("adminSignOutEverywhere"), icon: LogOut, variant: "secondary" });
-    if (status === "pending" && can("admin.users.deactivate")) out.push({ key: "approve", label: t("adminApprove"), icon: UserCheck, variant: "primary" });
+    // Any status: accounts switched off before Phase 2 can still hold old sessions.
+    if (account.sessionCount > 0 && can("admin.users.revoke_sessions")) out.push({ key: "signout", label: t("adminSignOutEverywhere"), icon: LogOut, variant: "secondary" });
+    if (status === "inactive" && can("admin.users.deactivate")) out.push({ key: "approve", label: t("adminApprove"), icon: UserCheck, variant: "primary" });
     if (status === "deactivated" && can("admin.users.deactivate")) out.push({ key: "reactivate", label: t("adminReactivate"), icon: UserCheck, variant: "primary" });
     if ((status === "active" || status === "invited") && can("admin.users.deactivate")) out.push({ key: "deactivate", label: t("adminDeactivate"), icon: UserX, variant: "danger" });
     return out;

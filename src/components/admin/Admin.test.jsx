@@ -31,7 +31,7 @@ const ACCOUNTS = [
       { id: "ur2", roleId: "r-c", key: "lead", name: "Program Lead", kind: "custom", programKey: "students", source: "admin" }] },
   { id: "u2", name: "Ivy Invited", email: "ivy@nb4hs.org", role: "staff", active: true, invitedAt: "2026-10-25T00:00:00Z", deactivatedAt: null, lastSignInAt: null, sessionCount: 0, positions: [], roles: [] },
   { id: "u3", name: "Pat Pending", email: "pat@nb4hs.org", role: "receptionist", active: false, invitedAt: null, deactivatedAt: null, lastSignInAt: null, sessionCount: 0, positions: [], roles: [] },
-  { id: "u4", name: "Dee Gone", email: "dee@nb4hs.org", role: "staff", active: false, invitedAt: null, deactivatedAt: "2026-10-24T00:00:00Z", lastSignInAt: "2026-09-01T00:00:00Z", sessionCount: 0, positions: [], roles: [] },
+  { id: "u4", name: "Dee Gone", email: "dee@nb4hs.org", role: "staff", active: false, invitedAt: null, deactivatedAt: "2026-10-24T00:00:00Z", lastSignInAt: "2026-09-01T00:00:00Z", sessionCount: 3, positions: [], roles: [] },
   { id: "me", name: "Me", email: "me@nb4hs.org", role: "administrator", active: true, lastSignInAt: "2026-10-26T00:00:00Z", sessionCount: 1, positions: [], roles: [] }
 ];
 const CATALOG = {
@@ -85,9 +85,9 @@ describe("Staff accounts list", () => {
     renderIn(<AdminUsers />);
     await screen.findAllByText("Ann Active");
     expect(screen.getAllByText(tr("adminStatusInvited")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(tr("adminStatusPending")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(tr("adminStatusInactive")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(tr("adminStatusDeactivated")).length).toBeGreaterThan(0);
-    fireEvent.change(screen.getByLabelText(tr("statusLabel")), { target: { value: "pending" } });
+    fireEvent.change(screen.getByLabelText(tr("statusLabel")), { target: { value: "inactive" } });
     expect(screen.queryAllByText("Ann Active")).toHaveLength(0);
     expect(screen.getAllByText("Pat Pending").length).toBeGreaterThan(0);
   });
@@ -128,13 +128,15 @@ describe("One account", () => {
     await waitFor(() => expect(lib.setAccountActive).toHaveBeenCalledWith("u1", false, "Left the organisation"));
   });
 
-  it("approves a pending sign-up and reactivates a deactivated account", async () => {
+  it("activates an inactive account and reactivates a deactivated one", async () => {
     const { unmount } = renderIn(<AdminUserProfile userId="u3" />);
     expect(await screen.findByRole("button", { name: tr("adminApprove") })).toBeTruthy();
     expect(screen.queryByRole("button", { name: tr("adminDeactivate") })).toBeNull();
     unmount();
     renderIn(<AdminUserProfile userId="u4" />);
     expect(await screen.findByRole("button", { name: tr("adminReactivate") })).toBeTruthy();
+    // Old sessions on a switched-off account can still be ended.
+    expect(screen.getByRole("button", { name: tr("adminSignOutEverywhere") })).toBeTruthy();
   });
 
   it("gives no account actions on your own account", async () => {

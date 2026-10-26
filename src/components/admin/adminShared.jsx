@@ -22,7 +22,7 @@ export function fmtWhen(iso, lang, withTime) {
   return d.toLocaleString(LOCALES[lang] || "en-US", opts);
 }
 
-const STATUS_LABEL = { active: "activeLabel", invited: "adminStatusInvited", pending: "adminStatusPending", deactivated: "adminStatusDeactivated" };
+const STATUS_LABEL = { active: "activeLabel", invited: "adminStatusInvited", inactive: "adminStatusInactive", deactivated: "adminStatusDeactivated" };
 
 // "1 person" / "3 people": picks the singular key when n is 1.
 export function countLabel(t, n, oneKey, manyKey) {
