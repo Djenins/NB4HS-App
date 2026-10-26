@@ -7,8 +7,14 @@ import { t as translate } from "../lib/i18n.js";
 
 vi.mock("../context/AppContext.jsx", () => ({ useT: () => (key) => translate(key, "ht") }));
 vi.mock("../lib/pdfLibs.js", () => ({ loadPdfLibs: vi.fn() }));
-const updateClientRecord = vi.fn(async (id, patch) => ({ intakeFormSavedAt: patch.intakeFormSavedAt }));
-vi.mock("../lib/clientsData.js", () => ({ updateClientRecord: (...args) => updateClientRecord(...args) }));
+const updateClientRecord = vi.fn(async () => ({}));
+const saveClientIntake = vi.fn(async () => "2026-10-26T18:00:00Z");
+let storedIntake = null;
+vi.mock("../lib/clientsData.js", () => ({
+  updateClientRecord: (...args) => updateClientRecord(...args),
+  saveClientIntake: (...args) => saveClientIntake(...args),
+  fetchClientIntake: async () => storedIntake
+}));
 
 const { default: IntakeFormCard } = await import("./IntakeFormCard.jsx");
 
@@ -37,10 +43,21 @@ describe("IntakeFormCard in Kreyòl", () => {
     render(<IntakeFormCard bare client={savedClient} />);
     fireEvent.click(screen.getByRole("checkbox", { name: "Transpò" }));
     fireEvent.click(screen.getByRole("button", { name: /Sove Fòm nan/ }));
+    await waitFor(() => expect(saveClientIntake).toHaveBeenCalled());
+    const form = saveClientIntake.mock.calls[0][1];
+    expect(form.barriers).toEqual(["Housing", "Transportation"]);
+    expect(form.primaryLanguage).toBe("Creole");
+    // Demographics also go on the client record; the form itself never does.
     await waitFor(() => expect(updateClientRecord).toHaveBeenCalled());
     const patch = updateClientRecord.mock.calls[0][1];
-    expect(patch.intakeForm.barriers).toEqual(["Housing", "Transportation"]);
     expect(patch.gender).toBe("Female");
-    expect(patch.intakeForm.primaryLanguage).toBe("Creole");
+    expect(patch.intakeForm).toBeUndefined();
+  });
+
+  it("loads the saved form from client_intakes", async () => {
+    storedIntake = { form: { gender: "Male", primaryLanguage: "French" }, savedAt: "2026-10-20T10:00:00Z" };
+    render(<IntakeFormCard bare client={{ id: "c2", firstName: "Jean", lastName: "Pierre" }} />);
+    await waitFor(() => expect(screen.getAllByRole("radio", { name: "Gason" })[0]).toBeChecked());
+    storedIntake = null;
   });
 });
