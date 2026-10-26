@@ -76,7 +76,7 @@ export function buildResults(opts) {
         return {
           id: "client:" + c.id, kind: "client", title: fullName(c),
           subtitle: [c.nbId, c.phone].filter(Boolean).join(" · "),
-          to: c.nbId ? "/clients/" + c.nbId : "/casemanagement/clients"
+          to: c.nbId ? "/clients/" + c.nbId : "/case-management"
         };
       }) });
     }

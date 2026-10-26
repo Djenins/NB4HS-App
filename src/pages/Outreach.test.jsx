@@ -2,7 +2,8 @@
 // which programs and sections, where the URL lands them, and that the Staff
 // & Access table writes the role a manager picks for the current program.
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import LegacyRedirect from "../components/LegacyRedirect.jsx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t as translate } from "../lib/i18n.js";
 import { snapInfo, snapOptions } from "../test/outreachProgram.jsx";
@@ -61,10 +62,14 @@ function renderAs(role, programRoles, path) {
     refetchProgramRoles: vi.fn().mockResolvedValue(undefined)
   };
   return render(
-    <MemoryRouter initialEntries={[path || "/outreach"]}>
+    <MemoryRouter initialEntries={[path || "/snap"]}>
       <Routes>
-        <Route path="/outreach/:program?/:section?" element={<><Outreach /><Where /></>} />
-        <Route path="/snap/*" element={<Navigate to="/outreach/snap" replace />} />
+        {/* As in App.jsx: each Outreach program is its own workspace route. */}
+        <Route path="/snap/:section?" element={<><Outreach program="snap" /><Where /></>} />
+        <Route path="/medicaid/:section?" element={<><Outreach program="medicaid" /><Where /></>} />
+        <Route path="/outreach" element={<LegacyRedirect to="/snap" />} />
+        <Route path="/outreach/:program" element={<LegacyRedirect to="/:program" />} />
+        <Route path="/outreach/:program/:section" element={<LegacyRedirect to="/:program/:section" />} />
         <Route path="/dashboard" element={<p>dashboard</p>} />
       </Routes>
     </MemoryRouter>
@@ -104,27 +109,27 @@ describe("Outreach", () => {
 
   it("opens the first program a person belongs to, and the section named in the URL", async () => {
     programs = [snapInfo, medicaidInfo];
-    renderAs("case_manager", { medicaid: "worker" });
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/outreach/medicaid"));
+    renderAs("case_manager", { medicaid: "worker" }, "/snap");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/medicaid"));
     cleanup();
-    renderAs("case_manager", { snap: "worker" }, "/outreach/snap/tasks");
+    renderAs("case_manager", { snap: "worker" }, "/snap/tasks");
     expect(await screen.findByRole("button", { name: en("snapSectionTasks") })).toHaveAttribute("aria-current", "page");
   });
 
   it("won't open a program the person has no role in", async () => {
     programs = [snapInfo, medicaidInfo];
-    renderAs("case_manager", { snap: "worker" }, "/outreach/medicaid");
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/outreach\/snap$/));
+    renderAs("case_manager", { snap: "worker" }, "/medicaid");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/snap$/));
   });
 
   it("only shows the sections a program has switched on, and a switcher when there's a choice", async () => {
     programs = [snapInfo, medicaidInfo];
-    renderAs("case_manager", { snap: "worker", medicaid: "worker" }, "/outreach/medicaid");
+    renderAs("case_manager", { snap: "worker", medicaid: "worker" }, "/medicaid");
     expect(await screen.findByRole("button", { name: en("snapSectionContacts") })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: en("snapSectionCases") })).not.toBeInTheDocument();
     const switcher = screen.getByLabelText(en("outreachProgramLabel"));
     fireEvent.change(switcher, { target: { value: "snap" } });
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/outreach/snap"));
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/snap"));
     expect(await screen.findByRole("button", { name: en("snapSectionCases") })).toBeInTheDocument();
   });
 
@@ -134,9 +139,12 @@ describe("Outreach", () => {
     expect(screen.queryByLabelText(en("outreachProgramLabel"))).not.toBeInTheDocument();
   });
 
-  it("forwards old /snap links into the module", async () => {
-    renderAs("case_manager", { snap: "worker" }, "/snap");
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/outreach/snap"));
+  it("forwards old /outreach links to the program's own address", async () => {
+    renderAs("case_manager", { snap: "worker" }, "/outreach/snap/tasks");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/snap\/tasks$/));
+    cleanup();
+    renderAs("case_manager", { snap: "worker" }, "/outreach");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/snap$/));
   });
 
   it("writes the chosen role, and revokes with null", async () => {

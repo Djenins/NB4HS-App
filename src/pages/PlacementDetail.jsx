@@ -106,7 +106,7 @@ export default function PlacementDetail() {
 
   return (
     <>
-      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/placements")}>
+      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/workforce/placements")}>
         <ArrowLeft className="h-3.5 w-3.5" /> {t("navPlacements")}
       </Button>
 

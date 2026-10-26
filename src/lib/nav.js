@@ -1,11 +1,12 @@
 // nav.js -- which nav tabs each role sees, and their labels/paths. Ported
 // from nav_shell.js's navItemsForRole()/navLabel(). Route paths use the same
-// keys as the original `view` strings (so "casemanagement" -> "/casemanagement"),
+// keys as the original `view` strings; each key's URL is in routes.js,
 // keeping the URL vocabulary identical to the old view vocabulary -- there's
 // no reason to invent new names for things that already had good ones.
 import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
 import { hasOutreachAccess } from "./outreachPrograms.js";
+import { pathForNavKey } from "./routes.js";
 
 // The 7 Workforce Development pages -- deliberately NOT hardcoded into any
 // role's base array below. Whether a role gets them is decided at the
@@ -88,9 +89,10 @@ export function navLabel(v, lang) {
   }[v];
 }
 
-// Staff accounts moved into Administration (Phase 2); the nav key stays "users".
+// Each page's URL lives in routes.js (pages sit under their workspace since
+// Phase 4b: /students/assessments, /workforce/employers...).
 export function navPath(v) {
-  return v === "users" ? "/admin/users" : "/" + v;
+  return pathForNavKey(v);
 }
 
 // Purely a scanning aid on the flat tab bar: a visual divider between the

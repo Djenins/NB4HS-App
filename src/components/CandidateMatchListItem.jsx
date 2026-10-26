@@ -71,7 +71,7 @@ export default function CandidateMatchListItem({ jobClient, jobOpening, employer
         <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="ghost"
-            onClick={function () { navigate("/jobdeveloper/" + jobClient.id); }}
+            onClick={function () { navigate("/workforce/participants/" + jobClient.id); }}
             className="h-9 gap-1.5 px-2 text-sm font-semibold text-primary hover:bg-primary-tint"
           >
             {t("viewLabel")} <ArrowRight className="h-4 w-4" aria-hidden="true" />

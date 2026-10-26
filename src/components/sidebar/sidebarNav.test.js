@@ -46,15 +46,18 @@ describe("activeEntryKey", () => {
   const sections = sidebarSections(navItemsForRole("administrator", [], {}), { programs: [SNAP], role: "administrator", programRoles: {} });
 
   it("keeps the parent program active on its nested pages", () => {
-    expect(activeEntryKey(sections, "/employers/42")).toBe("workforce");
-    expect(activeEntryKey(sections, "/students/assessments")).toBe("students");
-    expect(activeEntryKey(sections, "/outreach/snap/cases")).toBe("outreach:snap");
+    expect(activeEntryKey(sections, "/workforce/employers/42")).toBe("workforce");
+    expect(activeEntryKey(sections, "/students/assessments")).toBe("assessments");
+    expect(activeEntryKey(sections, "/students/42")).toBe("students");
+    expect(activeEntryKey(sections, "/snap/cases")).toBe("outreach:snap");
     expect(activeEntryKey(sections, "/checkin/visitor")).toBe("checkin");
     expect(activeEntryKey(sections, "/admin/roles/7")).toBe("users");
+    expect(activeEntryKey(sections, "/admin/settings")).toBe("settings");
   });
 
   it("doesn't confuse prefixes that only share letters", () => {
-    expect(activeEntryKey(sections, "/workforcereports")).toBe("workforce");
+    expect(activeEntryKey(sections, "/workforce-old")).toBe(null);
+    expect(activeEntryKey(sections, "/snapshots")).toBe(null);
     expect(activeEntryKey(sections, "/checkout")).toBe("checkout");
     expect(activeEntryKey(sections, "/nowhere")).toBe(null);
   });

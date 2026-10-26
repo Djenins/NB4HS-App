@@ -371,7 +371,7 @@ export default function EmployerProfile() {
 
   return (
     <>
-      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/employers")}>
+      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/workforce/employers")}>
         <ArrowLeft className="h-3.5 w-3.5" /> {t("navEmployers")}
       </Button>
 
@@ -546,7 +546,7 @@ export default function EmployerProfile() {
             employerPlacements.length === 0 ? <p className="py-8 text-center text-sm text-muted">{t("noPlacementsYet")}</p> : (
               <div className="space-y-2">
                 {employerPlacements.map((p) => (
-                  <button key={p.id} type="button" onClick={() => navigate("/placements/" + p.id)} className="block w-full min-h-0 border-0 bg-transparent p-0 text-left">
+                  <button key={p.id} type="button" onClick={() => navigate("/workforce/placements/" + p.id)} className="block w-full min-h-0 border-0 bg-transparent p-0 text-left">
                     <Card><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                       <div>
                         <div className="text-sm font-bold text-card-foreground hover:text-primary hover:underline">{p.participantName}</div>

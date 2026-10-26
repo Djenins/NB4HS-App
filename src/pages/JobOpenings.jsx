@@ -9,7 +9,7 @@
 // Add Job -- from the header or from the empty state -- opens the one
 // existing JobOpeningWizard.jsx modal, and View still opens
 // JobOpeningDetailModal.jsx. Nothing here touches the module's navigation
-// (pages/Workforce.jsx / components/ModuleNav.jsx) or the app shell.
+// (components/ModuleNav.jsx) or the app shell.
 //
 // The filters read the fields the job_openings rows already carry --
 // employers.city (Location), the employer's industry, employment_type,
@@ -169,7 +169,7 @@ export default function JobOpenings() {
     await deleteJobOpening(o.id);
   }
   function referCandidate(o) {
-    navigate("/candidatematching", { state: { openingId: o.id } });
+    navigate("/workforce/matching", { state: { openingId: o.id } });
   }
   function referralCountFor(o) {
     return referrals.filter(function (r) { return r.jobOpeningId === o.id; }).length;

@@ -22,7 +22,7 @@ export default function EmployerListItem({ employer, industryLabel, openPosition
       <div className="flex items-start justify-between gap-3">
         <button
           type="button"
-          onClick={function () { navigate("/employers/" + employer.id); }}
+          onClick={function () { navigate("/workforce/employers/" + employer.id); }}
           className="flex min-w-0 items-center gap-3 border-0 bg-transparent p-0 text-left font-normal transform-none min-h-0"
         >
           <Avatar className="h-11 w-11 shrink-0">

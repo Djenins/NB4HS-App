@@ -28,7 +28,7 @@ export default function EmployerCard({ employer, industryLabel, openPositions, p
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"
-          onClick={function () { navigate("/employers/" + employer.id); }}
+          onClick={function () { navigate("/workforce/employers/" + employer.id); }}
           className="flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left font-normal transform-none min-h-0"
         >
           <Avatar className="h-10 w-10 shrink-0">

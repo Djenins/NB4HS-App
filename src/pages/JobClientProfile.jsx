@@ -367,7 +367,7 @@ export default function JobClientProfile() {
 
   return (
     <>
-      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/jobdeveloper")}>
+      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/workforce/participants")}>
         <ArrowLeft className="h-3.5 w-3.5" /> {t("navJobDeveloper")}
       </Button>
 

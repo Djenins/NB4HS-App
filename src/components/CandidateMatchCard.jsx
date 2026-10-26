@@ -77,7 +77,7 @@ export default function CandidateMatchCard({ jobClient, jobOpening, employer, sc
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3">
         <Button
           variant="ghost"
-          onClick={function () { navigate("/jobdeveloper/" + jobClient.id); }}
+          onClick={function () { navigate("/workforce/participants/" + jobClient.id); }}
           className="h-9 gap-1.5 px-2 text-sm font-semibold text-primary hover:bg-primary-tint"
         >
           {t("viewLabel")} <ArrowRight className="h-4 w-4" aria-hidden="true" />

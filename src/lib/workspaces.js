@@ -11,6 +11,7 @@
 // (nav.js navItemsForRole) without a code change; Phase 8 removes that switch.
 import { Briefcase, FolderKanban, GraduationCap, HeartHandshake, House, ShieldCheck, ShoppingBasket } from "lucide-react";
 import { NAV_ORDER } from "./modules.js";
+import { navKeyForPath as routeNavKey } from "./routes.js";
 
 export var AUTH_MODEL = (import.meta.env && import.meta.env.VITE_AUTH_MODEL) === "legacy" ? "legacy" : "permissions";
 
@@ -52,17 +53,10 @@ export function visibleSharedItems(navItems) {
   return SHARED_ITEMS.filter(function (k) { return (navItems || []).indexOf(k) !== -1; });
 }
 
-// Route segment -> nav key, for pages whose URL isn't just "/" + key.
-var SEGMENT_KEYS = {
-  admin: "users", outreach: "outreach", workforce: "workforcedashboard", clients: null
-};
-
-// The nav key a path belongs to: "/employers/42" -> "employers",
-// "/admin/roles" -> "users", "/clients/NB-1" -> null (shared record pages).
+// The nav key a path belongs to (routes.js): "/workforce/employers/42" ->
+// "employers", "/admin/roles" -> "users", "/clients/NB-1" -> null.
 export function navKeyForPath(pathname) {
-  var seg = (pathname || "").split("/")[1] || "";
-  if (Object.prototype.hasOwnProperty.call(SEGMENT_KEYS, seg)) return SEGMENT_KEYS[seg];
-  return NAV_ORDER.indexOf(seg) !== -1 || seg === "calendar" ? seg : null;
+  return routeNavKey(pathname, NAV_ORDER);
 }
 
 // Which workspace to show: the one the current page belongs to; on a shared
