@@ -1,8 +1,11 @@
 -- Phase 6, part A -- staff reports reshape, "R1b" (plans/unified-access-
 -- architecture.md §8.2). Builds on R1 (staff_reports_r1_core) and R2
 -- (staff_reports_r2_reminders, applied live from PR #42).
--- NOT APPLIED. Dry-run only (supabase/tests/p6a_reports_check.sql), waiting
--- for review. There are 0 reports live, so the reshape moves no data.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261027020000), with 0
+-- reports live, after a rolled-back dry run of
+-- supabase/tests/p6a_reports_check.sql passed. Afterwards p6a_reports_check,
+-- p5_admin_check and p1_access_check (parity) passed against the live
+-- database.
 --
 -- What changes:
 --   * One report per person per period, across programs, instead of one per
