@@ -208,6 +208,9 @@ export default function Shell() {
   const searchPlaceholder = t(searchPlaceholderKey(scopes));
   const pages = sections.flatMap((s) => s.entries.map((e) => ({ key: e.key, label: e.label, to: e.to, icon: e.icon, section: s.label })));
   const isMobile = viewport === "mobile";
+  // Desktop staff screens: the content column floats beside the sidebar as
+  // its own panel (main.css, .content-col--floating).
+  const floating = showSidebar && !isMobile && !isKioskLanding;
   const collapsed = viewport === "tablet" ? !tabletExpanded : viewport === "desktop" ? !!config.sidebarCollapsed : false;
   function toggleCollapsed() {
     if (viewport === "tablet") setTabletExpanded(collapsed);
@@ -225,7 +228,7 @@ export default function Shell() {
   return (
     <Fragment>
       <TooltipProvider>
-        <div className="app-shell">
+        <div className={cn("app-shell", floating && "app-shell--floating")}>
           {showSidebar && !isMobile && (
             // Floats 16px in from the viewport's edges and stays put while
             // the page scrolls. It sits in the normal flow, so the content
@@ -245,7 +248,7 @@ export default function Shell() {
             <CommandPalette pages={pages} scopes={scopes} placeholder={searchPlaceholder} onClose={() => setPaletteOpen(false)} t={t} />
           )}
 
-          <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
+          <div className={cn("content-col", isKioskLanding && "content-col--kiosk-landing", floating && "content-col--floating")}>
             {/* Every client-facing screen gets the same kiosk top bar (Back,
                 logo, clock, language); the kiosk home draws its own copy
                 inside its full-screen frame. Back is left off the kiosk

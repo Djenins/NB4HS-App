@@ -630,6 +630,9 @@
     --sb-seg:rgba(241,245,249,.95); --sb-seg-on:#ffffff; --sb-seg-on-text:#155EEF;
     --sb-tooltip:#0F172A; --sb-tooltip-text:#ffffff;
     --sb-shadow:0 1px 2px rgba(15,23,42,.04), 0 16px 40px -12px rgba(15,23,42,.16);
+    /* The canvas behind the floating sidebar and content panel: one step
+       below the page colour, so the panel (which keeps --bg) lifts off it. */
+    --canvas:#EDF1F6;
   }
   html[data-theme="dark"]{
     --sb-bg:rgba(13,24,43,.94); --sb-border:rgba(148,163,184,.14); --sb-divider:rgba(148,163,184,.14);
@@ -639,6 +642,7 @@
     --sb-seg:rgba(255,255,255,.05); --sb-seg-on:#1D4ED8; --sb-seg-on-text:#ffffff;
     --sb-tooltip:#E2E8F0; --sb-tooltip-text:#0F172A;
     --sb-shadow:0 1px 2px rgba(0,0,0,.3), 0 20px 48px -12px rgba(0,0,0,.55);
+    --canvas:#0B0E13;
   }
   /* The sidebar itself is built with Tailwind utility classes in
      components/sidebar/ -- no .sidebar* classes live here. .theme-pill/.theme-pill-option below are
@@ -658,6 +662,16 @@
   }
   .content-col{flex:1; min-width:0; display:flex; flex-direction:column;}
   .content-col > header.topbar{position:sticky; top:0; z-index:15;}
+  /* Desktop staff layout (Shell.jsx): the content column floats beside the
+     sidebar as its own rounded panel, with the same 16px inset, border and
+     shadow. The panel is the scroll container -- the window doesn't scroll
+     -- so the topbar stays inside its rounded top edge; sticky children
+     (topbar, ModuleNav) stick to the panel's top instead of the window's. */
+  .app-shell--floating{background:var(--canvas); height:100dvh;}
+  .content-col--floating{
+    height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+    background:var(--bg); border:1px solid var(--sb-border); box-shadow:var(--sb-shadow);
+  }
   .content-col > main{max-width:1200px;}
   /* Landscape check-in kiosk (CheckInVisitor.jsx). The kiosk form is a
      three-column screen (sidebar | form | action panel), so it opts out of
@@ -926,6 +940,8 @@
     header.topbar{border-bottom:2px solid var(--accent); box-shadow:none;}
     body{background:#fff;}
     main, .content-col > main{max-width:100%;}
+    .app-shell--floating{height:auto; background:#fff;}
+    .content-col--floating{height:auto; margin:0; border:0; border-radius:0; box-shadow:none; overflow:visible;}
   }
 
   /* Recharts hardcodes "display:block; margin-right:10px" inline on legend
