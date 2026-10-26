@@ -24,6 +24,7 @@ import DashChart from "../components/DashChart.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { EmptyState } from "../components/ui/empty-state.jsx";
 import { KpiCard } from "../components/ui/kpi-card.jsx";
+import ForYouPanel from "../components/home/ForYouPanel.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 
@@ -186,6 +187,8 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader className="mb-0" title={t("dashboardTitle")} description={t("dashboardWelcomeSubtitle")} />
+
+      <ForYouPanel />
 
       <Section id="dash-now" title={t("dashSectionToday")}>
         <div className="flex flex-col gap-4">

@@ -63,6 +63,7 @@ const Outreach = lazy(() => import("./pages/Outreach.jsx"));
 const MyReports = lazy(() => import("./pages/MyReports.jsx"));
 const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 
 function BootstrapEntry() {
@@ -132,6 +133,7 @@ export default function App() {
           <Route path="/workforce/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />
           <Route path="/workforce/placements/:placementId" element={<RequireRoute routeKey="placements"><PlacementDetail /></RequireRoute>} />
           <Route path="/workforce/reports" element={<RequireRoute routeKey="workforcereports"><WorkforceReports /></RequireRoute>} />
+          <Route path="/profile" element={<RequireRoute routeKey="profile"><Profile /></RequireRoute>} />
           <Route path="/clients/:nbId" element={<RequireRoute routeKey="clients"><ClientProfile /></RequireRoute>} />
           <Route path="/admin/settings" element={<RequireRoute routeKey="settings"><Settings /></RequireRoute>} />
           {/* Administration is gated by the new permissions inside Admin.jsx. */}

@@ -21,7 +21,7 @@
 // is reproduced via NAV_SECTION (constants.js) mapped onto the *real* nav
 // vocabulary, not the mockup's literal (partly fictional) item labels.
 import { AnimatePresence, m } from "framer-motion";
-import { Check, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, GraduationCap, LogOut, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { Check, ChevronRight, UserRound, ChevronsLeft, ChevronsRight, ChevronsUpDown, GraduationCap, LogOut, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -319,6 +319,7 @@ export default function Shell() {
   const { data, session, authLoading, kiosk, logout, lang, config, updateConfig } = useApp();
   const t = useT();
   const location = useLocation();
+  const navigate = useNavigate();
   // Must stay above the early returns below: hooks have to run in the same
   // order every render, and the first render (authLoading) returns early.
   const isMobile = useIsMobile();
@@ -513,6 +514,9 @@ export default function Shell() {
                       <div className="truncate text-sm font-semibold">{displayName}</div>
                       <div className="truncate text-xs text-muted">{roleLabel(role, lang)}</div>
                     </div>
+                    <DropdownMenuItem onSelect={() => navigate("/profile")}>
+                      <UserRound className="h-4 w-4" /> {t("profileMenuItem")}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={logout}>
                       <LogOut className="h-4 w-4" /> {t("signOut")}
                     </DropdownMenuItem>
