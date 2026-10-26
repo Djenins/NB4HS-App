@@ -317,7 +317,7 @@
   input[type="checkbox"], input[type="radio"]{
     width:18px; height:18px; min-height:auto; padding:0; flex:0 0 auto; accent-color:var(--primary); cursor:pointer;
   }
-  input:focus, select:focus, textarea:focus{outline:3px solid rgba(37,99,235,.28); border-color:var(--primary); background:var(--card);}
+  input:focus, select:focus, textarea:focus{outline:3px solid rgba(37,99,235,.28); border-color:var(--primary); background-color:var(--card);}
   /* Horizontal group of radio options with inline labels (gender, deduction
      day, account type, etc.) -- one shared class instead of re-typing the
      same flex/gap inline style at every call site. */

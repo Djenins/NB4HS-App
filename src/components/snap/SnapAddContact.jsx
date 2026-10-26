@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, UserPlus } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { findPossibleDuplicates } from "../../lib/masterClients.js";
 import { CONTACT_LANGUAGES, CONTACT_METHODS, OUTREACH_SOURCES, createOutreachContact, searchClients } from "../../lib/outreachContacts.js";
 import { formatPhone } from "../../lib/utils.js";
@@ -23,6 +24,7 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
   const boxRef = useModalA11y(onClose);
   const { data, showToast } = useApp();
   const t = useT();
+  const { program } = useOutreachProgram();
   const navigate = useNavigate();
   const [step, setStep] = useState("find");
   const [q, setQ] = useState("");
@@ -44,7 +46,7 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
     }
     setSaving(true);
     try {
-      const created = await createOutreachContact(fields, fields, matchedClient ? matchedClient.id : null);
+      const created = await createOutreachContact(program, fields, fields, matchedClient ? matchedClient.id : null);
       showToast(t("snapContactCreated"));
       onCreated(created);
     } catch (err) {

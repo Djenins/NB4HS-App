@@ -1,10 +1,11 @@
-// SnapTasks.jsx -- the SNAP Outreach "Follow-ups" section: open follow-ups
+// SnapTasks.jsx -- an outreach program's "Follow-ups" section: open follow-ups
 // grouped into overdue / next 7 days / later / no date, plus done. Workers
 // see their own (RLS); supervisors and program admins can switch to the
 // whole team. `intent` ("new") comes from the dashboard's quick actions.
 import { useEffect, useState } from "react";
 import { ListPlus } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { fetchTasks, taskBuckets } from "../../lib/snapTasks.js";
 import { todayStr } from "../../lib/utils.js";
 import EmptyState from "../EmptyState.jsx";
@@ -15,17 +16,18 @@ import { SnapTaskForm, SnapTaskRows } from "./SnapTaskList.jsx";
 const BUCKETS = ["overdue", "dueSoon", "later", "noDate", "done"];
 
 export default function SnapTasks({ intent }) {
-  const { data, session } = useApp();
+  const { session } = useApp();
   const t = useT();
+  const { program, programRole } = useOutreachProgram();
   const userId = session ? session.id : null;
-  const lead = ["supervisor", "program_admin"].indexOf((data.programRoles || {}).snap) !== -1;
+  const lead = programRole === "supervisor" || programRole === "program_admin";
   const [scope, setScope] = useState("mine");
   const [tasks, setTasks] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const [adding, setAdding] = useState(intent === "new");
 
   function load() {
-    return fetchTasks(scope === "mine" ? { assignedTo: userId } : {})
+    return fetchTasks(scope === "mine" ? { program, assignedTo: userId } : { program })
       .then((rows) => { setTasks(rows); setLoadError(false); })
       .catch((err) => { console.warn("fetchTasks failed", err); setLoadError(true); });
   }
