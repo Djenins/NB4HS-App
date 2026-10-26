@@ -11,7 +11,7 @@
 // that matters here: the request was *received*, not confirmed. A staff
 // member still has to confirm the date and time.
 import { useNavigate } from "react-router-dom";
-import { CalendarCheck, Check, Search } from "lucide-react";
+import { Check, Home, Search } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
@@ -24,10 +24,13 @@ export default function ApptRequestSuccess() {
 
   return (
     <div className="appt-request flex w-full flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[880px] flex-col items-center rounded-[22px] border border-border bg-card p-6 text-center shadow-card sm:p-9">
+      <div className="m-auto flex w-full max-w-[880px] flex-col items-center rounded-[22px] border border-border bg-card p-6 text-center shadow-card sm:p-9">
         <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto object-contain sm:h-14" />
 
-        <span className="success-icon mt-6 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-success text-success-foreground sm:h-[88px] sm:w-[88px]">
+        {/* Not the legacy .success-icon class: its unlayered `margin: 0 auto`
+            beat mt-6 and pressed the badge into the logo. Same pop animation
+            (main.css keyframes, which reduced motion turns into a fade). */}
+        <span className="mt-7 flex h-[76px] w-[76px] shrink-0 animate-[success-pop_.35s_ease-out] items-center justify-center rounded-full bg-success text-success-foreground sm:mt-8 sm:h-[88px] sm:w-[88px]">
           <Check size={40} strokeWidth={3} aria-hidden="true" />
         </span>
 
@@ -51,7 +54,7 @@ export default function ApptRequestSuccess() {
             onClick={() => { setKiosk(false); navigate("/"); }}
             className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 text-[1.1rem] font-bold text-primary-foreground shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150 hover:bg-primary-dark focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <CalendarCheck size={22} strokeWidth={2.2} aria-hidden="true" />
+            <Home size={22} strokeWidth={2.2} aria-hidden="true" />
             {t("backToHomeBtn")}
           </button>
           <button
