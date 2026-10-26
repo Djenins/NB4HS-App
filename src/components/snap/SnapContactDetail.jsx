@@ -16,6 +16,7 @@ import { fmtTime, formatPhone } from "../../lib/utils.js";
 import NbIdBadge from "../NbIdBadge.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
+import { useModalA11y } from "../../lib/useModalA11y.js";
 import { SNAP_CONTROL, SnapSelect } from "./SnapField.jsx";
 
 const H3 = "m-0 mb-3 text-sm font-bold text-card-foreground";
@@ -48,11 +49,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
     return () => { cancelled = true; };
   }, [contact.clientId]);
 
-  useEffect(() => {
-    function onKeydown(e) { if (e.key === "Escape") onClose(); }
-    document.addEventListener("keydown", onKeydown);
-    return () => document.removeEventListener("keydown", onKeydown);
-  }, [onClose]);
+  const boxRef = useModalA11y(onClose);
 
   async function patch(fields) {
     setBusy(true);
@@ -103,7 +100,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box max-h-[90vh] max-w-3xl overflow-auto" role="dialog" aria-modal="true" aria-labelledby="snap-contact-title">
+      <div ref={boxRef} className="modal-box max-h-[90vh] max-w-3xl overflow-auto" role="dialog" aria-modal="true" aria-labelledby="snap-contact-title">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

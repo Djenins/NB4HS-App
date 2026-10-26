@@ -8,21 +8,22 @@
 // noise: a permanently empty box teaches nothing the second time it is read.
 // If those fields ever get real columns, they belong in the field grid above
 // like any other -- not as dashed placeholders.
-import { AnimatePresence, motion } from "framer-motion";
-import { Copy, Pencil, Trash2, Users, X } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
+import { Copy, MapPin, Pencil, Trash2, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fmtTimeRange } from "./calendarLayout.js";
 import { blockStyle } from "./kindStyle.js";
 import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
 import { cn } from "../../lib/cn.js";
+import { useModalA11y } from "../../lib/useModalA11y.js";
 
 const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 function Field({ label, value }) {
   return (
     <div>
-      <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="m-0 text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="m-0 mt-0.5 text-sm text-card-foreground">{value || "—"}</p>
     </div>
   );
@@ -33,6 +34,10 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
   const [fields, setFields] = useState(null);
 
   const open = !!block;
+  // The drawer is a side panel, not a .modal-overlay dialog, but it is just as
+  // modal (aria-modal, a backdrop over the grid) -- same Escape / focus-trap /
+  // focus-return contract as every other dialog.
+  const panelRef = useModalA11y(onClose, open);
   const style = open ? blockStyle(block) : null;
   const Icon = style?.icon;
   const editable = !!block?.event;
@@ -43,6 +48,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
       title: block.title,
       personName: block.event?.personName || "",
       notes: block.event?.notes || "",
+      location: block.event?.location || "",
       date: block.event?.date || "",
       startTime: block.startTime,
       endTime: block.endTime || "",
@@ -68,15 +74,16 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
     <AnimatePresence onExitComplete={() => setEditing(false)}>
       {open && (
         <>
-          <motion.div
+          <m.div
             className="fixed inset-0 z-40 bg-black/30"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />
-          <motion.div
+          <m.div
             className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card shadow-lg"
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.2 }}
+            ref={panelRef}
             role="dialog" aria-modal="true" aria-label={t("calendarEventDetails")}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -84,7 +91,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                 {Icon && <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", style.chipBg, style.chipFg)}><Icon className="h-4 w-4" /></span>}
                 <p className="m-0 text-sm font-bold leading-none text-card-foreground">{t("calendarEventDetails")}</p>
               </div>
-              <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("calendarCancel")}>
+              <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("closeLabel")}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -98,6 +105,11 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                   <p className="m-0 mt-1 text-lg font-bold leading-tight text-card-foreground">{block.title}</p>
                   {block.subtitle && <p className="m-0 mt-0.5 text-sm font-medium text-muted">{block.subtitle}</p>}
                   <p className="m-0 mt-0.5 text-sm font-medium text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
+                  {block.location && (
+                    <p className="m-0 mt-1 flex items-center gap-1.5 text-sm font-medium text-[var(--ev-ink-soft)]">
+                      <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />{block.location}
+                    </p>
+                  )}
                   {/* Live enrolled-student count for the classes in this
                       block -- see Calendar.jsx. Absent, not zero, for kinds
                       that have no roster. */}
@@ -125,7 +137,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                 </div>
 
                 <div className="border-t border-border pt-3">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
+                  <p className="m-0 text-xs font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
                   <p className="m-0 mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
                 </div>
               </div>
@@ -149,6 +161,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                   <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarStartTime")} *</label><input type="time" className={inputClass} value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} /></div>
                   <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEndTime")}</label><input type="time" className={inputClass} value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} /></div>
                 </div>
+<div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("classLocationLabel")}</label><input className={inputClass} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} /></div>
                 <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label><input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} /></div>
               </div>
             )}
@@ -171,7 +184,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                 )}
               </div>
             )}
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

@@ -9,6 +9,19 @@ export default defineConfig({
   server: {
     port: 5173
   },
+  // Staff pages are lazy routes (App.jsx). Recharts is shared by Dashboard,
+  // Reports and Workforce Reports, so give it its own named chunk -- cached
+  // once across all three instead of being named after whichever page
+  // Rollup happened to see first.
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/node_modules\/(recharts|d3-|victory-vendor)/.test(id)) return "charts";
+        }
+      }
+    }
+  },
   // `npm test` (Vitest, config lives here since Vitest reads Vite's own
   // config file). jsdom + jest-dom matchers so component tests aren't
   // limited to the pure-function tests in src/lib/*.test.js -- see

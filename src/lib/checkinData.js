@@ -13,7 +13,7 @@ import { masterToRow } from "./clientsData.js";
 // ---------- mapping: DB row (snake_case) <-> app shape (camelCase) ----------
 
 function classFromRow(row) {
-  return { key: row.key, name: row.name, days: row.days || [], service: row.service, staff: row.staff, active: row.active, custom: row.custom };
+  return { key: row.key, name: row.name, days: row.days || [], service: row.service, staff: row.staff, location: row.location || "", active: row.active, custom: row.custom };
 }
 function classToRow(fields) {
   const row = {};
@@ -22,6 +22,7 @@ function classToRow(fields) {
   if (fields.days !== undefined) row.days = fields.days;
   if (fields.service !== undefined) row.service = fields.service;
   if (fields.staff !== undefined) row.staff = fields.staff;
+  if (fields.location !== undefined) row.location = fields.location ? fields.location.trim() || null : null;
   if (fields.active !== undefined) row.active = fields.active;
   if (fields.custom !== undefined) row.custom = fields.custom;
   return row;

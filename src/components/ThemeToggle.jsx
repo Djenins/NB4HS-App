@@ -32,6 +32,7 @@ export default function ThemeToggle({ compact }) {
       <button
         type="button"
         className={"theme-pill-option" + (isDark ? "" : " active")}
+        aria-pressed={!isDark}
         onClick={() => { if (isDark) toggleTheme(); }}
         title={t("switchToLightMode")}
       >
@@ -41,6 +42,7 @@ export default function ThemeToggle({ compact }) {
       <button
         type="button"
         className={"theme-pill-option" + (isDark ? " active" : "")}
+        aria-pressed={isDark}
         onClick={() => { if (!isDark) toggleTheme(); }}
         title={t("switchToDarkMode")}
       >

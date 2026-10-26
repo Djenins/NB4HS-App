@@ -20,7 +20,7 @@ export default function KioskStepCard({ number, icon: StepIcon, title, descripti
       <span
         className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-full xl:h-11 xl:w-11",
-          active ? "bg-primary text-white" : "bg-[#EEF3FC] text-muted dark:bg-background"
+          active ? "bg-primary text-primary-foreground" : "bg-[#EEF3FC] text-muted dark:bg-background"
         )}
       >
         <StepIcon size={20} strokeWidth={2} aria-hidden="true" />

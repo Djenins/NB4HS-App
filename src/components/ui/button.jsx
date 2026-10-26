@@ -44,7 +44,7 @@ const buttonVariants = cva(
         // No --success-dark token exists (only primary/accent have a dark
         // variant), so this uses a brightness filter for the hover-darken
         // instead of a second named color.
-        success: "bg-success text-white hover:brightness-90"
+        success: "bg-success text-success-foreground hover:brightness-90"
       },
       size: {
         default: "h-10 px-4 py-2",

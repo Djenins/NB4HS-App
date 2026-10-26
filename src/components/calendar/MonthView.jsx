@@ -109,7 +109,7 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
                     <button
                       type="button"
                       onClick={() => onSelectDay(dateStr)}
-                      className={cn(BTN_RESET, "px-1.5 text-left text-[11px] font-semibold text-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary")}
+                      className={cn(BTN_RESET, "px-1.5 text-left text-xs font-semibold text-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary")}
                     >
                       +{overflow} {t("calendarMore")}
                     </button>

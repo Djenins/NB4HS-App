@@ -16,10 +16,12 @@ import DuplicateClientWarning from "../DuplicateClientWarning.jsx";
 import NbIdBadge from "../NbIdBadge.jsx";
 import { Button } from "../ui/button.jsx";
 import { SNAP_CONTROL, SnapInput, SnapSelect } from "./SnapField.jsx";
+import { useModalA11y } from "../../lib/useModalA11y.js";
 
 const EMPTY = { firstName: "", lastName: "", phone: "", email: "", preferredLanguage: "", preferredContactMethod: "", outreachSource: "" };
 
 export default function SnapAddContact({ contacts, onCreated, onOpenContact, onClose }) {
+  const boxRef = useModalA11y(onClose);
   const { data, showToast } = useApp();
   const t = useT();
   const { program } = useOutreachProgram();
@@ -70,7 +72,7 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="snap-add-title">
+      <div ref={boxRef} className="modal-box max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="snap-add-title">
         {step === "find" ? (
           <>
             <h2 id="snap-add-title" className="m-0 mb-1 text-lg font-bold text-card-foreground">{t("snapFindPersonTitle")}</h2>

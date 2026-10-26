@@ -137,7 +137,7 @@ export default function WorkforceDashboard() {
           icon={Briefcase} tint="bg-tint-success text-success" label={t("statActiveJobOpeningsLabel")} value={activeJobOpenings}
           onDrill={drill("/jobopenings", { status: "active" })} drillLabel={t("viewListLabel")}
         />
-        <KpiCard icon={Users} tint="bg-violet-100 text-violet-700" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
+        <KpiCard icon={Users} tint="bg-violet-tint text-violet-ink" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
         <KpiCard
           icon={CalendarClock} tint="bg-tint-warn text-gold-ink" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled}
           onDrill={drill("/referrals", { stage: "interview" })} drillLabel={t("viewListLabel")}

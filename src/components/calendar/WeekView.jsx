@@ -59,8 +59,8 @@ export default function WeekView({ dayBlocks, weekdayLabels, todayStr, holidaysB
             style={{ height: HEADER_HEIGHT }}
             className="flex items-center gap-1.5 border-b border-[var(--cal-grid)] pl-3 sm:pl-4"
           >
-            <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-            <span className="text-[13px] font-semibold text-card-foreground">{t("calendarTimeColumn")}</span>
+            <Clock className="h-[18px] w-[18px] shrink-0 text-navy dark:text-card-foreground" aria-hidden="true" />
+            <span className="text-[15px] font-semibold text-navy dark:text-card-foreground">{t("calendarTimeColumn")}</span>
           </div>
 
           {allDayHeight > 0 && (
@@ -80,7 +80,7 @@ export default function WeekView({ dayBlocks, weekdayLabels, todayStr, holidaysB
               <span
                 key={h}
                 style={{ top: i * grid.hourHeight }}
-                className="absolute left-3 -translate-y-1/2 whitespace-nowrap text-[13px] font-medium text-card-foreground sm:left-4 sm:text-[15px]"
+                className="absolute left-3 -translate-y-1/2 whitespace-nowrap text-[13px] font-medium tabular-nums text-[var(--ev-ink-soft)] sm:left-4 sm:text-[15px]"
               >
                 {fmtHour(h)}
               </span>

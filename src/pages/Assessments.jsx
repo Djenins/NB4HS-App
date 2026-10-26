@@ -10,9 +10,9 @@
 // lib/assessments.js/lib/students.js helpers and AppContext's setData; only
 // the presentation layer changed. No new fields (e.g. test dates) were
 // invented since none exist on the student record -- see assessments.js.
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   CheckCircle2, Circle, ClipboardList, Clock, Download, Eye, FileBarChart2, GraduationCap, IdCard, Info, Pencil, Phone,
   Search, Target, TrendingUp, Users, X
@@ -20,6 +20,7 @@ import {
 import { useApp, useT } from "../context/AppContext.jsx";
 import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
+import { useModalA11y } from "../lib/useModalA11y.js";
 import { paginateList } from "../lib/pagination.js";
 import { classByKey, columnAccentColor, sortStudentsList, studentMatchesSearch } from "../lib/students.js";
 import { downloadBlob, formatPhone, initialsOf } from "../lib/utils.js";
@@ -37,7 +38,7 @@ const QUICK_FILTERS = ["all", "noPretest", "flagged", "completed", "gain", "noGa
 
 function KpiStat({ icon: Icon, tint, label, value, sublabel, index }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
+    <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
       <Card className="transition-shadow hover:shadow-card-hover">
         <CardContent className="flex items-center gap-3 p-5">
           <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
@@ -50,7 +51,7 @@ function KpiStat({ icon: Icon, tint, label, value, sublabel, index }) {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -90,36 +91,6 @@ function DetailRow({ icon: Icon, iconClassName, label, children }) {
   );
 }
 
-// Escape-to-close + a basic Tab focus trap for the modal, since this project
-// has no Radix Dialog installed yet (only Avatar/DropdownMenu/Tooltip) --
-// hand-rolled rather than pulling in a new dependency.
-function useModalA11y(active, containerRef, onClose) {
-  useEffect(() => {
-    if (!active) return;
-    const container = containerRef.current;
-    const previouslyFocused = document.activeElement;
-    const focusable = () => Array.from(container.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-      .filter((el) => !el.disabled && el.offsetParent !== null);
-    const first = focusable()[0];
-    if (first) first.focus();
-
-    function onKeyDown(e) {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key !== "Tab") return;
-      const items = focusable();
-      if (!items.length) return;
-      const firstEl = items[0], lastEl = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
-      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
-    };
-  }, [active, containerRef, onClose]);
-}
-
 // Reuses the app's .modal-overlay backdrop (same pattern as Search.jsx's
 // visit-detail modal) but a bespoke wide/rounded box instead of the shared
 // .modal-box (max-width 420) -- redesigned per a reference "Assessment
@@ -129,8 +100,7 @@ function useModalA11y(active, containerRef, onClose) {
 function AssessmentDetailModal({ row, onClose, onSetOutcome }) {
   const { data, lang } = useApp();
   const t = useT();
-  const containerRef = useRef(null);
-  useModalA11y(!!row, containerRef, onClose);
+  const containerRef = useModalA11y(onClose, !!row);
   if (!row) return null;
   const { student, assessment } = row;
   const name = student.firstName + " " + student.lastName;
@@ -178,7 +148,7 @@ function AssessmentDetailModal({ row, onClose, onSetOutcome }) {
         </div>
 
         <div className="space-y-2">
-          <DetailRow icon={Phone} iconClassName="text-violet-600" label={t("phoneNumberLabel")}>
+          <DetailRow icon={Phone} iconClassName="text-violet-ink" label={t("phoneNumberLabel")}>
             {formatPhone(student.phone) || "—"}
           </DetailRow>
 
@@ -202,7 +172,7 @@ function AssessmentDetailModal({ row, onClose, onSetOutcome }) {
             </DetailRow>
           ) : null}
 
-          <DetailRow icon={Target} iconClassName="text-violet-600" label={t("outcomeLabel")}>
+          <DetailRow icon={Target} iconClassName="text-violet-ink" label={t("outcomeLabel")}>
             {!assessment.outcome ? "—" : assessment.outcomeEditable ? (
               <OutcomeCell assessment={assessment} t={t} onSetOutcome={onSetOutcome} />
             ) : (

@@ -35,6 +35,7 @@ import DatePicker from "../components/DatePicker.jsx";
 import EmployerPipelineTracker from "../components/EmployerPipelineTracker.jsx";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const TAB_KEYS = ["overview", "jobOpenings", "candidates", "placements", "documents", "activity", "notes"];
 const TAB_LABEL = {
@@ -100,6 +101,7 @@ function StorageDownloadLink({ path, fileName, children, className }) {
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 
 function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     businessName: record.businessName || "", industry: record.industry || "", website: record.website || "",
@@ -112,7 +114,7 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("companyInformationLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("businessNameLabel")}</label><input className={inputClass} value={fields.businessName} onChange={(e) => setField("businessName", e.target.value)} placeholder={t("phBusinessName")} /></div>
@@ -155,6 +157,7 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
 }
 
 function EditPartnershipModal({ record, jobDevelopers, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     partnerSince: record.partnerSince || "", lastMeetingDate: record.lastMeetingDate || "", nextFollowUpDate: record.nextFollowUpDate || "",
@@ -164,7 +167,7 @@ function EditPartnershipModal({ record, jobDevelopers, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("partnershipInformationLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("partnerSinceLabel")}</label><DatePicker id="employer-partner-since" value={fields.partnerSince} onChange={(v) => setField("partnerSince", v)} /></div>
@@ -195,13 +198,14 @@ function EditPartnershipModal({ record, jobDevelopers, onSave, onCancel }) {
 }
 
 function AddActivityModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({ date: "", type: "call", summary: "", followUpRequired: false });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addActivityBtn")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("date")}</label><DatePicker id="employer-activity-date" value={fields.date} onChange={(v) => setField("date", v)} /></div>
@@ -230,11 +234,12 @@ function AddActivityModal({ onSave, onCancel }) {
 }
 
 function AddNoteModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [content, setContent] = useState("");
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
         <textarea
           value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
@@ -250,6 +255,7 @@ function AddNoteModal({ onSave, onCancel }) {
 }
 
 function UploadDocumentModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fileName, setFileName] = useState("");
   const fileRef = useRef(null);
@@ -260,7 +266,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
   }
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
         <input
           ref={fileRef} type="file" onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}

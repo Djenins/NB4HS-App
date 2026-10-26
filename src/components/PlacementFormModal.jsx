@@ -9,6 +9,7 @@ import { clientDisplayName } from "../lib/clients.js";
 import { todayStr } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
 import { Button } from "./ui/button.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 
@@ -24,6 +25,7 @@ function Field({ label, required, children }) {
 }
 
 export default function PlacementFormModal({ prefill, jobClients, employers, jobOpenings, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState(() => Object.assign({
     jobClientId: "", employerId: "", jobOpeningId: "", referralId: "", positionTitle: "",
@@ -43,7 +45,7 @@ export default function PlacementFormModal({ prefill, jobClients, employers, job
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addPlacementBtn")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t("selectParticipantLabel")} required>

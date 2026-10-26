@@ -34,19 +34,19 @@ export default function Legend({ t, summary, classGroups }) {
         <div className="flex items-center divide-x divide-border">
           <span className="px-3 text-center first:pl-0 last:pr-0">
             <span className="block text-[15px] font-bold leading-tight text-card-foreground">{summary.days}</span>
-            <span className="block text-[11px] text-muted">{t("calendarSummaryDays")}</span>
+            <span className="block text-xs text-muted">{t("calendarSummaryDays")}</span>
           </span>
           <span className="px-3 text-center first:pl-0 last:pr-0">
             <span className="block text-[15px] font-bold leading-tight text-primary">{summary.classes}</span>
-            <span className="block text-[11px] text-muted">{t("calendarClassLabel")}</span>
+            <span className="block text-xs text-muted">{t("calendarClassLabel")}</span>
           </span>
           <span className="px-3 text-center first:pl-0 last:pr-0">
             <span className="block text-[15px] font-bold leading-tight text-success">{summary.visits}</span>
-            <span className="block text-[11px] text-muted">{t("calendarVisitLabel")}</span>
+            <span className="block text-xs text-muted">{t("calendarVisitLabel")}</span>
           </span>
           <span className="px-3 text-center first:pl-0 last:pr-0">
             <span className="block text-[15px] font-bold leading-tight text-[var(--ev-appt-fg)]">{summary.appointments}</span>
-            <span className="block text-[11px] text-muted">{t("calendarAppointmentLabel")}</span>
+            <span className="block text-xs text-muted">{t("calendarAppointmentLabel")}</span>
           </span>
         </div>
       )}

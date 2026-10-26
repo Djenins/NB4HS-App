@@ -1,5 +1,6 @@
 // DayColumn.jsx -- one day of the shared time grid: the weekday/date header
-// (MON / 31 / Jul), the all-day cell (holidays live there, since they have
+// (MON / a date disc / Oct 2026 / the day's "1 class • 4 students" summary),
+// the all-day cell (holidays live there, since they have
 // no start/end time), the hour gridlines, the "now" line on today, and the
 // absolutely positioned EventCards laid out side-by-side by layoutOverlaps()
 // when they collide (Level 1 & Level 2 both meet 9:30-12:30). A day with
@@ -7,12 +8,12 @@
 // affordance -- empty time is never tinted, so any colour in the grid means
 // a real event.
 //
-// Today is marked three ways, none of them a full-column wash: a 3px primary
-// rule across the top of the column, the date number inverted into a filled
-// primary circle, and aria-current="date" on the header cell. Tinting the
-// whole column was tried and lost -- it competes with the event cards, which
-// are the only thing on this grid that should be coloured.
-import { Plus } from "lucide-react";
+// Today is marked three ways: the date disc filled primary (every other day
+// sits in a neutral disc), the weekday set in primary, and a faint
+// --cal-today-bg wash down the whole column -- a step off white, quiet
+// enough that the event cards stay the only saturated colour on the grid.
+// aria-current="date" carries it for assistive tech.
+import { Plus, Users } from "lucide-react";
 import { useMemo } from "react";
 import { HEADER_HEIGHT, layoutOverlaps } from "./calendarLayout.js";
 import { KIND_STYLE } from "./kindStyle.js";
@@ -20,36 +21,63 @@ import EventCard from "./EventCard.jsx";
 import { BTN_RESET } from "./btnReset.js";
 import { cn } from "../../lib/cn.js";
 
+// The header pill: what's on this day at a glance. Classes lead with their
+// live enrolled count; visits/appointments are counted as events. Built only
+// from the blocks actually on the grid, so a filtered view summarises what
+// it shows.
+function daySummary(blocks, t) {
+  const classes = blocks.filter((b) => b.kind === "class");
+  const students = classes.reduce((n, b) => n + (b.count || 0), 0);
+  const others = blocks.length - classes.length;
+  const fmt = (n, one, many) => t(n === 1 ? one : many).replace("{n}", String(n));
+  const parts = [];
+  if (classes.length) parts.push(fmt(classes.length, "calendarClassOne", "calendarClassMany"));
+  if (students) parts.push(fmt(students, "calendarStudentOne", "calendarStudentMany"));
+  if (others) parts.push(fmt(others, "calendarEventOne", "calendarEventMany"));
+  return parts.join(" • ");
+}
+
 export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, singleDay, allDayHeight, nowOffset, t, onOpen, onEdit, onDuplicate, onDelete, onAddEvent }) {
   const { blocks } = day;
   const laidOutBlocks = useMemo(() => layoutOverlaps(blocks), [blocks]);
   const HolidayIcon = KIND_STYLE.holiday.icon;
-  const monthLabel = day.date.toLocaleDateString("en-US", { month: "short" });
+  const monthLabel = day.date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   const dayNumber = day.date.getDate();
+  const summary = daySummary(blocks, t);
 
   return (
-    <div className={cn("flex flex-col border-l border-[var(--cal-grid)] first:border-l-0", singleDay ? "min-w-0 flex-1" : "min-w-[150px] flex-1 sm:min-w-[168px]")}>
+    <div className={cn("flex flex-col border-l border-[var(--cal-grid)] first:border-l-0", singleDay ? "min-w-0 flex-1" : "min-w-[150px] flex-1 sm:min-w-[168px]", isToday && "bg-[var(--cal-today-bg)]")}>
       <div
         style={{ height: HEADER_HEIGHT }}
-        className="relative flex flex-col items-center justify-center gap-1 border-b border-[var(--cal-grid)] px-2"
+        className="flex flex-col items-center justify-center border-b border-[var(--cal-grid)] px-2 [container-type:inline-size]"
         aria-current={isToday ? "date" : undefined}
       >
-        {isToday && <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-primary" />}
+        <p className={cn("m-0 text-[13px] font-bold uppercase leading-none tracking-[0.06em]", isToday ? "text-primary" : "text-navy dark:text-card-foreground")}>{weekdayLabel}</p>
 
-        <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.09em] text-primary">{weekdayLabel}</p>
+        <span
+          className={cn(
+            "mt-2 flex h-12 w-12 items-center justify-center rounded-full text-[22px] font-bold leading-none tabular-nums",
+            isToday ? "bg-primary text-primary-foreground shadow-[0_6px_14px_-6px_rgba(37,99,235,.6)]" : "bg-tint-neutral text-navy dark:text-card-foreground"
+          )}
+        >
+          {dayNumber}
+        </span>
 
-        {isToday ? (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[19px] font-bold leading-none text-primary-foreground">
-            {dayNumber}
-          </span>
-        ) : (
-          <p className="m-0 text-[26px] font-bold leading-none text-navy dark:text-card-foreground">{dayNumber}</p>
-        )}
-
-        <p className="m-0 text-[13px] font-medium leading-none text-muted">
+        <p className="m-0 mt-2 text-sm font-medium leading-none text-muted">
           {monthLabel}
           {isToday && <span className="sr-only"> — {t("calendarToday")}</span>}
         </p>
+
+        {/* Fixed-height slot whether or not there's a pill, so every column's
+            header bottoms out on the same line. */}
+        <div className="mt-3 flex h-8 max-w-full items-center">
+          {summary && (
+            <span title={summary} className="flex max-w-full items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-xs font-semibold leading-none text-primary [@container(min-width:13rem)]:gap-2 [@container(min-width:13rem)]:text-[13px]">
+              <Users className="hidden h-4 w-4 shrink-0 [@container(min-width:11rem)]:block" aria-hidden="true" />
+              <span className="truncate">{summary}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {allDayHeight > 0 && (

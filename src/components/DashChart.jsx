@@ -1,122 +1,90 @@
-// DashChart.jsx -- progressive-enhancement chart, ported from reports_data
-// .js's upgradeToChart(). Chart.js is loaded via a CDN <script defer> tag in
-// index.html (not an npm dependency -- see the project README rationale),
-// so it's addressed as the global `window.Chart`, same as the original. If
-// it hasn't loaded (or ever fails to), `fallback` (the original's zero-
-// dependency CSS bar-list markup) renders instead -- nothing breaks either way.
-import { useEffect, useRef, useState } from "react";
+// DashChart.jsx -- the Reports / Workforce Reports chart, drawn with Recharts
+// (the same library Dashboard.jsx uses) instead of the Chart.js global that
+// index.html used to load from a CDN on every page. Same props as before:
+//   type      "line" | "bar" | "doughnut" | "pie"
+//   labels    x-axis categories / slice names
+//   datasets  [{ data: number[] }, ...] -- Chart.js-style, so call sites are
+//             unchanged; extra Chart.js keys (fill, tension) are accepted and
+//             ignored, a line is always a soft-filled smooth area here
+//   fallback  rendered instead when there is nothing to plot
+// Colours come from chartTheme.js as var() references, so the chart follows
+// the light/dark toggle without re-rendering.
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CHART_GRID, CHART_LEGEND_STYLE, CHART_SERIES, CHART_TICK, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_STYLE } from "./chartTheme.js";
 
-// NB4HS Design System chart palette: Blue, Green, Gold, Purple only ("never
-// use random colors"). Red is excluded -- charts aren't error states.
-// Held as token names rather than hexes: Chart.js paints to a canvas and
-// can't take a var(), so these are resolved against the live theme below,
-// the same way the gridline/tick colours already were. The literal hexes
-// here are only the fallback for a var that somehow doesn't resolve, and
-// they're the light-mode values. Gold is the deepened --gold-ink, and purple
-// the calendar's appointment foreground, matching the classroom accents.
-const PALETTE_TOKENS = [
-  ["--primary", "#2563EB"],
-  ["--success", "#1a7f37"],
-  ["--gold-ink", "#8C5F1C"],
-  ["--ev-appt-fg", "#6b21a8"]
-];
+const HEIGHT = 220;
 
-// Chart.js needs a resolved colour string, so the translucent area fill under
-// a line chart can't be a color-mix() either -- it's mixed here instead.
-function withAlpha(hex, alpha) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  return "rgba(" + ((n >> 16) & 255) + ", " + ((n >> 8) & 255) + ", " + (n & 255) + ", " + alpha + ")";
-}
-
-// Bumps whenever the theme actually changes on <html>. Watching the attribute
-// rather than reading config.theme is deliberate: React runs a child's effects
-// before its parent's, so when the toggle flips config.theme this component's
-// effect would run before AppContext's applyTheme() had set data-theme, and
-// every colour below would still resolve to the outgoing theme.
-function useThemeVersion() {
-  const [version, setVersion] = useState(0);
-  useEffect(() => {
-    const observer = new MutationObserver(() => setVersion((v) => v + 1));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
-  }, []);
-  return version;
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export default function DashChart({ type, labels, datasets, fallback }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-  const themeVersion = useThemeVersion();
-  const hasChartJs = typeof window !== "undefined" && typeof window.Chart !== "undefined";
+  const series = (datasets || []).filter((ds) => ds && Array.isArray(ds.data));
+  if (!labels || !labels.length || !series.length) return <>{fallback || null}</>;
 
-  useEffect(() => {
-    if (!hasChartJs || !containerRef.current) return undefined;
-    const Chart = window.Chart;
-    const canvas = document.createElement("canvas");
-    containerRef.current.innerHTML = "";
-    containerRef.current.appendChild(canvas);
-    containerRef.current.style.height = "220px";
+  const rows = labels.map((label, i) => {
+    const row = { label };
+    series.forEach((ds, s) => { row["v" + s] = Number(ds.data[i]) || 0; });
+    return row;
+  });
+  const animate = !prefersReducedMotion();
+  // Single-series charts have no series name to show, so the tooltip is just
+  // "label / value" with no dangling ": " separator; slices keep theirs.
+  const isPie = type === "doughnut" || type === "pie";
+  const separator = isPie || series.length > 1 ? ": " : "";
+  const tooltip = <Tooltip separator={separator} contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={{ color: "var(--text)" }} cursor={{ fill: "var(--tint-neutral)", stroke: CHART_GRID }} />;
+  const axes = [
+    <CartesianGrid key="g" stroke={CHART_GRID} vertical={false} />,
+    <XAxis key="x" dataKey="label" tick={CHART_TICK} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={8} />,
+    <YAxis key="y" allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} width={36} />
+  ];
 
-    // Read the live theme's colors so the series, gridlines and tick labels
-    // all stay in sync with light/dark mode without a second palette here.
-    const rootStyles = getComputedStyle(document.documentElement);
-    const mutedColor = rootStyles.getPropertyValue("--muted").trim() || "#5b6572";
-    const gridColor = rootStyles.getPropertyValue("--border").trim() || "#d9dee4";
-    const cardColor = rootStyles.getPropertyValue("--card").trim() || "#ffffff";
-    const textColor = rootStyles.getPropertyValue("--text").trim() || "#231F20";
-    const palette = PALETTE_TOKENS.map(([token, fallbackHex]) => rootStyles.getPropertyValue(token).trim() || fallbackHex);
+  let chart;
+  if (isPie) {
+    chart = (
+      <PieChart>
+        <Pie
+          data={rows}
+          dataKey="v0"
+          nameKey="label"
+          innerRadius={type === "doughnut" ? 55 : 0}
+          outerRadius={80}
+          paddingAngle={type === "doughnut" ? 2 : 0}
+          stroke="var(--card)"
+          isAnimationActive={animate}
+        >
+          {rows.map((row, i) => <Cell key={row.label} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
+        </Pie>
+        <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={CHART_LEGEND_STYLE} />
+        {tooltip}
+      </PieChart>
+    );
+  } else if (type === "bar") {
+    chart = (
+      <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        {axes}
+        {tooltip}
+        {series.map((ds, s) => (
+          <Bar key={s} dataKey={"v" + s} name={ds.label || ""} fill={CHART_SERIES[s % CHART_SERIES.length]} radius={[6, 6, 0, 0]} maxBarSize={42} isAnimationActive={animate} />
+        ))}
+      </BarChart>
+    );
+  } else {
+    chart = (
+      <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        {axes}
+        {tooltip}
+        {series.map((ds, s) => {
+          const color = CHART_SERIES[s % CHART_SERIES.length];
+          return <Area key={s} type="monotone" dataKey={"v" + s} name={ds.label || ""} stroke={color} strokeWidth={2.5} fill={color} fillOpacity={0.14} isAnimationActive={animate} />;
+        })}
+      </AreaChart>
+    );
+  }
 
-    const preparedDatasets = datasets.map((ds) => {
-      const next = Object.assign({}, ds);
-      if (!next.backgroundColor) next.backgroundColor = type === "line" ? withAlpha(palette[0], 0.15) : labels.map((_, j) => palette[j % palette.length]);
-      if (!next.borderColor) next.borderColor = palette[0];
-      if (type === "bar") { next.borderRadius = 6; next.borderSkipped = false; next.maxBarThickness = 42; }
-      return next;
-    });
-    const isDonut = type === "doughnut" || type === "pie";
-
-    chartRef.current = new Chart(canvas.getContext("2d"), {
-      type: type,
-      data: { labels: labels, datasets: preparedDatasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 500, easing: "easeOutQuart" },
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: {
-            display: isDonut,
-            position: "bottom",
-            labels: { usePointStyle: true, boxWidth: 8, padding: 16, color: mutedColor, font: { size: 12 } }
-          },
-          tooltip: {
-            backgroundColor: cardColor, titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
-            padding: 10, cornerRadius: 10, boxPadding: 4, displayColors: !isDonut
-          }
-        },
-        scales: isDonut ? {} : {
-          x: { grid: { color: gridColor, drawTicks: false }, border: { display: false }, ticks: { color: mutedColor, font: { size: 12 } } },
-          y: { beginAtZero: true, ticks: { precision: 0, color: mutedColor, font: { size: 12 } }, grid: { color: gridColor, drawTicks: false }, border: { display: false } }
-        }
-      }
-    });
-
-    return () => {
-      if (chartRef.current) {
-        try { chartRef.current.destroy(); } catch (e) { /* ignore */ }
-        chartRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // themeVersion is a dependency because every colour above is read from
-    // the live theme at construction time. Chart.js paints to a canvas, so
-    // nothing repaints on its own when the tokens change -- without this the
-    // chart keeps the previous theme's series and gridlines until something
-    // else remounts it.
-  }, [hasChartJs, type, themeVersion, JSON.stringify(labels), JSON.stringify(datasets)]);
-
-  if (!hasChartJs) return <>{fallback}</>;
-  return <div ref={containerRef} />;
+  return (
+    <div style={{ width: "100%", height: HEIGHT }}>
+      <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
+    </div>
+  );
 }
