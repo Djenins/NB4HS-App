@@ -26,7 +26,7 @@
 // `referringId` covers the same-tab double-click case even faster.
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Briefcase, Car, FileText, MapPin, RotateCcw, Search, Send, ShieldCheck, Target, UserSearch } from "lucide-react";
+import { RotateCcw, Search, UserSearch } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { computeMatchScore, isCandidateEligible } from "../lib/candidateMatching.js";
 import { createReferral } from "../lib/clientsData.js";
@@ -34,13 +34,19 @@ import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, WORK_AUTH_STATUSES, employ
 import { todayStr } from "../lib/utils.js";
 import { matchesCandidate } from "../lib/workforceFilters.js";
 import { sortCandidates } from "../lib/workforceSorters.js";
+import { paginateList } from "../lib/pagination.js";
 import CandidateMatchCard from "../components/CandidateMatchCard.jsx";
 import CandidateMatchListItem from "../components/CandidateMatchListItem.jsx";
 import JobOpeningPickerCard from "../components/JobOpeningPickerCard.jsx";
+import Pagination from "../components/Pagination.jsx";
 import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
-import { Card } from "../components/ui/card.jsx";
+import { Button } from "../components/ui/button.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SearchInput } from "../components/ui/search-input.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 function optionsFrom(list, allLabel) {
   return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
@@ -67,6 +73,8 @@ export default function CandidateMatching() {
   const [transportationFilter, setTransportationFilter] = useState("");
   const [sort, setSort] = useState("match");
   const [view, setView] = useState("list");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const employers = data.employers || [];
   const employerById = {};
@@ -93,13 +101,16 @@ export default function CandidateMatching() {
 
   const cities = Array.from(new Set(eligible.map(function (c) { return (c.city || "").trim(); }).filter(Boolean))).sort();
 
+  // Like JobOpenings.jsx: any change to what's listed goes back to page 1,
+  // so a narrower result set can't strand the user on an empty page.
   function setFilter(setter) {
-    return function (value) { setter(value); };
+    return function (value) { setter(value); setPage(1); };
   }
+  function selectOpening(id) { setSelectedId(id); setPage(1); }
 
   const filters = [
     {
-      key: "match", icon: Target, label: t("matchQualityLabel"), value: matchFilter, onChange: setFilter(setMatchFilter),
+      key: "match", label: t("matchQualityLabel"), value: matchFilter, onChange: setFilter(setMatchFilter),
       options: [
         { value: "", label: t("allMatchQualitiesLabel") },
         { value: "strong", label: t("matchStrongLabel") },
@@ -108,7 +119,7 @@ export default function CandidateMatching() {
       ]
     },
     {
-      key: "referral", icon: Send, label: t("referralStatusLabel"), value: referralFilter, onChange: setFilter(setReferralFilter),
+      key: "referral", label: t("referralStatusLabel"), value: referralFilter, onChange: setFilter(setReferralFilter),
       options: [
         { value: "", label: t("anyLabel") },
         { value: "not_referred", label: t("notYetReferredLabel") },
@@ -116,7 +127,7 @@ export default function CandidateMatching() {
       ]
     },
     {
-      key: "resume", icon: FileText, label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
+      key: "resume", label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
       options: [
         { value: "", label: t("anyLabel") },
         { value: "yes", label: t("resumeOnFileLabel") },
@@ -124,24 +135,24 @@ export default function CandidateMatching() {
       ]
     },
     {
-      key: "workAuth", icon: ShieldCheck, label: t("workAuthorizationLabel"), value: workAuthFilter,
+      key: "workAuth", label: t("workAuthorizationLabel"), value: workAuthFilter,
       onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
     },
     {
-      key: "status", icon: Briefcase, label: t("employmentStatusLabel"), value: statusFilter,
+      key: "status", label: t("employmentStatusLabel"), value: statusFilter,
       onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
     },
     {
-      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
       options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
     },
     {
-      key: "barrier", icon: AlertTriangle, label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
+      key: "barrier", label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
       options: [{ value: "", label: t("anyLabel") }, { value: "__none", label: t("noBarriersReportedLabel") }]
         .concat(BARRIERS_TO_EMPLOYMENT.map(function (b) { return { value: b.key, label: b.en }; }))
     },
     {
-      key: "transportation", icon: Car, label: t("transportationLabel"), value: transportationFilter,
+      key: "transportation", label: t("transportationLabel"), value: transportationFilter,
       onChange: setFilter(setTransportationFilter),
       options: [
         { value: "", label: t("anyLabel") },
@@ -156,6 +167,7 @@ export default function CandidateMatching() {
     setSearch("");
     setMatchFilter(""); setReferralFilter(""); setResumeFilter(""); setWorkAuthFilter("");
     setStatusFilter(""); setCityFilter(""); setBarrierFilter(""); setTransportationFilter("");
+    setPage(1);
   }
 
   function isReferred(jobClientId) {
@@ -173,6 +185,7 @@ export default function CandidateMatching() {
     return matchesCandidate(entry, filterValues, { term, isReferred });
   });
   const sorted = sortCandidates(matched, sort);
+  const paged = paginateList(sorted, page, pageSize);
 
   const sortOptions = [
     { value: "match", label: t("sortBestMatchLabel") },
@@ -225,7 +238,7 @@ export default function CandidateMatching() {
       );
     }
 
-    const rows = sorted.map(function (entry) {
+    const rows = paged.items.map(function (entry) {
       const Row = view === "grid" ? CandidateMatchCard : CandidateMatchListItem;
       return (
         <Row
@@ -236,73 +249,101 @@ export default function CandidateMatching() {
       );
     });
 
-    return view === "grid"
-      ? <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{rows}</div>
-      : <div className="flex flex-col gap-3">{rows}</div>;
+    return (
+      <>
+        {view === "grid"
+          ? <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{rows}</div>
+          : <div className="flex flex-col gap-3">{rows}</div>}
+        <Pagination
+          bare
+          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+          onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+          onChange={function (delta) { setPage(paged.page + delta); }}
+        />
+      </>
+    );
   }
+
+  function renderPicker() {
+    if (openings.length > 0) {
+      return (
+        <div className="flex max-h-[calc(100vh-320px)] min-h-0 flex-col gap-2 overflow-y-auto">
+          {openings.map(function (o) {
+            return <JobOpeningPickerCard key={o.id} opening={o} selected={o.id === selectedId} onSelect={selectOpening} />;
+          })}
+        </div>
+      );
+    }
+    // Nothing posted at all, versus the search / Active Only toggle hiding
+    // what exists -- the next step differs.
+    if ((data.jobOpenings || []).length === 0) {
+      return <EmptyState compact title={t("noJobOpeningsTitle")} description={t("noJobOpeningsDesc")} />;
+    }
+    return (
+      <EmptyState
+        compact variant="no-results" title={t("noActiveJobOpeningsMessage")} description={t("jobOpeningPickerEmptyDesc")}
+        action={
+          <Button variant="secondary" onClick={function () { setOpeningSearch(""); setActiveOnly(false); }}>
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />{t("showAllJobOpeningsLabel")}
+          </Button>
+        }
+      />
+    );
+  }
+
+  const showChrome = !!selectedOpening && ranked.length > 0;
 
   return (
     <>
-      <div className="mb-5">
-        <h1 className="mb-1">{t("candidateMatchingTitle")}</h1>
-        <p className="m-0 text-sm text-muted">{t("candidateMatchingDesc")}</p>
-      </div>
+      <PageHeader title={t("candidateMatchingTitle")} description={t("candidateMatchingDesc")} />
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[340px_1fr]">
-        <Card className="p-5 shadow-card hover:shadow-card lg:sticky lg:top-4">
-          <h2 className="m-0 text-[15px] font-bold text-card-foreground">{t("jobOpeningLabel")}</h2>
-
-          <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" aria-hidden="true" />
-            <input
-              type="text" value={openingSearch} onChange={function (e) { setOpeningSearch(e.target.value); }}
-              placeholder={t("jobOpeningSearchPlaceholder")} aria-label={t("jobOpeningSearchPlaceholder")}
-              className="h-[52px] min-h-0 w-full rounded-[12px] border border-border bg-card py-0 pl-12 pr-4 text-base text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2"
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_1fr]">
+        <SectionCard title={t("jobOpeningLabel")} className="lg:sticky lg:top-4">
+          <div className="flex flex-col gap-3">
+            <SearchInput
+              value={openingSearch}
+              onChange={function (e) { setOpeningSearch(e.target.value); }}
+              onClear={function () { setOpeningSearch(""); }}
+              clearLabel={t("clearAllLabel")}
+              placeholder={t("jobOpeningSearchPlaceholder")}
+              aria-label={t("jobOpeningSearchPlaceholder")}
             />
+            <label className="m-0 flex min-h-10 cursor-pointer items-center gap-3 text-ui font-medium text-card-foreground">
+              <input
+                type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-primary"
+                checked={activeOnly} onChange={function (e) { setActiveOnly(e.target.checked); }}
+              />
+              {t("activeOnlyLabel")}
+            </label>
+            {renderPicker()}
           </div>
+        </SectionCard>
 
-          <label className="m-0 mt-3 flex items-center gap-2 text-sm font-medium text-card-foreground">
-            <input type="checkbox" checked={activeOnly} onChange={function (e) { setActiveOnly(e.target.checked); }} />
-            {t("activeOnlyLabel")}
-          </label>
-
-          {openings.length === 0 ? (
-            <p className="m-0 py-8 text-center text-sm text-muted">{t("noActiveJobOpeningsMessage")}</p>
-          ) : (
-            <div className="mt-3 flex max-h-[calc(100vh-320px)] flex-col gap-2 overflow-y-auto">
-              {openings.map(function (o) {
-                return <JobOpeningPickerCard key={o.id} opening={o} selected={o.id === selectedId} onSelect={setSelectedId} />;
-              })}
-            </div>
-          )}
-        </Card>
-
-        <div className="flex flex-col gap-5">
-          {selectedOpening && (
-            <SearchFilterPanel
-              search={search}
-              onSearchChange={setSearch}
-              searchPlaceholder={t("candidateSearchPlaceholder")}
-              filters={filters}
-              activeCount={activeFilterCount}
-              onClearAll={clearAll}
-            />
+        <section aria-label={t("candidateMatchingTitle")} className="min-w-0">
+          {showChrome && (
+            <>
+              <SearchFilterPanel
+                search={search}
+                onSearchChange={function (value) { setSearch(value); setPage(1); }}
+                searchPlaceholder={t("candidateSearchPlaceholder")}
+                filters={filters}
+                activeCount={activeFilterCount}
+                onClearAll={clearAll}
+              />
+              <ResultsToolbar
+                id="candidate-matches"
+                total={sorted.length}
+                sort={sort}
+                onSortChange={function (value) { setSort(value); setPage(1); }}
+                sortOptions={sortOptions}
+                view={view}
+                onViewChange={setView}
+              />
+            </>
           )}
 
           {renderResults()}
-
-          {selectedOpening && ranked.length > 0 && (
-            <ResultsToolbar
-              id="candidate-matches"
-              total={sorted.length}
-              sort={sort}
-              onSortChange={setSort}
-              sortOptions={sortOptions}
-              view={view}
-              onViewChange={setView}
-            />
-          )}
-        </div>
+        </section>
       </div>
     </>
   );

@@ -7,8 +7,10 @@
 // components/JobOpeningGridCard.jsx and components/ResultsEmptyState.jsx --
 // the first two and the empty state are shared with Candidate Matching.
 // Add Job -- from the header or from the empty state -- opens the one
-// existing JobOpeningWizard.jsx modal, and View still opens
-// JobOpeningDetailModal.jsx. Nothing here touches the module's navigation
+// existing JobOpeningWizard.jsx dialog, and View opens
+// JobOpeningDetailModal.jsx (a drawer). The filters and toolbar only show
+// once at least one opening exists; before that the page is the header and
+// the "add your first job" empty state. Nothing here touches the module's navigation
 // (components/ModuleNav.jsx) or the app shell.
 //
 // The filters read the fields the job_openings rows already carry --
@@ -17,7 +19,7 @@
 // and status -- so no new columns or lookup tables are involved.
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Briefcase, Building2, Car, Flag, GraduationCap, Languages, MapPin, Plus, RotateCcw, TrendingUp } from "lucide-react";
+import { Briefcase, Plus, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createJobOpening, deleteJobOpening, updateJobOpening } from "../lib/clientsData.js";
@@ -37,6 +39,7 @@ import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
 
 // Turns a { key, en } constant list into the option shape the filter tiles
 // take, with the "all" entry first.
@@ -86,38 +89,38 @@ export default function JobOpenings() {
 
   const filters = [
     {
-      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
       options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
     },
     {
-      key: "industry", icon: Building2, label: t("industryLabel"), value: industryFilter, onChange: setFilter(setIndustryFilter),
+      key: "industry", label: t("industryLabel"), value: industryFilter, onChange: setFilter(setIndustryFilter),
       options: [{ value: "", label: t("allIndustriesLabel") }].concat(
         activeIndustryList(data.customIndustries, data.disabledIndustries).map(function (i) { return { value: i.key, label: i.en }; })
       )
     },
     {
-      key: "employmentType", icon: Briefcase, label: t("employmentTypeLabel"), value: employmentTypeFilter,
+      key: "employmentType", label: t("employmentTypeLabel"), value: employmentTypeFilter,
       onChange: setFilter(setEmploymentTypeFilter), options: optionsFrom(EMPLOYMENT_TYPES, t("allEmploymentTypesLabel"))
     },
     {
-      key: "education", icon: GraduationCap, label: t("educationLevelFilterLabel"), value: educationFilter,
+      key: "education", label: t("educationLevelFilterLabel"), value: educationFilter,
       onChange: setFilter(setEducationFilter), options: optionsFrom(EDUCATION_LEVELS, t("allEducationLevelsLabel"))
     },
     {
-      key: "experience", icon: TrendingUp, label: t("experienceLevelFilterLabel"), value: experienceFilter,
+      key: "experience", label: t("experienceLevelFilterLabel"), value: experienceFilter,
       onChange: setFilter(setExperienceFilter), options: optionsFrom(EXPERIENCE_LEVELS, t("allExperienceLevelsLabel"))
     },
     {
-      key: "english", icon: Languages, label: t("englishLevelFilterLabel"), value: englishFilter,
+      key: "english", label: t("englishLevelFilterLabel"), value: englishFilter,
       onChange: setFilter(setEnglishFilter), options: optionsFrom(ENGLISH_LEVEL_REQUIREMENTS, t("allEnglishLevelsLabel"))
     },
     {
-      key: "transportation", icon: Car, label: t("transportationLabel"), value: transportationFilter,
+      key: "transportation", label: t("transportationLabel"), value: transportationFilter,
       onChange: setFilter(setTransportationFilter),
       options: [{ value: "", label: t("anyLabel") }, { value: "yes", label: t("yesOption") }, { value: "no", label: t("noOption") }]
     },
     {
-      key: "status", icon: Flag, label: t("statusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
+      key: "status", label: t("statusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
       options: optionsFrom(JOB_OPENING_STATUSES, t("allStatusesLabel"))
     }
   ];
@@ -180,73 +183,75 @@ export default function JobOpenings() {
     onArchive: archiveOpening, onDelete: removeOpening
   };
 
+  const addButton = (
+    <Button onClick={function () { setAdding(true); }}>
+      <Plus className="h-4 w-4" aria-hidden="true" />{t("addJobBtn")}
+    </Button>
+  );
+
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-1">{t("jobOpeningsTitle")}</h1>
-          <p className="m-0 text-sm text-muted">{t("jobOpeningsDesc")}</p>
-        </div>
-        <Button onClick={function () { setAdding(true); }} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
-          <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addJobBtn")}
-        </Button>
-      </div>
+      <PageHeader title={t("jobOpeningsTitle")} description={t("jobOpeningsDesc")} actions={addButton} />
 
-      <SearchFilterPanel
-        search={search}
-        onSearchChange={function (value) { setSearch(value); setPage(1); }}
-        searchPlaceholder={t("jobOpeningSearchPlaceholder")}
-        filters={filters}
-        activeCount={activeFilterCount}
-        onClearAll={clearAll}
-      />
-
-      <div className="mt-5">
-        {paged.items.length ? (
-          view === "grid" ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {paged.items.map(function (o) {
-                return <JobOpeningGridCard key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
-              })}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {paged.items.map(function (o) {
-                return <JobOpeningListItem key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
-              })}
-            </div>
-          )
-        ) : (
-          openings.length > 0 ? (
-            <ResultsEmptyState
-              icon={Briefcase} title={t("noMatchingJobOpeningsTitle")} description={t("noMatchingJobOpeningsDesc")}
-              actionLabel={t("clearAllLabel")} actionIcon={RotateCcw} actionVariant="secondary" onAction={clearAll}
-            />
-          ) : (
-            <ResultsEmptyState
-              icon={Briefcase} title={t("noJobOpeningsTitle")} description={t("noJobOpeningsDesc")}
-              actionLabel={t("addJobBtn")} actionIcon={Plus} onAction={function () { setAdding(true); }}
-            />
-          )
-        )}
-      </div>
-
-      <div className="mt-5">
-        <ResultsToolbar
-          id="job-openings"
-          total={sorted.length}
-          sort={sort}
-          onSortChange={function (value) { setSort(value); setPage(1); }}
-          sortOptions={sortOptions}
-          view={view}
-          onViewChange={setView}
+      {openings.length === 0 ? (
+        // Nothing posted yet: no filters or sort to offer, just the first step.
+        <ResultsEmptyState
+          icon={Briefcase} title={t("noJobOpeningsTitle")} description={t("noJobOpeningsDesc")}
+          actionLabel={t("addJobBtn")} actionIcon={Plus} onAction={function () { setAdding(true); }}
         />
-        <Pagination
-          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
-          onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
-          onChange={function (delta) { setPage(paged.page + delta); }}
-        />
-      </div>
+      ) : (
+        <>
+          <SearchFilterPanel
+            search={search}
+            onSearchChange={function (value) { setSearch(value); setPage(1); }}
+            searchPlaceholder={t("jobOpeningSearchPlaceholder")}
+            filters={filters}
+            activeCount={activeFilterCount}
+            onClearAll={clearAll}
+          />
+
+          <ResultsToolbar
+            id="job-openings"
+            total={sorted.length}
+            sort={sort}
+            onSortChange={function (value) { setSort(value); setPage(1); }}
+            sortOptions={sortOptions}
+            view={view}
+            onViewChange={setView}
+          />
+
+          <section aria-label={t("jobOpeningsTitle")}>
+            {paged.items.length ? (
+              <>
+                {view === "grid" ? (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {paged.items.map(function (o) {
+                      return <JobOpeningGridCard key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {paged.items.map(function (o) {
+                      return <JobOpeningListItem key={o.id} opening={o} referralCount={referralCountFor(o)} {...rowProps} />;
+                    })}
+                  </div>
+                )}
+                <Pagination
+                  bare
+                  page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+                  onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+                  onChange={function (delta) { setPage(paged.page + delta); }}
+                />
+              </>
+            ) : (
+              <ResultsEmptyState
+                icon={Briefcase} title={t("noMatchingJobOpeningsTitle")} description={t("noMatchingJobOpeningsDesc")}
+                actionLabel={t("clearAllLabel")} actionIcon={RotateCcw} actionVariant="secondary" onAction={clearAll}
+              />
+            )}
+          </section>
+        </>
+      )}
 
       {adding && <JobOpeningWizard employers={employers} onSave={createFromWizard} onCancel={function () { setAdding(false); }} />}
       {editing && <JobOpeningWizard jobOpening={editing} employers={employers} onSave={updateFromWizard} onCancel={function () { setEditing(null); }} />}

@@ -1,26 +1,28 @@
 // Employers.jsx -- Employer Directory, Phase 1 of the Employer & Job
-// Opportunity Management module, on the same chrome as the rest of the
-// module: components/SearchFilterPanel.jsx, components/ResultsToolbar.jsx and
-// components/ResultsEmptyState.jsx around EmployerCard/EmployerListItem.
+// Opportunity Management module, on the NB4HS Operate design system and the
+// module's shared list chrome: PageHeader, components/SearchFilterPanel.jsx,
+// components/ResultsToolbar.jsx (above the results), EmployerCard or
+// EmployerListItem, Pagination inside the results area, and
+// components/ResultsEmptyState.jsx when there's nothing to show.
 //
 // Grid stays the DEFAULT view here, unlike the other pages in the module --
 // "cards, not a table" is the Employer Directory spec, so list is offered as
 // the alternative rather than promoted over it.
 //
-// The collapsible Add Employer form below is the page's own add workflow (no
-// modal, unlike Job Openings/Referrals/Placements) and is left as it was,
-// except that it now starts collapsed: this is a directory, so it should
-// open on the employers rather than on an empty form. The header's Add
-// Employer button still expands it and scrolls to it, exactly as before.
+// The collapsible Add Employer form below (a SectionCard of Field controls)
+// is the page's own inline add workflow -- no modal, unlike Job Openings/
+// Referrals/Placements. It starts collapsed: this is a directory, so it
+// should open on the employers rather than on an empty form. The header's
+// Add Employer button expands it and scrolls to it.
 //
 // Every filter reads a field the employer rows already carry -- industry,
 // city, partnership_stage, assigned_job_developer_email,
 // preferred_hiring_method, next_follow_up_date, last_meeting_date -- or
 // counts the job_openings / placements rows that already point at the
 // employer. No new column.
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Briefcase, Building2, CalendarClock, CalendarDays, ChevronDown, ChevronUp, Flag, Handshake, MapPin, Plus, RotateCcw, UserPlus, UserRound } from "lucide-react";
+import { Building2, ChevronDown, Plus, RotateCcw } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { createEmployer, deleteEmployer } from "../lib/clientsData.js";
@@ -37,7 +39,10 @@ import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
+import { Field, Input, Select, Textarea } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 const EMPTY_NEW_EMPLOYER = {
   businessName: "", industry: "", website: "", street: "", city: "", zip: "",
@@ -45,62 +50,45 @@ const EMPTY_NEW_EMPLOYER = {
   preferredCommunication: "", preferredHiringMethod: "", partnershipStage: "prospect", assignedJobDeveloperEmail: "", notes: ""
 };
 
-function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
+// A SectionCard whose body can be collapsed (the same pattern as
+// CaseManagement.jsx and JobDeveloper.jsx): the toggle is a real button
+// with aria-expanded in the card's action slot.
+function CollapsibleSection({ title, collapsed, onToggle, cardRef, children }) {
+  const t = useT();
+  const bodyId = useId();
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={!collapsed}
-      className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
-    >
-      {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-        <Icon className="h-4.5 w-4.5" />
-      </span>
-      <CardTitle className="m-0">{title}</CardTitle>
-    </button>
+    <div ref={cardRef} className="mb-5 scroll-mt-4">
+      <SectionCard
+        title={title}
+        flush={collapsed}
+        action={
+          <IconButton
+            variant="secondary"
+            label={collapsed ? t("expandSectionLabel") : t("collapseSectionLabel")}
+            aria-expanded={!collapsed}
+            aria-controls={bodyId}
+            onClick={onToggle}
+          >
+            <ChevronDown className={cn("transition-transform duration-fast", !collapsed && "rotate-180")} aria-hidden="true" />
+          </IconButton>
+        }
+      >
+        {collapsed ? null : <div id={bodyId}>{children}</div>}
+      </SectionCard>
+    </div>
   );
 }
 
+// One titled group of the add form: the title beside the fields from lg up
+// (stacked below, where the sidebar leaves ~500px).
 function FormSection({ title, desc, children }) {
   return (
-    <div className="grid grid-cols-1 gap-4 border-b border-border pb-6 last:border-b-0 last:pb-0 md:grid-cols-[220px_1fr]">
+    <div className="grid grid-cols-1 gap-4 border-b border-line-subtle pb-6 last:border-b-0 last:pb-0 lg:grid-cols-3 lg:gap-6">
       <div>
-        <h3 className="m-0 text-sm font-bold text-card-foreground">{title}</h3>
-        {desc && <p className="mt-1 text-sm text-muted">{desc}</p>}
+        <h3 className="m-0 text-ui font-semibold text-card-foreground">{title}</h3>
+        {desc && <p className="m-0 mt-1 text-meta text-muted">{desc}</p>}
       </div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
-
-function TextField({ id, label, required, invalid, value, onChange, placeholder }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
-        {label}{required ? <span className="text-accent"> *</span> : null}
-      </label>
-      <input
-        id={id} type="text" value={value} onChange={onChange} placeholder={placeholder}
-        className={cn(
-          "h-11 min-h-0 w-full rounded-lg border bg-background px-3 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/15",
-          invalid ? "border-accent bg-tint-danger" : "border-border focus:border-primary"
-        )}
-      />
-    </div>
-  );
-}
-
-function SelectField({ id, label, value, onChange, children }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
-      <select
-        id={id} value={value} onChange={onChange}
-        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-      >
-        {children}
-      </select>
+      <div className="space-y-4 lg:col-span-2">{children}</div>
     </div>
   );
 }
@@ -110,10 +98,21 @@ function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
   const t = useT();
   const [fields, setFields] = useState(EMPTY_NEW_EMPLOYER);
   const [errors, setErrors] = useState([]);
+  const [saving, setSaving] = useState(false);
   const industries = activeIndustryList(data.customIndustries, data.disabledIndustries);
   const jobDevelopers = activeJobDevelopers(data.profiles);
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+  function text(id, name, label, extra) {
+    return (
+      <Field label={label} htmlFor={id} required={extra && extra.required}>
+        <Input
+          id={id} type={(extra && extra.type) || "text"} value={fields[name]} onChange={(e) => setField(name, e.target.value)}
+          placeholder={extra && extra.placeholder} aria-invalid={errors.indexOf(name) !== -1 ? true : undefined}
+        />
+      </Field>
+    );
+  }
 
   async function submit() {
     if (!fields.businessName.trim()) {
@@ -122,77 +121,79 @@ function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
       return;
     }
     setErrors([]);
-    await createEmployer(fields);
-    setFields(EMPTY_NEW_EMPLOYER);
-    showToast(t("employerAdded"));
+    setSaving(true);
+    try {
+      await createEmployer(fields);
+      setFields(EMPTY_NEW_EMPLOYER);
+      showToast(t("employerAdded"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <Card ref={forwardRef} className="mb-5">
-      <CardHeader className="space-y-0">
-        <SectionCardHeader icon={UserPlus} title={t("addEmployerTitle")} collapsed={collapsed} onToggle={onToggle} />
-      </CardHeader>
-      {collapsed ? null : (
-        <CardContent className="space-y-6 pt-0">
-          <FormSection title={t("companyInformationLabel")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField id="new-employer-business-name" label={t("businessNameLabel")} required invalid={errors.indexOf("businessName") !== -1} value={fields.businessName} onChange={(e) => setField("businessName", e.target.value)} />
-              <SelectField id="new-employer-industry" label={t("industryLabel")} value={fields.industry} onChange={(e) => setField("industry", e.target.value)}>
+    <CollapsibleSection cardRef={forwardRef} title={t("addEmployerTitle")} collapsed={collapsed} onToggle={onToggle}>
+      <div className="space-y-6">
+        <FormSection title={t("companyInformationLabel")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {text("new-employer-business-name", "businessName", t("businessNameLabel"), { required: true })}
+            <Field label={t("industryLabel")} htmlFor="new-employer-industry">
+              <Select id="new-employer-industry" value={fields.industry} onChange={(e) => setField("industry", e.target.value)}>
                 <option value="">{t("pleaseSelect")}</option>
                 {industries.map((i) => <option key={i.key} value={i.key}>{i.en}</option>)}
-              </SelectField>
-              <TextField id="new-employer-website" label={t("websiteLabel")} value={fields.website} onChange={(e) => setField("website", e.target.value)} placeholder="https://" />
-            </div>
-          </FormSection>
+              </Select>
+            </Field>
+            {text("new-employer-website", "website", t("websiteLabel"), { type: "url", placeholder: t("phWebsite") })}
+          </div>
+        </FormSection>
 
-          <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-employer-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
-              <TextField id="new-employer-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-              <TextField id="new-employer-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
-            </div>
-            <p className="text-xs text-muted">{t("stateAlwaysRI")}</p>
-          </FormSection>
+        <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="sm:col-span-2 xl:col-span-1">{text("new-employer-street", "street", t("address"))}</div>
+            {text("new-employer-city", "city", t("city"))}
+            {text("new-employer-zip", "zip", t("zip"))}
+          </div>
+          <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>
+        </FormSection>
 
-          <FormSection title={t("primaryContactSectionLabel")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-employer-contact-name" label={t("contactNameLabel")} value={fields.contactName} onChange={(e) => setField("contactName", e.target.value)} />
-              <TextField id="new-employer-contact-phone" label={t("contactPhoneLabel")} value={fields.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} />
-              <TextField id="new-employer-contact-email" label={t("contactEmailLabel")} value={fields.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} />
-            </div>
-          </FormSection>
+        <FormSection title={t("primaryContactSectionLabel")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {text("new-employer-contact-name", "contactName", t("contactNameLabel"))}
+            {text("new-employer-contact-phone", "contactPhone", t("contactPhoneLabel"), { type: "tel" })}
+            {text("new-employer-contact-email", "contactEmail", t("contactEmailLabel"), { type: "email" })}
+          </div>
+        </FormSection>
 
-          <FormSection title={t("hrContactSectionLabel")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-employer-hr-name" label={t("hrContactNameLabel")} value={fields.hrContactName} onChange={(e) => setField("hrContactName", e.target.value)} />
-              <TextField id="new-employer-hr-phone" label={t("hrContactPhoneLabel")} value={fields.hrContactPhone} onChange={(e) => setField("hrContactPhone", e.target.value)} />
-              <TextField id="new-employer-hr-email" label={t("hrContactEmailLabel")} value={fields.hrContactEmail} onChange={(e) => setField("hrContactEmail", e.target.value)} />
-            </div>
-          </FormSection>
+        <FormSection title={t("hrContactSectionLabel")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {text("new-employer-hr-name", "hrContactName", t("hrContactNameLabel"))}
+            {text("new-employer-hr-phone", "hrContactPhone", t("hrContactPhoneLabel"), { type: "tel" })}
+            {text("new-employer-hr-email", "hrContactEmail", t("hrContactEmailLabel"), { type: "email" })}
+          </div>
+        </FormSection>
 
-          <FormSection title={t("partnershipInformationLabel")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField id="new-employer-stage" label={t("partnershipStageLabel")} value={fields.partnershipStage} onChange={(e) => setField("partnershipStage", e.target.value)}>
+        <FormSection title={t("partnershipInformationLabel")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("partnershipStageLabel")} htmlFor="new-employer-stage">
+              <Select id="new-employer-stage" value={fields.partnershipStage} onChange={(e) => setField("partnershipStage", e.target.value)}>
                 {EMPLOYER_PARTNERSHIP_STAGES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
-              </SelectField>
-              <SelectField id="new-employer-job-developer" label={t("assignedJobDeveloperLabel")} value={fields.assignedJobDeveloperEmail} onChange={(e) => setField("assignedJobDeveloperEmail", e.target.value)}>
+              </Select>
+            </Field>
+            <Field label={t("assignedJobDeveloperLabel")} htmlFor="new-employer-job-developer">
+              <Select id="new-employer-job-developer" value={fields.assignedJobDeveloperEmail} onChange={(e) => setField("assignedJobDeveloperEmail", e.target.value)}>
                 <option value="">{t("pleaseSelect")}</option>
                 {jobDevelopers.map((u) => <option key={u.id} value={u.email}>{u.name || u.email}</option>)}
-              </SelectField>
-            </div>
-            <div>
-              <label htmlFor="new-employer-notes" className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyNotesLabel")}</label>
-              <textarea
-                id="new-employer-notes" rows={2} placeholder={t("phCompanyNotes")} value={fields.notes} onChange={(e) => setField("notes", e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-          </FormSection>
+              </Select>
+            </Field>
+          </div>
+          <Field label={t("companyNotesLabel")} htmlFor="new-employer-notes">
+            <Textarea id="new-employer-notes" rows={2} placeholder={t("phCompanyNotes")} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} />
+          </Field>
+        </FormSection>
 
-          <Button onClick={submit}>{t("addEmployerBtn")}</Button>
-        </CardContent>
-      )}
-    </Card>
+        <Button onClick={submit} loading={saving}><Plus className="h-4 w-4" aria-hidden="true" />{t("addEmployerBtn")}</Button>
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -255,27 +256,27 @@ export default function Employers() {
 
   const filters = [
     {
-      key: "industry", icon: Building2, label: t("industryLabel"), value: industryFilter, onChange: setFilter(setIndustryFilter),
+      key: "industry", label: t("industryLabel"), value: industryFilter, onChange: setFilter(setIndustryFilter),
       options: [{ value: "", label: t("allIndustriesLabel") }]
         .concat(industries.map(function (i) { return { value: i.key, label: i.en }; }))
     },
     {
-      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
       options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
     },
     {
-      key: "stage", icon: Flag, label: t("partnershipStageLabel"), value: stageFilter, onChange: setFilter(setStageFilter),
+      key: "stage", label: t("partnershipStageLabel"), value: stageFilter, onChange: setFilter(setStageFilter),
       options: [{ value: "", label: t("allStagesLabel") }]
         .concat(EMPLOYER_PARTNERSHIP_STAGES.map(function (s2) { return { value: s2.key, label: s2.en }; }))
     },
     {
-      key: "developer", icon: UserRound, label: t("assignedJobDeveloperLabel"), value: developerFilter,
+      key: "developer", label: t("assignedJobDeveloperLabel"), value: developerFilter,
       onChange: setFilter(setDeveloperFilter),
       options: [{ value: "", label: t("allJobDevelopersLabel") }]
         .concat(distinct(employers, "assignedJobDeveloperEmail").map(function (n) { return { value: n, label: n }; }))
     },
     {
-      key: "openings", icon: Briefcase, label: t("openPositionsLabel"), value: openingsFilter,
+      key: "openings", label: t("openPositionsLabel"), value: openingsFilter,
       onChange: setFilter(setOpeningsFilter),
       options: [
         { value: "", label: t("anyLabel") },
@@ -284,13 +285,13 @@ export default function Employers() {
       ]
     },
     {
-      key: "hiringMethod", icon: Handshake, label: t("preferredHiringMethodLabel"), value: hiringMethodFilter,
+      key: "hiringMethod", label: t("preferredHiringMethodLabel"), value: hiringMethodFilter,
       onChange: setFilter(setHiringMethodFilter),
       options: [{ value: "", label: t("allHiringMethodsLabel") }]
         .concat(PREFERRED_HIRING_METHODS.map(function (m) { return { value: m.key, label: m.en }; }))
     },
     {
-      key: "followUp", icon: CalendarClock, label: t("nextFollowUpDateLabel"), value: followUpFilter,
+      key: "followUp", label: t("nextFollowUpDateLabel"), value: followUpFilter,
       onChange: setFilter(setFollowUpFilter),
       options: [
         { value: "", label: t("anyLabel") },
@@ -305,7 +306,7 @@ export default function Employers() {
       ]
     },
     {
-      key: "contact", icon: CalendarDays, label: t("lastContactLabel"), value: contactFilter,
+      key: "contact", label: t("lastContactLabel"), value: contactFilter,
       onChange: setFilter(setContactFilter),
       options: [
         { value: "", label: t("anyTimeLabel") },
@@ -394,15 +395,15 @@ export default function Employers() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-1">{t("employersTitle")}</h1>
-          <p className="m-0 text-sm text-muted">{t("employersDesc")}</p>
-        </div>
-        <Button onClick={scrollToAddEmployer} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
-          <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addEmployerBtn")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("employersTitle")}
+        description={t("employersDesc")}
+        actions={
+          <Button onClick={scrollToAddEmployer}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> {t("addEmployerBtn")}
+          </Button>
+        }
+      />
 
       <AddEmployerCard
         forwardRef={addEmployerRef}
@@ -410,21 +411,18 @@ export default function Employers() {
         onToggle={function () { setOpen("addEmployer", !opens.addEmployer); }}
       />
 
-      {employers.length > 0 && (
-        <SearchFilterPanel
-          search={search}
-          onSearchChange={function (value) { setSearch(value); setPage(1); }}
-          searchPlaceholder={t("employerSearchPlaceholder")}
-          filters={filters}
-          activeCount={activeFilterCount}
-          onClearAll={clearAll}
-        />
-      )}
+      {employers.length > 0 ? (
+        <>
+          <SearchFilterPanel
+            className="mb-5"
+            search={search}
+            onSearchChange={function (value) { setSearch(value); setPage(1); }}
+            searchPlaceholder={t("employerSearchPlaceholder")}
+            filters={filters}
+            activeCount={activeFilterCount}
+            onClearAll={clearAll}
+          />
 
-      <div className="mt-5">{renderResults()}</div>
-
-      {employers.length > 0 && (
-        <div className="mt-5">
           <ResultsToolbar
             id="employers"
             total={sorted.length}
@@ -434,13 +432,19 @@ export default function Employers() {
             view={view}
             onViewChange={setView}
           />
-          <Pagination
-            page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
-            onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
-            onChange={function (delta) { setPage(paged.page + delta); }}
-          />
-        </div>
-      )}
+
+          {renderResults()}
+
+          {paged.total ? (
+            <Pagination
+              bare
+              page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+              onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+              onChange={function (delta) { setPage(paged.page + delta); }}
+            />
+          ) : null}
+        </>
+      ) : renderResults()}
     </>
   );
 }

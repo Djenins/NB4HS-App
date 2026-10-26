@@ -1,19 +1,19 @@
 // PlacementCheckinCard.jsx -- one 30/60/90/180-day check-in's form on
-// PlacementDetail.jsx. Local draft state + a Save button (batched, same
-// idiom as this app's other edit forms) plus a separate "Mark Complete"
-// action. Anchored by id="placement-checkin-<type>" so
-// PlacementTimeline.jsx can scroll to it.
+// PlacementDetail.jsx, as a ui SectionCard: the period as its title, its
+// state (completed on a date, or due on a date) as the header badge, the
+// fields in the body and the two actions in the footer. Local draft state +
+// a Save button (batched, same idiom as this app's other edit forms) plus a
+// separate "Mark Complete" action. Anchored by id="placement-checkin-<type>"
+// so PlacementTimeline.jsx can scroll to it.
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
-import { checkinTypeLabel, PERFORMANCE_RATINGS } from "../lib/placements.js";
+import { checkinState, checkinTypeLabel, PERFORMANCE_RATINGS } from "../lib/placements.js";
 import { fmtDateLong, todayStr } from "../lib/utils.js";
-import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
-import { Card, CardContent } from "./ui/card.jsx";
-
-const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
-const textareaClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+import { Field, Select, Textarea } from "./ui/field.jsx";
+import { SectionCard } from "./ui/section-card.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
 
 export default function PlacementCheckinCard({ checkin, onUpdate }) {
   const t = useT();
@@ -22,63 +22,83 @@ export default function PlacementCheckinCard({ checkin, onUpdate }) {
     promotion: checkin.promotion, raise: checkin.raise,
     employerFeedback: checkin.employerFeedback, participantFeedback: checkin.participantFeedback, notes: checkin.notes
   });
+  const [busy, setBusy] = useState(null); // "save" | "complete" while a write runs
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
+  async function run(kind, patch) {
+    setBusy(kind);
+    try {
+      await onUpdate(patch);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const idBase = "checkin-" + checkin.id;
+  const state = checkinState(checkin);
+
   return (
-    <Card id={"placement-checkin-" + checkin.checkinType}>
-      <CardContent className="space-y-3 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="m-0 text-sm font-bold text-card-foreground">{checkinTypeLabel(checkin.checkinType)}</h3>
-          {checkin.completed ? (
-            <Badge variant="success">{t("checkinCompletedLabel")} · {fmtDateLong(checkin.completedDate)}</Badge>
-          ) : (
-            <Badge variant="neutral">{fmtDateLong(checkin.dueDate)}</Badge>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("performanceRatingLabel")}</label>
-            <select className={inputClass} value={fields.performanceRating} onChange={(e) => setField("performanceRating", e.target.value)}>
-              <option value="">{t("pleaseSelect")}</option>
-              {PERFORMANCE_RATINGS.map((r) => <option key={r.key} value={r.key}>{r.en}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center gap-4 pt-5">
-            <label className="flex items-center gap-2 text-sm text-card-foreground">
-              <input type="checkbox" checked={fields.promotion} onChange={(e) => setField("promotion", e.target.checked)} /> {t("promotionLabel")}
-            </label>
-            <label className="flex items-center gap-2 text-sm text-card-foreground">
-              <input type="checkbox" checked={fields.raise} onChange={(e) => setField("raise", e.target.checked)} /> {t("raiseLabel")}
-            </label>
-          </div>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("attendanceNotesLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.attendanceNotes} onChange={(e) => setField("attendanceNotes", e.target.value)} placeholder={t("phAttendanceNotes")} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("employerFeedbackLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.employerFeedback} onChange={(e) => setField("employerFeedback", e.target.value)} placeholder={t("phEmployerFeedback")} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("participantFeedbackLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.participantFeedback} onChange={(e) => setField("participantFeedback", e.target.value)} placeholder={t("phParticipantFeedback")} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea rows={2} className={textareaClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCheckinNotes")} />
-        </div>
-
-        <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-          <Button size="sm" variant="secondary" onClick={() => onUpdate(fields)}>{t("saveLabel")}</Button>
-          {!checkin.completed && (
-            <Button size="sm" className="gap-1.5" onClick={() => onUpdate(Object.assign({}, fields, { completed: true, completedDate: todayStr() }))}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> {t("markCompleteBtn")}
+    <div id={"placement-checkin-" + checkin.checkinType} className="scroll-mt-4">
+      <SectionCard
+        title={checkinTypeLabel(checkin.checkinType)}
+        action={
+          <StatusBadge domain="checkin" status={state} className="tabular-nums">
+            {checkin.completed
+              ? t("checkinCompletedLabel") + " · " + fmtDateLong(checkin.completedDate)
+              : t("checkinDueLabel") + " · " + fmtDateLong(checkin.dueDate)}
+          </StatusBadge>
+        }
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button type="button" size="sm" variant="secondary" loading={busy === "save"} disabled={!!busy} onClick={() => run("save", fields)}>
+              {t("saveLabel")}
             </Button>
-          )}
+            {!checkin.completed && (
+              <Button
+                type="button" size="sm" loading={busy === "complete"} disabled={!!busy}
+                onClick={() => run("complete", Object.assign({}, fields, { completed: true, completedDate: todayStr() }))}
+              >
+                {busy === "complete" ? null : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />} {t("markCompleteBtn")}
+              </Button>
+            )}
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-end">
+            <Field label={t("performanceRatingLabel")} htmlFor={idBase + "-rating"}>
+              <Select id={idBase + "-rating"} value={fields.performanceRating} onChange={(e) => setField("performanceRating", e.target.value)}>
+                <option value="">{t("pleaseSelect")}</option>
+                {PERFORMANCE_RATINGS.map((r) => <option key={r.key} value={r.key}>{r.en}</option>)}
+              </Select>
+            </Field>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+                <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-primary" checked={fields.promotion} onChange={(e) => setField("promotion", e.target.checked)} />
+                {t("promotionLabel")}
+              </label>
+              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+                <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-primary" checked={fields.raise} onChange={(e) => setField("raise", e.target.checked)} />
+                {t("raiseLabel")}
+              </label>
+            </div>
+          </div>
+          <Field label={t("attendanceNotesLabel")} htmlFor={idBase + "-attendance"}>
+            <Textarea id={idBase + "-attendance"} rows={2} value={fields.attendanceNotes} onChange={(e) => setField("attendanceNotes", e.target.value)} placeholder={t("phAttendanceNotes")} />
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("employerFeedbackLabel")} htmlFor={idBase + "-employer"}>
+              <Textarea id={idBase + "-employer"} rows={2} value={fields.employerFeedback} onChange={(e) => setField("employerFeedback", e.target.value)} placeholder={t("phEmployerFeedback")} />
+            </Field>
+            <Field label={t("participantFeedbackLabel")} htmlFor={idBase + "-participant"}>
+              <Textarea id={idBase + "-participant"} rows={2} value={fields.participantFeedback} onChange={(e) => setField("participantFeedback", e.target.value)} placeholder={t("phParticipantFeedback")} />
+            </Field>
+          </div>
+          <Field label={t("noteContentLabel")} htmlFor={idBase + "-notes"}>
+            <Textarea id={idBase + "-notes"} rows={2} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phCheckinNotes")} />
+          </Field>
         </div>
-      </CardContent>
-    </Card>
+      </SectionCard>
+    </div>
   );
 }
