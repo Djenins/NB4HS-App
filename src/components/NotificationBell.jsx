@@ -42,11 +42,14 @@ function RescheduleForm({ appt, onDone }) {
 
 // Server-written notifications store English text; show known types' titles
 // in the reader's language.
-const TYPE_TITLE = {
+export const TYPE_TITLE = {
   snap_task_due: "snapNotifTaskDue",
   staff_report_submitted: "srNotifSubmitted",
   staff_report_revision_requested: "srNotifRevision",
-  staff_report_acknowledged: "srNotifAcknowledged"
+  staff_report_acknowledged: "srNotifAcknowledged",
+  staff_report_due: "srNotifDue",
+  staff_report_overdue: "srNotifOverdue",
+  staff_report_overdue_digest: "srNotifOverdueDigest"
 };
 
 function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
