@@ -69,7 +69,7 @@ export function groupRolePermissions(rolePermissions, permissions, modules) {
   rolePermissions.forEach(function (rp) {
     var p = byKey[rp.permissionKey];
     if (!p) return;
-    (groups[p.moduleKey] = groups[p.moduleKey] || []).push({ key: p.key, label: p.label, scope: rp.scope, sortOrder: p.sortOrder });
+    (groups[p.moduleKey] = groups[p.moduleKey] || []).push({ key: p.key, label: p.label, scope: rp.scope, sortOrder: p.sortOrder, sensitivity: p.sensitivity });
   });
   return modules
     .filter(function (m) { return groups[m.key]; })
@@ -176,7 +176,7 @@ export async function fetchAccessCatalog() {
     supabase.from("roles").select("*").order("name"),
     supabase.from("role_permissions").select("role_id, permission_key, scope"),
     supabase.from("permissions").select("key, module_key, scoped, sensitivity, sort_order, description"),
-    supabase.from("app_modules").select("key, parent_key, kind, name_en, sort_order, active, implemented").order("sort_order"),
+    supabase.from("app_modules").select("key, parent_key, kind, name_en, description, sort_order, active, implemented").order("sort_order"),
     supabase.from("user_roles").select("role_id, user_id").is("revoked_at", null)
   ]);
   const failed = [roles, rolePerms, perms, modules, assignments].find((r) => r.error);
@@ -193,7 +193,7 @@ export async function fetchAccessCatalog() {
     })),
     rolePermissions: rolePerms.data.map((rp) => ({ roleId: rp.role_id, permissionKey: rp.permission_key, scope: rp.scope })),
     permissions: perms.data.map((p) => ({ key: p.key, moduleKey: p.module_key, scoped: p.scoped, sensitivity: p.sensitivity, sortOrder: p.sort_order, label: p.description })),
-    modules: modules.data.map((m) => ({ key: m.key, parentKey: m.parent_key, kind: m.kind, name: m.name_en, active: m.active, implemented: m.implemented })),
+    modules: modules.data.map((m) => ({ key: m.key, parentKey: m.parent_key, kind: m.kind, name: m.name_en, description: m.description || "", active: m.active, implemented: m.implemented })),
     members: assignments.data
   };
 }

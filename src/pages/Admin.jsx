@@ -1,5 +1,6 @@
 // Admin.jsx -- the Administration area (plans/unified-access-architecture.md
-// §6, Phase 2): staff accounts, roles and positions, one ModuleNav strip like
+// §6, Phases 2 and 5): staff accounts, roles and positions, programs and
+// modules, and the access audit log, one ModuleNav strip like
 // StaffReports.jsx. Unlike the rest of the app it is gated by the new
 // permissions (my_permissions()), not by profiles.role -- today's
 // administrators hold them through their legacy role, so nothing changes for
@@ -7,7 +8,7 @@
 //
 // The old /users URL redirects here (App.jsx).
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { BriefcaseBusiness, ShieldCheck, Users as UsersIcon } from "lucide-react";
+import { BriefcaseBusiness, Boxes, ScrollText, ShieldCheck, Users as UsersIcon } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
 import AdminUsers from "../components/admin/AdminUsers.jsx";
@@ -15,13 +16,17 @@ import AdminUserProfile from "../components/admin/AdminUserProfile.jsx";
 import AdminRoles from "../components/admin/AdminRoles.jsx";
 import AdminRoleDetail from "../components/admin/AdminRoleDetail.jsx";
 import AdminPositions from "../components/admin/AdminPositions.jsx";
+import AdminPrograms from "../components/admin/AdminPrograms.jsx";
+import AdminAudit from "../components/admin/AdminAudit.jsx";
 
 const SECTIONS = {
   users: { label: "adminSectionUsers", icon: UsersIcon, permission: "admin.users.view" },
   roles: { label: "adminSectionRoles", icon: ShieldCheck, permission: "admin.roles.view" },
-  positions: { label: "adminSectionPositions", icon: BriefcaseBusiness, permission: "admin.positions.manage" }
+  positions: { label: "adminSectionPositions", icon: BriefcaseBusiness, permission: "admin.positions.manage" },
+  programs: { label: "adminSectionPrograms", icon: Boxes, permission: "admin.programs.manage" },
+  audit: { label: "adminSectionAudit", icon: ScrollText, permission: "admin.audit.view" }
 };
-const ORDER = ["users", "roles", "positions"];
+const ORDER = ["users", "roles", "positions", "programs", "audit"];
 
 // Which sections a permission list opens, in display order.
 export function adminSectionsFor(can) {
@@ -42,6 +47,8 @@ export default function Admin() {
   let body;
   if (section === "users") body = id ? <AdminUserProfile userId={id} /> : <AdminUsers />;
   else if (section === "roles") body = id ? <AdminRoleDetail roleId={id} /> : <AdminRoles />;
+  else if (section === "programs") body = <AdminPrograms />;
+  else if (section === "audit") body = <AdminAudit />;
   else body = <AdminPositions />;
 
   return (
