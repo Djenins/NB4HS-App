@@ -1,8 +1,8 @@
 -- Phase 0, part B of 2 -- REMOVES the old anonymous appointment paths.
--- NOT YET APPLIED. Apply only after part A is applied AND the frontend that
--- calls request_appointment() / public_appointment_staff() is deployed: the
--- old page inserts into appointments and reads staff_directory as anon,
--- which this removes.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026084847), after
+-- part A (20261026084229) and the frontend calling request_appointment() /
+-- public_appointment_staff() (PR #34) were live. supabase/tests/
+-- p0b_security_check.sql passed against the live database afterwards.
 --
 -- S3 appointments_insert was `with check (true)` for every role including
 --    anon: any status, any source, and any assigned_email -- which also sent a
