@@ -2,7 +2,7 @@
 -- policies exactly as they were (generated from pg_policies on 2026-10-26),
 -- returns the legacy worker's contacts.view to 'assigned' and drops the
 -- helpers. Not a migration -- run by hand only if p3d has to be undone.
--- Order: p3 rollbacks undo in reverse (p3d, then p3c, p3b, p3a) -- later
+-- Order: p3 rollbacks undo in reverse (newest first: p3e, p3d, p3c, p3b, p3a) -- later
 -- parts' policies use helpers the earlier parts created.
 
 drop policy assistance_cases_insert on public.assistance_cases;

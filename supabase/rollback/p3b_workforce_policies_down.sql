@@ -2,7 +2,7 @@
 -- policies exactly as they were before it (generated from pg_policies on
 -- 2026-10-26) and drops its helpers. Not a migration -- run by hand only if
 -- p3b has to be undone. The dry run applies it and checks parity again.
--- Order: p3 rollbacks undo in reverse (p3d, then p3c, p3b, p3a) -- later
+-- Order: p3 rollbacks undo in reverse (newest first: p3e, p3d, p3c, p3b, p3a) -- later
 -- parts' policies use helpers the earlier parts created.
 
 drop policy employer_activity_insert on public.employer_activity;
