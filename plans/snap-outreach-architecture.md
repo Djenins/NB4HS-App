@@ -236,3 +236,42 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 - `clients` remain readable by every *active* staff role, incl. receptionist — a product decision, not changed here.
 - Adding a user still swaps the admin's browser session (pre-existing; fixing needs a server-side admin function).
 - Leaked-password protection is a dashboard toggle (Auth → Passwords) — not something a migration can set.
+
+---
+
+## Decisions recorded
+
+| # | Question | Decision (2026-10-26) |
+|---|---|---|
+| 1 | Where SNAP schema changes go | Live project, additive only, applied after each PR is reviewed |
+| 3 | Role model | Separate program-scoped roles (`program_staff`), on top of `profiles.role` |
+| 4 | Admins and case notes | Administrators manage SNAP staff/settings but read participant data only if they also hold a SNAP role |
+| 5–10 | Contacts, worker visibility, pg_cron, messaging, funder/retention, languages | Open — needed before Stage 2 |
+
+## Stage 1 report — roles, audit log, navigation
+
+Branch `Djenins/snap-stage1-foundation`.
+
+**Database** — `supabase/migrations/20261026064304_stage1_program_staff_and_audit.sql` (**applied 2026-10-26** after PR #24 review; additive only):
+- `program_staff (user_id, program, program_role, active, granted_by, …)`, PK `(user_id, program)`; `program` CHECK `('snap')`, `program_role` CHECK `('worker','supervisor','program_admin')`.
+- `has_program_role(program, roles[])` — active profile + active membership; **no admin bypass**. `can_manage_program(program)` — admin or that program's program admin.
+- RLS: own row (if active staff), supervisors/program admins see the team; only `can_manage_program` writes. Revoking deactivates instead of deleting.
+- `audit_events` (append-only, field *names* only, readable by admins and the program's admins) + generic `audit_row_change()` trigger, attached to `program_staff`; no-op updates aren't logged. `set_updated_at()` helper.
+
+**App**
+- `src/lib/programStaff.js` — data access + `snapSectionsFor()` / `canManageProgram()` (mirror the RLS rules).
+- `AppContext` loads the signed-in user's own program roles (`data.programRoles`) and exposes `refetchProgramRoles`.
+- Sidebar: **SNAP Outreach** under Programs for administrators and SNAP role holders (`nav.js`, `constants.js`, `navIcons.js`); `/snap` behind `RequireRoute`.
+- `pages/SnapOutreach.jsx` with `ModuleNav`: **Overview** (members; honest "being set up" state + scope note that DHS decides eligibility) and **Staff & Access** (admins/program admins; assign/revoke SNAP roles on active staff). Sections are added only once they work.
+- i18n en/ht/fr for the module (ht/fr need a native-speaker check).
+
+**Tests executed**
+- Migration run on a throwaway local Postgres 17 against a stub of the live auth/profile helpers: 21 role checks pass (worker/supervisor/admin/program admin/inactive/anon visibility; who can grant; CHECK constraints; audit rows, actor, changed fields, no-op skip; audit not writable directly).
+- `vitest` 198/198 (new: access rules + nav entry, SnapOutreach component tests for worker/admin/no-access/role write/load error). `vite build` passes.
+- Browser (signed out): kiosk unaffected; `/snap` redirects to the landing page. Signed-in staff screens not exercised in a browser (no staff credentials) — covered by component tests.
+
+**Rollout:** migration applied 2026-10-26 (version 20261026064304). Remaining: merge and deploy PR #24, then an administrator assigns the first SNAP program admin in SNAP Outreach → Staff & Access.
+
+**Verified on the live project after applying:** both tables have RLS on with the five expected policies and two triggers; `has_program_role`/`can_manage_program` callable by signed-in users only, trigger functions by no one. Role checks with real accounts inside a rolled-back transaction (10/10): administrator has no SNAP role but can manage; granting and changing a role writes two audit rows attributed to the administrator; a case manager made supervisor has that role, can't manage, can't grant, reads no audit rows; staff without a role and anonymous callers see no memberships. Afterwards `program_staff` and `audit_events` were both empty. Security advisor: no new anon findings and no tables without RLS; new entries are only the two role-check helpers being callable by signed-in users, the same as `has_role`/`is_admin`, because RLS evaluates them as the caller.
+
+**Known limitations:** no live updates of `program_staff` across tabs (the settings table reloads after each change); supervisors see who's on the team but can't change it; audit log has no UI yet (Stage 5).

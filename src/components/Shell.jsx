@@ -296,7 +296,7 @@ export default function Shell() {
   const isCalendar = location.pathname === "/calendar";
 
   const role = session ? session.role : null;
-  const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess)) : [];
+  const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
   const showSidebar = !kiosk && role && items.length > 0;
   const sections = navSectionsForItems(items);
   const workforceSection = sections.find((s) => s.key === "workforceDevelopment");
