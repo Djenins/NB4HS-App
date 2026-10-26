@@ -1,7 +1,9 @@
 -- Phase 6, part C -- staff report attachments, "R4"
 -- (plans/staff-reporting-architecture.md §3, §5).
--- NOT APPLIED. Dry-run only (supabase/tests/p6c_attachments_check.sql),
--- waiting for review. Builds on p6a.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261027040000) after a
+-- rolled-back dry run of supabase/tests/p6c_attachments_check.sql passed.
+-- Afterwards p6c_attachments_check, p6b_outbound_check and p1_access_check
+-- passed against the live database. Builds on p6a.
 --
 -- * A private bucket, staff-report-files: PDF, Word, Excel, PNG and JPEG,
 --   10 MB each, at most 5 per report. Paths are {report_id}/{uuid}-{name}.
