@@ -37,7 +37,7 @@ export default function JobClientListItem({ client, lang, onRemove, selected, on
           <div className="flex items-start justify-between gap-3">
             <button
               type="button"
-              onClick={function () { navigate("/jobdeveloper/" + client.id); }}
+              onClick={function () { navigate("/workforce/participants/" + client.id); }}
               className="flex min-h-0 min-w-0 items-center gap-3 border-0 bg-transparent p-0 text-left font-normal transform-none"
             >
               <Avatar className="h-11 w-11 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(client)}</AvatarFallback></Avatar>
@@ -94,7 +94,7 @@ export default function JobClientListItem({ client, lang, onRemove, selected, on
             {followUp ? (
               <button
                 type="button"
-                onClick={function () { navigate("/jobdeveloper/" + client.id); }}
+                onClick={function () { navigate("/workforce/participants/" + client.id); }}
                 className="flex min-h-0 items-center gap-2 border-0 bg-transparent p-0 text-left font-normal transform-none"
                 title={followUp.company ? followUp.company + (followUp.position ? " · " + followUp.position : "") : undefined}
               >

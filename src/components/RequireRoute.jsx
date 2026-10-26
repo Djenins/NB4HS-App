@@ -14,18 +14,14 @@ import { Navigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { navPath } from "../lib/nav.js";
 import { useNavItems } from "../lib/useNavItems.js";
-import { WORKSPACES, landingItem } from "../lib/workspaces.js";
-
-const WORKFORCE_ITEMS = WORKSPACES.find((w) => w.key === "workforce").items;
+import { landingItem } from "../lib/workspaces.js";
 
 // Can these nav items (and, under the permissions model, these permissions)
-// open this page? Pages that aren't sidebar items:
+// open this page? A page that isn't a sidebar item:
 //   clients    a client's profile -- anyone who can read participant records
-//   workforce  the combined Workforce page -- anyone with a Workforce page
 export function routeAllowed(routeKey, items, opts) {
   if (Array.isArray(routeKey)) return routeKey.some((k) => routeAllowed(k, items, opts));
   if (routeKey === "clients") return items.length > 0 && (!opts.fromPermissions || opts.can("participants.view"));
-  if (routeKey === "workforce") return items.some((k) => WORKFORCE_ITEMS.indexOf(k) !== -1);
   return items.indexOf(routeKey) !== -1;
 }
 

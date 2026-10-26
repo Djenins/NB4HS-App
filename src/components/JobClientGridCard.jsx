@@ -38,7 +38,7 @@ export default function JobClientGridCard({ client, lang, onRemove, selected, on
 
       <button
         type="button"
-        onClick={function () { navigate("/jobdeveloper/" + client.id); }}
+        onClick={function () { navigate("/workforce/participants/" + client.id); }}
         className="mt-3 flex min-h-0 min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left font-normal transform-none"
       >
         <Avatar className="h-10 w-10 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(client)}</AvatarFallback></Avatar>

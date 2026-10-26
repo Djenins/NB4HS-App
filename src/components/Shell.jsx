@@ -101,8 +101,10 @@ const BTN_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal leading-none"
 
 function NavItem({ v, lang, collapsed, badgeCount }) {
   // "users" opens Administration, whose other sections (roles, positions)
-  // should keep it highlighted too.
-  const inAdmin = useLocation().pathname.indexOf("/admin") === 0;
+  // should keep it highlighted too -- but not System Settings (/admin/settings),
+  // its own item.
+  const path = useLocation().pathname;
+  const inAdmin = path.indexOf("/admin/") === 0 && path.indexOf("/admin/settings") !== 0;
   const link = (
     <NavLink
       to={navPath(v)}

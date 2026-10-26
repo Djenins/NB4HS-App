@@ -34,7 +34,7 @@ describe("workspaces per account type", () => {
 describe("current workspace", () => {
   const all = visibleWorkspaces(navItemsForRole("administrator", [], {}));
   it("follows the page, then the last choice, then the primary workspace", () => {
-    expect(pickWorkspace(all, "/employers/42", "home", null)).toBe("workforce");
+    expect(pickWorkspace(all, "/workforce/employers/42", "home", null)).toBe("workforce");
     expect(pickWorkspace(all, "/admin/roles", null, null)).toBe("admin");
     expect(pickWorkspace(all, "/calendar", "students", null)).toBe("students");
     expect(pickWorkspace(all, "/clients/NB-1", null, "case_management")).toBe("case_management");
@@ -42,8 +42,13 @@ describe("current workspace", () => {
     expect(pickWorkspace(staff, "/clients/NB-1", "snap", null)).toBe("home"); // can't open SNAP
   });
   it("maps paths to pages", () => {
-    expect(navKeyForPath("/outreach/snap/cases")).toBe("outreach");
+    expect(navKeyForPath("/snap/cases")).toBe("outreach");
     expect(navKeyForPath("/workforce")).toBe("workforcedashboard");
+    expect(navKeyForPath("/workforce/employers/42")).toBe("employers");
+    expect(navKeyForPath("/students/assessments")).toBe("assessments");
+    expect(navKeyForPath("/students")).toBe("students");
+    expect(navKeyForPath("/admin/settings")).toBe("settings");
+    expect(navKeyForPath("/admin/roles/r1")).toBe("users");
     expect(navKeyForPath("/clients/NB-1")).toBeNull();
     expect(workspaceOfItem("assessments")).toBe("students");
   });

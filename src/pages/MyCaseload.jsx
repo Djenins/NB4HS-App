@@ -34,7 +34,7 @@ function ApptRow({ a, lang, navigate, t }) {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => navigate(a.meetingWith === "job_developer" ? "/jobdeveloper" : "/casemanagement")}
+          onClick={() => navigate(a.meetingWith === "job_developer" ? "/workforce/participants" : "/case-management")}
         >
           {t("viewLabel")}
         </Button>

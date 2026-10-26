@@ -59,10 +59,10 @@ const TABS = [
 const TAB_KEYS = ["overview", "programs", "appointments", "services", "notes", "documents", "communications", "activity"];
 const TAB_ID_BASE = "client-profile";
 const PROGRAM_META = {
-  case: { labelKey: "navCaseManagement", icon: Users, path: "/casemanagement" },
-  job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/jobdeveloper" },
+  case: { labelKey: "navCaseManagement", icon: Users, path: "/case-management" },
+  job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/workforce/participants" },
   student: { labelKey: "navStudents", icon: GraduationCap, path: "/students" },
-  food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/fooddistribution" }
+  food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/food" }
 };
 
 // One list row inside a flush SectionCard: hairline between rows, card padding.
