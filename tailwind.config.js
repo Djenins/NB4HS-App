@@ -52,15 +52,6 @@ export default {
         "tint-success": "var(--tint-success)",
         "tint-warn": "var(--tint-warn)",
         "tint-danger": "var(--tint-danger)",
-        // Fixed (non-theme-swapping) navy shades for the permanently dark
-        // sidebar chrome -- it stays brand navy regardless of the Light/Dark
-        // content toggle. Values live in main.css as RGB channels
-        // (--sidebar-*) so opacity modifiers like text-sidebar-text/70 work.
-        "sidebar-bg": "rgb(var(--sidebar-bg) / <alpha-value>)",
-        "sidebar-bg-active": "rgb(var(--sidebar-bg-active) / <alpha-value>)",
-        "sidebar-border": "rgb(var(--sidebar-border) / <alpha-value>)",
-        "sidebar-text": "rgb(var(--sidebar-text) / <alpha-value>)",
-        "sidebar-text-active": "rgb(var(--sidebar-text-active) / <alpha-value>)",
         // NB4HS Operate semantic layer (plans/ui-design-system.md). Surfaces
         // and lines first, then one six-slot entry per tone, e.g.
         // bg-tone-success-bg / border-tone-success-border / text-tone-success-ink.
@@ -73,7 +64,17 @@ export default {
             tone,
             Object.fromEntries(["bg", "border", "chip", "ink", "solid", "on-solid"].map((slot) => [slot, `var(--tone-${tone}-${slot})`]))
           ])
-        )
+        ),
+        // Floating sidebar (components/sidebar/): theme-aware, light and
+        // dark values live in main.css's --sb-* tokens.
+        sb: {
+          bg: "var(--sb-bg)", border: "var(--sb-border)", divider: "var(--sb-divider)",
+          text: "var(--sb-text)", muted: "var(--sb-muted)", icon: "var(--sb-icon)",
+          hover: "var(--sb-hover)", active: "var(--sb-active)", "active-text": "var(--sb-active-text)", "rail-active": "var(--sb-rail-active)",
+          field: "var(--sb-field)", "field-border": "var(--sb-field-border)", kbd: "var(--sb-kbd)",
+          seg: "var(--sb-seg)", "seg-on": "var(--sb-seg-on)", "seg-on-text": "var(--sb-seg-on-text)",
+          tooltip: "var(--sb-tooltip)", "tooltip-text": "var(--sb-tooltip-text)"
+        }
       },
       // lg/xl are still remapped to the legacy 18/20px radii so existing
       // screens don't move; they return to Tailwind's stock values in Phase 4,
@@ -91,7 +92,8 @@ export default {
         "card-hover": "var(--shadow-md)",
         raised: "var(--shadow-raised)",
         overlay: "var(--shadow-overlay)",
-        lg: "var(--shadow-lg)"
+        lg: "var(--shadow-lg)",
+        sb: "var(--sb-shadow)"
       },
       // Staff UI type scale -- sizes live in main.css (--fs-*); line height,
       // weight and tracking are paired here so one class sets the whole role.
