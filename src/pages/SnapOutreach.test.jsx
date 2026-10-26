@@ -17,6 +17,19 @@ vi.mock("../lib/programStaff.js", async (importOriginal) => {
   return { ...actual, fetchProgramStaff: (...a) => fetchProgramStaff(...a), setProgramRole: (...a) => setProgramRole(...a) };
 });
 
+// The dashboard's data calls: stubbed so these tests stay about access.
+vi.mock("../lib/snapTasks.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  fetchSnapDashboard: () => Promise.resolve({ individuals_contacted: 4, cases_opened: 2, cases_by_stage: [] }),
+  fetchTasks: () => Promise.resolve([]),
+  fetchRecentActivity: () => Promise.resolve([])
+}));
+vi.mock("../lib/assistanceCases.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  fetchCaseStages: () => Promise.resolve([]),
+  fetchCases: () => Promise.resolve([])
+}));
+
 import SnapOutreach from "./SnapOutreach.jsx";
 
 const en = (key) => translate(key, "en");
@@ -50,16 +63,17 @@ beforeEach(() => {
 });
 
 describe("SnapOutreach", () => {
-  it("shows a worker the overview with their role, and no staff management", () => {
+  it("shows a worker the dashboard and working sections, and no staff management", async () => {
     renderAs("case_manager", { snap: "worker" });
-    expect(screen.getByText(en("snapOverviewTitle"))).toBeInTheDocument();
-    expect(screen.getByText(en("snapRoleWorker"))).toBeInTheDocument();
-    expect(screen.queryByText(en("snapSectionStaff"))).not.toBeInTheDocument();
+    ["snapSectionDashboard", "snapSectionContacts", "snapSectionCases", "snapSectionTasks"].forEach((k) =>
+      expect(screen.getByRole("button", { name: en(k) })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: en("snapSectionStaff") })).not.toBeInTheDocument();
+    expect(await screen.findByText(en("snapDashboardScopeWorker"))).toBeInTheDocument();
   });
 
   it("shows an administrator without a SNAP role only Staff & Access", async () => {
     renderAs("administrator", {});
-    expect(screen.queryByText(en("snapOverviewTitle"))).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: en("snapSectionDashboard") })).not.toBeInTheDocument();
     expect(await screen.findByText(en("snapStaffTitle"))).toBeInTheDocument();
     // active staff only, with their current SNAP role
     expect(screen.getByText("Cam Manager")).toBeInTheDocument();

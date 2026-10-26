@@ -20,7 +20,7 @@ import SnapContactDetail from "./SnapContactDetail.jsx";
 const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
 const FOLLOW_VARIANT = { none: "neutral", needed: "warn", scheduled: "default", done: "success" };
 
-export default function SnapContacts() {
+export default function SnapContacts({ intent }) {
   const { data, session } = useApp();
   const t = useT();
   const userId = session ? session.id : null;
@@ -28,7 +28,7 @@ export default function SnapContacts() {
   const [loadError, setLoadError] = useState(false);
   const [q, setQ] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(intent === "new");
   const [openId, setOpenId] = useState(null);
 
   function load() {
