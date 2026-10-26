@@ -3,8 +3,11 @@
 // notify_appointment_assignment trigger whenever an appointment is
 // assigned/reassigned to them), each linked back to its appointment so the
 // staff member can approve, cancel, or reschedule right from the panel.
+// Rows with a `link` (staff report submitted / sent back / acknowledged)
+// open that page instead.
 import { useState } from "react";
-import { Bell, Check, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Check, ChevronRight, X } from "lucide-react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { updateAppointment, updateAppointmentStatus } from "../lib/clientsData.js";
@@ -37,15 +40,39 @@ function RescheduleForm({ appt, onDone }) {
   );
 }
 
-function NotificationRow({ n, appt, onApprove, onCancel }) {
+// Server-written notifications store English text; show known types' titles
+// in the reader's language.
+const TYPE_TITLE = {
+  snap_task_due: "snapNotifTaskDue",
+  staff_report_submitted: "srNotifSubmitted",
+  staff_report_revision_requested: "srNotifRevision",
+  staff_report_acknowledged: "srNotifAcknowledged"
+};
+
+function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
   const t = useT();
   const { lang } = useApp();
   const [rescheduling, setRescheduling] = useState(false);
 
+  const title = TYPE_TITLE[n.type] ? t(TYPE_TITLE[n.type]) : n.title;
+  if (n.link) {
+    return (
+      <DropdownMenuPrimitive.Item asChild onSelect={() => onOpen(n.link)}>
+        <button type="button"
+          className={cn("flex min-h-0 w-full items-center gap-2 rounded-none border-0 border-b border-border px-3 py-2.5 text-left font-normal transform-none last:border-0 hover:bg-background focus:bg-background focus:outline-none", n.read ? "bg-transparent" : "bg-primary-tint")}>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-card-foreground">{title}</span>
+            <span className="mt-0.5 block text-xs text-muted">{n.message}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+        </button>
+      </DropdownMenuPrimitive.Item>
+    );
+  }
+
   return (
     <div className={cn("border-b border-border px-3 py-2.5 last:border-0", !n.read && "bg-primary-tint")}>
-      {/* Server-written reminders store English text; show known types in the reader's language. */}
-      <div className="text-sm font-semibold text-card-foreground">{n.type === "snap_task_due" ? t("snapNotifTaskDue") : n.title}</div>
+      <div className="text-sm font-semibold text-card-foreground">{title}</div>
       <div className="mt-0.5 text-xs text-muted">{n.message}</div>
       {appt && (
         <>
@@ -77,6 +104,7 @@ function NotificationRow({ n, appt, onApprove, onCancel }) {
 export default function NotificationBell() {
   const { data, notifications, markNotifRead, markAllNotifsRead, requestConfirm, showToast } = useApp();
   const t = useT();
+  const navigate = useNavigate();
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   async function approve(id) {
@@ -126,6 +154,7 @@ export default function NotificationBell() {
                 appt={(data.appointments || []).find((a) => a.id === n.appointmentId)}
                 onApprove={approve}
                 onCancel={cancel}
+                onOpen={(link) => navigate(link)}
               />
             ))
           ) : (

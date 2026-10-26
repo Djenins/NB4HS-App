@@ -123,7 +123,7 @@ export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core",
 // NAV_GROUP above is left untouched -- it's still used by nav.js's
 // showDividerBefore() (a leftover from the old flat tab-bar layout).
 export var NAV_SECTION = {
-  dashboard: "overview", mycaseload: "overview",
+  dashboard: "overview", mycaseload: "overview", myreports: "overview", staffreports: "overview",
   checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps",
   students: "programs", assessments: "programs", casemanagement: "programs", fooddistribution: "programs", outreach: "programs",
   // jobdeveloper (the older participant/job-seeker tracking page) lives in
