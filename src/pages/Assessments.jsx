@@ -369,7 +369,7 @@ export default function Assessments() {
                 onClick={() => updateFilterMode(mode)}
                 className={cn(
                   "flex h-9 min-h-0 items-center justify-center whitespace-nowrap rounded-full border px-4 text-sm font-semibold leading-none transition-colors",
-                  filterMode === mode ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-[#b7c0d1]"
+                  filterMode === mode ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-line-strong"
                 )}
               >
                 {quickFilterLabel[mode]}

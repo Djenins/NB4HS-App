@@ -87,7 +87,7 @@ function StatusBadge({ checkedOut, t }) {
 
 function FilterFieldBox({ label, children, className }) {
   return (
-    <div className={"relative min-w-[150px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-[#b7c0d1] " + (className || "")}>
+    <div className={"relative min-w-[150px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-line-strong " + (className || "")}>
       <div className="text-xs font-medium text-muted">{label}</div>
       {children}
     </div>
@@ -391,7 +391,7 @@ export default function Search() {
             <button
               type="button"
               onClick={resetFilters}
-              className="flex min-w-[130px] items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-[#b7c0d1] hover:text-card-foreground"
+              className="flex min-w-[130px] items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-line-strong hover:text-card-foreground"
             >
               {t("clearFilters")} <RefreshCw className="h-3.5 w-3.5" />
             </button>

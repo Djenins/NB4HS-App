@@ -70,7 +70,7 @@ function Chip({ active, onClick, children }) {
       onClick={onClick}
       className={
         "rounded-full border px-3 py-1 text-xs font-semibold transition-colors " +
-        (active ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-[#b7c0d1]")
+        (active ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-line-strong")
       }
     >
       {children}
