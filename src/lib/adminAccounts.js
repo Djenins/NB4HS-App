@@ -86,7 +86,9 @@ export function adminErrorKey(error) {
   if (/no active System Administrator/i.test(text)) return "adminErrLastAdmin";
   if (/System Administrator/i.test(text)) return "adminErrSystemAdminOnly";
   if (/reason is required/i.test(text)) return "adminErrReason";
-  if (/permissions you do not hold|grant permissions you hold/i.test(text)) return "adminErrEscalation";
+  if (/permissions you do not hold|grant permissions you hold|programs you can access yourself/i.test(text)) return "adminErrEscalation";
+  if (/can already open this program/i.test(text)) return "adminErrHasProgram";
+  if (/only program access an admin gave/i.test(text)) return "adminErrAutomaticProgram";
   if (/already signed in|already_signed_in/i.test(text)) return "adminErrAlreadySignedIn";
   if (/already_registered/i.test(text)) return "adminErrAlreadyRegistered";
   if (/email_failed/i.test(text)) return "adminErrEmailFailed";
@@ -266,5 +268,28 @@ export async function removeUserPosition(userId, positionId) {
 
 export async function setPrimaryPosition(userId, positionId) {
   const { error } = await supabase.rpc("admin_set_primary_position", { p_user: userId, p_position: positionId });
+  if (error) throw error;
+}
+
+// ---------- program access ----------
+
+// The programs a person can open (active rows only), keyed by program:
+// { students: { source: "legacy_sync" | "admin", grantedAt, grantedBy } }.
+export async function fetchProgramAccess(userId) {
+  const { data, error } = await supabase.from("user_program_access")
+    .select("program_key, source, granted_at, granted_by").eq("user_id", userId).is("revoked_at", null);
+  if (error) throw error;
+  const out = {};
+  data.forEach((r) => { out[r.program_key] = { source: r.source, grantedAt: r.granted_at, grantedBy: r.granted_by }; });
+  return out;
+}
+
+export async function grantProgram(userId, programKey, reason) {
+  const { error } = await supabase.rpc("admin_grant_program", { p_user: userId, p_program: programKey, p_reason: reason || null });
+  if (error) throw error;
+}
+
+export async function revokeProgram(userId, programKey, reason) {
+  const { error } = await supabase.rpc("admin_revoke_program", { p_user: userId, p_program: programKey, p_reason: reason || null });
   if (error) throw error;
 }

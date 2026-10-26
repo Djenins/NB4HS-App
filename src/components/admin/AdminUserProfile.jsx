@@ -1,15 +1,17 @@
 // AdminUserProfile.jsx -- one staff account (/admin/users/:id): the
-// lifecycle actions in the header (deactivate, reactivate or approve, resend
-// the invite, send a password reset, sign out everywhere), then three tabs:
-//   Profile    name, sign-in email, account type (the legacy role that still
-//              decides what they see today) and their sign-in history
-//   Positions  job titles -- describe the work, grant nothing
-//   Roles      permission sets under the new access model
+// lifecycle actions in the header (deactivate, reactivate or activate,
+// resend the invite, send a password reset, sign out everywhere), then tabs:
+//   Profile         name, sign-in email, account type (the legacy role that
+//                   still decides which pages they see) and sign-in history
+//   Positions       job titles -- describe the work, grant nothing
+//   Program Access  the programs whose permissions count for them
+//   Roles           permission sets under the new access model
 //
 // Nobody acts on their own account here: the database refuses it too.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, LogOut, Mail, Plus, Star, Trash2, UserCheck, UserX } from "lucide-react";
+import ProgramAccessTab from "./ProgramAccessTab.jsx";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
   accountStatus, addUserPosition, adminErrorKey, assignRole, assignableRoles, fetchAccessCatalog, fetchAccount,
@@ -431,12 +433,14 @@ export default function AdminUserProfile({ userId }) {
         items={[
           { value: "profile", label: t("adminTabProfile") },
           { value: "positions", label: t("adminSectionPositions"), count: account.positions.length },
+          { value: "programs", label: t("adminTabPrograms") },
           { value: "roles", label: t("adminSectionRoles"), count: account.roles.filter((r) => r.source === "admin").length }
         ]}
       />
       <TabPanel idBase="account" value={tab} className="pt-6">
         {tab === "profile" ? <ProfileTab account={account} isSelf={isSelf} onChanged={reload} /> : null}
         {tab === "positions" ? <PositionsTab account={account} positions={positions} onChanged={reload} /> : null}
+        {tab === "programs" ? <ProgramAccessTab account={account} isSelf={isSelf} catalog={catalog} /> : null}
         {tab === "roles" ? <RolesTab account={account} isSelf={isSelf} catalog={catalog} onChanged={reload} /> : null}
       </TabPanel>
 

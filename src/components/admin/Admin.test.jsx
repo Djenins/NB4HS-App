@@ -43,7 +43,8 @@ const CATALOG = {
   ],
   rolePermissions: [{ roleId: "r-c", permissionKey: "students.view", scope: "program" }, { roleId: "r-legacy", permissionKey: "students.view", scope: "assigned" }],
   permissions: [{ key: "students.view", moduleKey: "students", label: "Open Students", sortOrder: 1 }],
-  modules: [{ key: "students", kind: "program", name: "Students", active: true, implemented: true }],
+  modules: [{ key: "students", kind: "program", name: "Students", active: true, implemented: true },
+    { key: "workforce", kind: "program", name: "Workforce", active: true, implemented: true }],
   members: [{ role_id: "r-c", user_id: "u1" }]
 };
 
@@ -59,7 +60,10 @@ vi.mock("../../lib/adminAccounts.js", async (importOriginal) => {
     revokeSessions: vi.fn(() => Promise.resolve(2)),
     inviteStaff: vi.fn(() => Promise.resolve({ user_id: "new", link: "https://example/verify?token=abc" })),
     createPosition: vi.fn(() => Promise.resolve("p3")),
-    revokeRole: vi.fn(() => Promise.resolve())
+    revokeRole: vi.fn(() => Promise.resolve()),
+    fetchProgramAccess: vi.fn(() => Promise.resolve({ students: { source: "legacy_sync", grantedAt: "2026-10-26T00:00:00Z" } })),
+    grantProgram: vi.fn(() => Promise.resolve()),
+    revokeProgram: vi.fn(() => Promise.resolve())
   });
   return Object.assign({}, real, lib);
 });
@@ -152,6 +156,31 @@ describe("One account", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Roles/ }));
     expect(screen.getByText(tr("adminRolesNotLiveTitle"))).toBeTruthy();
     expect(screen.getAllByRole("button", { name: tr("adminRemove") })).toHaveLength(1);
+  });
+});
+
+describe("Program access", () => {
+  it("shows automatic access read-only and gives a program with a reason", async () => {
+    renderIn(<AdminUserProfile userId="u1" />);
+    await screen.findByRole("heading", { name: "Ann Active" });
+    fireEvent.click(screen.getByRole("tab", { name: tr("adminTabPrograms") }));
+    expect(await screen.findByText(tr("adminProgramAutomatic"))).toBeTruthy();
+    const buttons = screen.getAllByRole("button", { name: tr("adminGiveAccess") });
+    expect(buttons).toHaveLength(1); // Workforce only; Students is automatic
+    expect(screen.queryByRole("button", { name: tr("adminRemove") })).toBeNull();
+    fireEvent.click(buttons[0]);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Covering referrals" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: tr("adminGiveAccess") }));
+    await waitFor(() => expect(lib.grantProgram).toHaveBeenCalledWith("u1", "workforce", "Covering referrals"));
+  });
+
+  it("offers no changes on your own account", async () => {
+    renderIn(<AdminUserProfile userId="me" />);
+    await screen.findByText(tr("adminOwnAccountTitle"));
+    fireEvent.click(screen.getByRole("tab", { name: tr("adminTabPrograms") }));
+    await screen.findByText(tr("adminProgramAutomatic"));
+    expect(screen.queryByRole("button", { name: tr("adminGiveAccess") })).toBeNull();
   });
 });
 
