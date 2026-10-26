@@ -101,7 +101,7 @@ function ScheduleCard({ schedule, departments, onSaved }) {
               </label>
             ))}
           </div>
-          <p className="!mb-0 !mt-1.5 !text-xs text-muted">{t("srRemindersLater")}</p>
+          <p className="!mb-0 !mt-1.5 !text-xs text-muted">{t("srRemindersHelp")}</p>
         </fieldset>
 
         <fieldset className="m-0 min-w-0 border-0 p-0">
