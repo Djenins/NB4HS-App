@@ -1,6 +1,10 @@
 -- Phase 3, part E -- the Food Distribution program's tables move from
 -- is_staff() to permissions (plans/unified-access-architecture.md §4, §13
--- Phase 3). NOT YET APPLIED.
+-- Phase 3).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026230000), after a
+-- rolled-back dry run (parity up and down). Afterwards on live: reverse
+-- parity matched the old rules on all 960 answers; the p1, p2 and p3a
+-- checks passed.
 --
 -- NOBODY'S ACCESS CHANGES (parity-tested, as for p3a). Today every staff
 -- account can read and edit households and distributions -- reports and the
