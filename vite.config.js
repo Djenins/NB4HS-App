@@ -29,6 +29,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: "./src/test/setup.js"
+    setupFiles: "./src/test/setup.js",
+    // supabase/functions/**/*.test.ts are Deno tests (CI runs them with deno).
+    include: ["src/**/*.test.{js,jsx}"]
   }
 });

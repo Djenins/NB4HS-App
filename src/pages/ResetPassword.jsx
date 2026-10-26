@@ -17,6 +17,11 @@ import { getSession, signOut, updatePassword } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 
+// An admin's invite (Administration > Invite staff) lands here too, with
+// type=invite in the URL fragment. Read it while the module loads: the
+// Supabase client consumes and clears the fragment straight after.
+const ARRIVED_BY_INVITE = typeof window !== "undefined" && /(^#|&)type=invite(&|$)/.test(window.location.hash);
+
 export default function ResetPassword() {
   const { showToast } = useApp();
   const t = useT();
@@ -58,8 +63,8 @@ export default function ResetPassword() {
             <img src={LOGO_DATA_URI} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-1" />
             <span className="text-sm font-bold text-primary">{ORG.name}</span>
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-card-foreground">{t("resetPasswordHeading")}</h1>
-          <p className="mt-2 text-sm text-muted">{t("resetPasswordSubtitle")}</p>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>
+          <p className="mt-2 text-sm text-muted">{t(ARRIVED_BY_INVITE ? "setPasswordSubtitle" : "resetPasswordSubtitle")}</p>
         </div>
 
         <Card className="mx-auto mt-6 w-full rounded-[20px]">
@@ -122,7 +127,7 @@ export default function ResetPassword() {
                   disabled={!password || !confirmPassword || submitting}
                   className="mt-2 h-14 w-full text-base"
                 >
-                  {t("updatePasswordBtn")} <ArrowRight className="h-4 w-4" />
+                  {t(ARRIVED_BY_INVITE ? "setPasswordBtn" : "updatePasswordBtn")} <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
             )}

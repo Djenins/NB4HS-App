@@ -61,7 +61,16 @@ const STATUS_TONES = {
   "referral:hired": "success",
   "referral:not_selected": "neutral",
   "placement:active": "success",
-  "placement:ended": "neutral"
+  "placement:ended": "neutral",
+
+  // Staff accounts (Administration)
+  "account:active": "success",
+  "account:invited": "info",
+  "account:pending": "warning",
+  "account:deactivated": "neutral",
+  "roleKind:builtin": "violet",
+  "roleKind:custom": "info",
+  "roleKind:legacy": "neutral"
 };
 
 export function statusTone(domain, status) {
