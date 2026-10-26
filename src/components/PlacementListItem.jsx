@@ -31,7 +31,7 @@ export default function PlacementListItem({ placement, checkins, lang, onOpen })
             {[p.positionTitle, p.employerName].filter(Boolean).join(" · ") || "—"}
           </p>
         </div>
-        <StatusBadge domain="placement" status={p.currentStatus} className="shrink-0">{placementStatusLabel(p.currentStatus)}</StatusBadge>
+        <StatusBadge domain="placement" status={p.currentStatus} className="shrink-0">{placementStatusLabel(p.currentStatus, lang)}</StatusBadge>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-meta text-card-foreground">

@@ -20,7 +20,7 @@ export default function JobOpeningGridCard({ opening, referralCount, lang, onVie
   return (
     <Card interactive className="flex h-full flex-col p-5">
       <div className="flex items-start justify-between gap-2">
-        <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status)}</StatusBadge>
+        <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status, lang)}</StatusBadge>
         <JobOpeningActionsMenu
           opening={opening} onView={onView} onEdit={onEdit} onRefer={onRefer} onArchive={onArchive} onDelete={onDelete}
         />

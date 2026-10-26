@@ -123,7 +123,7 @@ export default function Referrals() {
     {
       key: "stage", label: t("stageLabel"), value: stageFilter, onChange: setFilter(setStageFilter),
       options: [{ value: "", label: t("allStagesLabel") }]
-        .concat(REFERRAL_STAGES.map(function (s) { return { value: s.key, label: s.en }; }))
+        .concat(REFERRAL_STAGES.map(function (s) { return { value: s.key, label: s[lang] || s.en }; }))
     },
     {
       key: "employer", label: t("employerLabel"), value: employerFilter, onChange: setFilter(setEmployerFilter),
@@ -251,7 +251,7 @@ export default function Referrals() {
                 <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <span aria-hidden="true" className={cn("h-2 w-2 shrink-0 rounded-chip", TONE_DOT[statusTone("referral", stage.key)] || TONE_DOT.neutral)} />
-                    <h2 id={headingId} className="m-0 truncate text-ui font-semibold text-card-foreground">{stage.en}</h2>
+                    <h2 id={headingId} className="m-0 truncate text-ui font-semibold text-card-foreground">{stage[lang] || stage.en}</h2>
                   </div>
                   <Badge variant="neutral" className="tabular-nums">{stageReferrals.length}</Badge>
                 </div>

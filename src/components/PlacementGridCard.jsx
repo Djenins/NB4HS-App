@@ -24,7 +24,7 @@ export default function PlacementGridCard({ placement, checkins, lang, onOpen })
       className="flex h-full cursor-pointer flex-col p-4 focus-visible:outline-none focus-visible:ring-2 sm:p-5"
     >
       <div className="flex items-start justify-between gap-2">
-        <StatusBadge domain="placement" status={p.currentStatus}>{placementStatusLabel(p.currentStatus)}</StatusBadge>
+        <StatusBadge domain="placement" status={p.currentStatus}>{placementStatusLabel(p.currentStatus, lang)}</StatusBadge>
         <span className="flex items-center gap-1.5 text-ui font-semibold text-primary">
           {t("viewLabel")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </span>

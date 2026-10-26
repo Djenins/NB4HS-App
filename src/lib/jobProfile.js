@@ -2,45 +2,44 @@
 // detail page (src/pages/JobClientProfile.jsx). Follows the exact
 // CASE_SERVICES/caseServiceLabel pattern already in constants.js/clients.js
 // -- kept in its own file since none of this is shared by Case Management.
-// Unlike CASE_SERVICES, these lists are English-only (no ht/es/fr) --
-// deliberate scope cut given the size of this feature; label lookups always
-// return the English string regardless of app language. Worth revisiting if
-// this page needs full i18n parity with the rest of the app later.
+// The status and stage lists carry ht/fr like CASE_SERVICES, and their label
+// helpers take an optional `lang`; the remaining lists (barriers, services)
+// are still English-only. Stored values are always the `key`, never a label.
 import { uid } from "./utils.js";
 
 export var EMPLOYMENT_STATUSES = [
-  { key: "not_started", en: "Not Started" },
-  { key: "assessment_needed", en: "Assessment Needed" },
-  { key: "resume_needed", en: "Resume Needed" },
-  { key: "resume_in_progress", en: "Resume in Progress" },
-  { key: "job_ready", en: "Job Ready" },
-  { key: "actively_looking", en: "Actively Looking" },
-  { key: "applied", en: "Applied" },
-  { key: "interview_scheduled", en: "Interview Scheduled" },
-  { key: "offer_received", en: "Offer Received" },
-  { key: "employed", en: "Employed" },
-  { key: "follow_up_needed", en: "Follow-Up Needed" },
-  { key: "closed", en: "Closed" }
+  { key: "not_started", en: "Not Started", ht: "Poko Kòmanse", fr: "Pas commencé" },
+  { key: "assessment_needed", en: "Assessment Needed", ht: "Bezwen Evalyasyon", fr: "Évaluation requise" },
+  { key: "resume_needed", en: "Resume Needed", ht: "Bezwen Rezime", fr: "CV requis" },
+  { key: "resume_in_progress", en: "Resume in Progress", ht: "Rezime ap Prepare", fr: "CV en cours" },
+  { key: "job_ready", en: "Job Ready", ht: "Pare pou Travay", fr: "Prêt à l'emploi" },
+  { key: "actively_looking", en: "Actively Looking", ht: "Ap Chèche Aktivman", fr: "En recherche active" },
+  { key: "applied", en: "Applied", ht: "Aplike", fr: "Candidature envoyée" },
+  { key: "interview_scheduled", en: "Interview Scheduled", ht: "Entèvyou Pwograme", fr: "Entretien prévu" },
+  { key: "offer_received", en: "Offer Received", ht: "Resevwa Òf", fr: "Offre reçue" },
+  { key: "employed", en: "Employed", ht: "Gen Travay", fr: "En emploi" },
+  { key: "follow_up_needed", en: "Follow-Up Needed", ht: "Bezwen Swivi", fr: "Suivi requis" },
+  { key: "closed", en: "Closed", ht: "Fèmen", fr: "Clôturé" }
 ];
 
 export var WORK_AUTH_STATUSES = [
-  { key: "us_citizen", en: "U.S. Citizen" },
-  { key: "permanent_resident", en: "Permanent Resident" },
+  { key: "us_citizen", en: "U.S. Citizen", ht: "Sitwayen Ameriken", fr: "Citoyen américain" },
+  { key: "permanent_resident", en: "Permanent Resident", ht: "Rezidan Pèmanan", fr: "Résident permanent" },
   { key: "tps", en: "TPS" },
-  { key: "refugee", en: "Refugee" },
-  { key: "asylum_pending", en: "Asylum Pending" },
-  { key: "ead", en: "Employment Authorization Document" },
-  { key: "expired", en: "Work Permit Expired" },
-  { key: "not_authorized", en: "Not Authorized" },
-  { key: "other", en: "Other" }
+  { key: "refugee", en: "Refugee", ht: "Refijye", fr: "Réfugié" },
+  { key: "asylum_pending", en: "Asylum Pending", ht: "Azil an Atant", fr: "Asile en attente" },
+  { key: "ead", en: "Employment Authorization Document", ht: "Dokiman Otorizasyon Travay (EAD)", fr: "Autorisation de travail (EAD)" },
+  { key: "expired", en: "Work Permit Expired", ht: "Pèmi Travay Ekspire", fr: "Permis de travail expiré" },
+  { key: "not_authorized", en: "Not Authorized", ht: "Pa Otorize", fr: "Non autorisé" },
+  { key: "other", en: "Other", ht: "Lòt", fr: "Autre" }
 ];
 
 export var JOB_PIPELINE_STAGES = [
-  { key: "resume", en: "Resume" },
-  { key: "applying", en: "Applying" },
-  { key: "interview", en: "Interview" },
-  { key: "offer", en: "Offer" },
-  { key: "employed", en: "Employed" }
+  { key: "resume", en: "Resume", ht: "Rezime", fr: "CV" },
+  { key: "applying", en: "Applying", ht: "Ap Aplike", fr: "Candidatures" },
+  { key: "interview", en: "Interview", ht: "Entèvyou", fr: "Entretien" },
+  { key: "offer", en: "Offer", ht: "Òf", fr: "Offre" },
+  { key: "employed", en: "Employed", ht: "Gen Travay", fr: "En emploi" }
 ];
 
 export var BARRIERS_TO_EMPLOYMENT = [
@@ -64,25 +63,25 @@ export var JOB_SERVICES_PROVIDED = [
 ];
 
 export var APPLICATION_STATUSES = [
-  { key: "applied", en: "Applied" },
-  { key: "under_review", en: "Under Review" },
-  { key: "interview_scheduled", en: "Interview Scheduled" },
-  { key: "offer_received", en: "Offer Received" },
-  { key: "hired", en: "Hired" },
-  { key: "not_selected", en: "Not Selected" },
-  { key: "withdrawn", en: "Withdrawn" }
+  { key: "applied", en: "Applied", ht: "Aplike", fr: "Candidature envoyée" },
+  { key: "under_review", en: "Under Review", ht: "Y ap Revize", fr: "En cours d'examen" },
+  { key: "interview_scheduled", en: "Interview Scheduled", ht: "Entèvyou Pwograme", fr: "Entretien prévu" },
+  { key: "offer_received", en: "Offer Received", ht: "Resevwa Òf", fr: "Offre reçue" },
+  { key: "hired", en: "Hired", ht: "Anboche", fr: "Embauché" },
+  { key: "not_selected", en: "Not Selected", ht: "Pa Chwazi", fr: "Non retenu" },
+  { key: "withdrawn", en: "Withdrawn", ht: "Retire", fr: "Retirée" }
 ];
 
-function labelFor(list, key) {
+function labelFor(list, key, lang) {
   var found = list.filter(function (i) { return i.key === key; })[0];
-  return found ? found.en : (key || "");
+  return found ? (found[lang] || found.en) : (key || "");
 }
-export function employmentStatusLabel(key) { return labelFor(EMPLOYMENT_STATUSES, key); }
-export function workAuthLabel(key) { return labelFor(WORK_AUTH_STATUSES, key); }
-export function pipelineStageLabel(key) { return labelFor(JOB_PIPELINE_STAGES, key); }
+export function employmentStatusLabel(key, lang) { return labelFor(EMPLOYMENT_STATUSES, key, lang); }
+export function workAuthLabel(key, lang) { return labelFor(WORK_AUTH_STATUSES, key, lang); }
+export function pipelineStageLabel(key, lang) { return labelFor(JOB_PIPELINE_STAGES, key, lang); }
 export function barrierLabel(key) { return labelFor(BARRIERS_TO_EMPLOYMENT, key); }
 export function jobServiceLabel(key) { return labelFor(JOB_SERVICES_PROVIDED, key); }
-export function applicationStatusLabel(key) { return labelFor(APPLICATION_STATUSES, key); }
+export function applicationStatusLabel(key, lang) { return labelFor(APPLICATION_STATUSES, key, lang); }
 
 export function pipelineStageIndex(key) {
   var i = JOB_PIPELINE_STAGES.findIndex(function (s) { return s.key === key; });

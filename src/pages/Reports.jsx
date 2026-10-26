@@ -149,8 +149,8 @@ export default function Reports() {
     return () => { cancelled = true; unsub(); };
   }, [showJobStats]);
   const jobOutcomes = computeJobOutcomes(data.jobClients, applications, range);
-  const pipelineRows = Object.keys(jobOutcomes.pipelineCounts).map((key) => ({ label: pipelineStageLabel(key), count: jobOutcomes.pipelineCounts[key] }));
-  const statusRows = Object.keys(jobOutcomes.statusCounts).map((key) => ({ label: applicationStatusLabel(key), count: jobOutcomes.statusCounts[key] }));
+  const pipelineRows = Object.keys(jobOutcomes.pipelineCounts).map((key) => ({ label: pipelineStageLabel(key, lang), count: jobOutcomes.pipelineCounts[key] }));
+  const statusRows = Object.keys(jobOutcomes.statusCounts).map((key) => ({ label: applicationStatusLabel(key, lang), count: jobOutcomes.statusCounts[key] }));
 
   function handleExportCSV() {
     exportCSV(data.visits, range, data.customServices, data.customStaff, lang);

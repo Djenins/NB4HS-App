@@ -8,12 +8,14 @@
 // 2px border, hover lift) because Tailwind's preflight is off; BUTTON_RESET
 // cancels it the same way every ui button does.
 import { Briefcase } from "lucide-react";
+import { useApp } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { employmentTypeLabel, statusLabel } from "../lib/jobOpenings.js";
 import { BUTTON_RESET } from "./ui/button.jsx";
 import { StatusBadge } from "./ui/status-badge.jsx";
 
 export default function JobOpeningPickerCard({ opening, selected, onSelect }) {
+  const { lang } = useApp();
   const meta = [opening.employerCity, employmentTypeLabel(opening.employmentType)].filter(Boolean);
 
   return (
@@ -38,7 +40,7 @@ export default function JobOpeningPickerCard({ opening, selected, onSelect }) {
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
           <span className="min-w-0 text-ui font-semibold text-card-foreground [overflow-wrap:anywhere]">{opening.title}</span>
-          <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status)}</StatusBadge>
+          <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status, lang)}</StatusBadge>
         </span>
         <span className="mt-0.5 block truncate text-meta text-muted">{opening.employerName || "—"}</span>
         {meta.length > 0 && <span className="mt-0.5 block truncate text-meta text-muted">{meta.join(" • ")}</span>}

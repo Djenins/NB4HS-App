@@ -6,7 +6,7 @@
 // EmployerProfile.jsx keep mounting it the same way (render to open,
 // unmount to close).
 import { Briefcase } from "lucide-react";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import {
   applyMethodLabel, educationLevelLabel, employmentTypeLabel, englishLevelLabel, experienceLevelLabel,
   formatPayRange, sourceLabel, statusLabel
@@ -32,6 +32,7 @@ function LongText({ label, children }) {
 
 export default function JobOpeningDetailModal({ jobOpening, onClose }) {
   const t = useT();
+  const { lang } = useApp();
   const o = jobOpening;
 
   return (
@@ -45,7 +46,7 @@ export default function JobOpeningDetailModal({ jobOpening, onClose }) {
       footer={<Button variant="secondary" onClick={onClose}>{t("closeLabel")}</Button>}
     >
       <div className="mb-3">
-        <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status)}</StatusBadge>
+        <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status, lang)}</StatusBadge>
       </div>
 
       <dl className="m-0">

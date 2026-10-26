@@ -109,7 +109,7 @@ function EditPlacementModal({ record, onSave, onCancel }) {
 
 export default function PlacementDetail() {
   const { placementId } = useParams();
-  const { data, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -169,7 +169,7 @@ export default function PlacementDetail() {
               {/* m-0 and explicit weight: main.css still styles bare h1 at 2rem/800. */}
               <h1 className="m-0 text-heading font-bold text-card-foreground [text-wrap:balance]">{name || "—"}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge domain="placement" status={record.currentStatus}>{placementStatusLabel(record.currentStatus)}</StatusBadge>
+                <StatusBadge domain="placement" status={record.currentStatus}>{placementStatusLabel(record.currentStatus, lang)}</StatusBadge>
               </div>
               <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
                 <MetaItem icon={Briefcase} label={t("positionLabel")}>{record.positionTitle || "—"}</MetaItem>

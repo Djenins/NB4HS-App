@@ -8,7 +8,7 @@
 // steps an outlined circle. Colour is never the only signal -- every step
 // keeps its number and its label visible. On a phone the row scrolls
 // sideways inside itself rather than squeezing the labels.
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { JOB_PIPELINE_STAGES, pipelineStageIndex } from "../lib/jobProfile.js";
 import { BUTTON_RESET } from "./ui/button.jsx";
@@ -21,6 +21,7 @@ const CIRCLE = {
 
 export default function JobPipelineTracker({ stage, onChange }) {
   const t = useT();
+  const { lang } = useApp();
   const activeIndex = pipelineStageIndex(stage);
   const last = JOB_PIPELINE_STAGES.length - 1;
 
@@ -46,7 +47,7 @@ export default function JobPipelineTracker({ stage, onChange }) {
                 {i + 1}
               </span>
               <span className={cn("text-meta leading-tight", state === "current" ? "font-semibold text-card-foreground" : "font-medium text-muted")}>
-                {s.en}
+                {s[lang] || s.en}
               </span>
             </button>
           </li>

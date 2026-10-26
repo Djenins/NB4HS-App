@@ -105,7 +105,7 @@ export default function Placements() {
     {
       key: "status", label: t("currentStatusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
       options: [{ value: "", label: t("allStatusesLabel") }]
-        .concat(PLACEMENT_STATUSES.map(function (s) { return { value: s.key, label: s.en }; }))
+        .concat(PLACEMENT_STATUSES.map(function (s) { return { value: s.key, label: s[lang] || s.en }; }))
     },
     {
       key: "employer", label: t("employerLabel"), value: employerFilter, onChange: setFilter(setEmployerFilter),

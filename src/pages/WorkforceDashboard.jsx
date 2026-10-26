@@ -142,7 +142,7 @@ export default function WorkforceDashboard() {
                   className="h-auto min-h-[72px] flex-col gap-1 whitespace-normal px-3 py-3 text-center leading-tight [@media(pointer:coarse)]:h-auto"
                 >
                   <span className="block text-heading font-bold tabular-nums text-card-foreground">{s.count}</span>
-                  <span className="block text-meta font-medium text-muted">{partnershipStageLabel(s.key)}</span>
+                  <span className="block text-meta font-medium text-muted">{partnershipStageLabel(s.key, lang)}</span>
                 </Button>
               );
             })}

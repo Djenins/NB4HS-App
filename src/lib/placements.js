@@ -4,8 +4,8 @@
 import { addDays, todayStr } from "./utils.js";
 
 export var PLACEMENT_STATUSES = [
-  { key: "active", en: "Active" },
-  { key: "ended", en: "Ended" }
+  { key: "active", en: "Active", ht: "Aktif", fr: "Actif" },
+  { key: "ended", en: "Ended", ht: "Fini", fr: "Terminé" }
 ];
 
 // Ordered 30/60/90/180-day check-in schedule, days-from-start-date.
@@ -23,11 +23,11 @@ export var PERFORMANCE_RATINGS = [
   { key: "poor", en: "Poor" }
 ];
 
-function labelFor(list, key) {
+function labelFor(list, key, lang) {
   var found = list.filter(function (i) { return i.key === key; })[0];
-  return found ? found.en : (key || "");
+  return found ? (found[lang] || found.en) : (key || "");
 }
-export function placementStatusLabel(key) { return labelFor(PLACEMENT_STATUSES, key); }
+export function placementStatusLabel(key, lang) { return labelFor(PLACEMENT_STATUSES, key, lang); }
 export function checkinTypeLabel(key) { return labelFor(CHECKIN_TYPES, key); }
 export function performanceRatingLabel(key) { return labelFor(PERFORMANCE_RATINGS, key); }
 

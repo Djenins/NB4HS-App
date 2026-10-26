@@ -1,15 +1,16 @@
 // employerProfile.js -- constants and pure helpers for the Employer Directory/
 // Profile pages (src/pages/Employers.jsx, src/pages/EmployerProfile.jsx).
 // Mirrors jobProfile.js's shape exactly (its own file since none of this is
-// shared by the unrelated job-seeker Job Developer module). English-only for
-// now, same deliberate scope cut jobProfile.js took.
+// shared by the unrelated job-seeker Job Developer module). Partnership stages
+// carry ht/fr (partnershipStageLabel takes `lang`); the other lists are
+// still English-only.
 export var EMPLOYER_PARTNERSHIP_STAGES = [
-  { key: "prospect", en: "Prospect" },
-  { key: "contacted", en: "Contacted" },
-  { key: "meeting_scheduled", en: "Meeting Scheduled" },
-  { key: "partner", en: "Partner" },
-  { key: "hiring", en: "Hiring" },
-  { key: "inactive", en: "Inactive" }
+  { key: "prospect", en: "Prospect", ht: "Prospè", fr: "Prospect" },
+  { key: "contacted", en: "Contacted", ht: "Kontakte", fr: "Contacté" },
+  { key: "meeting_scheduled", en: "Meeting Scheduled", ht: "Reyinyon Pwograme", fr: "Réunion prévue" },
+  { key: "partner", en: "Partner", ht: "Patnè", fr: "Partenaire" },
+  { key: "hiring", en: "Hiring", ht: "Ap Anboche", fr: "Recrute" },
+  { key: "inactive", en: "Inactive", ht: "Inaktif", fr: "Inactif" }
 ];
 
 export var PREFERRED_COMMUNICATION_METHODS = [
@@ -34,11 +35,11 @@ export var ACTIVITY_TYPES = [
   { key: "other", en: "Other" }
 ];
 
-function labelFor(list, key) {
+function labelFor(list, key, lang) {
   var found = list.filter(function (i) { return i.key === key; })[0];
-  return found ? found.en : (key || "");
+  return found ? (found[lang] || found.en) : (key || "");
 }
-export function partnershipStageLabel(key) { return labelFor(EMPLOYER_PARTNERSHIP_STAGES, key); }
+export function partnershipStageLabel(key, lang) { return labelFor(EMPLOYER_PARTNERSHIP_STAGES, key, lang); }
 export function preferredCommunicationLabel(key) { return labelFor(PREFERRED_COMMUNICATION_METHODS, key); }
 export function preferredHiringMethodLabel(key) { return labelFor(PREFERRED_HIRING_METHODS, key); }
 export function activityTypeLabel(key) { return labelFor(ACTIVITY_TYPES, key); }

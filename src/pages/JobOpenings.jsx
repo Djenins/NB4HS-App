@@ -43,8 +43,8 @@ import { PageHeader } from "../components/ui/page-header.jsx";
 
 // Turns a { key, en } constant list into the option shape the filter tiles
 // take, with the "all" entry first.
-function optionsFrom(list, allLabel) {
-  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+function optionsFrom(list, allLabel, lang) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i[lang] || i.en }; }));
 }
 
 
@@ -100,19 +100,19 @@ export default function JobOpenings() {
     },
     {
       key: "employmentType", label: t("employmentTypeLabel"), value: employmentTypeFilter,
-      onChange: setFilter(setEmploymentTypeFilter), options: optionsFrom(EMPLOYMENT_TYPES, t("allEmploymentTypesLabel"))
+      onChange: setFilter(setEmploymentTypeFilter), options: optionsFrom(EMPLOYMENT_TYPES, t("allEmploymentTypesLabel"), lang)
     },
     {
       key: "education", label: t("educationLevelFilterLabel"), value: educationFilter,
-      onChange: setFilter(setEducationFilter), options: optionsFrom(EDUCATION_LEVELS, t("allEducationLevelsLabel"))
+      onChange: setFilter(setEducationFilter), options: optionsFrom(EDUCATION_LEVELS, t("allEducationLevelsLabel"), lang)
     },
     {
       key: "experience", label: t("experienceLevelFilterLabel"), value: experienceFilter,
-      onChange: setFilter(setExperienceFilter), options: optionsFrom(EXPERIENCE_LEVELS, t("allExperienceLevelsLabel"))
+      onChange: setFilter(setExperienceFilter), options: optionsFrom(EXPERIENCE_LEVELS, t("allExperienceLevelsLabel"), lang)
     },
     {
       key: "english", label: t("englishLevelFilterLabel"), value: englishFilter,
-      onChange: setFilter(setEnglishFilter), options: optionsFrom(ENGLISH_LEVEL_REQUIREMENTS, t("allEnglishLevelsLabel"))
+      onChange: setFilter(setEnglishFilter), options: optionsFrom(ENGLISH_LEVEL_REQUIREMENTS, t("allEnglishLevelsLabel"), lang)
     },
     {
       key: "transportation", label: t("transportationLabel"), value: transportationFilter,
@@ -121,7 +121,7 @@ export default function JobOpenings() {
     },
     {
       key: "status", label: t("statusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
-      options: optionsFrom(JOB_OPENING_STATUSES, t("allStatusesLabel"))
+      options: optionsFrom(JOB_OPENING_STATUSES, t("allStatusesLabel"), lang)
     }
   ];
   const activeFilterCount = filters.filter(function (f) { return Boolean(f.value); }).length;

@@ -27,7 +27,7 @@ export default function JobOpeningListItem({ opening, referralCount, lang, onVie
           <p className="m-0 mt-0.5 truncate text-meta text-muted">{opening.employerName || "—"}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status)}</StatusBadge>
+          <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status, lang)}</StatusBadge>
           <JobOpeningActionsMenu
             opening={opening} onView={onView} onEdit={onEdit} onRefer={onRefer} onArchive={onArchive} onDelete={onDelete}
           />

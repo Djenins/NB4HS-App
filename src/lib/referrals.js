@@ -2,21 +2,21 @@
 // (src/pages/Referrals.jsx, src/components/ReferralCard.jsx,
 // src/components/ReferralFormModal.jsx). Mirrors employerProfile.js's shape.
 export var REFERRAL_STAGES = [
-  { key: "ready", en: "Ready" },
-  { key: "interested", en: "Interested" },
-  { key: "referred", en: "Referred" },
-  { key: "applied", en: "Applied" },
-  { key: "interview", en: "Interview" },
-  { key: "offer", en: "Offer" },
-  { key: "hired", en: "Hired" },
-  { key: "not_selected", en: "Not Selected" }
+  { key: "ready", en: "Ready", ht: "Pare", fr: "Prêt" },
+  { key: "interested", en: "Interested", ht: "Enterese", fr: "Intéressé" },
+  { key: "referred", en: "Referred", ht: "Refere", fr: "Orienté" },
+  { key: "applied", en: "Applied", ht: "Aplike", fr: "Candidature envoyée" },
+  { key: "interview", en: "Interview", ht: "Entèvyou", fr: "Entretien" },
+  { key: "offer", en: "Offer", ht: "Òf", fr: "Offre" },
+  { key: "hired", en: "Hired", ht: "Anboche", fr: "Embauché" },
+  { key: "not_selected", en: "Not Selected", ht: "Pa Chwazi", fr: "Non retenu" }
 ];
 
-function labelFor(list, key) {
+function labelFor(list, key, lang) {
   var found = list.filter(function (i) { return i.key === key; })[0];
-  return found ? found.en : (key || "");
+  return found ? (found[lang] || found.en) : (key || "");
 }
-export function stageLabel(key) { return labelFor(REFERRAL_STAGES, key); }
+export function stageLabel(key, lang) { return labelFor(REFERRAL_STAGES, key, lang); }
 export function stageIndex(key) {
   var i = REFERRAL_STAGES.findIndex(function (s) { return s.key === key; });
   return i === -1 ? 0 : i;

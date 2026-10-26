@@ -94,7 +94,7 @@ function FormSection({ title, desc, children }) {
 }
 
 function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
-  const { data, showToast } = useApp();
+  const { data, lang, showToast } = useApp();
   const t = useT();
   const [fields, setFields] = useState(EMPTY_NEW_EMPLOYER);
   const [errors, setErrors] = useState([]);
@@ -176,7 +176,7 @@ function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("partnershipStageLabel")} htmlFor="new-employer-stage">
               <Select id="new-employer-stage" value={fields.partnershipStage} onChange={(e) => setField("partnershipStage", e.target.value)}>
-                {EMPLOYER_PARTNERSHIP_STAGES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
+                {EMPLOYER_PARTNERSHIP_STAGES.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
               </Select>
             </Field>
             <Field label={t("assignedJobDeveloperLabel")} htmlFor="new-employer-job-developer">
@@ -267,7 +267,7 @@ export default function Employers() {
     {
       key: "stage", label: t("partnershipStageLabel"), value: stageFilter, onChange: setFilter(setStageFilter),
       options: [{ value: "", label: t("allStagesLabel") }]
-        .concat(EMPLOYER_PARTNERSHIP_STAGES.map(function (s2) { return { value: s2.key, label: s2.en }; }))
+        .concat(EMPLOYER_PARTNERSHIP_STAGES.map(function (s2) { return { value: s2.key, label: s2[lang] || s2.en }; }))
     },
     {
       key: "developer", label: t("assignedJobDeveloperLabel"), value: developerFilter,

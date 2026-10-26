@@ -253,8 +253,8 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
 }
 
 
-function optionsFrom(list, allLabel) {
-  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+function optionsFrom(list, allLabel, lang) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i[lang] || i.en }; }));
 }
 
 export default function JobDeveloper() {
@@ -322,11 +322,11 @@ export default function JobDeveloper() {
     },
     {
       key: "status", label: t("employmentStatusLabel"), value: statusFilter,
-      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
+      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"), lang)
     },
     {
       key: "stage", label: t("pipelineStageLabel"), value: stageFilter,
-      onChange: setFilter(setStageFilter), options: optionsFrom(JOB_PIPELINE_STAGES, t("allStagesLabel"))
+      onChange: setFilter(setStageFilter), options: optionsFrom(JOB_PIPELINE_STAGES, t("allStagesLabel"), lang)
     },
     {
       key: "resume", label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
@@ -338,7 +338,7 @@ export default function JobDeveloper() {
     },
     {
       key: "workAuth", label: t("workAuthorizationLabel"), value: workAuthFilter,
-      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
+      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"), lang)
     },
     {
       key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),

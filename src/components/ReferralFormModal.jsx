@@ -5,7 +5,7 @@
 // a <form>, so Enter in a field submits it; every non-submit button carries
 // type="button" for the same reason.
 import { useState } from "react";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { clientDisplayName } from "../lib/clients.js";
 import { REFERRAL_STAGES } from "../lib/referrals.js";
 import { todayStr } from "../lib/utils.js";
@@ -16,6 +16,7 @@ import { Field, Select, Textarea } from "./ui/field.jsx";
 
 export default function ReferralFormModal({ referral, jobClients, jobOpenings, jobDevelopers, placements, onSave, onCancel, onDelete, onCreatePlacement }) {
   const t = useT();
+  const { lang } = useApp();
   const editing = !!referral;
   const hasPlacement = editing && (placements || []).some((p) => p.referralId === referral.id);
   const canCreatePlacement = editing && referral.status === "hired" && onCreatePlacement;
@@ -111,7 +112,7 @@ export default function ReferralFormModal({ referral, jobClients, jobOpenings, j
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("statusLabel")} htmlFor="referral-status">
             <Select id="referral-status" value={fields.status} onChange={(e) => setField("status", e.target.value)}>
-              {REFERRAL_STAGES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
+              {REFERRAL_STAGES.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
             </Select>
           </Field>
           <Field label={t("referralDateLabel")} htmlFor="referral-date">

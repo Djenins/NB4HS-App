@@ -353,6 +353,7 @@ function ContactItem({ icon: Icon, label, children }) {
 // line, two visible actions and the rest under More.
 function EmployerHeader({ record, industryName, onBack, onAddJob, onEditCompany, onEditPartnership, onAddActivity, onAddNote, onUploadDocument }) {
   const t = useT();
+  const { lang } = useApp();
   return (
     <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
@@ -367,7 +368,7 @@ function EmployerHeader({ record, industryName, onBack, onAddJob, onEditCompany,
           <div className="min-w-0">
             <h1 className="m-0 break-words text-heading font-bold text-card-foreground [text-wrap:balance]">{record.businessName}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="employer" status={record.partnershipStage}>{partnershipStageLabel(record.partnershipStage)}</StatusBadge>
+              <StatusBadge domain="employer" status={record.partnershipStage}>{partnershipStageLabel(record.partnershipStage, lang)}</StatusBadge>
             </div>
             <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
               {industryName ? <ContactItem icon={Factory} label={t("industryLabel")}>{industryName}</ContactItem> : null}
@@ -426,7 +427,7 @@ function MetricTile({ label, value }) {
 
 export default function EmployerProfile() {
   const { employerId } = useParams();
-  const { data, requestConfirm, showToast } = useApp();
+  const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
@@ -672,7 +673,7 @@ export default function EmployerProfile() {
                           {employmentTypeLabel(o.employmentType)}{formatPayRange(o) ? " · " + formatPayRange(o) : ""} · {t("postedDateLabel")} <span className="tabular-nums">{fmtDateLong(o.postedDate)}</span>
                         </div>
                       </div>
-                      <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status)}</StatusBadge>
+                      <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status, lang)}</StatusBadge>
                     </button>
                   </li>
                 ))}
@@ -719,7 +720,7 @@ export default function EmployerProfile() {
                         </div>
                       </div>
                       <span className="flex shrink-0 items-center gap-2">
-                        <StatusBadge domain="placement" status={p.currentStatus}>{placementStatusLabel(p.currentStatus)}</StatusBadge>
+                        <StatusBadge domain="placement" status={p.currentStatus}>{placementStatusLabel(p.currentStatus, lang)}</StatusBadge>
                         <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
                       </span>
                     </button>

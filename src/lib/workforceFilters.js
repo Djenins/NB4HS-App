@@ -128,7 +128,8 @@ export function matchesCandidate(entry, filters, ctx) {
   if (f.transportation === "yes" && !(c.transportation || "").trim()) return false;
   if (f.transportation === "no" && (c.transportation || "").trim()) return false;
   return haystackMatches(
-    [clientDisplayName(c), c.city, employmentStatusLabel(c.employmentStatus), (c.skills || []).join(" ")],
+    // Status matches in English and in the page language, whichever staff type.
+    [clientDisplayName(c), c.city, employmentStatusLabel(c.employmentStatus), employmentStatusLabel(c.employmentStatus, ctxt.lang), (c.skills || []).join(" ")],
     ctxt.term
   );
 }

@@ -39,7 +39,7 @@ export default function ReferralListItem({ referral, lang, onEdit }) {
             {[referral.positionTitle, referral.employerName].filter(Boolean).join(" · ") || "—"}
           </p>
         </div>
-        <StatusBadge domain="referral" status={referral.status} className="shrink-0">{stageLabel(referral.status)}</StatusBadge>
+        <StatusBadge domain="referral" status={referral.status} className="shrink-0">{stageLabel(referral.status, lang)}</StatusBadge>
       </div>
 
       {referral.notes && <p className="m-0 mt-3 line-clamp-2 text-ui text-card-foreground">{referral.notes}</p>}

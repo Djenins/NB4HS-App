@@ -9,7 +9,7 @@
 // domain of lib/statusTone.js.
 import { Briefcase, ContactRound, Mail, MapPin, Phone, Trash2, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { businessInitials, partnershipStageLabel } from "../lib/employerProfile.js";
 import { formatPhone, fmtDateLong } from "../lib/utils.js";
 import { avatarColorFor } from "./StudentCard.jsx";
@@ -20,7 +20,8 @@ import { IconButton } from "./ui/icon-button.jsx";
 import { StatusBadge } from "./ui/status-badge.jsx";
 
 export function EmployerStageBadge({ stage }) {
-  return <StatusBadge domain="employer" status={stage}>{partnershipStageLabel(stage)}</StatusBadge>;
+  const { lang } = useApp();
+  return <StatusBadge domain="employer" status={stage}>{partnershipStageLabel(stage, lang)}</StatusBadge>;
 }
 
 // "Open positions: 3 · Placements: 1" -- the two counts both layouts show.

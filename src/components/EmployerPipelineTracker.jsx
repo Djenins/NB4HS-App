@@ -10,7 +10,7 @@
 // aria-current="step"), later steps outlined. Every step keeps its number
 // and label visible, so colour is never the only signal. On a phone the row
 // scrolls sideways inside itself instead of squeezing the labels.
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { EMPLOYER_PARTNERSHIP_STAGES, partnershipStageIndex } from "../lib/employerProfile.js";
 import { BUTTON_RESET } from "./ui/button.jsx";
@@ -23,6 +23,7 @@ const CIRCLE = {
 
 export default function EmployerPipelineTracker({ stage, onChange }) {
   const t = useT();
+  const { lang } = useApp();
   const activeIndex = partnershipStageIndex(stage);
   const last = EMPLOYER_PARTNERSHIP_STAGES.length - 1;
 
@@ -48,7 +49,7 @@ export default function EmployerPipelineTracker({ stage, onChange }) {
                 {i + 1}
               </span>
               <span className={cn("text-meta leading-tight", state === "current" ? "font-semibold text-card-foreground" : "font-medium text-muted")}>
-                {s.en}
+                {s[lang] || s.en}
               </span>
             </button>
           </li>

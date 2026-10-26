@@ -7,12 +7,13 @@
 // Rendered as a divided list row (the panel draws the rules), not a bordered
 // box, so the SectionCard doesn't hold a stack of cards.
 import { Briefcase, MapPin, Users } from "lucide-react";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { formatPayRange, statusLabel } from "../lib/jobOpenings.js";
 import { StatusBadge } from "./ui/status-badge.jsx";
 
 export default function DashboardOpeningRow({ opening, referralCount }) {
   const t = useT();
+  const { lang } = useApp();
   const meta = [opening.employerCity, formatPayRange(opening)].filter(Boolean);
 
   return (
@@ -22,7 +23,7 @@ export default function DashboardOpeningRow({ opening, referralCount }) {
           <div className="text-ui font-semibold text-card-foreground [overflow-wrap:anywhere]">{opening.title}</div>
           <div className="mt-0.5 text-meta text-muted [overflow-wrap:anywhere]">{opening.employerName || "—"}</div>
         </div>
-        <StatusBadge domain="opening" status={opening.status} className="shrink-0">{statusLabel(opening.status)}</StatusBadge>
+        <StatusBadge domain="opening" status={opening.status} className="shrink-0">{statusLabel(opening.status, lang)}</StatusBadge>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-meta text-muted">

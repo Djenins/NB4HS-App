@@ -7,7 +7,7 @@
 // candidate reads the same in either view.
 import { ArrowRight, CheckCircle2, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
 import { clientDisplayName } from "../lib/clients.js";
 import { matchBucket, matchedSkills, proximityLabel } from "../lib/candidateMatching.js";
 import { employmentStatusLabel, workAuthLabel } from "../lib/jobProfile.js";
@@ -36,6 +36,7 @@ export function MatchScore({ score }) {
 }
 
 export function CandidateIdentity({ jobClient, large }) {
+  const { lang } = useApp();
   const name = clientDisplayName(jobClient);
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -44,7 +45,7 @@ export function CandidateIdentity({ jobClient, large }) {
       </Avatar>
       <div className="min-w-0">
         <h3 className="m-0 truncate text-section font-semibold text-card-foreground">{name}</h3>
-        <p className="m-0 truncate text-meta text-muted">{employmentStatusLabel(jobClient.employmentStatus)}</p>
+        <p className="m-0 truncate text-meta text-muted">{employmentStatusLabel(jobClient.employmentStatus, lang)}</p>
       </div>
     </div>
   );
@@ -52,13 +53,14 @@ export function CandidateIdentity({ jobClient, large }) {
 
 export function CandidateBadges({ jobClient }) {
   const t = useT();
+  const { lang } = useApp();
   const barriers = jobClient.barriers || [];
   return (
     <>
       <StatusBadge domain="candidate" status={jobClient.hasResume ? "resume" : "noResume"}>
         {jobClient.hasResume ? t("resumeOnFileLabel") : t("noResumeOnFileLabel")}
       </StatusBadge>
-      {jobClient.workAuthorization && <StatusBadge domain="candidate" status="workAuth">{workAuthLabel(jobClient.workAuthorization)}</StatusBadge>}
+      {jobClient.workAuthorization && <StatusBadge domain="candidate" status="workAuth">{workAuthLabel(jobClient.workAuthorization, lang)}</StatusBadge>}
       {barriers.indexOf("transportation") !== -1 && <StatusBadge domain="candidate" status="barrier">{t("transportationBarrierLabel")}</StatusBadge>}
       {barriers.indexOf("english") !== -1 && <StatusBadge domain="candidate" status="barrier">{t("englishBarrierLabel")}</StatusBadge>}
     </>

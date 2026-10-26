@@ -3,11 +3,11 @@
 // src/components/JobOpeningDetailModal.jsx). Mirrors employerProfile.js's
 // shape exactly (its own file since none of this is shared elsewhere).
 export var JOB_OPENING_STATUSES = [
-  { key: "draft", en: "Draft" },
-  { key: "active", en: "Active" },
-  { key: "filled", en: "Filled" },
-  { key: "expired", en: "Expired" },
-  { key: "archived", en: "Archived" }
+  { key: "draft", en: "Draft", ht: "Bouyon", fr: "Brouillon" },
+  { key: "active", en: "Active", ht: "Aktif", fr: "Active" },
+  { key: "filled", en: "Filled", ht: "Ranpli", fr: "Pourvue" },
+  { key: "expired", en: "Expired", ht: "Ekspire", fr: "Expirée" },
+  { key: "archived", en: "Archived", ht: "Achive", fr: "Archivée" }
 ];
 
 // "Future Ready Architecture" sources -- direct_employer/staff_added/
@@ -66,11 +66,11 @@ export var PAY_TYPES = [
   { key: "salary", en: "Salary" }
 ];
 
-function labelFor(list, key) {
+function labelFor(list, key, lang) {
   var found = list.filter(function (i) { return i.key === key; })[0];
-  return found ? found.en : (key || "");
+  return found ? (found[lang] || found.en) : (key || "");
 }
-export function statusLabel(key) { return labelFor(JOB_OPENING_STATUSES, key); }
+export function statusLabel(key, lang) { return labelFor(JOB_OPENING_STATUSES, key, lang); }
 export function sourceLabel(key) { return labelFor(JOB_OPENING_SOURCES, key); }
 export function employmentTypeLabel(key) { return labelFor(EMPLOYMENT_TYPES, key); }
 export function educationLevelLabel(key) { return labelFor(EDUCATION_LEVELS, key); }

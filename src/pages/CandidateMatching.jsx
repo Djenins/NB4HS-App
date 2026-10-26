@@ -48,13 +48,13 @@ import { PageHeader } from "../components/ui/page-header.jsx";
 import { SearchInput } from "../components/ui/search-input.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 
-function optionsFrom(list, allLabel) {
-  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
+function optionsFrom(list, allLabel, lang) {
+  return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i[lang] || i.en }; }));
 }
 
 
 export default function CandidateMatching() {
-  const { data, session, showToast } = useApp();
+  const { data, lang, session, showToast } = useApp();
   const t = useT();
   const location = useLocation();
   const [openingSearch, setOpeningSearch] = useState("");
@@ -136,11 +136,11 @@ export default function CandidateMatching() {
     },
     {
       key: "workAuth", label: t("workAuthorizationLabel"), value: workAuthFilter,
-      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
+      onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"), lang)
     },
     {
       key: "status", label: t("employmentStatusLabel"), value: statusFilter,
-      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
+      onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"), lang)
     },
     {
       key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
@@ -182,7 +182,7 @@ export default function CandidateMatching() {
     status: statusFilter, city: cityFilter, barrier: barrierFilter, transportation: transportationFilter
   };
   const matched = ranked.filter(function (entry) {
-    return matchesCandidate(entry, filterValues, { term, isReferred });
+    return matchesCandidate(entry, filterValues, { term, isReferred, lang });
   });
   const sorted = sortCandidates(matched, sort);
   const paged = paginateList(sorted, page, pageSize);

@@ -190,6 +190,7 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
 
 function AddApplicationModal({ onSave, onCancel }) {
   const t = useT();
+  const { lang } = useApp();
   const [saving, run] = useSaving();
   const [fields, setFields] = useState({ company: "", position: "", appliedDate: "", status: "applied", nextStepDate: "", nextStepNote: "", interviewDate: "", interviewNotes: "" });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
@@ -219,7 +220,7 @@ function AddApplicationModal({ onSave, onCancel }) {
           </Field>
           <Field label={t("statusLabel")} htmlFor="app-status">
             <Select id="app-status" value={fields.status} onChange={(e) => setField("status", e.target.value)}>
-              {APPLICATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
+              {APPLICATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
             </Select>
           </Field>
           <Field label={t("nextStepLabel")} htmlFor="app-next-step-date">
@@ -370,7 +371,7 @@ function JobClientHeader({ record, name, onBack, onAddApplication, onEditPersona
 
 export default function JobClientProfile() {
   const { clientId } = useParams();
-  const { data, requestConfirm, showToast } = useApp();
+  const { data, lang, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
@@ -508,7 +509,7 @@ export default function JobClientProfile() {
     { key: "company", header: t("companyLabel"), cell: (a) => <span className="font-semibold">{a.company}</span> },
     { key: "position", header: t("positionLabel"), cell: (a) => a.position },
     { key: "applied", header: t("appliedDateLabel"), cell: (a) => <span className="whitespace-nowrap tabular-nums">{fmtDateLong(a.appliedDate)}</span> },
-    { key: "status", header: t("statusLabel"), cell: (a) => <StatusBadge domain="application" status={a.status}>{applicationStatusLabel(a.status)}</StatusBadge> },
+    { key: "status", header: t("statusLabel"), cell: (a) => <StatusBadge domain="application" status={a.status}>{applicationStatusLabel(a.status, lang)}</StatusBadge> },
     { key: "next", header: t("nextStepLabel"), cell: (a) => <span className="whitespace-nowrap tabular-nums">{fmtDateLong(a.nextStepDate)}</span> },
     {
       key: "actions", header: <span className="sr-only">{t("actionsLabel")}</span>, className: "w-12 text-right",
@@ -522,7 +523,7 @@ export default function JobClientProfile() {
           <div className="break-words text-ui font-semibold text-card-foreground">{a.company}</div>
           <div className="mt-0.5 break-words text-meta text-muted">{a.position}</div>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <StatusBadge domain="application" status={a.status}>{applicationStatusLabel(a.status)}</StatusBadge>
+            <StatusBadge domain="application" status={a.status}>{applicationStatusLabel(a.status, lang)}</StatusBadge>
             <span className="text-meta text-muted">{t("appliedDateLabel")}: <span className="tabular-nums">{fmtDateLong(a.appliedDate)}</span></span>
             {a.nextStepDate ? <span className="text-meta text-muted">{t("nextStepLabel")}: <span className="tabular-nums">{fmtDateLong(a.nextStepDate)}</span></span> : null}
           </div>
@@ -587,7 +588,7 @@ export default function JobClientProfile() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label={t("employmentStatusLabel")} htmlFor="job-employment-status">
                     <Select id="job-employment-status" value={record.employmentStatus} onChange={(e) => updateRecord({ employmentStatus: e.target.value })}>
-                      {EMPLOYMENT_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
+                      {EMPLOYMENT_STATUSES.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
                     </Select>
                   </Field>
 
@@ -595,7 +596,7 @@ export default function JobClientProfile() {
                     <Field label={t("workAuthorizationLabel")} htmlFor="job-work-auth">
                       <Select id="job-work-auth" value={record.workAuthorization} onChange={(e) => updateRecord({ workAuthorization: e.target.value })}>
                         <option value="">{t("pleaseSelect")}</option>
-                        {WORK_AUTH_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.en}</option>)}
+                        {WORK_AUTH_STATUSES.map((s) => <option key={s.key} value={s.key}>{s[lang] || s.en}</option>)}
                       </Select>
                     </Field>
                     {record.workAuthorization ? (

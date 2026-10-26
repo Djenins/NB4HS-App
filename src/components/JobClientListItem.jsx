@@ -33,7 +33,7 @@ export function JobClientBadges({ client, lang, withPermitExpiry }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {client.employmentStatus ? (
-        <StatusBadge domain="employment" status={client.employmentStatus}>{employmentStatusLabel(client.employmentStatus)}</StatusBadge>
+        <StatusBadge domain="employment" status={client.employmentStatus}>{employmentStatusLabel(client.employmentStatus, lang)}</StatusBadge>
       ) : null}
       <StatusBadge domain="workPermit" status={client.workPermit ? "yes" : "no"}>{permitText}</StatusBadge>
       <StatusBadge domain="resume" status={client.hasResume ? "onFile" : "none"}>
