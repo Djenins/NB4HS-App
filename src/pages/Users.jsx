@@ -3,8 +3,8 @@
 // Dashboard.jsx redesign pass) on top of the Phase 3 Supabase-backed data:
 // reads the real `profiles` table live (via AppContext's `data.profiles`)
 // instead of a hand-synced local mirror.
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, ChevronDown, Filter, Lock, Mail, Pencil, Shield, ShieldCheck, Trash2, User, UserPlus, Users as UsersIcon, XCircle } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ROLES } from "../lib/constants.js";
@@ -18,6 +18,7 @@ import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { avatarColorFor } from "../lib/avatarTone.js";
+import { cn } from "../lib/cn.js";
 
 function initialsOfName(name, email) {
   const src = (name || "").trim() || email || "";
@@ -38,7 +39,39 @@ export default function Users() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState(ROLES[0]);
 
+  const location = useLocation();
+  const [highlightId, setHighlightId] = useState(null);
+
   const currentEmail = (session && session.currentUserEmail || "").toLowerCase();
+
+  // Arriving from a staff result in the ⌘K search (location.state.focusUserId):
+  // clear the status filter, page to that person's row and highlight it. The
+  // state is then dropped from history so a reload doesn't repeat it. Waits
+  // for data.profiles if it hasn't loaded yet.
+  const focusUserId = location.state && location.state.focusUserId;
+  useEffect(() => {
+    if (!focusUserId) return;
+    const index = (data.profiles || []).findIndex((u) => u.id === focusUserId);
+    if (index === -1) return;
+    setStatusFilter("");
+    setPage(Math.floor(index / pageSize) + 1);
+    setHighlightId(focusUserId);
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusUserId, data.profiles]);
+
+  // Bring the row into view and give it focus (so a screen reader lands on
+  // it too), then let the highlight fade after a few seconds.
+  useEffect(() => {
+    if (!highlightId) return undefined;
+    const row = document.getElementById("staff-row-" + highlightId);
+    if (row) {
+      row.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      row.focus({ preventScroll: true });
+    }
+    const timer = setTimeout(() => setHighlightId(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
 
   let list = (data.profiles || []).slice();
   if (statusFilter === "active") list = list.filter((u) => u.active !== false);
@@ -158,7 +191,15 @@ export default function Users() {
                     const isSelf = u.email.toLowerCase() === currentEmail;
                     const isActive = u.active !== false;
                     return (
-                      <tr key={u.id} className="border-t border-border transition-colors hover:bg-background">
+                      <tr
+                        key={u.id}
+                        id={"staff-row-" + u.id}
+                        tabIndex={-1}
+                        className={cn(
+                          "border-t border-border transition-colors duration-700 focus:outline-none motion-reduce:transition-none",
+                          u.id === highlightId ? "bg-primary-tint" : "hover:bg-background"
+                        )}
+                      >
                         <td className="px-4 py-3.5 align-middle">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">

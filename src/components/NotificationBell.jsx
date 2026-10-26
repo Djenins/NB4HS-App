@@ -74,7 +74,9 @@ function NotificationRow({ n, appt, onApprove, onCancel }) {
   );
 }
 
-export default function NotificationBell() {
+// `className` restyles the trigger for its host (the sidebar footer passes
+// theme-aware colours); `side` places the panel.
+export default function NotificationBell({ className, side = "bottom" }) {
   const { data, notifications, markNotifRead, markAllNotifsRead, requestConfirm, showToast } = useApp();
   const t = useT();
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -94,7 +96,7 @@ export default function NotificationBell() {
         <button
           type="button"
           aria-label={t("notificationsAriaLabel")}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-inherit hover:bg-white/5"
+          className={cn("relative flex h-9 min-h-0 w-9 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-inherit hover:bg-white/5", className)}
         >
           <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
           {unreadCount > 0 && (
@@ -107,6 +109,7 @@ export default function NotificationBell() {
       <DropdownMenuPrimitive.Portal>
         <DropdownMenuPrimitive.Content
           sideOffset={8}
+          side={side}
           align="end"
           className="z-[1300] max-h-[70vh] w-[340px] overflow-y-auto rounded-lg border border-border bg-card text-card-foreground shadow-card-hover animate-in fade-in-0 zoom-in-95"
         >

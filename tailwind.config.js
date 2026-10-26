@@ -52,17 +52,16 @@ export default {
         "tint-success": "var(--tint-success)",
         "tint-warn": "var(--tint-warn)",
         "tint-danger": "var(--tint-danger)",
-        // Fixed (non-theme-swapping) navy shades for the permanently dark
-        // sidebar chrome -- the sidebar stays brand-navy regardless of the
-        // Light/Dark content toggle, same pattern as Linear/Vercel-style
-        // admin shells. sidebar-bg/-border/-text sample the new NB4HS Navy;
-        // sidebar-bg-active is the new Primary Blue (the brand spec calls
-        // out "Active menu items" as a Blue usage, not a navy shade).
-        "sidebar-bg": "#1F2A6D",
-        "sidebar-bg-active": "#2563EB",
-        "sidebar-border": "#2c3868",
-        "sidebar-text": "#c7cde3",
-        "sidebar-text-active": "#ffffff"
+        // Floating sidebar (components/sidebar/): theme-aware, light and
+        // dark values live in main.css's --sb-* tokens.
+        sb: {
+          bg: "var(--sb-bg)", border: "var(--sb-border)", divider: "var(--sb-divider)",
+          text: "var(--sb-text)", muted: "var(--sb-muted)", icon: "var(--sb-icon)",
+          hover: "var(--sb-hover)", active: "var(--sb-active)", "active-text": "var(--sb-active-text)", "rail-active": "var(--sb-rail-active)",
+          field: "var(--sb-field)", "field-border": "var(--sb-field-border)", kbd: "var(--sb-kbd)",
+          seg: "var(--sb-seg)", "seg-on": "var(--sb-seg-on)", "seg-on-text": "var(--sb-seg-on-text)",
+          tooltip: "var(--sb-tooltip)", "tooltip-text": "var(--sb-tooltip-text)"
+        }
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -71,7 +70,8 @@ export default {
       boxShadow: {
         card: "var(--shadow-sm)",
         "card-hover": "var(--shadow-md)",
-        lg: "var(--shadow-lg)"
+        lg: "var(--shadow-lg)",
+        sb: "var(--sb-shadow)"
       }
     }
   },
