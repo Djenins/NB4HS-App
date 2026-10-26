@@ -72,7 +72,7 @@ export default function Login() {
   const stats = [
     { icon: Calendar, num: (data.classes || []).length, label: t("landingClassesOfferedLabel") },
     { icon: GraduationCap, num: totalEnrolledCount(data.students), label: t("landingStudentsEnrolledLabel") },
-    { icon: Users, num: (data.visits || []).length, label: t("landingVisitsOnFileLabel") }
+    { icon: Users, num: data.visitsOnFile || 0, label: t("landingVisitsOnFileLabel") }
   ];
 
   return (

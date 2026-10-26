@@ -7,7 +7,7 @@
 // below is a client-side check against in-memory data.visits (fast, but
 // racy -- two rapid taps, or two kiosks, can both pass it before either
 // visit lands). The real backstop is the DB's visits_student_date_unique
-// partial unique index (student_id, visit_date); a second createVisit()
+// partial unique index (student_id, visit_date); a second check-in RPC
 // for the same student/day fails there with a 23505 (unique_violation),
 // which the catch below turns into the same "already checked in" toast
 // instead of an unhandled error. `submittingId` covers the same-kiosk case
@@ -17,8 +17,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CalendarX, Calendar, Clock, GraduationCap, UserRoundSearch } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { classByKey, classesMeetingToday, meetingDaysLabel, studentAlreadyCheckedInToday, studentsForClass } from "../lib/students.js";
-import { fmtDateLong, fmtTime, todayStr, uid } from "../lib/utils.js";
-import { createVisit } from "../lib/checkinData.js";
+import { fmtDateLong, fmtTime, todayStr } from "../lib/utils.js";
+import { checkInStudentVisit } from "../lib/checkinData.js";
 import KioskSidebar from "../components/kiosk/KioskSidebar.jsx";
 import KioskActionPanel from "../components/kiosk/KioskActionPanel.jsx";
 import ClassRosterSection from "../components/kiosk/ClassRosterSection.jsx";
@@ -41,17 +41,11 @@ export default function CheckInStudent() {
     }
     setSubmittingId(student.id);
     const cls = classByKey(data.classes, student.classKey);
-    const now = new Date();
-    const record = {
-      id: uid(), firstName: student.firstName, lastName: student.lastName, phone: student.phone || "",
-      email: student.email || "", address: student.street || "", city: student.city || "", state: student.state || "RI", zip: student.zip || "",
-      service: (cls && cls.service) || "adult_education", serviceOther: "",
-      staff: (cls && cls.staff) || "esl_instructor", staffOther: "",
-      notes: "", date: todayStr(), timeIn: now.toISOString(), timeOut: null,
-      studentId: student.id, className: cls ? cls.name : ""
-    };
     try {
-      const created = await createVisit(record);
+      // The visit row (contact details, class service/staff) is built
+      // server-side by kiosk_student_check_in -- the kiosk roster only
+      // carries names.
+      const created = await checkInStudentVisit(student.id, todayStr());
       navigate("/checkin/success", { state: { lastCheckInId: created.id, kind: "student", className: cls ? cls.name : "" } });
     } catch (err) {
       if (err && err.code === "23505") {

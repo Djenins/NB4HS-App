@@ -16,7 +16,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { t } from "../lib/i18n.js";
 import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
-import { checkOutVisit, fetchClasses, fetchStudents, fetchVisits, subscribeTable } from "../lib/checkinData.js";
+import {
+  checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudents, fetchVisitCount, fetchVisits, subscribeTable
+} from "../lib/checkinData.js";
+import { todayStr } from "../lib/utils.js";
 import {
   fetchAllPlacementCheckins, fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
   fetchEmployers, fetchFoodClients, fetchJobClients, fetchJobOpenings, fetchPlacements, fetchReferrals, fetchWorkforceRoleAccess,
@@ -27,6 +30,10 @@ import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, si
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
 
 const AppContext = createContext(null);
+
+// How often a signed-out kiosk re-reads its RPC views (it gets no realtime
+// pushes) so check-ins from another device show up in its lists.
+const KIOSK_REFRESH_MS = 30000;
 
 // Defensive backfill for data saved by an older version of this app (the
 // original single-file prototype, or the buildless NB4HS-App) -- ported
@@ -133,32 +140,53 @@ export function AppProvider({ children }) {
   const [visits, setVisits] = useState([]);
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [kioskVisitCount, setKioskVisitCount] = useState(0);
+
+  // Signed-in staff read the tables directly. A signed-out kiosk has no
+  // SELECT on visits/students (stage0b migration), so it
+  // loads the narrow kiosk_* RPC views instead -- names only, no contact
+  // details -- under the same `visits`/`students` keys, and polls rather
+  // than subscribing (realtime only delivers rows the caller can SELECT).
+  const signedIn = !!session;
+  const loadVisits = useCallback(() => (signedIn ? fetchVisits() : fetchKioskVisits(todayStr())), [signedIn]);
+  const loadStudents = useCallback(() => (signedIn ? fetchStudents() : fetchKioskRoster()), [signedIn]);
 
   useEffect(() => {
+    if (authLoading) return undefined;
     let cancelled = false;
-    fetchVisits().then((rows) => { if (!cancelled) setVisits(rows); });
-    fetchStudents().then((rows) => { if (!cancelled) setStudents(rows); });
+    loadVisits().then((rows) => { if (!cancelled) setVisits(rows); });
+    loadStudents().then((rows) => { if (!cancelled) setStudents(rows); });
     fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); });
+    if (!signedIn) fetchVisitCount().then((n) => { if (!cancelled) setKioskVisitCount(n); });
 
-    const unsubVisits = subscribeTable("visits", () => { fetchVisits().then((rows) => { if (!cancelled) setVisits(rows); }); });
-    const unsubStudents = subscribeTable("students", () => { fetchStudents().then((rows) => { if (!cancelled) setStudents(rows); }); });
+    if (!signedIn) {
+      const id = setInterval(() => {
+        loadVisits().then((rows) => { if (!cancelled) setVisits(rows); });
+        loadStudents().then((rows) => { if (!cancelled) setStudents(rows); });
+        fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); });
+      }, KIOSK_REFRESH_MS);
+      return () => { cancelled = true; clearInterval(id); };
+    }
+
+    const unsubVisits = subscribeTable("visits", () => { loadVisits().then((rows) => { if (!cancelled) setVisits(rows); }); });
+    const unsubStudents = subscribeTable("students", () => { loadStudents().then((rows) => { if (!cancelled) setStudents(rows); }); });
     const unsubClasses = subscribeTable("classes", () => { fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); }); });
     return () => { cancelled = true; unsubVisits(); unsubStudents(); unsubClasses(); };
-  }, []);
+  }, [authLoading, signedIn, loadVisits, loadStudents]);
 
   // Callers that just inserted/updated/deleted a student (Students.jsx's
   // enroll/import/edit/remove flows) await this right after the write so the
   // new row shows up immediately, instead of waiting on the realtime
   // subscription's refetch (which can lag enough that it looks like the UI
   // needs a hard refresh to pick up a just-added student).
-  const refetchStudents = useCallback(() => fetchStudents().then((rows) => setStudents(rows)), []);
+  const refetchStudents = useCallback(() => loadStudents().then((rows) => setStudents(rows)), [loadStudents]);
   // Same idea as refetchStudents above, for CheckOut.jsx's checkOut()/
   // selfCheckOut() -- the realtime subscription is the only other thing that
   // would pick up a just-recorded checkout, and this project's Supabase
   // instance has no tables in its `supabase_realtime` publication, so
   // without this the checked-out visit keeps showing in the kiosk list
   // until something else happens to trigger a refetch.
-  const refetchVisits = useCallback(() => fetchVisits().then((rows) => setVisits(rows)), []);
+  const refetchVisits = useCallback(() => loadVisits().then((rows) => setVisits(rows)), [loadVisits]);
 
   // The merged view every page actually reads: same key names as before
   // (`data.visits`/`data.students`/`data.classes`), just overlaid onto the
@@ -279,12 +307,15 @@ export function AppProvider({ children }) {
   const data = useMemo(
     () => Object.assign({}, localData, {
       visits, students, classes,
+      // Landing-page "Visits on File": the kiosk only holds today's open
+      // visits, so it gets the total from public_visit_count() instead.
+      visitsOnFile: signedIn ? visits.length : kioskVisitCount,
       clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles
     }),
     [
-      localData, visits, students, classes, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
+      localData, visits, students, classes, signedIn, kioskVisitCount, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles
     ]
