@@ -1,10 +1,10 @@
 // StaffReports.jsx -- the reviewer side of biweekly staff reporting
 // (sidebar "Staff Reports"; plans/staff-reporting-architecture.md §4). One
-// sidebar entry, a ModuleNav strip like SnapOutreach.jsx: reviewers
-// (program_staff 'staff_reports' / 'reviewer') get Overview and All reports;
-// whoever can configure reporting (system administrators, reporting program
-// admins) gets Settings. A system administrator who is not a reviewer sees
-// only Settings -- configuring reporting does not mean reading reports.
+// sidebar entry, a ModuleNav strip like SnapOutreach.jsx: whoever holds
+// staff_reports.review or .view_all gets Overview and All reports; whoever
+// holds staff_reports.schedule.manage gets Settings. An administrator who
+// doesn't review sees only Settings -- configuring reporting does not mean
+// reading reports.
 // /staffreports/:id opens one report for review.
 import { useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
@@ -21,23 +21,23 @@ const SECTIONS = {
   settings: { label: "srSectionSettings", icon: Settings2, Component: ReportingSettings }
 };
 
-// Which sections a person sees, from their system role and their
-// staff_reports program role. Empty means no access.
-export function staffReportSectionsFor(systemRole, programRole) {
+// Which sections a person sees, from their permissions. Empty means no access.
+export function staffReportSectionsFor(can) {
   var out = [];
-  if (programRole === "reviewer") out.push("overview", "all");
-  if (systemRole === "administrator" || programRole === "program_admin") out.push("settings");
+  if (can("staff_reports.review") || can("staff_reports.view_all")) out.push("overview", "all");
+  if (can("staff_reports.schedule.manage")) out.push("settings");
   return out;
 }
 
 export default function StaffReports() {
   const { reportId } = useParams();
   const navigate = useNavigate();
-  const { session, data } = useApp();
+  const { can, permissionsLoaded } = useApp();
   const t = useT();
-  const visible = staffReportSectionsFor(session ? session.role : null, (data.programRoles || {}).staff_reports || null);
+  const visible = staffReportSectionsFor(can);
   const [chosen, setChosen] = useState(null);
 
+  if (!permissionsLoaded) return null;
   if (visible.length === 0) return <Navigate to="/dashboard" replace />;
   const isReviewer = visible.indexOf("overview") !== -1;
   if (reportId && !isReviewer) return <Navigate to="/staffreports" replace />;

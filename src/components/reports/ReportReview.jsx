@@ -3,28 +3,30 @@
 // progress, with a picker for earlier versions after a revision. Opening a
 // newly submitted report marks it "Under review". Acknowledge (optional
 // comment) and Request revision (comment required) go through the review
-// RPCs, which also notify the author in the app.
+// RPCs, which also notify the author in the app. Holders of
+// staff_reports.view_all without .review read only.
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, Printer, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
-  acknowledgeReport, fetchDepartments, fetchReport, fetchReportHistory, fetchReports, fetchSchedules, fmtDueAt, fmtPeriod,
+  acknowledgeReport, fetchReport, fetchReportHistory, fetchReports, fetchSchedules, fmtDueAt, fmtPeriod,
   reportPermissions, requestRevision, startReview
 } from "../../lib/staffReports.js";
 import EmptyState from "../EmptyState.jsx";
 import { SectionCard } from "../SectionCard.jsx";
 import { Button } from "../ui/button.jsx";
-import { REPORT_CONTROL, ReportContent, ReportHistory, ReportStatusBadge, fmtStamp } from "./ReportParts.jsx";
+import { REPORT_CONTROL, ReportContent, ReportHistory, ReportStatusBadge, fmtStamp, useProgramLabels } from "./ReportParts.jsx";
 
 export default function ReportReview({ reportId }) {
-  const { data, lang, session, showToast } = useApp();
+  const { data, lang, session, showToast, can } = useApp();
+  const reviews = can("staff_reports.review");
   const t = useT();
   const navigate = useNavigate();
   const userId = session ? session.id : null;
   const [report, setReport] = useState(undefined);
   const [history, setHistory] = useState(null);
-  const [departments, setDepartments] = useState([]);
+  const { label: programsText } = useProgramLabels();
   const [tz, setTz] = useState("America/New_York");
   const [previous, setPrevious] = useState([]);
   const [shownVersion, setShownVersion] = useState(null);
@@ -35,8 +37,7 @@ export default function ReportReview({ reportId }) {
 
   async function load() {
     try {
-      const [r, h, d, s] = await Promise.all([fetchReport(reportId), fetchReportHistory(reportId), fetchDepartments(), fetchSchedules()]);
-      setDepartments(d);
+      const [r, h, s] = await Promise.all([fetchReport(reportId), fetchReportHistory(reportId), fetchSchedules()]);
       setTz((s.find((x) => x.active) || s[0] || {}).timeZone || "America/New_York");
       setHistory(h);
       setReport(r);
@@ -54,7 +55,7 @@ export default function ReportReview({ reportId }) {
     setShownVersion(null);
     setMode(null);
     load().then((r) => {
-      if (r && r.status === "submitted" && r.staffId !== userId && !started.current) {
+      if (reviews && r && r.status === "submitted" && r.staffId !== userId && !started.current) {
         started.current = true;
         startReview(r.id).then((updated) => { setReport(updated); return fetchReportHistory(r.id).then(setHistory); }).catch(() => {});
       }
@@ -70,9 +71,8 @@ export default function ReportReview({ reportId }) {
     );
   }
 
-  const perms = reportPermissions(report, userId, true);
+  const perms = reportPermissions(report, userId, reviews);
   const nameOf = (id) => { const p = (data.profiles || []).find((x) => x.id === id); return p ? (p.name || p.email) : "—"; };
-  const deptName = (departments.find((d) => d.id === report.departmentId) || {}).name || "—";
   const versions = history ? history.versions : [];
   const version = versions.find((v) => v.version === shownVersion) || versions[0] || null;
 
@@ -108,7 +108,10 @@ export default function ReportReview({ reportId }) {
             <ReportStatusBadge status={report.status} />
           </div>
           <dl className="m-0 mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-            <div className="flex gap-2"><dt className="text-muted">{t("srDepartment")}:</dt><dd className="m-0 font-semibold text-card-foreground">{deptName}</dd></div>
+            <div className="flex gap-2"><dt className="text-muted">{t("srPrograms")}:</dt><dd className="m-0 font-semibold text-card-foreground">{programsText(version && (version.content.programs || []).length ? version.content.programs : report.programs)}</dd></div>
+            {version && (version.content.positions || []).length ? (
+              <div className="flex gap-2"><dt className="text-muted">{t("srPositions")}:</dt><dd className="m-0 text-card-foreground">{version.content.positions.join(", ")}</dd></div>
+            ) : null}
             <div className="flex gap-2"><dt className="text-muted">{t("srReportingPeriod")}:</dt><dd className="m-0 font-semibold text-card-foreground">{fmtPeriod(report.periodStart, report.periodEnd, lang)}</dd></div>
             <div className="flex gap-2"><dt className="text-muted">{t("srDue")}:</dt><dd className="m-0 text-card-foreground">{fmtDueAt(report.dueAt, tz, lang)}</dd></div>
             <div className="flex gap-2"><dt className="text-muted">{t("srSubmitted")}:</dt><dd className="m-0 text-card-foreground">{fmtStamp(version ? version.submittedAt : report.submittedAt, lang)}</dd></div>
@@ -168,7 +171,7 @@ export default function ReportReview({ reportId }) {
                       className="flex min-h-0 w-full items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm font-normal transform-none hover:border-primary">
                       <span className="min-w-0">
                         <span className="block font-semibold text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</span>
-                        <span className="block text-xs text-muted">{(departments.find((d) => d.id === r.departmentId) || {}).name || "—"}</span>
+                        <span className="block text-xs text-muted">{programsText(r.programs)}</span>
                       </span>
                       <ReportStatusBadge status={r.status} />
                     </button>

@@ -2,7 +2,7 @@
 // (create a draft, required-field check, submit, confirmation), and the
 // reviewer flow (opening a report starts the review; a revision needs a
 // comment). Data calls are stubbed; the database rules themselves are
-// covered by supabase/tests/staff_reports_r1_check.sql.
+// covered by supabase/tests/p6a_reports_check.sql.
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,11 +21,12 @@ vi.mock("../lib/staffReports.js", async (importOriginal) => {
   const stub = (name) => (...a) => api[name](...a);
   return {
     ...actual,
-    fetchMyExpectations: stub("fetchMyExpectations"), fetchReports: stub("fetchReports"), fetchDepartments: stub("fetchDepartments"),
+    fetchMyExpectations: stub("fetchMyExpectations"), fetchReports: stub("fetchReports"),
+    fetchProgramNames: () => Promise.resolve({ case_management: "Case Management", workforce: "Workforce" }),
+    fetchMyProgramOptions: () => Promise.resolve(["organization", "case_management"]),
     fetchSchedules: stub("fetchSchedules"), fetchReportHistory: stub("fetchReportHistory"), createDraft: stub("createDraft"),
     saveDraft: stub("saveDraft"), submitReport: stub("submitReport"), fetchReport: stub("fetchReport"), startReview: stub("startReview"),
-    requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport"),
-    fetchStaffDepartments: () => Promise.resolve([])
+    requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport")
   };
 });
 vi.mock("../lib/programStaff.js", async (importOriginal) => ({
@@ -37,20 +38,29 @@ import MyReports from "./MyReports.jsx";
 import StaffReports, { staffReportSectionsFor } from "./StaffReports.jsx";
 
 const en = (key) => translate(key, "en");
-const DEPT = { id: "d-cm", key: "case_management", name: "Case Management", active: true };
 const SCHEDULE = {
   id: "s1", name: "Biweekly staff report", active: true, timeZone: "America/New_York", firstPeriodStart: "2026-11-02", periodDays: 14,
-  deadlineDaysAfterEnd: 1, deadlineTime: "17:00", graceHours: 0, reminderOffsets: [-3, -1, 0, 1], appliesToAll: true, departmentIds: []
+  deadlineDaysAfterEnd: 1, deadlineTime: "17:00", graceHours: 0, reminderOffsets: [-3, -1, 0, 1]
 };
 const PERIOD = { periodId: "p1", periodStart: "2026-11-02", periodEnd: "2026-11-15", dueAt: "2026-11-16T22:00:00Z" };
 const blankReport = {
-  id: "r1", periodId: "p1", staffId: "u-jane", departmentId: "d-cm", status: "draft", activities: "", accomplishments: "",
+  id: "r1", periodId: "p1", staffId: "u-jane", programs: [], status: "draft", activities: "", accomplishments: "",
   challenges: "", assistanceNeeded: "", noAssistanceNeeded: false, nextGoals: "", comments: "", outcomes: [], version: 0,
   submittedAt: null, periodStart: "2026-11-02", periodEnd: "2026-11-15", dueAt: "2026-11-16T22:00:00Z", updatedAt: "2026-11-03T14:00:00Z"
 };
 
+// Permissions by account type, as the legacy roles mirror them.
+const HELD = {
+  staff: ["staff_reports.submit"],
+  administrator: ["staff_reports.submit", "staff_reports.schedule.manage"],
+  reviewer: ["staff_reports.review", "staff_reports.view_all"]
+};
+
 function setup(role, programRoles, id) {
+  const held = (HELD[role] || []).concat(programRoles && programRoles.staff_reports === "reviewer" ? HELD.reviewer : []);
   app = {
+    can: (k) => held.indexOf(k) !== -1,
+    permissionsLoaded: true,
     session: { id: id || "u-jane", role, currentUserName: "Jane Pierre" },
     data: { programRoles: programRoles || {}, profiles: [{ id: "u-jane", name: "Jane Pierre", role: "staff", active: true }, { id: "u-boss", name: "B. Director", role: "administrator", active: true }] },
     lang: "en",
@@ -76,7 +86,6 @@ function renderAt(path) {
 
 beforeEach(() => {
   Object.keys(api).forEach((k) => delete api[k]);
-  api.fetchDepartments = vi.fn().mockResolvedValue([DEPT]);
   api.fetchSchedules = vi.fn().mockResolvedValue([SCHEDULE]);
   api.fetchReportHistory = vi.fn().mockResolvedValue({ versions: [], reviews: [] });
 });
@@ -95,16 +104,17 @@ describe("navigation", () => {
     expect(navItemsForRole("administrator", [], {})).toContain("staffreports");
   });
   it("gives an administrator settings but not report access unless also a reviewer", () => {
-    expect(staffReportSectionsFor("administrator", null)).toEqual(["settings"]);
-    expect(staffReportSectionsFor("administrator", "reviewer")).toEqual(["overview", "all", "settings"]);
-    expect(staffReportSectionsFor("staff", "reviewer")).toEqual(["overview", "all"]);
-    expect(staffReportSectionsFor("staff", "program_admin")).toEqual(["settings"]);
-    expect(staffReportSectionsFor("staff", null)).toEqual([]);
+    const can = (...keys) => (k) => keys.indexOf(k) !== -1;
+    expect(staffReportSectionsFor(can("staff_reports.schedule.manage"))).toEqual(["settings"]);
+    expect(staffReportSectionsFor(can("staff_reports.schedule.manage", "staff_reports.review"))).toEqual(["overview", "all", "settings"]);
+    expect(staffReportSectionsFor(can("staff_reports.review"))).toEqual(["overview", "all"]);
+    expect(staffReportSectionsFor(can("staff_reports.view_all"))).toEqual(["overview", "all"]);
+    expect(staffReportSectionsFor(can("staff_reports.submit"))).toEqual([]);
   });
 });
 
 describe("My Reports", () => {
-  it("tells someone with no department that they have nothing to report", async () => {
+  it("tells someone who doesn't report that they have nothing to send", async () => {
     setup("staff");
     api.fetchMyExpectations = vi.fn().mockResolvedValue([]);
     api.fetchReports = vi.fn().mockResolvedValue([]);
@@ -112,19 +122,18 @@ describe("My Reports", () => {
     expect(await screen.findByText(en("srNotAssigned"))).toBeTruthy();
   });
 
-  it("lists one row per department with Create report, and creates a draft", async () => {
+  it("offers one report for the period, and creates a draft", async () => {
     setup("staff");
     api.fetchMyExpectations = vi.fn().mockResolvedValue([
-      Object.assign({}, PERIOD, { staffId: "u-jane", departmentId: "d-cm", status: "not_started", overdue: false, reportId: null }),
-      Object.assign({}, PERIOD, { staffId: "u-jane", departmentId: "d-wf", status: "not_started", overdue: false, reportId: null })
+      Object.assign({}, PERIOD, { staffId: "u-jane", programs: [], status: "not_started", overdue: false, reportId: null })
     ]);
     api.fetchReports = vi.fn().mockResolvedValue([]);
     api.createDraft = vi.fn().mockResolvedValue(blankReport);
     renderAt("/myreports");
     const buttons = await screen.findAllByRole("button", { name: en("srCreateReport") });
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0]);
-    await waitFor(() => expect(api.createDraft).toHaveBeenCalledWith("p1", "d-cm", "u-jane"));
+    await waitFor(() => expect(api.createDraft).toHaveBeenCalledWith("p1", "u-jane"));
     expect(await screen.findByLabelText(en("srFieldActivities"))).toBeTruthy();
   });
 
@@ -141,6 +150,8 @@ describe("My Reports", () => {
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(api.submitReport).not.toHaveBeenCalled();
 
+    expect(screen.getByRole("alert").textContent).toContain(en("srFieldPrograms"));
+    fireEvent.click(await screen.findByLabelText("Case Management"));
     fireEvent.change(screen.getByLabelText(en("srFieldActivities")), { target: { value: "Ran two workshops" } });
     fireEvent.change(screen.getByLabelText(en("srFieldAccomplishments")), { target: { value: "Placed 3 participants" } });
     fireEvent.change(screen.getByLabelText(en("srFieldChallenges")), { target: { value: "Staffing" } });
@@ -150,7 +161,7 @@ describe("My Reports", () => {
 
     await waitFor(() => expect(api.submitReport).toHaveBeenCalledWith("r1"));
     expect(app.requestConfirm).toHaveBeenCalled();
-    expect(api.saveDraft).toHaveBeenCalled();
+    expect(api.saveDraft).toHaveBeenCalledWith("r1", expect.objectContaining({ programs: ["case_management"] }));
     expect(await screen.findByText(en("srSubmittedTitle"))).toBeTruthy();
   });
 
