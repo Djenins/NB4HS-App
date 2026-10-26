@@ -1,4 +1,4 @@
--- Regression checks for 20261026130100_p0b_close_anon_appointment_paths.sql.
+-- Regression checks for 20261026084847_p0b_close_anon_appointment_paths.sql.
 -- Run AFTER p0a and p0b, inside the same transaction. Always ends by raising
 -- 'P0B_CHECKS_PASSED', so nothing is ever committed.
 do $$
