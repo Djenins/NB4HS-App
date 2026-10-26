@@ -53,26 +53,60 @@ export default {
         "tint-warn": "var(--tint-warn)",
         "tint-danger": "var(--tint-danger)",
         // Fixed (non-theme-swapping) navy shades for the permanently dark
-        // sidebar chrome -- the sidebar stays brand-navy regardless of the
-        // Light/Dark content toggle, same pattern as Linear/Vercel-style
-        // admin shells. sidebar-bg/-border/-text sample the new NB4HS Navy;
-        // sidebar-bg-active is the new Primary Blue (the brand spec calls
-        // out "Active menu items" as a Blue usage, not a navy shade).
-        "sidebar-bg": "#1F2A6D",
-        "sidebar-bg-active": "#2563EB",
-        "sidebar-border": "#2c3868",
-        "sidebar-text": "#c7cde3",
-        "sidebar-text-active": "#ffffff"
+        // sidebar chrome -- it stays brand navy regardless of the Light/Dark
+        // content toggle. Values live in main.css as RGB channels
+        // (--sidebar-*) so opacity modifiers like text-sidebar-text/70 work.
+        "sidebar-bg": "rgb(var(--sidebar-bg) / <alpha-value>)",
+        "sidebar-bg-active": "rgb(var(--sidebar-bg-active) / <alpha-value>)",
+        "sidebar-border": "rgb(var(--sidebar-border) / <alpha-value>)",
+        "sidebar-text": "rgb(var(--sidebar-text) / <alpha-value>)",
+        "sidebar-text-active": "rgb(var(--sidebar-text-active) / <alpha-value>)",
+        // NB4HS Operate semantic layer (plans/ui-design-system.md). Surfaces
+        // and lines first, then one six-slot entry per tone, e.g.
+        // bg-tone-success-bg / border-tone-success-border / text-tone-success-ink.
+        surface: { page: "var(--surface-page)", card: "var(--surface-card)", sunken: "var(--surface-sunken)", overlay: "var(--surface-overlay)" },
+        // border-line-subtle / border-line-strong, text-on-tint
+        line: { subtle: "var(--border-subtle)", strong: "var(--border-strong)" },
+        "on-tint": "var(--text-on-tint)",
+        tone: Object.fromEntries(
+          ["info", "success", "warning", "danger", "neutral", "violet"].map((tone) => [
+            tone,
+            Object.fromEntries(["bg", "border", "chip", "ink", "solid", "on-solid"].map((slot) => [slot, `var(--tone-${tone}-${slot})`]))
+          ])
+        )
       },
+      // lg/xl are still remapped to the legacy 18/20px radii so existing
+      // screens don't move; they return to Tailwind's stock values in Phase 4,
+      // once every page uses the role-named radii below.
       borderRadius: {
         lg: "var(--radius)",
-        xl: "var(--radius-lg)"
+        xl: "var(--radius-lg)",
+        control: "var(--radius-control)",
+        surface: "var(--radius-surface)",
+        badge: "var(--radius-badge)",
+        chip: "9999px"
       },
       boxShadow: {
-        card: "var(--shadow-sm)",
+        card: "var(--shadow-card)",
         "card-hover": "var(--shadow-md)",
+        raised: "var(--shadow-raised)",
+        overlay: "var(--shadow-overlay)",
         lg: "var(--shadow-lg)"
-      }
+      },
+      // Staff UI type scale -- sizes live in main.css (--fs-*); line height,
+      // weight and tracking are paired here so one class sets the whole role.
+      fontSize: {
+        title: ["var(--fs-title)", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700" }],
+        heading: ["var(--fs-heading)", { lineHeight: "1.3", fontWeight: "700" }],
+        section: ["var(--fs-section)", { lineHeight: "1.4", fontWeight: "600" }],
+        body: ["var(--fs-body)", { lineHeight: "1.55" }],
+        ui: ["var(--fs-ui)", { lineHeight: "1.45" }],
+        meta: ["var(--fs-meta)", { lineHeight: "1.4" }],
+        caption: ["var(--fs-caption)", { lineHeight: "1.3" }],
+        kpi: ["var(--fs-kpi)", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "700" }]
+      },
+      transitionDuration: { fast: "var(--duration-fast)", base: "var(--duration-base)" },
+      transitionTimingFunction: { out: "var(--ease-out)" }
     }
   },
   corePlugins: {

@@ -187,7 +187,7 @@ function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
 
 function FilterFieldSelect({ label, value, onChange, children }) {
   return (
-    <div className="relative min-w-[170px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-[#b7c0d1]">
+    <div className="relative min-w-[170px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-line-strong">
       <div className="text-xs font-medium text-muted">{label}</div>
       <select
         value={value}

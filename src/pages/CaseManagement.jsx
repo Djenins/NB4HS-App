@@ -414,7 +414,7 @@ export default function CaseManagement() {
             <button
               type="button"
               aria-label={t("filterLabel")}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted transition-colors hover:border-[#b7c0d1] hover:text-card-foreground"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted transition-colors hover:border-line-strong hover:text-card-foreground"
             >
               <SlidersHorizontal className="h-4.5 w-4.5" />
             </button>
