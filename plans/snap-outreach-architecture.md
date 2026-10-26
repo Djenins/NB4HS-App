@@ -310,8 +310,8 @@ Branch `Djenins/snap-stage2a-contacts`. Stage 2 is split: 2a (this) and 2b (assi
 
 Branch `Djenins/snap-stage2b-cases`.
 
-**Database** (**not yet applied**; additive only):
-- `supabase/migrations/20261026150000_stage2b_cases_tasks_dashboard.sql`
+**Database** (**applied 2026-10-26** after PR #26 review; additive only):
+- `supabase/migrations/20261026071531_stage2b_cases_tasks_dashboard.sql`
   - `program_case_stages` — configurable per program (labels en/ht/fr, order, terminal, requires review); seeded with the 10 stages; program admins edit, members read.
   - `assistance_cases` — case number `SNAP-YYYY-#####`, linked to a SNAP contact and its client, assigned worker, stage, assistance requested/provided (fixed code lists — no eligibility codes), NB4HS milestones (application assistance given, referred to RI DHS — set automatically on reaching those stages), follow-up date, closure reason, supervisor review. **Workers see and edit only their assigned cases**; supervisors/program admins see and edit all and reassign; no deletes.
   - `assistance_case_rules()` trigger — closing (terminal stage) requires a closure reason, and supervisor approval when the stage requires review; only leads approve or send back a review; reopening clears closure.
@@ -321,7 +321,7 @@ Branch `Djenins/snap-stage2b-cases`.
   - `snap_send_task_reminders()` — one in-app notification per open task per due date (due today or tomorrow, Providence time), deduplicated via `task_reminders_sent`; message is the task title and date only. Not callable by any app user.
   - `snap_dashboard(from, to)` — SECURITY INVOKER aggregate (RLS-scoped): individuals contacted, interactions, new contacts, cases opened/closed/open, applications assisted, referred to RI DHS, follow-ups due in 7 days, overdue, tasks due/done in period, activity by week and type, new contacts by source, cases by stage.
   - Audit triggers on cases, notes, tasks and stages.
-- `supabase/migrations/20261026150100_stage2b_schedule_task_reminders.sql` — enables pg_cron and schedules the reminder function daily at 11:00 UTC (7:00/6:00 Eastern).
+- `supabase/migrations/20261026071541_stage2b_schedule_task_reminders.sql` — enables pg_cron and schedules the reminder function daily at 11:00 UTC (7:00/6:00 Eastern).
 
 **App**
 - Module sections are now **Dashboard · Contacts · Cases · Follow-ups** (+ Staff & Access for managers); the Stage 1 overview is replaced by the dashboard.
@@ -334,6 +334,8 @@ Branch `Djenins/snap-stage2b-cases`.
 - Local Postgres 17 (stub + Stage 1 + 2a + 2b): 33 checks — case numbering, automatic initial task, stage history, milestone dates, closure reason required, reopening clears closure, worker can't approve review but can request it, assistance code list enforced, notes, worker2 sees none of worker1's case/notes/history/tasks and can't open/note/assign across, can't forge automation tasks, supervisor sees all, close-with-review needs approval and records the reviewer, supervisor can't edit stage config, task completion timestamp, dashboard figures for supervisor / scoped for a worker / zero for an admin without a SNAP role, reminders sent once with no case details and not callable by users, audit rows, anon sees nothing. The pg_cron migration itself was not run locally (no pg_cron in the local build).
 - `vitest` 233/233 (new: case rules, follow-up grouping/titles/permissions/completion rate, case detail closure + review + read-only + notes, dashboard numbers and quick actions). `vite build` passes.
 - Not exercised in a browser: signed-in SNAP screens (no staff credentials).
+
+**Verified on the live project after applying:** RLS on all six new tables, 11 policies, 10 triggers, 10 seeded stages; cron job `snap-task-reminders` registered and active (`0 11 * * *`, `select public.snap_send_task_reminders()`); dashboard callable by signed-in users only, reminders and trigger functions by no one. Live definitions match the reviewed file: policies and constraints fingerprint-identical to a local build of the file, every function identical except two explanatory comments inside `assistance_case_rules` that were left out of the applied text (logic unchanged). Role checks with real accounts and temporary SNAP roles inside a rolled-back transaction (16/16): case number format, automatic initial follow-up for the worker, application-assistance date, close without reason refused, worker can't approve review, worker adds note and own follow-up, supervisor sees case and note and closes it, supervisor dashboard counts it, admin without a SNAP role sees no cases/notes/tasks and a zero dashboard, signed-in users can't trigger reminders, a reminder run sends one notification carrying only title + date and a re-run sends none, anon sees nothing. Afterwards every SNAP table was empty and no test client, notification or audit row remained. Security advisor: no new anon findings; new entries are `task_reminders_sent` having RLS with no policies (intended: no app access) and `is_program_lead` / `next_snap_case_number` callable by signed-in users (intended; note a signed-in user could consume case numbers, leaving gaps).
 
 **Open decision:** whether NB4HS may record a participant-reported DHS outcome (and how it's labelled). Nothing in 2b records eligibility results.
 

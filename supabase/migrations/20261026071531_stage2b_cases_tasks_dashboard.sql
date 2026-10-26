@@ -1,6 +1,7 @@
 -- SNAP Outreach Stage 2b -- assistance cases, case notes, stage history,
 -- follow-up tasks, the dashboard aggregate and task reminders
--- (plans/snap-outreach-architecture.md §4, §5, §7). ADDITIVE ONLY. NOT YET APPLIED.
+-- (plans/snap-outreach-architecture.md §4, §5, §7). ADDITIVE ONLY. APPLIED to
+-- vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026071531) after PR #26 review.
 -- The pg_cron schedule that calls snap_send_task_reminders() is a separate
 -- migration (stage2b_schedule_task_reminders).
 --
