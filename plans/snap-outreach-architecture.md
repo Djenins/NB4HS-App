@@ -246,7 +246,11 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 | 1 | Where SNAP schema changes go | Live project, additive only, applied after each PR is reviewed |
 | 3 | Role model | Separate program-scoped roles (`program_staff`), on top of `profiles.role` |
 | 4 | Admins and case notes | Administrators manage SNAP staff/settings but read participant data only if they also hold a SNAP role |
-| 5–10 | Contacts, worker visibility, pg_cron, messaging, funder/retention, languages | Open — needed before Stage 2 |
+| 5 | Outreach contact storage | Every contact is a minimal `clients` record (NB ID); search-first, duplicate warning, never auto-merged |
+| 6 | Worker visibility | Workers read all SNAP contacts; cases and case notes are assigned-only (Stage 2b) |
+| 7 | Scheduled reminders | pg_cron approved; enabled in Stage 2b with the reminder job |
+| 10 | Preferred-contact languages | English, Haitian Creole, French, Spanish, Portuguese (UI stays en/ht/fr) |
+| 8–9 | Messaging provider, funder/retention | Open — needed before Stage 4 |
 
 ## Stage 1 report — roles, audit log, navigation
 
@@ -275,3 +279,29 @@ Branch `Djenins/snap-stage1-foundation`.
 **Verified on the live project after applying:** both tables have RLS on with the five expected policies and two triggers; `has_program_role`/`can_manage_program` callable by signed-in users only, trigger functions by no one. Role checks with real accounts inside a rolled-back transaction (10/10): administrator has no SNAP role but can manage; granting and changing a role writes two audit rows attributed to the administrator; a case manager made supervisor has that role, can't manage, can't grant, reads no audit rows; staff without a role and anonymous callers see no memberships. Afterwards `program_staff` and `audit_events` were both empty. Security advisor: no new anon findings and no tables without RLS; new entries are only the two role-check helpers being callable by signed-in users, the same as `has_role`/`is_admin`, because RLS evaluates them as the caller.
 
 **Known limitations:** no live updates of `program_staff` across tabs (the settings table reloads after each change); supervisors see who's on the team but can't change it; audit log has no UI yet (Stage 5).
+
+## Stage 2a report — outreach contacts, consent, activity log
+
+Branch `Djenins/snap-stage2a-contacts`. Stage 2 is split: 2a (this) and 2b (assistance cases, notes, follow-up tasks, dashboard, pg_cron).
+
+**Database** — `supabase/migrations/20261026070013_stage2a_outreach_contacts.sql` (**applied 2026-10-26** after PR #25 review; additive only):
+- `outreach_contacts` — SNAP layer on a `clients` row (unique per program + client): preferred language (en/ht/fr/es/pt), best contact method, how we met, assigned worker, contact status, follow-up status. No free-text notes. Members read all; workers update only contacts assigned to them; supervisors/program admins update and reassign; no deletes (set inactive).
+- `create_outreach_contact(master, contact, matched_client_id)` — links an existing client or creates a minimal one (name + phone/email) in one call; refuses callers without a SNAP role.
+- `contact_consents` — append-only per person, channel (phone/SMS/email/mail) and purpose (program updates / appointment reminders); newest row is the current answer; opt-out is a new row; recorded as yourself only.
+- `outreach_interactions` — append-only activity log (type, direction, outcome, summary ≤ 1000 chars), logged as yourself, not future-dated.
+- Audit trigger on all three.
+
+**App** — new **Contacts** section for SNAP members:
+- List with search (name, NB ID, phone, email) and "Assigned to me".
+- Add flow is find-first: search existing NB4HS clients and add them from their record; "Already a SNAP contact" opens the existing one; a new person needs a name and a phone or email, and `findPossibleDuplicates` + `DuplicateClientWarning` run before saving. Privacy note on the form.
+- Contact detail: outreach fields (editable per `contactPermissions`, mirroring RLS), consent table with record-agreed / record-opt-out and how it was given, activity log with a "keep it general" hint, link to the client profile.
+- `hasConsent()` is the rule any future sender must call: only a current "granted" counts.
+
+**Tests executed**
+- Local Postgres 17 (stub of live auth/profiles/clients + Stage 1 + 2a): 23 checks — create contact + client, assigned to creator, blank name rejected, same client twice rejected, worker2 reads all but can't edit others', supervisor reassigns, newly assigned worker edits, admin without SNAP role sees nothing and can't create, other staff see nothing, consent history kept / not as someone else / not editable / not deletable, activity logged as self / not as someone else / not future-dated / summary capped, audit rows for all three tables with changed fields, anon sees nothing and can't call the RPC.
+- `vitest` 213/213 (new: contact filters, client search, current consent, permissions; component tests for list, find-first link, already-a-contact, required fields + duplicate warning, read-only colleague contact with consent recording, supervisor reassign). `vite build` passes.
+- Not exercised in a browser: signed-in SNAP screens (no staff credentials).
+
+**Verified on the live project after applying:** RLS on all three tables, 7 policies, 4 triggers; `create_outreach_contact` callable by signed-in users only. Role checks with real accounts and temporary SNAP roles inside a rolled-back transaction (12/12): a worker creates a contact with a new client (NB ID assigned) and is the assignee, records consent and activity; the same client can't be added twice; a supervisor reassigns; the worker then can't edit but still reads it; consent can't be edited; an administrator without a SNAP role sees no contacts and can't create one, but can read the audit rows; anonymous callers see nothing. Afterwards every new table was empty and no test client remained (the NB ID sequence advanced by one, so the next client number skips one). Security advisor: no new anon findings, no tables without RLS; the only new entry is `create_outreach_contact` being callable by signed-in users, which is intended (it checks the SNAP role itself).
+
+**Known limitations:** consent audit rows have no `program` (consent is person-level), so only system administrators read them in the audit log; activity entries can't be corrected yet; contact names/phones are edited on the client profile, not here.

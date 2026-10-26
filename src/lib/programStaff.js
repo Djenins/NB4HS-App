@@ -18,6 +18,7 @@ export var PROGRAM_ROLES = ["worker", "supervisor", "program_admin"];
 // listed before it exists.
 export var SNAP_SECTIONS = [
   { key: "overview", members: true, managers: false },
+  { key: "contacts", members: true, managers: false },
   { key: "staff", members: false, managers: true }
 ];
 

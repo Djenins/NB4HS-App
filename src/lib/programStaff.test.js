@@ -7,12 +7,12 @@ import { navItemsForRole } from "./nav.js";
 
 describe("snapSectionsFor", () => {
   it("gives a worker or supervisor the member sections only", () => {
-    expect(snapSectionsFor("staff", "worker")).toEqual(["overview"]);
-    expect(snapSectionsFor("case_manager", "supervisor")).toEqual(["overview"]);
+    expect(snapSectionsFor("staff", "worker")).toEqual(["overview", "contacts"]);
+    expect(snapSectionsFor("case_manager", "supervisor")).toEqual(["overview", "contacts"]);
   });
 
   it("gives a program admin both member and staff sections", () => {
-    expect(snapSectionsFor("staff", "program_admin")).toEqual(["overview", "staff"]);
+    expect(snapSectionsFor("staff", "program_admin")).toEqual(["overview", "contacts", "staff"]);
   });
 
   it("gives an administrator without a SNAP role only staff management", () => {
@@ -20,7 +20,7 @@ describe("snapSectionsFor", () => {
   });
 
   it("gives an administrator who also holds a SNAP role the member sections too", () => {
-    expect(snapSectionsFor("administrator", "worker")).toEqual(["overview", "staff"]);
+    expect(snapSectionsFor("administrator", "worker")).toEqual(["overview", "contacts", "staff"]);
   });
 
   it("gives everyone else nothing", () => {

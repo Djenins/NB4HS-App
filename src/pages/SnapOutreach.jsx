@@ -9,15 +9,17 @@
 // snap-outreach-architecture.md §10) -- nothing is listed before it works.
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { LayoutGrid, ShieldCheck } from "lucide-react";
+import { Contact, LayoutGrid, ShieldCheck } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { snapSectionsFor } from "../lib/programStaff.js";
 import ModuleNav from "../components/ModuleNav.jsx";
+import SnapContacts from "../components/snap/SnapContacts.jsx";
 import SnapOverview from "../components/snap/SnapOverview.jsx";
 import SnapStaffSettings from "../components/snap/SnapStaffSettings.jsx";
 
 const SECTIONS = {
   overview: { label: "snapSectionOverview", icon: LayoutGrid, Component: SnapOverview },
+  contacts: { label: "snapSectionContacts", icon: Contact, Component: SnapContacts },
   staff: { label: "snapSectionStaff", icon: ShieldCheck, Component: SnapStaffSettings }
 };
 
