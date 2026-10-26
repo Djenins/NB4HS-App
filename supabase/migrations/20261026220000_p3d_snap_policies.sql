@@ -1,7 +1,11 @@
 -- Phase 3, part D -- the SNAP (Outreach) tables move from program-role
 -- checks (has_program_role / is_program_lead / can_manage_program) to
 -- permissions (plans/unified-access-architecture.md §4, §13 Phase 3).
--- NOT YET APPLIED.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026220000), after
+-- rolled-back dry runs (row-mode parity up and down, mutation tests).
+-- Afterwards on live: reverse row-mode parity matched the old rules on all
+-- 6,720 answers except the 45 intended consent answers, and the p1, p2 and
+-- p3a checks passed.
 --
 -- NOBODY'S ACCESS CHANGES. These policies look at the row (who a record is
 -- assigned to, who created it), so the parity test evaluates every policy
