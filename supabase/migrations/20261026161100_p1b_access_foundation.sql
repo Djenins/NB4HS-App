@@ -1,5 +1,9 @@
 -- Phase 1, part B -- access data model and authorization foundation
--- (plans/unified-access-architecture.md §3, §4, §5, §11). NOT YET APPLIED.
+-- (plans/unified-access-architecture.md §3, §4, §5, §11).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026161100), right
+-- after part A. supabase/tests/p1_access_check.sql passed against the live
+-- database afterwards: every active account's legacy sidebar matches its
+-- permissions. is_program_module() was left executable by anon; p1c fixes that.
 --
 -- BEHAVIOUR-NEUTRAL. No existing policy, function or table changes meaning:
 -- nothing in the app or in any RLS policy reads the new tables yet. They are

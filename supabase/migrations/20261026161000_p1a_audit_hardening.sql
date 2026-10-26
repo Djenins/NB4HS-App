@@ -1,6 +1,10 @@
 -- Phase 1, part A -- audit log hardening (plans/unified-access-architecture.md
--- §5, §10; audit finding S11). NOT YET APPLIED. Additive; changes no access
--- rule anyone relies on.
+-- §5, §10; audit finding S11). Additive; changes no access rule anyone
+-- relies on.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026161000), after a
+-- rolled-back dry run of this file, part B and supabase/tests/p1_access_check.sql
+-- passed. Verified afterwards: the new columns and triggers exist, and an
+-- UPDATE on audit_events fails as the database owner.
 --
 -- * audit_events is append-only for every role, including the table owner's
 --   API roles: UPDATE/DELETE/TRUNCATE privileges are revoked from anon,

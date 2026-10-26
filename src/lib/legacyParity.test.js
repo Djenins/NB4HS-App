@@ -15,7 +15,7 @@ const { resolveEffectivePermissions } = await import("./permissions.js");
 const { navItemsFromPermissions } = await import("./modules.js");
 const { navItemsForRole } = await import("./nav.js");
 
-const sql = readFileSync(resolvePath(__dirname, "../../supabase/migrations/20261026140100_p1b_access_foundation.sql"), "utf8");
+const sql = readFileSync(resolvePath(__dirname, "../../supabase/migrations/20261026161100_p1b_access_foundation.sql"), "utf8");
 
 const modules = [...sql.matchAll(/\('([a-z_.]+)', (null|'[a-z_.]+'), '(program|submodule|shared|admin)', .*?, (\d+), (true|false), (null|'[a-z_]+')\)/g)]
   .map((m) => ({ key: m[1], parentKey: m[2] === "null" ? null : m[2].slice(1, -1), kind: m[3], active: true, implemented: m[5] === "true" }));
