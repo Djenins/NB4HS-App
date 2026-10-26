@@ -6,13 +6,24 @@
 -- records, for every policy on the tables in p3_tables, whether it lets each
 -- of them through -- with Workforce Development Access both off and on. The
 -- after script records the same with the new policies and fails on any
--- difference. Everything is rolled back by the final raise.
+-- difference -- except changes a migration declares on purpose in
+-- p3_expected (e.g. p3b's S7 fix). Everything is rolled back by the final raise.
+--
+-- Settings, read before this script runs:
+--   p3.tables   comma-separated tables to compare (default: the Students tables)
+-- Workforce Development Access is compared three ways: all off, all on, and
+-- as it is set on the live database.
 --
 -- The policies on these tables don't look at the row, so evaluating each
 -- policy's expression as the person is the whole answer.
 
 create temp table p3_tables (tbl text primary key) on commit drop;
-insert into p3_tables values ('students'), ('classes'), ('sessions'), ('past_session_students');
+insert into p3_tables
+select btrim(t) from unnest(string_to_array(coalesce(nullif(current_setting('p3.tables', true), ''),
+  'students,classes,sessions,past_session_students'), ',')) t;
+-- Answers a migration changes on purpose: (account type, workforce setting,
+-- table, was, now). Filled in by the migration's own test, after this script.
+create temp table p3_expected (role text, wf text, tbl text, was boolean, now boolean) on commit drop;
 
 create temp table p3_personas (persona text primary key, user_id uuid) on commit drop;
 create temp table p3_snap (phase text, wf text, persona text, tbl text, cmd text, kind text, ok boolean) on commit drop;
@@ -111,10 +122,11 @@ begin
 end;
 $$;
 
--- Both Workforce settings, then back to how it was.
+-- All off, all on, then as it is set now.
 create temp table p3_wf_saved on commit drop as select role, enabled from public.workforce_role_access;
 update public.workforce_role_access set enabled = false;
 select pg_temp.p3_snapshot('before', 'off');
 update public.workforce_role_access set enabled = true;
 select pg_temp.p3_snapshot('before', 'on');
 update public.workforce_role_access w set enabled = s.enabled from p3_wf_saved s where s.role = w.role;
+select pg_temp.p3_snapshot('before', 'live');
