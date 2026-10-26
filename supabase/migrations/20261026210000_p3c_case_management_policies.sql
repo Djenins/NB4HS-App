@@ -1,6 +1,10 @@
 -- Phase 3, part C -- Case Management tables on permissions, and the fix for
 -- audit finding S8 (plans/unified-access-architecture.md §2.1, §13 Phase 3).
--- NOT YET APPLIED.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026210000), after
+-- rolled-back dry runs (parity up and down, p3c_s8_check, an intake round
+-- trip through the rollback). Afterwards on live: reverse parity matched the
+-- old rules on all 1,440 answers, p3c_s8_check passed, and the p1, p2 and
+-- p3a checks passed.
 --
 -- S8: the client intake form (household, income, immigration and health
 -- questions) is shown only to administrators and case managers -- but only
