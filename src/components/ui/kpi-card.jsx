@@ -7,7 +7,8 @@
 // context ("vs. yesterday", "this week"). `trend` draws a sparkline only when
 // the series measures the same thing as the value -- never decoration.
 // With onClick or href the whole card is a link into the filtered list.
-// Below sm the icon and trend row drop away so two cards fit side by side.
+// Below sm the icon and sparkline drop away so two cards fit side by side;
+// the hint stays, since it can carry a trend or a "View list" cue.
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn.js";
 import { BUTTON_RESET } from "./button.jsx";
@@ -37,9 +38,9 @@ export function KpiCard({ label, value, icon: Icon, tone = "info", hint, trend, 
         ) : null}
       </div>
       {hint || (trend && trend.length > 1) ? (
-        <div className="mt-3 hidden items-end justify-between gap-3 sm:flex">
-          {hint ? <div className="text-meta text-muted">{hint}</div> : <span />}
-          {trend && trend.length > 1 ? <Sparkline data={trend} tone={tone} /> : null}
+        <div className="mt-2 flex items-end justify-between gap-3 sm:mt-3">
+          {hint ? <div className="min-w-0 text-meta text-muted">{hint}</div> : <span />}
+          {trend && trend.length > 1 ? <span className="hidden sm:block"><Sparkline data={trend} tone={tone} /></span> : null}
         </div>
       ) : null}
     </>

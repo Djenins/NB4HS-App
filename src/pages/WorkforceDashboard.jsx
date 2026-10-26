@@ -7,10 +7,13 @@
 // into global AppContext state, same idiom as Reports.jsx's
 // fetchAllApplications/fetchAllDistributions.
 //
-// Presentation now matches the rest of the module: the "Recent Job
-// Opportunities" table became components/DashboardOpeningRow.jsx rows, the
-// pipeline counts became the same 12px tile idiom the filter panels use, and
-// the sections share one header treatment.
+// Presentation follows the design system's dashboard template: PageHeader,
+// one KpiCard row, then SectionCards on a 12-column grid at lg. There is no
+// range control -- every number here is current state, not a date range;
+// the range-scoped view is WorkforceReports.jsx.
+//
+// KPI row: seven cards in grid-cols-2 xl:grid-cols-4, so desktop reads 4+3.
+// Below xl the seventh card spans both columns instead of sitting alone.
 //
 // The KPI cards that CAN be drilled into now are. Every one of those numbers
 // is a question one of the module's list pages can now answer with a filter,
@@ -41,40 +44,12 @@ import {
   recentOpenings, referralCountForOpening
 } from "../lib/workforceMetrics.js";
 import { fmtDateLong, todayStr } from "../lib/utils.js";
-import { cn } from "../lib/cn.js";
 import DashboardOpeningRow from "../components/DashboardOpeningRow.jsx";
-import { SectionCard, SectionEmpty } from "../components/SectionCard.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card } from "../components/ui/card.jsx";
-
-// main.css styles the bare `button` tag app-wide (min-height:52px, 20px
-// padding, 2px border) and adds a 1px hover lift, so anything built as a
-// button here has to cancel it, same as ModuleNav.jsx.
-const BTN_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal transform-none text-left";
-
-function KpiCard({ icon: Icon, tint, label, value, onDrill, drillLabel }) {
-  const Wrapper = onDrill ? "button" : "div";
-  const props = onDrill
-    ? { type: "button", onClick: onDrill, "aria-label": drillLabel, className: cn(BTN_RESET, "w-full") }
-    : {};
-
-  return (
-    <Card className={cn("p-6 shadow-card hover:shadow-card", onDrill && "transition-colors hover:border-primary-soft")}>
-      <Wrapper {...props}>
-        <span className={"flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl " + tint}>
-          <Icon className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-        </span>
-        <span className="mt-3 block truncate text-sm font-semibold text-muted">{label}</span>
-        <span className="mt-1 block text-4xl font-extrabold tracking-tight text-card-foreground">{value}</span>
-        {onDrill && (
-          <span className="mt-2 flex items-center gap-1 text-xs font-semibold text-primary">
-            {drillLabel} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-        )}
-      </Wrapper>
-    </Card>
-  );
-}
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 const ACTIVITY_ICON = { opening: FileText, referral: UserPlus, interview: CalendarClock, placement: CheckCircle2, followup: Phone };
 
@@ -124,46 +99,74 @@ export default function WorkforceDashboard() {
     return function () { navigate(path, { state: { filters } }); };
   }
 
+  // Drillable cards say so in their hint line; the whole card is the button.
+  const drillHint = (
+    <span className="inline-flex items-center gap-1 font-semibold text-primary">
+      {t("viewListLabel")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+    </span>
+  );
+
   return (
     <>
-      <div className="mb-5">
-        <h1 className="mb-1">{t("workforceDashboardTitle")}</h1>
-        <p className="m-0 text-sm text-muted">{t("workforceDashboardDesc")}</p>
+      <PageHeader title={t("workforceDashboardTitle")} description={t("workforceDashboardDesc")} />
+
+      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <KpiCard icon={Building2} tone="info" label={t("statActiveEmployersLabel")} value={activeEmployers} />
+        <KpiCard
+          icon={Briefcase} tone="success" label={t("statActiveJobOpeningsLabel")} value={activeJobOpenings}
+          onClick={drill("/jobopenings", { status: "active" })} hint={drillHint}
+        />
+        <KpiCard icon={Users} tone="warning" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
+        <KpiCard
+          icon={CalendarClock} tone="violet" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled}
+          onClick={drill("/referrals", { stage: "interview" })} hint={drillHint}
+        />
+        <KpiCard icon={CheckCircle2} tone="success" label={t("statPlacementsThisMonthLabel")} value={placementsThisMonth} />
+        <KpiCard icon={Percent} tone="neutral" label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
+        <KpiCard
+          icon={AlertCircle} tone="warning" label={t("statEmployerFollowUpsDueLabel")} value={followUpsDue}
+          onClick={drill("/employers", { followUp: "due" })} hint={drillHint}
+          className="col-span-2 xl:col-span-1"
+        />
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={Building2} tint="bg-primary-tint text-primary" label={t("statActiveEmployersLabel")} value={activeEmployers} />
-        <KpiCard
-          icon={Briefcase} tint="bg-tint-success text-success" label={t("statActiveJobOpeningsLabel")} value={activeJobOpenings}
-          onDrill={drill("/jobopenings", { status: "active" })} drillLabel={t("viewListLabel")}
-        />
-        <KpiCard icon={Users} tint="bg-violet-tint text-violet-ink" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
-        <KpiCard
-          icon={CalendarClock} tint="bg-tint-warn text-gold-ink" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled}
-          onDrill={drill("/referrals", { stage: "interview" })} drillLabel={t("viewListLabel")}
-        />
-        <KpiCard icon={CheckCircle2} tint="bg-cyan-100 text-cyan-700" label={t("statPlacementsThisMonthLabel")} value={placementsThisMonth} />
-        <KpiCard icon={Percent} tint="bg-primary-tint text-primary" label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
-        <KpiCard
-          icon={AlertCircle} tint="bg-tint-danger text-accent" label={t("statEmployerFollowUpsDueLabel")} value={followUpsDue}
-          onDrill={drill("/employers", { followUp: "due" })} drillLabel={t("viewListLabel")}
-        />
-      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <SectionCard title={t("employerPipelineLabel")} className="lg:col-span-12">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {stageCounts.map(function (s) {
+              return (
+                <Button
+                  key={s.key}
+                  variant="outline"
+                  onClick={drill("/employers", { stage: s.key })}
+                  className="h-auto min-h-[72px] flex-col gap-1 whitespace-normal px-3 py-3 text-center leading-tight [@media(pointer:coarse)]:h-auto"
+                >
+                  <span className="block text-heading font-bold tabular-nums text-card-foreground">{s.count}</span>
+                  <span className="block text-meta font-medium text-muted">{partnershipStageLabel(s.key)}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </SectionCard>
 
-      <div className="flex flex-col gap-5">
         <SectionCard
           title={t("recentJobOpportunitiesLabel")}
+          className="lg:col-span-7"
           action={
-            <Button
-              variant="secondary" onClick={function () { navigate("/jobopenings"); }}
-              className="h-9 gap-1.5 rounded-[10px] px-4 text-sm"
-            >
+            <Button variant="secondary" size="sm" onClick={function () { navigate("/jobopenings"); }}>
               {t("viewAllBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           }
         >
-          {recent.length === 0 ? <SectionEmpty message={t("noJobOpeningsYet")} /> : (
-            <div className="flex flex-col gap-2">
+          {recent.length === 0 ? (
+            <EmptyState
+              compact
+              title={t("noJobOpeningsYet")}
+              description={t("wfDashNoOpeningsHint")}
+              action={<Button variant="secondary" onClick={function () { navigate("/jobopenings"); }}>{t("jobOpeningsTitle")}</Button>}
+            />
+          ) : (
+            <div className="divide-y divide-line-subtle">
               {recent.map(function (o) {
                 return <DashboardOpeningRow key={o.id} opening={o} referralCount={referralCountForOpening(referrals, o.id)} />;
               })}
@@ -171,43 +174,26 @@ export default function WorkforceDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title={t("employerPipelineLabel")}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {stageCounts.map(function (s) {
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={drill("/employers", { stage: s.key })}
-                  className={cn(
-                    BTN_RESET,
-                    "rounded-[12px] border border-border p-3 text-center transition-colors hover:border-primary-soft hover:bg-primary-tint"
-                  )}
-                >
-                  <span className="block text-2xl font-extrabold tracking-tight text-card-foreground">{s.count}</span>
-                  <span className="mt-1 block text-xs font-semibold text-muted">{partnershipStageLabel(s.key)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </SectionCard>
-
-        <SectionCard title={t("recentEmployerActivityLabel")}>
-          {feed.length === 0 ? <SectionEmpty message={t("noRecentActivityMessage")} /> : (
-            <div className="flex flex-col">
+        <SectionCard title={t("recentEmployerActivityLabel")} className="lg:col-span-5">
+          {feed.length === 0 ? (
+            <EmptyState compact title={t("noRecentActivityMessage")} description={t("wfDashNoActivityHint")} />
+          ) : (
+            <ul className="m-0 list-none divide-y divide-line-subtle p-0">
               {feed.map(function (item, i) {
                 const Icon = ACTIVITY_ICON[item.type] || FileText;
                 return (
-                  <div key={i} className="flex items-center gap-3 border-b border-border py-2.5 text-sm last:border-b-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-tint text-primary">
+                  <li key={i} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-tone-info-chip text-tone-info-ink">
                       <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <span className="min-w-0 flex-1 text-card-foreground">{item.text}</span>
-                    <span className="shrink-0 text-xs text-muted">{fmtDateLong(item.date, lang)}</span>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-ui text-card-foreground [overflow-wrap:anywhere]">{item.text}</div>
+                      <div className="mt-0.5 text-meta tabular-nums text-muted">{fmtDateLong(item.date, lang)}</div>
+                    </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </SectionCard>
       </div>

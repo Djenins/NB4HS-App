@@ -1,25 +1,42 @@
-// chartTheme.js -- the one place Recharts gets its colours from, shared by
-// DashChart.jsx (Reports / Workforce Reports) and Dashboard.jsx.
+// chartTheme.js -- the one place Recharts gets its colours and chrome from,
+// shared by DashChart.jsx (Dashboard / Reports / Workforce Reports).
 //
-// Every value is a CSS var() reference, not a resolved hex. Recharts draws
-// SVG, and SVG fill/stroke take var() directly, so the charts re-theme with
-// the light/dark toggle on their own -- no MutationObserver, no re-render,
-// no second hex palette that can drift from main.css.
+// Every value is a CSS var() reference to a design token, not a resolved
+// hex. Recharts draws SVG, and SVG fill/stroke resolve var() at paint time,
+// so the charts follow the light/dark toggle on their own -- no
+// MutationObserver, no re-render, no second palette that can drift from
+// main.css.
 //
-// NB4HS Design System chart palette: Blue, Green, Gold, Purple only ("never
-// use random colors"). Red is excluded -- charts aren't error states. Gold is
-// the deepened --gold-ink: the brand --gold is 2.36:1 on a white card, under
-// the 3:1 a chart mark needs; purple is the calendar's appointment ink.
-export const CHART_SERIES = ["var(--primary)", "var(--success)", "var(--gold-ink)", "var(--ev-appt-fg)"];
+// Categorical series, in a fixed order (colour follows the series, never
+// its rank): info blue, success green, warning gold ink, violet. Red is
+// excluded -- in this system it means error, overdue or destructive. The
+// warning slot uses the ink step: the solid gold is under 3:1 on a card.
+export const CHART_SERIES = [
+  "var(--tone-info-solid)",
+  "var(--tone-success-solid)",
+  "var(--tone-warning-ink)",
+  "var(--tone-violet-solid)"
+];
 
-export const CHART_GRID = "var(--border)";
-export const CHART_TICK = { fill: "var(--muted)", fontSize: 12 };
+// Chrome: a recessive hairline grid one step off the surface, and text in
+// text tokens -- never a series colour. 13px is the running-text floor.
+export const CHART_GRID = "var(--border-subtle)";
+export const CHART_AXIS = "var(--border)";
+export const CHART_SURFACE = "var(--card)";
+export const CHART_TEXT = "var(--text)";
+export const CHART_MUTED = "var(--muted)";
+export const CHART_HOVER = "var(--surface-sunken)";
+export const CHART_TICK = { fill: CHART_MUTED, fontSize: 13 };
 export const CHART_TOOLTIP_STYLE = {
-  background: "var(--card)",
+  background: CHART_SURFACE,
   border: "1px solid var(--border)",
   borderRadius: 10,
-  color: "var(--text)",
-  fontSize: 13
+  boxShadow: "var(--shadow-overlay)",
+  color: CHART_TEXT,
+  fontSize: 13,
+  padding: "8px 12px"
 };
-export const CHART_TOOLTIP_LABEL_STYLE = { color: "var(--text)", fontWeight: 600 };
-export const CHART_LEGEND_STYLE = { fontSize: 12, color: "var(--muted)" };
+// Values lead, labels follow: the category is muted, the value is strong.
+export const CHART_TOOLTIP_LABEL_STYLE = { color: CHART_MUTED, fontWeight: 500, marginBottom: 2 };
+export const CHART_TOOLTIP_ITEM_STYLE = { color: CHART_TEXT, fontWeight: 600, padding: 0 };
+export const CHART_LEGEND_STYLE = { fontSize: 13, color: CHART_TEXT };
