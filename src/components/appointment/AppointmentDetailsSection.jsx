@@ -8,11 +8,19 @@
 // already determines the role. Preferred Date is still the app-wide
 // DatePicker, Preferred Time still a native time input, so neither field
 // gained or lost any availability rule in this redesign.
+//
+// Availability: the list now holds every staff login that has set hours on
+// My Availability, and once a person is chosen the free-form date/time pair
+// is replaced by SlotPicker -- only that person's open times. "No preference"
+// keeps the old free-form request that staff assign later.
 import { CalendarCheck, Clock, MessageSquare, Users } from "lucide-react";
+import { roleLabel } from "../../lib/utils.js";
+import SlotPicker from "./SlotPicker.jsx";
 import ApptRequestCard from "./ApptRequestCard.jsx";
 import { ApptDateField, ApptField, ApptSelect, ApptTextarea } from "./ApptRequestField.jsx";
 
-export default function AppointmentDetailsSection({ t, errors, staffList, staffId, onStaffChange, open, onToggle }) {
+export default function AppointmentDetailsSection({ t, lang, errors, staffList, staffId, onStaffChange, open, onToggle, slotRefresh }) {
+  const picked = staffList.find((s) => s.id === staffId);
   return (
     <ApptRequestCard
       id="appt-req-details"
@@ -35,7 +43,7 @@ export default function AppointmentDetailsSection({ t, errors, staffList, staffI
           <option value="">{t("apptStaffPickerAnyOption")}</option>
           {staffList.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} — {s.role === "job_developer" ? t("roleJobDeveloper") : t("roleCaseManager")}
+              {s.name} — {roleLabel(s.role, lang)}
             </option>
           ))}
         </ApptSelect>
@@ -53,13 +61,21 @@ export default function AppointmentDetailsSection({ t, errors, staffList, staffI
           </ApptSelect>
         )}
 
-        <div className="appt-fields grid gap-3 sm:grid-cols-2 sm:gap-4">
-          <ApptDateField name="date" label={t("apptPreferredDateLabel")} required error={errors.date} />
-          <ApptField
-            name="time" label={t("apptPreferredTimeLabel")} type="time" required
-            icon={Clock} error={errors.time}
+        {staffId ? (
+          <SlotPicker
+            key={staffId + "-" + (slotRefresh || 0)}
+            staffId={staffId} staffName={picked ? picked.name : ""}
+            t={t} lang={lang} error={errors.date || errors.time ? t("apptSlotRequired") : ""}
           />
-        </div>
+        ) : (
+          <div className="appt-fields grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <ApptDateField name="date" label={t("apptPreferredDateLabel")} required error={errors.date} />
+            <ApptField
+              name="time" label={t("apptPreferredTimeLabel")} type="time" required
+              icon={Clock} error={errors.time}
+            />
+          </div>
+        )}
 
         <ApptTextarea
           name="reason"

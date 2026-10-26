@@ -11,8 +11,7 @@
 // shell changes, and the record-detail tabs inside ClientProfile.jsx /
 // EmployerProfile.jsx / JobClientProfile.jsx keep their own tab idiom --
 // those are local page controls, not module navigation.
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { BarChart3, Briefcase, Building2, ContactRound, LayoutGrid, Send, UserSearch, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { enabledWorkforceRoles, navItemsForRole } from "../lib/nav.js";
@@ -32,14 +31,14 @@ import WorkforceReports from "./WorkforceReports.jsx";
 // BarChart3s). Inside one module the icons have to be distinguishable from
 // each other, so each section gets its own.
 const TABS = [
-  { key: "jobdeveloper", label: "navJobDeveloper", icon: Users, Component: JobDeveloper },
-  { key: "workforcedashboard", label: "navWorkforceDashboard", icon: LayoutGrid, Component: WorkforceDashboard },
-  { key: "employers", label: "navEmployers", icon: Building2, Component: Employers },
-  { key: "jobopenings", label: "navJobOpenings", icon: Briefcase, Component: JobOpenings },
-  { key: "candidatematching", label: "navCandidateMatching", icon: UserSearch, Component: CandidateMatching },
-  { key: "referrals", label: "navReferrals", icon: Send, Component: Referrals },
-  { key: "placements", label: "navPlacements", icon: ContactRound, Component: Placements },
-  { key: "workforcereports", label: "navWorkforceReports", icon: BarChart3, Component: WorkforceReports }
+  { key: "jobdeveloper", slug: "jobseekers", label: "navJobDeveloper", icon: Users, Component: JobDeveloper },
+  { key: "workforcedashboard", slug: "dashboard", label: "navWorkforceDashboard", icon: LayoutGrid, Component: WorkforceDashboard },
+  { key: "employers", slug: "employers", label: "navEmployers", icon: Building2, Component: Employers },
+  { key: "jobopenings", slug: "jobopenings", label: "navJobOpenings", icon: Briefcase, Component: JobOpenings },
+  { key: "candidatematching", slug: "matching", label: "navCandidateMatching", icon: UserSearch, Component: CandidateMatching },
+  { key: "referrals", slug: "referrals", label: "navReferrals", icon: Send, Component: Referrals },
+  { key: "placements", slug: "placements", label: "navPlacements", icon: ContactRound, Component: Placements },
+  { key: "workforcereports", slug: "reports", label: "navWorkforceReports", icon: BarChart3, Component: WorkforceReports }
 ];
 
 export default function Workforce() {
@@ -48,20 +47,25 @@ export default function Workforce() {
   const role = session ? session.role : null;
   const items = role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
   const visibleTabs = TABS.filter((tab) => items.indexOf(tab.key) !== -1);
-  const [tabOverride, setTabOverride] = useState(null);
+  const params = useParams();
+  const navigate = useNavigate();
 
   if (visibleTabs.length === 0) return <Navigate to="/dashboard" replace />;
 
-  const tab = tabOverride && visibleTabs.some((vt) => vt.key === tabOverride) ? tabOverride : visibleTabs[0].key;
-  const ActiveComponent = visibleTabs.find((vt) => vt.key === tab).Component;
+  // The active tab comes from the URL (/workforce/:section), like the other
+  // module menus -- so a refresh, the Back button or a shared link lands on
+  // the same tab. A missing or unknown/unpermitted section opens the first
+  // tab this role can see.
+  const current = visibleTabs.find((vt) => vt.slug === params.section) || visibleTabs[0];
+  const ActiveComponent = current.Component;
 
   return (
     <>
       <ModuleNav
         label={t("navSectionWorkforceDevelopment")}
-        items={visibleTabs.map((vt) => ({ key: vt.key, label: t(vt.label), icon: vt.icon }))}
-        value={tab}
-        onChange={setTabOverride}
+        items={visibleTabs.map((vt) => ({ key: vt.slug, label: t(vt.label), icon: vt.icon }))}
+        value={current.slug}
+        onChange={(slug) => navigate("/workforce/" + slug)}
       />
       <ActiveComponent />
     </>

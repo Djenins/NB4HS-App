@@ -15,21 +15,17 @@
 // and a request that failed (which must never be reported as "you have no
 // appointment").
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { lookupClientAppointments } from "../lib/clientsData.js";
-import { ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
-import LangSelect from "../components/LangSelect.jsx";
+import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import AppointmentLookupForm from "../components/appointment/AppointmentLookupForm.jsx";
 import AppointmentResults from "../components/appointment/AppointmentResults.jsx";
 import AppointmentLookupHelp from "../components/appointment/AppointmentLookupHelp.jsx";
 
 export default function AppointmentLookup() {
-  const { setKiosk, lang, showToast } = useApp();
+  const { lang, showToast } = useApp();
   const t = useT();
-  const navigate = useNavigate();
   const formRef = useRef(null);
   // Field name -> message shown under that field. Same two rules as before
   // (last name required; email or phone required), the message just says
@@ -84,42 +80,9 @@ export default function AppointmentLookup() {
 
   return (
     <div className="appt-lookup flex w-full flex-1 flex-col">
-      <div className="mx-auto w-full max-w-[1400px] rounded-[22px] border border-border bg-card p-5 shadow-card sm:p-7 lg:p-9">
-        {/* On a phone the logo takes a centred row of its own under the Back
-            and language controls; from sm up the three sit on one row with the
-            logo between them, as the kiosk design has it. */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setKiosk(false); navigate("/"); }}
-            className="order-1 flex min-h-[50px] shrink-0 items-center gap-2.5 rounded-xl border border-border bg-card px-4 text-[1rem] font-bold text-navy dark:text-[color:var(--text)] transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5 sm:text-[1.02rem]"
-          >
-            <ArrowLeft size={20} strokeWidth={2.4} aria-hidden="true" className="text-primary" />
-            {t("back")}
-          </button>
-          <div className="order-2 ml-auto shrink-0 sm:order-3">
-            <LangSelect />
-          </div>
-          <img
-            src={LOGO_DATA_URI}
-            alt={ORG.name}
-            className="order-3 mx-auto h-11 w-full object-contain sm:order-2 sm:h-14 sm:w-auto lg:h-16"
-          />
-        </div>
-
-        <div className="mt-6 flex items-start gap-4 sm:mt-8 sm:gap-5">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-[76px] sm:w-[76px] lg:h-[88px] lg:w-[88px]">
-            <Search size={28} strokeWidth={2.4} aria-hidden="true" className="sm:h-9 sm:w-9 lg:h-11 lg:w-11" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="m-0 text-[1.75rem] font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-[2.4rem] lg:text-[2.8rem]">
-              {t("apptLookupTitle")}
-            </h1>
-            <p className="m-0 mt-1.5 max-w-[52ch] text-[1rem] leading-snug text-muted sm:text-[1.15rem]">
-              {t("apptLookupDesc")}
-            </p>
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-[1400px] rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-7 sm:shadow-card lg:p-9">
+        {/* Back, logo and language live in the shared KioskTopBar (Shell.jsx). */}
+        <KioskPageHeader icon={Search} title={t("apptLookupTitle")} description={t("apptLookupDesc")} />
 
         <hr className="mt-5 border-0 border-t border-border sm:mt-6" />
 

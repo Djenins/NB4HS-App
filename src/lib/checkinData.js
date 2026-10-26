@@ -13,7 +13,7 @@ import { masterToRow } from "./clientsData.js";
 // ---------- mapping: DB row (snake_case) <-> app shape (camelCase) ----------
 
 function classFromRow(row) {
-  return { key: row.key, name: row.name, days: row.days || [], service: row.service, staff: row.staff, location: row.location || "", active: row.active, custom: row.custom };
+  return { key: row.key, name: row.name, days: row.days || [], service: row.service, staff: row.staff, location: row.location || "", courseKey: row.course_key || null, active: row.active, custom: row.custom };
 }
 function classToRow(fields) {
   const row = {};
@@ -23,6 +23,7 @@ function classToRow(fields) {
   if (fields.service !== undefined) row.service = fields.service;
   if (fields.staff !== undefined) row.staff = fields.staff;
   if (fields.location !== undefined) row.location = fields.location ? fields.location.trim() || null : null;
+  if (fields.courseKey !== undefined) row.course_key = fields.courseKey || null;
   if (fields.active !== undefined) row.active = fields.active;
   if (fields.custom !== undefined) row.custom = fields.custom;
   return row;
@@ -131,6 +132,25 @@ export async function updateClass(key, patch) {
 }
 export async function deleteClass(key) {
   const { error } = await supabase.from("classes").delete().eq("key", key);
+  if (error) throw error;
+}
+
+// ---------- courses ----------
+// The subjects a classroom teaches (Computer Literacy, ESL, ...), managed
+// from Adult Education > Classrooms. classes.course_key points here.
+
+export async function fetchCourses() {
+  const { data, error } = await supabase.from("courses").select("*").order("name");
+  if (error) { console.warn("fetchCourses failed", error); return []; }
+  return data.map((row) => ({ key: row.key, name: row.name }));
+}
+export async function createCourse(fields) {
+  const { data, error } = await supabase.from("courses").insert({ key: fields.key, name: fields.name }).select().single();
+  if (error) throw error;
+  return { key: data.key, name: data.name };
+}
+export async function deleteCourse(key) {
+  const { error } = await supabase.from("courses").delete().eq("key", key);
   if (error) throw error;
 }
 

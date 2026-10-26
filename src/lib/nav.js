@@ -24,11 +24,11 @@ var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candida
 // (outreachPrograms.js) gives them.
 export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   var base;
-  if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
-  else if (role === "staff") base = ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar"];
-  else if (role === "receptionist") base = ["checkin", "checkout", "calendar"];
-  else if (role === "case_manager") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement"];
-  else if (role === "job_developer") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
+  if (role === "administrator") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "casemanagement", "jobdeveloper", "users", "settings"];
+  else if (role === "staff") base = ["dashboard", "availability", "checkout", "search", "reports", "fooddistribution", "calendar"];
+  else if (role === "receptionist") base = ["availability", "checkin", "checkout", "calendar"];
+  else if (role === "case_manager") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "casemanagement"];
+  else if (role === "job_developer") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "jobdeveloper"];
   else return [];
 
   if (hasOutreachAccess(role, programRoles)) base = base.concat(["outreach"]);
@@ -56,13 +56,14 @@ export function navLabel(v, lang) {
     checkout: t("navCheckOut", lang),
     dashboard: t("navDashboard", lang),
     mycaseload: t("navMyCaseload", lang),
+    availability: t("navAvailability", lang),
     search: t("navSearch", lang),
     reports: t("navReports", lang),
     fooddistribution: t("navFoodDistribution", lang),
     calendar: t("navCalendar", lang),
     qrcode: t("navQR", lang),
     manage: t("navManage", lang),
-    students: t("navStudents", lang),
+    students: t("navAdultEducation", lang),
     assessments: t("navAssessments", lang),
     casemanagement: t("navCaseManagement", lang),
     outreach: t("navOutreach", lang),

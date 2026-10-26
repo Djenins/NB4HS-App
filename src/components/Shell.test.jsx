@@ -39,7 +39,8 @@ vi.mock("../context/AppContext.jsx", async () => {
     requestConfirm: vi.fn(),
     showToast: vi.fn()
   }),
-  useT: () => useCallback((key) => translate(key, "en"), [])
+  useT: () => useCallback((key) => translate(key, "en"), []),
+  useStaffT: () => useCallback((key) => translate(key, "en"), [])
   };
 });
 

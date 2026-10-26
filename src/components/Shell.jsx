@@ -17,8 +17,9 @@
 import { AnimatePresence } from "framer-motion";
 import { Menu } from "lucide-react";
 import { Fragment, Suspense, useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useApp, useT } from "../context/AppContext.jsx";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useApp, useStaffT } from "../context/AppContext.jsx";
+import { isClientFacingPath } from "../lib/i18n.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
@@ -31,7 +32,7 @@ import AppSidebar from "./sidebar/AppSidebar.jsx";
 import CommandPalette from "./sidebar/CommandPalette.jsx";
 import SidebarDrawer from "./sidebar/SidebarDrawer.jsx";
 import { sidebarSections } from "./sidebar/sidebarNav.js";
-import LangSelect from "./LangSelect.jsx";
+import KioskTopBar from "./kiosk/KioskTopBar.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
 
@@ -98,9 +99,11 @@ function useOutreachPrograms(enabled, userKey) {
 }
 
 export default function Shell() {
-  const { data, session, authLoading, kiosk, lang, config, updateConfig } = useApp();
-  const t = useT();
+  const { data, session, authLoading, kiosk, setKiosk, config, updateConfig } = useApp();
+  const t = useStaffT();
+  const lang = "en";
   const location = useLocation();
+  const navigate = useNavigate();
   // Everything from here to the early returns below must run on every
   // render: hooks have to keep the same order, and the first render
   // (authLoading) returns early.
@@ -130,11 +133,28 @@ export default function Shell() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showSidebar]);
+  // Someone signed out on a client screen (a phone that opened a kiosk link,
+  // refreshed, or followed a bookmark) is using the kiosk, so give them the
+  // kiosk version of it. Registration is the exception: its QR code is for
+  // signing up from home, and a kiosk registration also checks you in.
+  const anonClientScreen = !authLoading && !session && isClientFacingPath(location.pathname) && location.pathname.indexOf("/register") !== 0;
+  // And the reverse: a signed-in staff member who opened the kiosk in this
+  // tab and then goes to a staff screen leaves kiosk mode (it's remembered
+  // for the tab, so it would otherwise hide the sidebar until the tab closes).
+  const staffScreenInKiosk = !authLoading && !!session && kiosk && !isClientFacingPath(location.pathname);
+  useEffect(() => {
+    if (anonClientScreen && !kiosk) setKiosk(true);
+    if (staffScreenInKiosk) setKiosk(false);
+  }, [anonClientScreen, staffScreenInKiosk, kiosk, setKiosk]);
+
   // Wait for Supabase to finish restoring any existing session before
   // deciding to redirect -- otherwise a valid session in localStorage loses
   // the race against this render and gets bounced to the kiosk home.
   if (authLoading) return null;
-  if (!session && !kiosk) return <Navigate to="/" replace />;
+  const isClientRegister = location.pathname === "/register" || location.pathname === "/register/success";
+  // Client screens are public: a phone opening a kiosk link (or refreshing
+  // one) goes straight in. Everything else needs a staff session.
+  if (!session && !kiosk && !isClientFacingPath(location.pathname)) return <Navigate to="/" replace />;
 
   // The kiosk landing page (CheckIn.jsx) is a full-bleed self-service
   // design that owns its own header/footer chrome -- skip Shell's default
@@ -161,12 +181,14 @@ export default function Shell() {
   // third screen of that same visitor-facing family (ApptRequest.jsx /
   // ApptRequestSuccess.jsx) and carry their own logo/Back/language header for
   // the same reason -- see main--appt-request in main.css.
-  const isApptRequest = location.pathname.indexOf("/appointments/request") === 0;
+  // ClientRegister.jsx / ClientRegisterSuccess.jsx reuse the same frame.
+  const isApptRequest = location.pathname.indexOf("/appointments/request") === 0 || isClientRegister;
   // The shared calendar is an internal productivity screen whose week grid
   // needs the whole content column rather than <main>'s 1200px reading
   // measure -- see main--calendar in main.css. It keeps Shell's topbar; only
   // the width/padding changes.
   const isCalendar = location.pathname === "/calendar";
+  const clientView = isClientFacingPath(location.pathname);
 
   const sections = sidebarSections(items, { programs: outreachPrograms, role, programRoles: data.programRoles, lang });
   const badges = {
@@ -213,7 +235,16 @@ export default function Shell() {
           )}
 
           <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
-            {!isKioskLanding && !isApptLookup && !isApptRequest && (
+            {/* Every client-facing screen gets the same kiosk top bar (Back,
+                logo, clock, language); the kiosk home draws its own copy
+                inside its full-screen frame. Back is left off the kiosk
+                home and for a client registering on their own phone. */}
+            {clientView && !isKioskLanding && (
+              <KioskTopBar
+                onBack={location.pathname === "/checkin" || (!kiosk && !session) ? null : () => navigate("/checkin")}
+              />
+            )}
+            {!clientView && (
               <header className="topbar">
                 {showSidebar && isMobile && (
                   <button
@@ -237,7 +268,6 @@ export default function Shell() {
                 <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
                   {session && !showSidebar && <NotificationBell />}
                   {!showSidebar && <ThemeToggle compact />}
-                  <LangSelect />
                 </div>
               </header>
             )}
@@ -252,7 +282,7 @@ export default function Shell() {
               </main>
             )}
 
-            {!isKioskLanding && !isApptLookup && !isApptRequest && !(kiosk && isKioskForm) && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
+            {!clientView && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>

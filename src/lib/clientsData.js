@@ -68,7 +68,8 @@ function caseClientFromRow(row) {
     firstName: row.first_name || "", lastName: row.last_name || "", phone: row.phone || "", email: row.email || "",
     street: row.street || "", city: row.city || "", zip: row.zip || "", state: row.state || "RI",
     intakeDate: row.intake_date || "", immigrationStatus: row.immigration_status || "", dob: row.dob || "",
-    services: row.services || [], active: row.active
+    services: row.services || [], active: row.active,
+    source: row.source || "staff", needsIntake: !!row.needs_intake, preferredLanguage: row.preferred_language || ""
   };
 }
 function caseClientToRow(fields) {
@@ -85,6 +86,8 @@ function caseClientToRow(fields) {
   if (fields.dob !== undefined) row.dob = fields.dob || null;
   if (fields.services !== undefined) row.services = fields.services;
   if (fields.active !== undefined) row.active = fields.active;
+  if (fields.needsIntake !== undefined) row.needs_intake = fields.needsIntake;
+  if (fields.preferredLanguage !== undefined) row.preferred_language = fields.preferredLanguage || null;
   return row;
 }
 
@@ -367,7 +370,7 @@ function appointmentFromRow(row) {
     id: row.id, clientId: row.client_id, firstName: row.first_name || "", lastName: row.last_name || "",
     phone: row.phone || "", email: row.email || "", date: row.appt_date || "", time: row.appt_time || "",
     reason: row.reason || "", assignedEmail: row.assigned_email || "", meetingWith: row.meeting_with,
-    status: row.status, source: row.source, createdAt: row.created_at, seriesId: row.series_id || null
+    status: row.status, source: row.source, createdAt: row.created_at, seriesId: row.series_id || null, staffId: row.staff_id || null
   };
 }
 function appointmentToRow(fields) {
@@ -433,6 +436,22 @@ export async function createCaseClient(masterFields, programFields, matchedClien
   });
   if (error) throw error;
   return { clientId: data.client_id, row: caseClientFromRow(data.row) };
+}
+// The public /register form (ClientRegister.jsx) -- callable without
+// signing in. The server function validates every field, links to an
+// existing master client when the name and phone match, and returns nothing.
+export async function publicRegisterCaseClient(fields) {
+  const { error } = await supabase.rpc("public_register_case_client", {
+    p: {
+      first_name: fields.firstName, last_name: fields.lastName, phone: fields.phone, email: fields.email,
+      dob: fields.dob || null, street: fields.street, city: fields.city, zip: fields.zip,
+      immigration_status: fields.immigrationStatus || null, services: fields.services || [],
+      preferred_language: fields.preferredLanguage || null,
+      // Kiosk only: also check them in for today (a Case Management visit).
+      check_in: !!fields.checkIn, visit_date: fields.visitDate || null, time_in: fields.timeIn || null
+    }
+  });
+  if (error) throw error;
 }
 export async function updateCaseClient(id, patch) {
   const { data, error } = await supabase.from("case_clients").update(caseClientToRow(patch)).eq("id", id).select("*, clients(nb_id)").single();
@@ -821,12 +840,6 @@ export async function deleteAppointment(id) {
 // Public-safe staff picker for the kiosk/client-facing appointment request
 // form (no login) -- reads the `staff_directory` view (name/email/role only,
 // active case managers + job developers), not the full `profiles` table.
-export async function fetchStaffDirectory() {
-  const { data, error } = await supabase.from("staff_directory").select("*").order("name");
-  if (error) { console.warn("fetchStaffDirectory failed", error); return []; }
-  return data;
-}
-
 // ---------- unified notes / documents / communications ----------
 
 // department scopes a client's notes to the program that wrote them --

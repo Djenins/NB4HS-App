@@ -1,4 +1,4 @@
-// Assessments.jsx -- page listing every enrolled student's pretest/posttest
+// Assessments.jsx -- the Assessments tab of Adult Education (Students.jsx), listing every enrolled student's pretest/posttest
 // NRS level (CASAS Reading STEPS, see assessments.js), gain/no-gain/flag
 // status, and Outcome. Pretest/posttest scores are still entered via each
 // student's edit form on the Students board (per the client's "Both" answer
@@ -293,12 +293,12 @@ export default function Assessments() {
     <>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="mb-1">{t("assessmentsTitle")}</h1>
+          <h2 className="mb-1">{t("assessmentsTitle")}</h2>
           <p className="m-0 text-sm text-muted">{t("assessmentsDesc")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="lg" className="gap-2" onClick={() => exportCsv(sorted)}><Download className="h-4 w-4" />{t("exportLabel")}</Button>
-          <Link to="/students"><Button size="lg" className="gap-2"><Pencil className="h-4 w-4" />{t("addAssessmentLabel")}</Button></Link>
+          <Link to="/students/classrooms"><Button size="lg" className="gap-2"><Pencil className="h-4 w-4" />{t("addAssessmentLabel")}</Button></Link>
         </div>
       </div>
 

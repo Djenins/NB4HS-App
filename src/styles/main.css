@@ -90,6 +90,12 @@
     /* Violet: the fourth KPI/icon hue next to blue, green and gold (stat
        tiles, .icon-badge.violet, detail-row icons). Ink is 6.4:1 on the tint. */
     --violet-tint:#EDE9FE; --violet-ink:#6D28D9;
+    /* Module-menu icon tiles (components/ModuleNav.jsx): three more hues so
+       every section of a module gets its own tile colour. Inks are >= 5:1 on
+       their tint. Pink stands in for red, which the brand reserves for errors. */
+    --pink-tint:#FCE7F3; --pink-ink:#BE185D;
+    --teal-tint:#DDF3EF; --teal-ink:#0F766E;
+    --sky-tint:#E0F2FE; --sky-ink:#0369A1;
     /* Initials-avatar tones (lib/avatarTone.js) -- six soft fills with an
        ink from the same hue, all >= 5.5:1. */
     --avatar-1-bg:#EDE9FE; --avatar-1-fg:#6D28D9;
@@ -126,6 +132,9 @@
     --cal-today-bg:#171D2A;
     --ev-class-chip:#25365E; --ev-class-alt-chip:#342C5E; --ev-visit-chip:#1F4029; --ev-appt-chip:#3B2953; --ev-holiday-chip:#4E2427;
     --violet-tint:#2C2447; --violet-ink:#B39EF2;
+    --pink-tint:#3D1A2E; --pink-ink:#F9A8D4;
+    --teal-tint:#133A36; --teal-ink:#5EEAD4;
+    --sky-tint:#10304A; --sky-ink:#7DD3FC;
     --avatar-1-bg:#2C2447; --avatar-1-fg:#C4B5FD;
     --avatar-2-bg:#123527; --avatar-2-fg:#6EE7B7;
     --avatar-3-bg:#3B2D12; --avatar-3-fg:#FCD34D;
@@ -368,7 +377,6 @@
     min-width:18px; height:18px; padding:0 4px; font-size:.68rem; font-weight:800; line-height:18px; text-align:center; box-shadow:0 0 0 2px #fff;
   }
   main{flex:1; padding:16px; max-width:1100px; width:100%; margin:0 auto;}
-  .kiosk-wrap{max-width:640px; margin:0 auto; width:100%;}
   .stat-card{
     background:var(--card); border-radius:var(--radius); padding:22px; border:1px solid var(--border); text-align:left;
     box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, transform .15s ease; display:flex; align-items:center; gap:16px;
@@ -437,11 +445,14 @@
   .pill:hover{border-color:#b7c0d1;}
   .pill.active{background:var(--primary); color:#fff; border-color:var(--primary);}
   .pill.active:hover{background:var(--primary-dark);}
-  .success-box{text-align:center; padding:40px 20px;}
   @keyframes success-pop{0%{transform:scale(0.6); opacity:0;} 70%{transform:scale(1.06); opacity:1;} 100%{transform:scale(1);}}
   .success-icon{width:88px; height:88px; border-radius:50%; background:var(--success); color:var(--success-foreground); display:flex; align-items:center; justify-content:center; margin:0 auto 18px auto; animation:success-pop .35s ease-out;}
   .success-icon .icon{stroke-width:3;}
   .muted{color:var(--muted);}
+  /* Horizontal strips that scroll sideways on phones (ModuleNav): keep the
+     swipe, hide the bar. */
+  .no-scrollbar{scrollbar-width:none; -ms-overflow-style:none;}
+  .no-scrollbar::-webkit-scrollbar{display:none;}
   .skip-link{
     position:absolute; left:-9999px; top:0; background:var(--primary); color:var(--primary-foreground); padding:12px 18px;
     border-radius:0 0 8px 0; font-weight:700; z-index:1000;
@@ -455,7 +466,6 @@
   .role-btn h3{margin:0 0 6px 0; color:var(--primary);}
   .footer-note{color:var(--muted); font-size:.82rem; text-align:center; padding:14px;}
   .flex-between{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
-  .lang-select select{min-height:40px; padding:6px 10px; width:auto;}
   @keyframes toast-in{from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);}}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#161b22; color:#fff; padding:12px 22px; border-radius:10px; font-weight:600; z-index:999; box-shadow:0 4px 14px rgba(0,0,0,.25); animation:toast-in .18s ease-out;}
   /* Follows the theme rather than forcing white. It used to be hardcoded
@@ -549,9 +559,6 @@
      defined above) -- no new hues introduced for this layout.
   ========================================================= */
   .app-shell{display:flex; flex:1; min-height:0;}
-  /* Scrolls without showing a scrollbar (the sidebar's nav list). */
-  .no-scrollbar{scrollbar-width:none; -ms-overflow-style:none;}
-  .no-scrollbar::-webkit-scrollbar{display:none;}
   /* Floating sidebar tokens (components/sidebar/). The sidebar follows the
      Light/Dark theme like the rest of the app: a translucent off-white panel
      in light mode, deep navy (never pure black) in dark. Tailwind exposes
@@ -590,7 +597,6 @@
   /* Touch screens (the lobby kiosk, a client's phone) get full 44px targets
      on the header controls (placed after both base rules so it wins the cascade); a mouse keeps the denser desktop sizes. */
   @media (pointer: coarse){
-    .lang-select select{min-height:44px;}
     .theme-pill-option{min-height:44px; padding:0 12px;}
   }
   .content-col{flex:1; min-width:0; display:flex; flex-direction:column;}

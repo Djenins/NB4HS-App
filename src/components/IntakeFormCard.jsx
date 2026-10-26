@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Button } from "./ui/button.jsx";
 import { cn } from "../lib/cn.js";
 import { updateClientRecord } from "../lib/clientsData.js";
+import AddressInput from "./AddressInput.jsx";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
 
@@ -39,11 +40,14 @@ const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", 
 const RACE_ETHNICITY_OPTIONS = ["American Indian/Alaska Native", "Asian", "Black/African American", "Hispanic/Latino", "Native Hawaiian/Pacific Islander", "White", "Two or More Races", "Prefer not to say"];
 const INCOME_BRACKET_OPTIONS = ["Under $15,000", "$15,000-$29,999", "$30,000-$44,999", "$45,000-$59,999", "$60,000+", "Prefer not to say"];
 
-function Field({ label, value, onChange, type, placeholder, className, inputMode }) {
+function Field({ label, value, onChange, type, placeholder, className, inputMode, onAddressSelect }) {
+  // The street field passes onAddressSelect and gets address suggestions.
+  const InputEl = onAddressSelect ? AddressInput : "input";
+  const addressProps = onAddressSelect ? { onAddressSelect } : {};
   return (
     <div className={className}>
       <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label>
-      <input
+      <InputEl {...addressProps}
         type={type || "text"}
         inputMode={inputMode}
         value={value}
@@ -338,7 +342,8 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 </div>
                 <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Address" placeholder="Street address, apartment, suite, etc." value={f.address} onChange={(v) => set("address", v)} />
+                  <Field label="Address" placeholder="Street address, apartment, suite, etc." value={f.address} onChange={(v) => set("address", v)}
+                    onAddressSelect={(a) => { set("address", a.street); if (a.city) set("city", a.city); if (a.state) set("state", a.state); if (a.zip) set("zip", a.zip); }} />
                   <Field label="City" placeholder="e.g. Providence" value={f.city} onChange={(v) => set("city", v)} />
                   <Field label="State" placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
                 </div>

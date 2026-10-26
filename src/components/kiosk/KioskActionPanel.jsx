@@ -3,20 +3,32 @@
 // the bottom. Defaults to the visitor form's Submit Check-In button; the
 // student roster passes its own footer instead, since there tapping a name
 // *is* the submit. The post-submit confirmation is a separate route
-// (CheckInSuccess.jsx) and is left exactly as it was, so this panel is
-// purely the pre-submit state.
+// (CheckInSuccess.jsx), so this panel is purely the pre-submit state.
+//
+// On a phone the reassurance panel would sit between the last field and the
+// button, so it's dropped there: Submit instead stays pinned to the bottom of
+// the screen while the client scrolls the form (the student footer just sits
+// at the end of the roster).
 import { CircleCheck } from "lucide-react";
 import communityIllustration from "../../assets/nb4hs-community.svg";
+import { cn } from "../../lib/cn.js";
 import SubmitCheckInButton from "./SubmitCheckInButton.jsx";
 
 export default function KioskActionPanel({ title, description, submitLabel, busy, icon: PanelIcon = CircleCheck, footer }) {
   return (
-    <aside className="flex min-h-0 flex-col overflow-y-auto rounded-[18px] lg:h-full border border-border bg-[#F5F8FE] p-5 text-center dark:bg-background xl:p-6">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tint-success text-success">
-        <PanelIcon size={32} strokeWidth={2} aria-hidden="true" />
-      </span>
-      <h2 className="mt-4 text-[1.5rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
-      <p className="mt-2 text-[0.98rem] leading-snug text-muted">{description}</p>
+    <aside
+      className={cn(
+        "flex min-h-0 flex-col text-center lg:h-full lg:overflow-y-auto lg:rounded-[18px] lg:border lg:border-border lg:bg-[#F5F8FE] lg:p-5 lg:dark:bg-background xl:p-6",
+        !footer && "sticky bottom-0 z-10 -mx-3 border-t border-border bg-background px-3 pb-3 pt-3 lg:static lg:mx-0 lg:border-t"
+      )}
+    >
+      <div className="hidden lg:block">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tint-success text-success">
+          <PanelIcon size={32} strokeWidth={2} aria-hidden="true" />
+        </span>
+        <h2 className="mt-4 text-[1.5rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+        <p className="mt-2 text-[0.98rem] leading-snug text-muted">{description}</p>
+      </div>
 
       <img
         src={communityIllustration}
@@ -25,7 +37,7 @@ export default function KioskActionPanel({ title, description, submitLabel, busy
         className="mx-auto mt-5 hidden w-full max-w-[240px] min-h-0 flex-1 object-contain lg:block"
       />
 
-      {footer || <SubmitCheckInButton label={submitLabel} busy={busy} className="mt-6" />}
+      {footer || <SubmitCheckInButton label={submitLabel} busy={busy} className="min-h-[60px] lg:mt-6 lg:min-h-[72px]" />}
     </aside>
   );
 }

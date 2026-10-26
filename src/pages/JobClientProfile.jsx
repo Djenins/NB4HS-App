@@ -33,6 +33,7 @@ import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 import { useModalA11y } from "../lib/useModalA11y.js";
+import AddressInput from "../components/AddressInput.jsx";
 
 const TAB_KEYS = ["overview", "applications", "interviews", "services", "documents", "notes", "history"];
 const TAB_LABEL = {
@@ -137,7 +138,7 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("phone")}</label><input className={inputClass} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} placeholder={t("phPhone")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("email")}</label><input className={inputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><input className={inputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("phAddress")} /></div>
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("address")}</label><AddressInput className={inputClass} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("phAddress")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("city")}</label><input className={inputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} placeholder={t("phCity")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("zip")}</label><input className={inputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} placeholder={t("phZip")} /></div>
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">Transportation</label><input className={inputClass} value={fields.transportation} onChange={(e) => setField("transportation", e.target.value)} placeholder={t("phTransportation")} /></div>

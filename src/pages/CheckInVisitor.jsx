@@ -11,7 +11,7 @@
 // in flight so a double-tap can't create two visits.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, ClipboardList, Clock, MapPin, UserRound } from "lucide-react";
+import { ClipboardList, MapPin, UserRound } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeServiceList, activeStaffList, fmtDateLong, fmtTime, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
@@ -117,33 +117,15 @@ export default function CheckInVisitor() {
     if (match && match.id !== activeStep) setActiveStep(match.id);
   }
 
+
+  // Shown (read-only) in the Visitor Information section's Date / Time In.
   const dateValue = fmtDateLong(todayStr(), lang);
   const timeValue = fmtTime(new Date().toISOString());
 
   return (
     <div className="kiosk-checkin flex min-h-0 w-full flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-[22px] border border-border bg-card p-4 shadow-card sm:p-5">
-        <div className="mb-3 flex shrink-0 items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/checkin")}
-            className="flex min-h-[48px] items-center gap-2.5 rounded-xl border border-border bg-card px-5 text-[1.02rem] font-bold text-navy dark:text-[color:var(--text)] transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <ArrowLeft size={20} strokeWidth={2.4} aria-hidden="true" />
-            {t("back")}
-          </button>
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-2.5 text-[0.98rem] font-semibold text-navy dark:text-[color:var(--text)]">
-            <span className="flex items-center gap-2">
-              <Clock size={18} strokeWidth={2} aria-hidden="true" className="text-primary" />
-              {timeValue}
-            </span>
-            <span aria-hidden="true" className="hidden h-5 w-px bg-border sm:block" />
-            <span className="hidden items-center gap-2 sm:flex">
-              <Calendar size={18} strokeWidth={2} aria-hidden="true" className="text-primary" />
-              {dateValue}
-            </span>
-          </div>
-        </div>
+      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
+        {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
 
         <form
           ref={formRef}

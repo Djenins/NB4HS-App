@@ -58,7 +58,7 @@ function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, classNa
           <Eye className="h-4 w-4 text-muted" />{t("calendarViewDetails")}
         </DropdownMenuItem>
         {block.kind === "class" && (
-          <DropdownMenuItem onSelect={() => navigate("/students")}>
+          <DropdownMenuItem onSelect={() => navigate("/students/classrooms")}>
             <Users className="h-4 w-4 text-muted" />{t("calendarViewStudents")}
           </DropdownMenuItem>
         )}

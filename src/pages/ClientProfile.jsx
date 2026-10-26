@@ -39,6 +39,7 @@ import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import { useModalA11y } from "../lib/useModalA11y.js";
+import AddressInput from "../components/AddressInput.jsx";
 
 const TABS = [
   "clientTabOverview", "clientTabPrograms", "clientTabAppointments", "clientTabServices",
@@ -48,7 +49,7 @@ const TAB_KEYS = ["overview", "programs", "appointments", "services", "notes", "
 const PROGRAM_META = {
   case: { labelKey: "navCaseManagement", icon: Users, path: "/casemanagement" },
   job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/jobdeveloper" },
-  student: { labelKey: "navStudents", icon: GraduationCap, path: "/students" },
+  student: { labelKey: "navAdultEducation", icon: GraduationCap, path: "/students" },
   food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/fooddistribution" }
 };
 
@@ -61,11 +62,14 @@ function FieldRow({ label, value }) {
   );
 }
 
-function TextField({ id, label, value, onChange, placeholder, type }) {
+function TextField({ id, label, value, onChange, placeholder, type, onAddressSelect }) {
+  // Street fields pass onAddressSelect and get address suggestions.
+  const InputEl = onAddressSelect ? AddressInput : "input";
+  const addressProps = onAddressSelect ? { onAddressSelect } : {};
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
-      <input
+      <InputEl {...addressProps}
         id={id} type={type || "text"} value={value} onChange={onChange} placeholder={placeholder}
         className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
       />
@@ -95,7 +99,7 @@ function EditProfileModal({ client, onSave, onCancel }) {
             <label htmlFor="edit-dob" className="mb-1 block text-xs font-semibold text-card-foreground">{t("dobLabel")}</label>
             <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
           </div>
-          <TextField id="edit-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+          <TextField id="edit-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
           <TextField id="edit-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
           <TextField id="edit-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
         </div>

@@ -1,14 +1,12 @@
 // CheckOutScanSuccess.jsx -- shown after a kiosk self-checkout (CheckOut.jsx's
-// selfCheckOut() navigates here with the result). Ported from
-// checkin_checkout.js's renderCheckOutScanSuccess(). Originally shared with a
-// scan-a-personal-QR-code checkout flow (hence "Scan" in the name and the
-// name/route's shape), but that flow was removed for being broken -- it
-// never persisted to Supabase (see d5a3c44) -- and never rebuilt; the only
-// caller now is CheckOut.jsx's selfCheckOut(), which always passes
-// status: "ok", so this no longer branches on result.status.
+// selfCheckOut() navigates here with the result). Named for a removed
+// scan-a-QR-code flow (see d5a3c44); the tap-your-name checkout is its only
+// caller and always passes status "ok". Uses the shared kiosk result frame
+// and returns to the start screen by itself on the kiosk.
 import { useLocation, useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import Icon from "../components/Icon.jsx";
+import KioskResult, { RESULT_PRIMARY_BTN } from "../components/kiosk/KioskResult.jsx";
 
 export default function CheckOutScanSuccess() {
   const { kiosk } = useApp();
@@ -16,17 +14,25 @@ export default function CheckOutScanSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const result = (location.state && location.state.scanResult) || {};
+  const home = kiosk ? "/checkin" : "/dashboard";
 
   return (
-    <div className="kiosk-wrap">
-      <div className="card success-box">
-        <div className="success-icon"><Icon name="check" className="icon-lg" /></div>
-        <h1>{t("checkOutScanSuccessTitle")}</h1>
-        <p className="muted">{result.name}<br />{t("visitLength")}: {result.duration}</p>
-        <button className="btn-primary btn-lg" style={{ marginTop: 18 }} onClick={() => navigate(kiosk ? "/checkin" : "/dashboard")}>
+    <KioskResult
+      title={t("checkOutScanSuccessTitle")}
+      returnAfterMs={kiosk ? 8000 : 0}
+      actions={
+        <button type="button" onClick={() => navigate(home, { replace: true })} className={RESULT_PRIMARY_BTN}>
           {t("done")}
         </button>
-      </div>
-    </div>
+      }
+    >
+      {result.name && <p className="m-0 text-[1.2rem] font-bold text-card-foreground">{result.name}</p>}
+      {result.duration && (
+        <p className="m-0 inline-flex items-center gap-2 rounded-[14px] border border-border bg-background px-3.5 py-2 text-left text-[0.95rem] font-semibold leading-snug text-card-foreground sm:rounded-full sm:px-4 sm:py-1.5 sm:text-[1rem]">
+          <Clock size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
+          {t("visitLength")}: {result.duration}
+        </p>
+      )}
+    </KioskResult>
   );
 }

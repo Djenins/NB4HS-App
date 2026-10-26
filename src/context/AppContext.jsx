@@ -14,7 +14,8 @@
 // mode itself (a flag that changes what the header/nav show) is simple
 // enough to seed here rather than block on routing.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { t } from "../lib/i18n.js";
+import { useLocation } from "react-router-dom";
+import { isClientFacingPath, t } from "../lib/i18n.js";
 import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
 import {
   checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudents, fetchVisitCount, fetchVisits, subscribeTable
@@ -68,17 +69,34 @@ function initialData() {
   return normalizeData(loaded || {});
 }
 
+// Kiosk mode is remembered for the browser tab (sessionStorage), so a phone
+// or lobby tablet that refreshes mid-form stays in the kiosk instead of
+// falling back to the staff layout or the staff sign-in page.
+var KIOSK_KEY = "nb4hs.kiosk";
 function initialKiosk() {
   if (typeof window === "undefined") return false;
   var params = new URLSearchParams(window.location.search);
-  return params.get("kiosk") === "1" || window.location.hash === "#checkin";
+  if (window.location.pathname === "/kiosk" || params.get("kiosk") === "1" || window.location.hash === "#checkin") return true;
+  try { return window.sessionStorage.getItem(KIOSK_KEY) === "1"; } catch (e) { return false; }
 }
 
 export function AppProvider({ children }) {
   const [localData, setDataRaw] = useState(initialData);
   const [config, setConfigState] = useState(getConfig);
-  const [lang, setLang] = useState("en"); // not persisted in the original either -- always starts on English.
-  const [kiosk, setKiosk] = useState(initialKiosk);
+  // The language a client picked (not persisted -- always starts on English).
+  // It only applies on client-facing pages; staff screens are English-only,
+  // so `lang` handed to the app below is "en" everywhere else.
+  const [clientLang, setLang] = useState("en");
+  const location = useLocation();
+  const lang = isClientFacingPath(location.pathname) ? clientLang : "en";
+  const [kiosk, setKioskState] = useState(initialKiosk);
+  const setKiosk = useCallback((on) => {
+    try {
+      if (on) window.sessionStorage.setItem(KIOSK_KEY, "1");
+      else window.sessionStorage.removeItem(KIOSK_KEY);
+    } catch (e) { /* private mode: kiosk just won't survive a refresh */ }
+    setKioskState(!!on);
+  }, []);
   const [toast, setToast] = useState(null);
 
   // ---- Phase 1 Supabase migration: auth session (see supabaseAuth.js) ----
@@ -438,13 +456,13 @@ export function AppProvider({ children }) {
       });
       if (!stale.length) return;
       Promise.all(stale.map((v) => checkOutVisit(v.id).catch(() => null))).then(() => {
-        showToast(stale.length + " " + t("autoCheckoutToast", lang));
+        showToast(stale.length + " " + t("autoCheckoutToast", "en"));
       });
     }
     sweep();
     const id = setInterval(sweep, 60000);
     return () => clearInterval(id);
-  }, [lang, showToast]);
+  }, [showToast]);
 
   const value = useMemo(() => ({
     data, setData,
@@ -477,4 +495,10 @@ export function useApp() {
 export function useT() {
   const { lang } = useApp();
   return useCallback((key) => t(key, lang), [lang]);
+}
+
+// Staff chrome (Shell's sidebar/topbar) is English even while it frames a
+// client-facing page, e.g. a signed-in staff member previewing the kiosk.
+export function useStaffT() {
+  return useCallback((key) => t(key, "en"), []);
 }

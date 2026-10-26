@@ -26,8 +26,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarCheck, TriangleAlert } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { createAppointment, fetchStaffDirectory } from "../lib/clientsData.js";
-import AppointmentRequestHeader from "../components/appointment/AppointmentRequestHeader.jsx";
+import { createAppointment } from "../lib/clientsData.js";
+import { bookStaffAppointment, fetchBookableStaff } from "../lib/availability.js";
+import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import YourInformationSection from "../components/appointment/YourInformationSection.jsx";
 import AppointmentDetailsSection from "../components/appointment/AppointmentDetailsSection.jsx";
 import WhatHappensNext from "../components/appointment/WhatHappensNext.jsx";
@@ -38,7 +39,7 @@ import AppointmentSubmitButton from "../components/appointment/AppointmentSubmit
 const REQUIRED_FIELDS = ["firstName", "lastName", "phone", "date", "time"];
 
 export default function ApptRequest() {
-  const { setKiosk, showToast } = useApp();
+  const { lang, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -53,7 +54,11 @@ export default function ApptRequest() {
   // start open so the form is never hidden behind a tap.
   const [openSections, setOpenSections] = useState({ info: true, details: true, next: true });
 
-  useEffect(() => { fetchStaffDirectory().then(setStaffList); }, []);
+  // Bumped when a picked slot was taken meanwhile, to reload open times.
+  const [slotRefresh, setSlotRefresh] = useState(0);
+
+  // Anyone with a login who has set hours on My Availability.
+  useEffect(() => { fetchBookableStaff().then(setStaffList); }, []);
 
   function toggleSection(key) {
     setOpenSections((prev) => Object.assign({}, prev, { [key]: !prev[key] }));
@@ -81,7 +86,7 @@ export default function ApptRequest() {
     const fields = {
       firstName: val("firstName"), lastName: val("lastName"), phone: val("phone"), email: val("email"),
       date: val("date"), time: val("time"), reason: val("reason"),
-      assignedEmail: picked ? picked.email : "", meetingWith: picked ? picked.role : (val("meetingWith") || "case_manager")
+      assignedEmail: "", meetingWith: val("meetingWith") || "case_manager"
     };
     const missing = REQUIRED_FIELDS.filter((f) => !fields[f]);
     if (missing.length) {
@@ -101,9 +106,18 @@ export default function ApptRequest() {
 
     setBusy(true);
     try {
-      await createAppointment(Object.assign({}, fields, { source: "client" }));
+      // A chosen person: hold their open slot (rejects if it was just taken).
+      // No preference: the original free-form request, assigned by staff.
+      if (picked) await bookStaffAppointment(Object.assign({}, fields, { staffId: picked.id }));
+      else await createAppointment(Object.assign({}, fields, { source: "client" }));
       navigate("/appointments/request/success");
     } catch (err) {
+      if (err && err.slotTaken) {
+        setSubmitError(t("apptSlotTaken"));
+        showToast(t("apptSlotTaken"));
+        setSlotRefresh((n) => n + 1);
+        return;
+      }
       // Nothing is cleared: the visitor keeps everything they typed and can
       // simply tap Submit again.
       console.warn("createAppointment failed", err);
@@ -116,13 +130,11 @@ export default function ApptRequest() {
 
   return (
     <div className="appt-request flex w-full flex-1 flex-col">
-      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-[22px] border border-border bg-card p-4 shadow-card sm:p-6">
-        <AppointmentRequestHeader
+      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-6 sm:shadow-card">
+        <KioskPageHeader
           icon={CalendarCheck}
           title={t("requestApptTitle")}
           description={t("requestApptDesc")}
-          backLabel={t("back")}
-          onBack={() => { setKiosk(false); navigate("/"); }}
         />
 
         <form ref={formRef} onSubmit={handleSubmit} noValidate className="appt-form mt-5 flex flex-col gap-4">
@@ -138,7 +150,9 @@ export default function ApptRequest() {
             />
             <AppointmentDetailsSection
               t={t}
+              lang={lang}
               errors={errors}
+              slotRefresh={slotRefresh}
               staffList={staffList}
               staffId={staffId}
               onStaffChange={(e) => setStaffId(e.target.value)}

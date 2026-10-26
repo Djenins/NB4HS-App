@@ -4,12 +4,16 @@
 // card + a link card side by side, and a Secure & Reliable callout.
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Copy, Globe, Home, Printer, QrCode, ShieldCheck } from "lucide-react";
+import { ChevronRight, Copy, ExternalLink, Globe, Home, Printer, QrCode, ShieldCheck, UserPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { DEFAULT_CHECKIN_URL, ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
+
+function registerUrlFor(checkInUrl) {
+  try { return new URL(checkInUrl).origin + "/register"; } catch (e) { return window.location.origin + "/register"; }
+}
 
 export default function QRCode() {
   const { config, updateConfig, showToast } = useApp();
@@ -21,6 +25,10 @@ export default function QRCode() {
   // so scanners fail to read it.
   const qrImg = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=H&data=" + encodeURIComponent(url);
   const [urlInput, setUrlInput] = useState(url);
+  // New-client self-registration (ClientRegister.jsx) lives on the same site
+  // as the check-in link, so its address is that origin + /register.
+  const registerUrl = registerUrlFor(url);
+  const registerQrImg = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=H&data=" + encodeURIComponent(registerUrl);
   const [imgFailed, setImgFailed] = useState(false);
   const inputRef = useRef(null);
 
@@ -31,6 +39,10 @@ export default function QRCode() {
       try { document.execCommand("copy"); } catch (e) { /* ignore */ }
     }
     if (navigator.clipboard) navigator.clipboard.writeText(urlInput).catch(() => {});
+    showToast(t("linkCopied"));
+  }
+  function copyRegisterLink() {
+    if (navigator.clipboard) navigator.clipboard.writeText(registerUrl).catch(() => {});
     showToast(t("linkCopied"));
   }
   function saveUrl() {
@@ -131,6 +143,32 @@ export default function QRCode() {
           </div>
         </div>
       </div>
+
+      <Card className="qr-box">
+        <CardContent className="flex flex-col items-center gap-6 p-8 text-center md:flex-row md:text-left">
+          <div className="qr-plate flex shrink-0 flex-col items-center gap-3 rounded-2xl border border-border p-4">
+            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
+            <img src={registerQrImg} alt={t("registerQrHeading")} className={imgFailed ? "hidden" : "h-[200px] w-[200px]"} onError={() => setImgFailed(true)} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-tint md:mx-0 mx-auto">
+              <UserPlus className="h-6 w-6 text-primary" strokeWidth={2} />
+            </div>
+            <h3 className="text-lg font-bold tracking-tight text-card-foreground">{t("registerQrHeading")}</h3>
+            <p className="mt-1 text-sm text-muted">{t("registerQrDesc")}</p>
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-tint-neutral px-4 py-3">
+              <Globe className="h-4 w-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-card-foreground">{registerUrl}</span>
+            </div>
+            <div className="no-print mt-4 flex flex-wrap gap-2.5">
+              <Button className="gap-2" onClick={copyRegisterLink}><Copy className="h-4 w-4" />{t("copyLink")}</Button>
+              <a href={registerUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="gap-2"><ExternalLink className="h-4 w-4" />{t("registerQrOpen")}</Button>
+              </a>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

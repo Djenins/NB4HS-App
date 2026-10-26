@@ -48,6 +48,10 @@ export default {
         // Merges into Tailwind's own violet scale: bg-violet-tint / text-violet-ink
         // are the theme-aware pair; the stock violet-100..900 stay untouched.
         violet: { tint: "var(--violet-tint)", ink: "var(--violet-ink)" },
+        // Module-menu tile hues (see --pink/--teal/--sky-* in main.css).
+        pink: { tint: "var(--pink-tint)", ink: "var(--pink-ink)" },
+        teal: { tint: "var(--teal-tint)", ink: "var(--teal-ink)" },
+        sky: { tint: "var(--sky-tint)", ink: "var(--sky-ink)" },
         "tint-neutral": "var(--tint-neutral)",
         "tint-success": "var(--tint-success)",
         "tint-warn": "var(--tint-warn)",

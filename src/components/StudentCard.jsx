@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 import { avatarColorFor } from "../lib/avatarTone.js";
+import AddressInput from "./AddressInput.jsx";
 
 // main.css's global `input, select, textarea{ min-height:52px; ... }` rule
 // (element selector) would otherwise floor every field on this compact card
@@ -49,7 +50,7 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
         <input type="text" placeholder={t("lastName")} aria-label={t("lastName")} className={editInputClass} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
         <input type="text" placeholder={t("phone")} aria-label={t("phone")} className={editInputClass} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
         <input type="text" placeholder={t("email")} aria-label={t("email")} className={editInputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
-        <input type="text" placeholder={t("address")} aria-label={t("address")} className={editInputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+        <AddressInput type="text" placeholder={t("address")} aria-label={t("address")} className={editInputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
         <input type="text" placeholder={t("city")} aria-label={t("city")} className={editInputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
         <input type="text" placeholder={t("zip")} aria-label={t("zip")} className={editInputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
         <div className="grid grid-cols-2 gap-2">

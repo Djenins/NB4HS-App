@@ -26,7 +26,7 @@
 // displaying their passwords in the app's own UI -- even production-gated --
 // would mean leaking real credentials, not demo ones.
 import { AnimatePresence, m } from "framer-motion";
-import { ArrowLeft, ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -39,7 +39,6 @@ import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/sup
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import LangSelect from "../components/LangSelect.jsx";
 
 const FEATURES = [
   { icon: ShieldCheck, key: "staffFeatureSecureAuth" },
@@ -191,16 +190,10 @@ export default function StaffLogin() {
         {/* Wraps on a phone: "Back to Home" + theme pill + language select
             don't fit 375px on one line, and used to push the page sideways. */}
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <Button
-            variant="ghost"
-            className="inline-flex h-auto gap-1.5 px-1 py-0 text-sm font-semibold text-muted hover:bg-transparent hover:text-card-foreground [@media(pointer:coarse)]:min-h-11"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-4 w-4" /> {t("backToHomeLabel")}
-          </Button>
-          <div className="flex items-center gap-3">
+          {/* This page is the staff home ("/") now, so there's no public
+              landing page to go back to. */}
+          <div className="ml-auto flex items-center gap-3">
             <ThemeToggle />
-            <LangSelect />
           </div>
         </div>
 

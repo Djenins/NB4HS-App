@@ -11,6 +11,7 @@
 import DatePicker from "../DatePicker.jsx";
 import { cn } from "../../lib/cn.js";
 import { formatPhone } from "../../lib/utils.js";
+import AddressInput from "../AddressInput.jsx";
 
 // `appt-control` is the hook main.css uses to trim these back on short
 // landscape kiosks (1366x768 and friends) without shrinking the type.
@@ -51,8 +52,11 @@ function LeadingIcon({ icon: Glyph }) {
 }
 
 export function ApptField({
-  name, label, type = "text", required = false, error = "", icon, placeholder, autoComplete, className
+  name, label, type = "text", required = false, error = "", icon, placeholder, autoComplete, className, onAddressSelect
 }) {
+  // The street field passes onAddressSelect and gets address suggestions.
+  const InputEl = onAddressSelect ? AddressInput : "input";
+  const addressProps = onAddressSelect ? { onAddressSelect } : {};
   const id = "appt-req-" + name;
   const errorId = error ? id + "-error" : undefined;
   return (
@@ -60,7 +64,8 @@ export function ApptField({
       <ApptLabel htmlFor={id} required={required}>{label}</ApptLabel>
       <div className="relative">
         <LeadingIcon icon={icon} />
-        <input
+        <InputEl
+          {...addressProps}
           type={type}
           name={name}
           id={id}

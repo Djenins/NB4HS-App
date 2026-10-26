@@ -12,12 +12,12 @@ import KioskStepCard from "./KioskStepCard.jsx";
 export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = UserRoundCheck, steps, activeStep, onStepSelect, navLabel, helpTitle, helpText }) {
   return (
     <div className="flex min-h-0 flex-col lg:h-full lg:overflow-y-auto">
-      <span className="kiosk-sidebar-badge flex h-12 w-12 items-center justify-center rounded-full bg-primary-tint text-primary xl:h-14 xl:w-14">
-        <IdentityIcon size={26} strokeWidth={2} aria-hidden="true" />
+      <span className="kiosk-sidebar-badge flex h-10 w-10 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-12 sm:w-12 xl:h-14 xl:w-14">
+        <IdentityIcon strokeWidth={2} aria-hidden="true" className="h-[22px] w-[22px] sm:h-[26px] sm:w-[26px]" />
       </span>
       {/* Split on spaces so a long title wraps between words instead of
           breaking inside "Check-In" at its hyphen on narrower kiosks. */}
-      <h1 className="kiosk-sidebar-title mt-2.5 text-[1.75rem] font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] xl:text-[2.2rem]">
+      <h1 className="kiosk-sidebar-title mt-2 text-[1.375rem] font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-[1.75rem] xl:text-[2.2rem]">
         {title.split(" ").map((word, i) => (
           <span key={word + i} className="inline-block">{word}{i < title.split(" ").length - 1 ? "\u00a0" : ""}</span>
         ))}

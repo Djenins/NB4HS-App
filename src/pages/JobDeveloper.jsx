@@ -50,6 +50,7 @@ import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
@@ -103,13 +104,16 @@ function FormSection({ title, desc, children }) {
   );
 }
 
-function TextField({ id, label, required, invalid, value, onChange, placeholder, type }) {
+function TextField({ id, label, required, invalid, value, onChange, placeholder, type, onAddressSelect }) {
+  // Street fields pass onAddressSelect and get address suggestions.
+  const InputEl = onAddressSelect ? AddressInput : "input";
+  const addressProps = onAddressSelect ? { onAddressSelect } : {};
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
         {label}{required ? <span className="text-accent"> *</span> : null}
       </label>
-      <input
+      <InputEl {...addressProps}
         id={id}
         type={type || "text"}
         value={value}
@@ -206,7 +210,7 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
 
           <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-job-client-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+              <TextField id="new-job-client-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
               <TextField id="new-job-client-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
               <TextField id="new-job-client-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
             </div>

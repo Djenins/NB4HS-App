@@ -23,7 +23,7 @@ export default function ApptRequestCard({ id, icon: CardIcon, title, description
         <div className="min-w-0 flex-1">
           <h2
             id={id + "-title"}
-            className="appt-card-title m-0 text-[1.15rem] font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-[1.3rem]"
+            className="appt-card-title m-0 text-[1.0625rem] font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-[1.3rem]"
           >
             {title}
           </h2>
