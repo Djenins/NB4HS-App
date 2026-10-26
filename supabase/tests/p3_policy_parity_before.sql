@@ -10,7 +10,10 @@
 -- p3_expected (e.g. p3b's S7 fix). Everything is rolled back by the final raise.
 --
 -- Settings, read before this script runs:
---   p3.tables   comma-separated tables to compare (default: the Students tables)
+--   p3.tables   comma-separated tables to compare (default: the Students tables);
+--               another schema's table as 'storage.objects'
+-- Probe rows may use '$me' (the person's id) and '$myemail' (their email);
+-- the person's email is also in their claims, for auth.email().
 -- Workforce Development Access is compared three ways: all off, all on, and
 -- as it is set on the live database.
 --
@@ -36,6 +39,11 @@ create temp table p3_expected (role text, wf text, tbl text, was boolean, now bo
 
 create temp table p3_personas (persona text primary key, user_id uuid) on commit drop;
 create temp table p3_snap (phase text, wf text, persona text, tbl text, cmd text, kind text, ok boolean) on commit drop;
+-- Row mode writes each evaluation here (an ever-growing array is quadratic
+-- at this size); the snapshot then folds them into p3_snap.
+create temp table p3_raw (persona text, tbl text, cmd text, kind text, ok boolean) on commit drop;
+-- Large row-mode runs outlast the default statement timeout.
+set statement_timeout = 0;
 
 do $$
 declare
@@ -61,6 +69,12 @@ begin
   insert into p3_personas values ('inactive administrator', uid);
   insert into p3_personas values ('anonymous', null);
 end $$;
+
+-- 'storage.objects' -> ('storage', 'objects'); 'visits' -> ('public', 'visits').
+create function pg_temp.p3_schema(p_tbl text) returns text language sql immutable as $$
+  select case when position('.' in p_tbl) > 0 then split_part(p_tbl, '.', 1) else 'public' end $$;
+create function pg_temp.p3_name(p_tbl text) returns text language sql immutable as $$
+  select case when position('.' in p_tbl) > 0 then split_part(p_tbl, '.', 2) else p_tbl end $$;
 
 -- Evaluates every applicable policy on the p3 tables as every persona. The
 -- policy list is read first (as the owner: the temp tables aren't visible to
@@ -92,7 +106,7 @@ begin
         -- A policy's WITH CHECK falls back to its USING expression, as in Postgres.
         select case when k.kind = 'using' then p.qual else coalesce(p.with_check, p.qual) end as expr
         from pg_policies p
-        where p.schemaname = 'public' and p.tablename = t.tbl
+        where p.schemaname = pg_temp.p3_schema(t.tbl) and p.tablename = pg_temp.p3_name(t.tbl)
           and (p.cmd = c.cmd or p.cmd = 'ALL')
           and (aud = any (p.roles) or 'public' = any (p.roles))
           and (case when k.kind = 'using' then p.qual else coalesce(p.with_check, p.qual) end) is not null
@@ -105,7 +119,8 @@ begin
     if per.user_id is null then
       perform set_config('request.jwt.claims', '{"role":"anon"}', true);
     else
-      perform set_config('request.jwt.claims', json_build_object('sub', per.user_id, 'role', 'authenticated')::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', per.user_id, 'role', 'authenticated',
+        'email', (select email from public.profiles where id = per.user_id))::text, true);
     end if;
 
     if to_regclass('pg_temp.p3_probes') is not null then
@@ -115,15 +130,17 @@ begin
           res := false;
           if c_expr[i] is not null then
             begin
-              execute format('select coalesce((%s), false) from (select (jsonb_populate_record(null::public.%I, $1)).*) as %I',
-                             c_expr[i], c_tbl[i], c_tbl[i])
+              execute format('select coalesce((%s), false) from (select (jsonb_populate_record(null::%I.%I, $1)).*) as %I',
+                             c_expr[i], pg_temp.p3_schema(c_tbl[i]), pg_temp.p3_name(c_tbl[i]), pg_temp.p3_name(c_tbl[i]))
                 into res
-                using replace(pr.data::text, '"$me"', coalesce(to_json(per.user_id::text)::text, 'null'))::jsonb;
+                using replace(replace(pr.data::text,
+                  '"$me"', coalesce(to_json(per.user_id::text)::text, 'null')),
+                  '"$myemail"', coalesce(to_json((select email from public.profiles where id = per.user_id))::text, 'null'))::jsonb;
             exception when others then
               res := false;
             end;
           end if;
-          out_rows := out_rows || array[per.persona || '|' || c_tbl[i] || '|' || c_cmd[i] || '|' || c_kind[i] || '@' || pr.label || '|' || coalesce(res, false)];
+          insert into p3_raw values (per.persona, c_tbl[i], c_cmd[i], c_kind[i] || '@' || pr.label, coalesce(res, false));
         end loop;
       end loop;
       continue;
@@ -154,6 +171,9 @@ begin
          bool_or(split_part(x, '|', 5)::boolean)
   from unnest(out_rows) x
   group by 1, 2, 3, 4, 5, 6;
+  insert into p3_snap (phase, wf, persona, tbl, cmd, kind, ok)
+  select p_phase, p_wf, persona, tbl, cmd, kind, bool_or(ok) from p3_raw group by persona, tbl, cmd, kind;
+  truncate p3_raw;
 end;
 $$;
 
