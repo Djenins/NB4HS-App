@@ -1,7 +1,9 @@
 -- Phase 5, part A -- permission administration (plans/unified-access-
 -- architecture.md §6, §13 Phase 5).
--- NOT APPLIED. Dry-run only (supabase/tests/p5_admin_check.sql), waiting for
--- review.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261027010000) after a
+-- rolled-back dry run of supabase/tests/p5_admin_check.sql passed. Afterwards
+-- p5_admin_check.sql and p1_access_check.sql (parity) passed against the live
+-- database.
 --
 -- What it adds, for the Detailed Permissions tab, the role editor, Programs &
 -- Modules, the Access Audit Log and System Settings:
