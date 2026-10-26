@@ -22,7 +22,7 @@ describe("account status", () => {
     expect(accountStatus(acct({}))).toBe("active");
     expect(accountStatus(acct({ invitedAt: "2026-10-20", lastSignInAt: null }))).toBe("invited");
     expect(accountStatus(acct({ invitedAt: "2026-10-20" }))).toBe("active"); // accepted
-    expect(accountStatus(acct({ active: false }))).toBe("pending");
+    expect(accountStatus(acct({ active: false }))).toBe("inactive");
     expect(accountStatus(acct({ active: false, deactivatedAt: "2026-10-25" }))).toBe("deactivated");
   });
 });
@@ -36,7 +36,7 @@ describe("filtering and sorting accounts", () => {
   it("searches name, email and position; filters status and type", () => {
     expect(filterAccounts(list, { query: "case" }).map((u) => u.id)).toEqual(["1"]);
     expect(filterAccounts(list, { query: "M@X" }).map((u) => u.id)).toEqual(["3"]);
-    expect(filterAccounts(list, { status: "pending" }).map((u) => u.id)).toEqual(["2"]);
+    expect(filterAccounts(list, { status: "inactive" }).map((u) => u.id)).toEqual(["2"]);
     expect(filterAccounts(list, { role: "staff" }).map((u) => u.id)).toEqual(["1", "3"]);
   });
   it("sorts by name (falling back to email), status and last sign-in", () => {

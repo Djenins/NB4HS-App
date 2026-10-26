@@ -16,15 +16,18 @@ export var INVITE_ROLES = ["staff", "receptionist", "case_manager", "job_develop
 
 // active      can sign in
 // invited     active, invite sent, has never signed in
-// pending     signed up on their own and waits for an admin to approve them
-// deactivated switched off by an admin (sign-in blocked)
+// inactive    off, with no record of who switched it off: a self-signup
+//             waiting for an admin, or an account switched off before
+//             deactivations were recorded (Phase 2) -- the data can't tell
+//             the two apart, so the label doesn't guess
+// deactivated switched off by an admin through Administration
 export function accountStatus(u) {
-  if (!u.active) return u.deactivatedAt ? "deactivated" : "pending";
+  if (!u.active) return u.deactivatedAt ? "deactivated" : "inactive";
   if (u.invitedAt && !u.lastSignInAt) return "invited";
   return "active";
 }
 
-export var ACCOUNT_STATUSES = ["active", "invited", "pending", "deactivated"];
+export var ACCOUNT_STATUSES = ["active", "invited", "inactive", "deactivated"];
 
 // Free-text query over name, email and position; exact status and account type.
 export function filterAccounts(list, f) {

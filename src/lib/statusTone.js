@@ -66,7 +66,7 @@ const STATUS_TONES = {
   // Staff accounts (Administration)
   "account:active": "success",
   "account:invited": "info",
-  "account:pending": "warning",
+  "account:inactive": "warning",
   "account:deactivated": "neutral",
   "roleKind:builtin": "violet",
   "roleKind:custom": "info",
