@@ -1,6 +1,7 @@
 -- SNAP Outreach Stage 1 -- program-scoped staff roles + audit log
 -- (plans/snap-outreach-architecture.md §4, §6). ADDITIVE ONLY: new tables,
--- functions and triggers; nothing existing changes. NOT YET APPLIED.
+-- functions and triggers; nothing existing changes. APPLIED to
+-- vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026064304) after PR #24 review.
 --
 -- Decisions (2026-10-26): SNAP roles live in their own table, on top of each
 -- person's existing profiles.role, so a case manager can also be an outreach

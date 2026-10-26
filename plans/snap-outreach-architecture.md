@@ -252,7 +252,7 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 
 Branch `Djenins/snap-stage1-foundation`.
 
-**Database** — `supabase/migrations/20261026130000_stage1_program_staff_and_audit.sql` (**not yet applied**; additive only):
+**Database** — `supabase/migrations/20261026064304_stage1_program_staff_and_audit.sql` (**applied 2026-10-26** after PR #24 review; additive only):
 - `program_staff (user_id, program, program_role, active, granted_by, …)`, PK `(user_id, program)`; `program` CHECK `('snap')`, `program_role` CHECK `('worker','supervisor','program_admin')`.
 - `has_program_role(program, roles[])` — active profile + active membership; **no admin bypass**. `can_manage_program(program)` — admin or that program's program admin.
 - RLS: own row (if active staff), supervisors/program admins see the team; only `can_manage_program` writes. Revoking deactivates instead of deleting.
@@ -270,6 +270,8 @@ Branch `Djenins/snap-stage1-foundation`.
 - `vitest` 198/198 (new: access rules + nav entry, SnapOutreach component tests for worker/admin/no-access/role write/load error). `vite build` passes.
 - Browser (signed out): kiosk unaffected; `/snap` redirects to the landing page. Signed-in staff screens not exercised in a browser (no staff credentials) — covered by component tests.
 
-**Rollout:** apply the migration (either before or after deploying — if the app ships first, administrators see a "couldn't load SNAP staff" message in Staff & Access until it's applied; nobody else sees SNAP). Then an administrator assigns the first SNAP program admin.
+**Rollout:** migration applied 2026-10-26 (version 20261026064304). Remaining: merge and deploy PR #24, then an administrator assigns the first SNAP program admin in SNAP Outreach → Staff & Access.
+
+**Verified on the live project after applying:** both tables have RLS on with the five expected policies and two triggers; `has_program_role`/`can_manage_program` callable by signed-in users only, trigger functions by no one. Role checks with real accounts inside a rolled-back transaction (10/10): administrator has no SNAP role but can manage; granting and changing a role writes two audit rows attributed to the administrator; a case manager made supervisor has that role, can't manage, can't grant, reads no audit rows; staff without a role and anonymous callers see no memberships. Afterwards `program_staff` and `audit_events` were both empty. Security advisor: no new anon findings and no tables without RLS; new entries are only the two role-check helpers being callable by signed-in users, the same as `has_role`/`is_admin`, because RLS evaluates them as the caller.
 
 **Known limitations:** no live updates of `program_staff` across tabs (the settings table reloads after each change); supervisors see who's on the team but can't change it; audit log has no UI yet (Stage 5).
