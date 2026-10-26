@@ -32,7 +32,7 @@ export default {
         navy: { DEFAULT: "var(--navy)", dark: "var(--navy-dark)", foreground: "#ffffff" },
         // Accent is red, reserved for errors/validation/destructive actions only.
         accent: { DEFAULT: "var(--accent)", dark: "var(--accent-dark)", foreground: "#ffffff", soft: "var(--border-accent-soft)" },
-        success: { DEFAULT: "var(--success)", soft: "var(--border-success-soft)" },
+        success: { DEFAULT: "var(--success)", foreground: "var(--success-foreground)", soft: "var(--border-success-soft)" },
         // Gold: sparing premium accent (dividers, featured stats, KPI
         // highlights, badges) -- never a dominant color.
         gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A", ink: "var(--gold-ink)" },
@@ -45,6 +45,9 @@ export default {
         "primary-tint": "var(--primary-tint)",
         "accent-tint": "var(--accent-tint)",
         "gold-tint": "var(--gold-tint)",
+        // Merges into Tailwind's own violet scale: bg-violet-tint / text-violet-ink
+        // are the theme-aware pair; the stock violet-100..900 stay untouched.
+        violet: { tint: "var(--violet-tint)", ink: "var(--violet-ink)" },
         "tint-neutral": "var(--tint-neutral)",
         "tint-success": "var(--tint-success)",
         "tint-warn": "var(--tint-warn)",

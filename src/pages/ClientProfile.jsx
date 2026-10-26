@@ -38,6 +38,7 @@ import IntakeFormCard from "../components/IntakeFormCard.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const TABS = [
   "clientTabOverview", "clientTabPrograms", "clientTabAppointments", "clientTabServices",
@@ -73,6 +74,7 @@ function TextField({ id, label, value, onChange, placeholder, type }) {
 }
 
 function EditProfileModal({ client, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     firstName: client.firstName || "", lastName: client.lastName || "", phone: client.phone || "", email: client.email || "",
@@ -82,7 +84,7 @@ function EditProfileModal({ client, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("editProfileBtn")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <TextField id="edit-first-name" label={t("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
@@ -107,6 +109,7 @@ function EditProfileModal({ client, onSave, onCancel }) {
 }
 
 function AddToProgramModal({ existingTypes, onEnroll, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const choices = Object.keys(PROGRAM_META).filter((k) => existingTypes.indexOf(k) === -1);
   const [programType, setProgramType] = useState(choices[0] || "");
@@ -115,7 +118,7 @@ function AddToProgramModal({ existingTypes, onEnroll, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addToProgramBtn")}</p>
         {choices.length === 0 ? (
           <p className="text-sm text-muted">{t("alreadyEnrolledAllPrograms")}</p>
@@ -171,13 +174,14 @@ function AddToProgramModal({ existingTypes, onEnroll, onCancel }) {
 }
 
 function AddNoteModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [content, setContent] = useState("");
   const [type, setType] = useState("general");
   const [visibility, setVisibility] = useState("all");
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
         <div className="mb-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
@@ -214,6 +218,7 @@ function AddNoteModal({ onSave, onCancel }) {
 }
 
 function UploadDocumentModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [category, setCategory] = useState("other");
   const [fileName, setFileName] = useState("");
@@ -227,7 +232,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
         <div className="mb-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("documentCategoryLabel")}</label>
@@ -255,6 +260,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
 }
 
 function LogCommunicationModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [method, setMethod] = useState("phone");
   const [direction, setDirection] = useState("outbound");
@@ -262,7 +268,7 @@ function LogCommunicationModal({ onSave, onCancel }) {
   const [followUpRequired, setFollowUpRequired] = useState(false);
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("logCommunicationBtn")}</p>
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>

@@ -4,7 +4,7 @@
 // requestConfirm() in place of the original's callback-based showConfirmModal().
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, Briefcase, Building2, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, Plus, Trash2, Users } from "lucide-react";
+import { Award, Briefcase, Building2, CheckCircle2, Circle, ClipboardCheck, GraduationCap, HelpCircle, Info, MapPin, Plus, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { meetingDaysLabel, studentsForClass } from "../lib/students.js";
@@ -22,6 +22,23 @@ function ClassManageCard({ c }) {
   // waiting on the round trip + realtime refetch of `classes`.
   const [activeOverride, setActiveOverride] = useState(null);
   const isActive = activeOverride !== null ? activeOverride : c.active !== false;
+  // Location saves on blur / Enter rather than behind its own Save button --
+  // it's one short line, edited in place. The draft resyncs whenever the
+  // stored value changes (realtime refetch, another staff member's edit).
+  const [locationDraft, setLocationDraft] = useState(c.location || "");
+  useEffect(() => { setLocationDraft(c.location || ""); }, [c.location]);
+
+  async function saveLocation() {
+    const next = locationDraft.trim();
+    if (next === (c.location || "")) { setLocationDraft(next); return; }
+    try {
+      await updateClass(c.key, { location: next });
+      showToast(t("classLocationSaved"));
+    } catch (err) {
+      setLocationDraft(c.location || "");
+      showToast(t("classLocationSaveError"));
+    }
+  }
 
   async function toggleActive() {
     const next = !isActive;
@@ -61,6 +78,22 @@ function ClassManageCard({ c }) {
           </div>
         </div>
         {c.custom && <button className="btn-ghost btn-sm btn-outline-danger" onClick={deleteClassroom}>{t("deleteLabel")}</button>}
+      </div>
+
+      <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+        <label htmlFor={"class-location-" + c.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <MapPin className="icon" style={{ width: 16, height: 16 }} aria-hidden="true" /> {t("classLocationLabel")}
+        </label>
+        <input
+          id={"class-location-" + c.key}
+          type="text"
+          maxLength={80}
+          placeholder={t("classLocationPlaceholder")}
+          value={locationDraft}
+          onChange={(e) => setLocationDraft(e.target.value)}
+          onBlur={saveLocation}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setLocationDraft(c.location || ""); }}
+        />
       </div>
 
       <button
@@ -227,6 +260,7 @@ export default function Manage() {
   const t = useT();
   const [newClassName, setNewClassName] = useState("");
   const [newClassDays, setNewClassDays] = useState([]);
+  const [newClassLocation, setNewClassLocation] = useState("");
 
   const dayNames = WEEKDAYS[lang] || WEEKDAYS.en;
   const serviceList = fullServiceList(data.customServices);
@@ -251,9 +285,10 @@ export default function Manage() {
     let key = "custom_" + slugify(name);
     let suffix = 1;
     while (existingKeys.indexOf(key) !== -1) { key = "custom_" + slugify(name) + "_" + suffix; suffix++; }
-    await createClass({ key, name, days: newClassDays.slice(), service: "adult_education", staff: "esl_instructor", active: true, custom: true });
+    await createClass({ key, name, days: newClassDays.slice(), service: "adult_education", staff: "esl_instructor", location: newClassLocation, active: true, custom: true });
     setNewClassName("");
     setNewClassDays([]);
+    setNewClassLocation("");
     showToast(t("addClassroom") + " ✓");
   }
 
@@ -329,6 +364,18 @@ export default function Manage() {
                 value={newClassName}
                 onChange={(e) => setNewClassName(e.target.value)}
               />
+            </div>
+            <div className="field">
+              <label htmlFor="new-class-location">{t("classLocationOptional")}</label>
+              <input
+                id="new-class-location"
+                type="text"
+                maxLength={80}
+                placeholder={t("classLocationPlaceholder")}
+                value={newClassLocation}
+                onChange={(e) => setNewClassLocation(e.target.value)}
+              />
+              <p className="muted" style={{ margin: "6px 0 0", fontSize: ".85rem" }}>{t("classLocationHint")}</p>
             </div>
             <label>{t("meetsOn")}</label>
             <div className="pill-row">

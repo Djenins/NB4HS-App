@@ -14,9 +14,8 @@
 // this same way on Reports.jsx, so nothing new was invented to build it.
 // Reports.jsx/StatCard.jsx/DashChart.jsx are untouched and keep using the
 // old plain-CSS/Chart.js system.
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { CalendarDays, Clock3, DoorOpen, GraduationCap, LogIn, ShoppingBasket, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
@@ -29,40 +28,11 @@ import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import EmptyState from "../components/EmptyState.jsx";
-
-// Same brand hex values DashChart.jsx already hardcodes for its own chart
-// palette (PALETTE const in that file) -- duplicated here rather than
-// imported since DashChart.jsx doesn't export it. NB4HS Design System chart
-// palette: Blue, Green, Gold, Purple only ("never use random colors"); red
-// is excluded since charts aren't error states.
-const CHART_PALETTE = ["#2563EB", "#1a7f37", "#D99E32", "#6b21a8"];
-
-// Reads the live theme's neutral colors (same CSS custom properties
-// DashChart.jsx already reads) so Recharts axis/grid/tooltip colors stay in
-// sync with light/dark mode, re-reading whenever the app's data-theme
-// attribute changes (ThemeToggle.jsx / storage.js's applyTheme()).
-function useChartColors() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const obs = new MutationObserver(() => setTick((x) => x + 1));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => obs.disconnect();
-  }, []);
-  return useMemo(() => {
-    const s = getComputedStyle(document.documentElement);
-    return {
-      muted: s.getPropertyValue("--muted").trim() || "#5b6572",
-      border: s.getPropertyValue("--border").trim() || "#d9dee4",
-      card: s.getPropertyValue("--card").trim() || "#ffffff",
-      text: s.getPropertyValue("--text").trim() || "#231F20"
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick]);
-}
+import { CHART_GRID, CHART_LEGEND_STYLE, CHART_SERIES, CHART_TICK, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_STYLE } from "../components/chartTheme.js";
 
 function StatTile({ icon: Icon, num, label, index }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.05 }}
@@ -78,7 +48,7 @@ function StatTile({ icon: Icon, num, label, index }) {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -184,7 +154,6 @@ function ChartCard({ title, children }) {
 export default function Dashboard() {
   const { data, lang, session } = useApp();
   const t = useT();
-  const colors = useChartColors();
 
   const range = rangeForPreset("today");
   const s = computeStats(data.visits, range);
@@ -221,8 +190,8 @@ export default function Dashboard() {
   const dayData = allStats.dayCounts.map((c, i) => ({ day: dayNames[i], count: c }));
   const hourData = hourTop6.map((x) => ({ hour: fmtHour(x.hour), count: x.count }));
   const newVsReturning = [
-    { name: t("newClients"), value: allStats.newCount, color: "#1a7f37" },
-    { name: t("returningClients"), value: allStats.returningCount, color: "#2563EB" }
+    { name: t("newClients"), value: allStats.newCount, color: CHART_SERIES[1] },
+    { name: t("returningClients"), value: allStats.returningCount, color: CHART_SERIES[0] }
   ];
 
   return (
@@ -255,15 +224,15 @@ export default function Dashboard() {
                   <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                     <defs>
                       <linearGradient id="checkinsFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563EB" stopOpacity={0.28} />
-                        <stop offset="100%" stopColor="#2563EB" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor={CHART_SERIES[0]} stopOpacity={0.28} />
+                        <stop offset="100%" stopColor={CHART_SERIES[0]} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke={colors.border} vertical={false} />
-                    <XAxis dataKey="label" tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <RTooltip contentStyle={{ background: colors.card, border: "1px solid " + colors.border, borderRadius: 10, color: colors.text }} />
-                    <Area type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={2.5} fill="url(#checkinsFill)" />
+                    <CartesianGrid stroke={CHART_GRID} vertical={false} />
+                    <XAxis dataKey="label" tick={CHART_TICK} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
+                    <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
+                    <Area type="monotone" dataKey="count" stroke={CHART_SERIES[0]} strokeWidth={2.5} fill="url(#checkinsFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -295,7 +264,7 @@ export default function Dashboard() {
 
       <AnimatePresence>
         {showFoodStats && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Not a :first-child on the page, but it is the first child of
                 this motion.div wrapper -- main.css's .section-label:first-child
                 rule (margin-top:0) would otherwise match it by accident, so
@@ -307,7 +276,7 @@ export default function Dashboard() {
               <StatTile icon={ShoppingBasket} num={distMonth} label={t("distributionsMonthLabel")} index={2} />
               <StatTile icon={ShoppingBasket} num={distYear} label={t("distributionsYearLabel")} index={3} />
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -317,10 +286,10 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={svcPieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                {svcPieData.map((_, i) => <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
+                {svcPieData.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
               </Pie>
-              <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: 12, color: colors.muted }} />
-              <RTooltip contentStyle={{ background: colors.card, border: "1px solid " + colors.border, borderRadius: 10, color: colors.text }} />
+              <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={CHART_LEGEND_STYLE} />
+              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -330,8 +299,8 @@ export default function Dashboard() {
               <Pie data={newVsReturning} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
                 {newVsReturning.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Pie>
-              <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: 12, color: colors.muted }} />
-              <RTooltip contentStyle={{ background: colors.card, border: "1px solid " + colors.border, borderRadius: 10, color: colors.text }} />
+              <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={CHART_LEGEND_STYLE} />
+              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -341,22 +310,22 @@ export default function Dashboard() {
         <ChartCard title={t("mostActiveDays")}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dayData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid stroke={colors.border} vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-              <RTooltip contentStyle={{ background: colors.card, border: "1px solid " + colors.border, borderRadius: 10, color: colors.text }} />
-              <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={42} />
+              <CartesianGrid stroke={CHART_GRID} vertical={false} />
+              <XAxis dataKey="day" tick={CHART_TICK} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
+              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
+              <Bar dataKey="count" fill={CHART_SERIES[0]} radius={[6, 6, 0, 0]} maxBarSize={42} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title={t("mostActiveHours")}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={hourData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid stroke={colors.border} vertical={false} />
-              <XAxis dataKey="hour" tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: colors.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-              <RTooltip contentStyle={{ background: colors.card, border: "1px solid " + colors.border, borderRadius: 10, color: colors.text }} />
-              <Bar dataKey="count" fill="#D99E32" radius={[6, 6, 0, 0]} maxBarSize={42} />
+              <CartesianGrid stroke={CHART_GRID} vertical={false} />
+              <XAxis dataKey="hour" tick={CHART_TICK} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
+              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
+              <Bar dataKey="count" fill={CHART_SERIES[2]} radius={[6, 6, 0, 0]} maxBarSize={42} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

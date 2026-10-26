@@ -14,23 +14,15 @@ import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
+import { avatarColorFor } from "../lib/avatarTone.js";
 
 // main.css's global `input, select, textarea{ min-height:52px; ... }` rule
 // (element selector) would otherwise floor every field on this compact card
 // at 52px tall -- `min-h-0` (a class selector, higher specificity) cancels
 // it, same fix Search.jsx's redesigned fields already use.
 
-// Same small pastel-hash approach Search.jsx uses for visitor avatars, so
-// student initials on this board read the same way.
-const AVATAR_COLORS = [
-  "bg-violet-100 text-violet-700", "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
-  "bg-sky-100 text-sky-700", "bg-rose-100 text-rose-700", "bg-teal-100 text-teal-700"
-];
-export function avatarColorFor(str) {
-  let h = 0;
-  for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
+// Re-exported for the cards that already import it from here.
+export { avatarColorFor };
 
 const editInputClass = "h-9 min-h-0 w-full rounded-lg border border-border bg-background px-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 

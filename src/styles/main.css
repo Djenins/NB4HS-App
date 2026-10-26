@@ -43,6 +43,10 @@
        rules and day dividers repeat ten times a column, so at --border
        strength the grid reads as a spreadsheet rather than a calendar. */
     --cal-grid:#EEF1F7;
+    /* Today's column wash and the per-kind icon disc on an event card (one
+       step deeper than the card's own tint so the disc reads as a disc). */
+    --cal-today-bg:#F5F8FE;
+    --ev-class-chip:#DCE6FB; --ev-class-alt-chip:#E7E0FC; --ev-visit-chip:#D6ECDD; --ev-appt-chip:#ECDDF7; --ev-holiday-chip:#F9DCDD;
     /* Secondary text *on an event tint*. --muted (#64748B) is 4.76:1 on
        white but only 4.23-4.35:1 once the surface is one of the --ev-*-bg
        tints, which fails AA for the 13px card subtitle and attendee count.
@@ -68,6 +72,10 @@
        theme's ink instead: 6.05:1 on #6A94F1, better still on the lighter
        --primary-dark hover. */
     --primary-foreground:#ffffff;
+    /* Same story for text on a solid --success fill: white is 5.0:1 on
+       #1a7f37, but dark mode lightens --success to #3fbf6b and white falls to
+       2.37:1. Dark ink there is 7.6:1. */
+    --success-foreground:#ffffff;
     /* Gold used AS text or as an icon glyph, rather than as a fill or a badge
        tint. The brand gold is a pale hue -- #D99E32 is 2.36:1 on a white card
        and 2.2:1 on --tint-warn, well under AA -- so foreground uses take this
@@ -79,6 +87,17 @@
     --gold-ink:#8C5F1C;
     /* Spacing scale (8pt system) -- used by new components; existing
        hard-coded values are left alone unless called out below. */
+    /* Violet: the fourth KPI/icon hue next to blue, green and gold (stat
+       tiles, .icon-badge.violet, detail-row icons). Ink is 6.4:1 on the tint. */
+    --violet-tint:#EDE9FE; --violet-ink:#6D28D9;
+    /* Initials-avatar tones (lib/avatarTone.js) -- six soft fills with an
+       ink from the same hue, all >= 5.5:1. */
+    --avatar-1-bg:#EDE9FE; --avatar-1-fg:#6D28D9;
+    --avatar-2-bg:#D1FAE5; --avatar-2-fg:#047857;
+    --avatar-3-bg:#FEF3C7; --avatar-3-fg:#92400E;
+    --avatar-4-bg:#E0F2FE; --avatar-4-fg:#0369A1;
+    --avatar-5-bg:#FFE4E6; --avatar-5-fg:#BE123C;
+    --avatar-6-bg:#CCFBF1; --avatar-6-fg:#0F766E;
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
     --radius-lg:20px;
     /* Elevation scale */
@@ -104,12 +123,22 @@
     --ev-appt-bg:#2A1C3A; --ev-appt-border:#4C3465; --ev-appt-fg:#C9A2E8;
     --ev-holiday-bg:#3A1C1E; --ev-holiday-border:#6B3033;
     --cal-grid:#272F3B;
+    --cal-today-bg:#171D2A;
+    --ev-class-chip:#25365E; --ev-class-alt-chip:#342C5E; --ev-visit-chip:#1F4029; --ev-appt-chip:#3B2953; --ev-holiday-chip:#4E2427;
+    --violet-tint:#2C2447; --violet-ink:#B39EF2;
+    --avatar-1-bg:#2C2447; --avatar-1-fg:#C4B5FD;
+    --avatar-2-bg:#123527; --avatar-2-fg:#6EE7B7;
+    --avatar-3-bg:#3B2D12; --avatar-3-fg:#FCD34D;
+    --avatar-4-bg:#12304A; --avatar-4-fg:#7DD3FC;
+    --avatar-5-bg:#3F1A24; --avatar-5-fg:#FDA4AF;
+    --avatar-6-bg:#12332F; --avatar-6-fg:#5EEAD4;
     --ev-ink-soft:#AAB4C2;
     --focus-ring:rgba(106,148,241,.48);
     /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
        that reads as a hairline on white disappears on a dark surface. */
     --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
     --primary-foreground:#0F172A;
+    --success-foreground:#0F172A;
     --gold-ink:#E1B25C;
     --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
   }
@@ -187,8 +216,7 @@
   .icon-badge.success{background:var(--tint-success); color:var(--success);}
   .icon-badge.warn{background:var(--tint-warn); color:var(--warn);}
   .icon-badge.round{border-radius:50%;}
-  .icon-badge.violet{background:#EDE9FE; color:#7C3AED;}
-  html[data-theme="dark"] .icon-badge.violet{background:#2c2447; color:#b39ef2;}
+  .icon-badge.violet{background:var(--violet-tint); color:var(--violet-ink);}
   .empty-state{text-align:center; padding:32px 20px; border:1px dashed var(--border); border-radius:var(--radius); color:var(--muted); background:var(--bg);}
   .empty-state .icon{width:30px; height:30px; stroke-width:1.6; color:var(--muted); opacity:.7; margin-bottom:8px; vertical-align:0;}
   .empty-state p{margin:0; font-size:.95rem;}
@@ -411,7 +439,7 @@
   .pill.active:hover{background:var(--primary-dark);}
   .success-box{text-align:center; padding:40px 20px;}
   @keyframes success-pop{0%{transform:scale(0.6); opacity:0;} 70%{transform:scale(1.06); opacity:1;} 100%{transform:scale(1);}}
-  .success-icon{width:88px; height:88px; border-radius:50%; background:var(--success); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 18px auto; animation:success-pop .35s ease-out;}
+  .success-icon{width:88px; height:88px; border-radius:50%; background:var(--success); color:var(--success-foreground); display:flex; align-items:center; justify-content:center; margin:0 auto 18px auto; animation:success-pop .35s ease-out;}
   .success-icon .icon{stroke-width:3;}
   .muted{color:var(--muted);}
   .skip-link{
@@ -533,6 +561,12 @@
   }
   .theme-pill-option .icon{width:15px; height:15px;}
   .theme-pill-option.active{background:var(--card); color:var(--primary); box-shadow:var(--shadow-sm);}
+  /* Touch screens (the lobby kiosk, a client's phone) get full 44px targets
+     on the header controls (placed after both base rules so it wins the cascade); a mouse keeps the denser desktop sizes. */
+  @media (pointer: coarse){
+    .lang-select select{min-height:44px;}
+    .theme-pill-option{min-height:44px; padding:0 12px;}
+  }
   .content-col{flex:1; min-width:0; display:flex; flex-direction:column;}
   .content-col > header.topbar{position:sticky; top:0; z-index:15;}
   .content-col > main{max-width:1200px;}
@@ -670,7 +704,8 @@
     border:none; border-bottom:2px solid var(--border); border-radius:0; background:transparent; padding:10px 2px;
     min-height:auto;
   }
-  .auth-field input:focus{outline:none; border-color:var(--primary); box-shadow:none;}
+  /* Underline field: focus thickens the rule to 3px blue rather than only recolouring it, so focus reads without relying on hue alone. */
+  .auth-field input:focus{outline:none; border-color:var(--primary); box-shadow:0 1px 0 0 var(--primary);}
   .auth-field .pw-toggle{
     position:absolute; right:2px; top:8px; background:transparent; border:none; padding:4px; color:var(--muted); cursor:pointer;
   }
@@ -795,7 +830,7 @@
       --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
       --focus-ring:rgba(37,99,235,.34);
       --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
-      --primary-foreground:#ffffff;
+      --primary-foreground:#ffffff; --success-foreground:#ffffff;
       --gold-ink:#8C5F1C;
     }
     nav.tabs, .sidebar, .no-print{display:none !important;}
@@ -818,3 +853,37 @@
      padding and gets its own fade-in entrance. */
   .content-col--kiosk-landing{padding:0;}
   @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Route chunk loading (Shell.jsx RouteLoading). Invisible for the first
+     300ms so a fast fetch never flashes, then a thin indeterminate rule in
+     the primary blue along the top of the content area. */
+  .route-loading{position:relative; min-height:40vh;}
+  .route-loading-bar{
+    position:absolute; top:0; left:0; height:3px; width:30%; border-radius:3px; background:var(--primary);
+    opacity:0; animation:route-loading-in .2s ease-out .3s forwards, route-loading-slide 1.1s cubic-bezier(.4,0,.2,1) .3s infinite;
+  }
+  @keyframes route-loading-in{to{opacity:1;}}
+  @keyframes route-loading-slide{from{left:-30%;} to{left:100%;}}
+
+  /* Reduced motion. Not a blanket 0.01ms kill: entrances keep their fade so
+     a modal, toast or success state still visibly arrives -- only the
+     movement (slide, scale, pop, overshoot) goes. The skeleton shimmer
+     stops sweeping and holds as a flat placeholder; the button spinner
+     keeps turning, slower, since it is the only sign that work is still in
+     progress. Tailwind's animate-in utilities (tailwindcss-animate) are
+     neutralised through their own enter/exit variables. framer-motion is
+     covered separately by <MotionConfig reducedMotion="user"> in main.jsx. */
+  @media (prefers-reduced-motion: reduce){
+    @keyframes modal-pop-in{from{opacity:0;} to{opacity:1;}}
+    @keyframes success-pop{from{opacity:0;} to{opacity:1;}}
+    @keyframes toast-in{from{opacity:0;} to{opacity:1;}}
+    @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+    .skeleton{animation:none !important;}
+    .route-loading-bar{left:0; width:100%; animation:route-loading-in .2s ease-out .3s forwards;}
+    .btn-loading::after{animation-duration:1.4s !important;}
+    *, *::before, *::after{
+      --tw-enter-scale:1 !important; --tw-enter-translate-x:0 !important; --tw-enter-translate-y:0 !important; --tw-enter-rotate:0 !important;
+      --tw-exit-scale:1 !important; --tw-exit-translate-x:0 !important; --tw-exit-translate-y:0 !important; --tw-exit-rotate:0 !important;
+      scroll-behavior:auto !important;
+    }
+  }

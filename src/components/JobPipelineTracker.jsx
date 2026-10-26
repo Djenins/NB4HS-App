@@ -27,7 +27,7 @@ export default function JobPipelineTracker({ stage, onChange }) {
               <span
                 className={
                   "flex h-9 w-9 items-center justify-center rounded-full " +
-                  (isActive ? "bg-primary text-white" : isDone ? "bg-primary-tint text-primary" : "bg-tint-neutral text-muted")
+                  (isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-primary-tint text-primary" : "bg-tint-neutral text-muted")
                 }
               >
                 <Icon className="h-4 w-4" />

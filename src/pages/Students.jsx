@@ -12,7 +12,7 @@
 // no accordion affordance for them.
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   CalendarPlus, CalendarRange, Check, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, FileUp, GraduationCap, Info,
   LogOut, Mail, Pencil, Phone, Trash2, TrendingUp, UserPlus, Upload, Users, X
@@ -43,6 +43,7 @@ import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const WAITING_ACCENT = "var(--gold-ink)"; // gold -- matches columnAccentColor("waiting", ...)
 const WAITING_LIST_PREVIEW = 5; // rows shown before the "Show all" toggle
@@ -167,7 +168,7 @@ function useStudentRosterActions() {
 
 function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
+    <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
       <Card>
         <CardContent className="flex items-center gap-3 p-5">
           <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
@@ -180,7 +181,7 @@ function KpiStat({ icon: Icon, tint, label, value, sublabel, index, big }) {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -301,6 +302,7 @@ function ClassroomPicker({ classKey, classes, onMove }) {
 // profile" mockup the client shared; the underlying edit/dropout/remove/move
 // handlers are unchanged, just re-laid-out.
 function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout, onRemove, onMove, onSetOutcome }) {
+  const boxRef = useModalA11y(onClose, !!student);
   const t = useT();
   if (!student) return null;
 
@@ -310,7 +312,7 @@ function StudentDetailModal({ student, classes, onClose, onEditStart, onDropout,
 
   return (
     <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box" style={{ maxWidth: 460 }}>
+      <div ref={boxRef} role="dialog" aria-modal="true" className="modal-box" style={{ maxWidth: 460 }}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="m-0">{t("studentDetailsTitle")}</h3>
           <Button variant="ghost" size="icon" aria-label={t("closeLabel")} onClick={onClose} className="h-8 w-8 text-muted hover:bg-background">

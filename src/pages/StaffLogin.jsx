@@ -25,7 +25,7 @@
 // accounts now belong to real staff (see plans/wobbly-munching-rose.md), so
 // displaying their passwords in the app's own UI -- even production-gated --
 // would mean leaking real credentials, not demo ones.
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ArrowLeft, ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -139,14 +139,16 @@ export default function StaffLogin() {
             </div>
           </div>
 
-          <motion.h1
+          {/* Display line, not the page heading -- "Welcome Back" in the form
+              panel is the page's one <h1> (same split as Login.jsx). */}
+          <m.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="mt-9 text-3xl font-extrabold leading-tight sm:text-4xl"
+            className="mb-0 mt-9 text-3xl font-extrabold leading-tight sm:text-4xl"
           >
             {t("staffPortalHeroHeading")}
-          </motion.h1>
+          </m.p>
           <div className="mt-3 h-1 w-14 rounded-full bg-gold" />
           <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/85">{t("staffPortalHeroSubtitle")}</p>
 
@@ -165,7 +167,7 @@ export default function StaffLogin() {
         <div className="relative z-10 mt-10">
           <div className="grid grid-cols-3 gap-3">
             {stats.map(({ icon: Icon, num, label }, i) => (
-              <motion.div
+              <m.div
                 key={label}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -175,7 +177,7 @@ export default function StaffLogin() {
                 <Icon className="mx-auto h-5 w-5 text-white/80" strokeWidth={2} />
                 <div className="mt-1.5 text-lg font-extrabold">{num}</div>
                 <div className="text-[11px] font-medium leading-tight text-white/70">{label}</div>
-              </motion.div>
+              </m.div>
             ))}
           </div>
           <div className="mt-6 flex items-center gap-2 text-xs font-medium text-white/70">
@@ -186,10 +188,12 @@ export default function StaffLogin() {
 
       {/* Right panel */}
       <div className="flex flex-1 flex-col bg-background px-6 py-6 sm:px-10">
-        <div className="flex items-center justify-between">
+        {/* Wraps on a phone: "Back to Home" + theme pill + language select
+            don't fit 375px on one line, and used to push the page sideways. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <Button
             variant="ghost"
-            className="inline-flex h-auto gap-1.5 px-1 py-0 text-sm font-semibold text-muted hover:bg-transparent hover:text-card-foreground"
+            className="inline-flex h-auto gap-1.5 px-1 py-0 text-sm font-semibold text-muted hover:bg-transparent hover:text-card-foreground [@media(pointer:coarse)]:min-h-11"
             onClick={() => navigate("/")}
           >
             <ArrowLeft className="h-4 w-4" /> {t("backToHomeLabel")}
@@ -201,7 +205,7 @@ export default function StaffLogin() {
         </div>
 
         <div className="flex flex-1 items-center justify-center py-8">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
@@ -273,7 +277,7 @@ export default function StaffLogin() {
                           title={showPw ? t("hidePassword") : t("showPassword")}
                         >
                           <AnimatePresence mode="wait" initial={false}>
-                            <motion.span
+                            <m.span
                               key={showPw ? "hide" : "show"}
                               initial={{ rotate: -90, opacity: 0 }}
                               animate={{ rotate: 0, opacity: 1 }}
@@ -282,7 +286,7 @@ export default function StaffLogin() {
                               className="flex"
                             >
                               {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
-                            </motion.span>
+                            </m.span>
                           </AnimatePresence>
                         </Button>
                       </div>
@@ -338,7 +342,7 @@ export default function StaffLogin() {
                 {mode === "login" && <p className="mt-4 text-center text-xs leading-relaxed text-muted">{t("passwordAuthCaution")}</p>}
               </CardContent>
             </Card>
-          </motion.div>
+          </m.div>
         </div>
       </div>
     </div>

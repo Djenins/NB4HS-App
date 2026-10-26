@@ -15,10 +15,12 @@ import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
 import { SNAP_CONTROL } from "./SnapField.jsx";
 import SnapCaseDetail from "./SnapCaseDetail.jsx";
+import { useModalA11y } from "../../lib/useModalA11y.js";
 
 const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
 
 function NewCase({ onCreated, onClose }) {
+  const boxRef = useModalA11y(onClose);
   const { data, session, showToast } = useApp();
   const t = useT();
   const userId = session ? session.id : null;
@@ -51,7 +53,7 @@ function NewCase({ onCreated, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form className="modal-box max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="snap-newcase-title" onSubmit={submit}>
+      <form ref={boxRef} className="modal-box max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="snap-newcase-title" onSubmit={submit}>
         <h2 id="snap-newcase-title" className="m-0 mb-1 text-lg font-bold text-card-foreground">{t("snapNewCaseTitle")}</h2>
         <p className="!mb-4 !text-sm text-muted">{t("snapChooseContactHelp")}</p>
         <div className="grid gap-4">

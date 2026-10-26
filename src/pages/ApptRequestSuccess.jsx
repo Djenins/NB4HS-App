@@ -27,7 +27,7 @@ export default function ApptRequestSuccess() {
       <div className="mx-auto flex w-full max-w-[880px] flex-col items-center rounded-[22px] border border-border bg-card p-6 text-center shadow-card sm:p-9">
         <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto object-contain sm:h-14" />
 
-        <span className="success-icon mt-6 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-success text-white sm:h-[88px] sm:w-[88px]">
+        <span className="success-icon mt-6 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-success text-success-foreground sm:h-[88px] sm:w-[88px]">
           <Check size={40} strokeWidth={3} aria-hidden="true" />
         </span>
 
@@ -49,7 +49,7 @@ export default function ApptRequestSuccess() {
           <button
             type="button"
             onClick={() => { setKiosk(false); navigate("/"); }}
-            className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 text-[1.1rem] font-bold text-white shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150 hover:bg-primary-dark focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 text-[1.1rem] font-bold text-primary-foreground shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150 hover:bg-primary-dark focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <CalendarCheck size={22} strokeWidth={2.2} aria-hidden="true" />
             {t("backToHomeBtn")}

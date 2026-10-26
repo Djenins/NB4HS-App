@@ -18,8 +18,8 @@ export var HOUR_HEIGHT = 72;
 // Shared row heights for the day-header and All Day rows. The time gutter
 // has to reserve exactly the same space as the day columns beside it, so
 // both read these rather than each measuring itself. The header stacks
-// three lines (MON / 31 / Jul) plus the current-day rule above them.
-export var HEADER_HEIGHT = 112;
+// the weekday, the 48px date disc, "Oct 2026" and the day's summary pill.
+export var HEADER_HEIGHT = 164;
 export var ALLDAY_HEIGHT = 44;
 
 export function toMinutes(timeStr) {
@@ -78,9 +78,11 @@ export function minuteOffset(grid, minutes) {
   return ((minutes - grid.startMin) / 60) * grid.hourHeight;
 }
 
+// Gutter label, "8:00 AM" -- the full clock form, so the hour rail reads the
+// same way as the "9:30 AM – 12:30 PM" ranges on the cards beside it.
 export function fmtHour(hour) {
   var h = hour % 12 === 0 ? 12 : hour % 12;
-  return h + (hour < 12 || hour === 24 ? " AM" : " PM");
+  return h + ":00" + (hour < 12 || hour === 24 ? " AM" : " PM");
 }
 
 // Side-by-side column assignment for same-day blocks that overlap in time

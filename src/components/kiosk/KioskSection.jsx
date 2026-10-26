@@ -10,7 +10,7 @@ import { cn } from "../../lib/cn.js";
 const BADGE_TONES = {
   primary: "bg-primary-tint text-primary",
   soft: "bg-[#EEF3FC] text-navy dark:text-[color:var(--text)] dark:bg-[#1c2740] dark:text-primary",
-  violet: "bg-[#EDE9FE] text-[#7C3AED] dark:bg-[#2c2447] dark:text-[#b39ef2]"
+  violet: "bg-violet-tint text-violet-ink"
 };
 
 export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, subtitle, children, className }) {

@@ -20,8 +20,7 @@
 // The printRef still wraps exactly the report body and the controls card
 // still carries no-print, so PDF export and browser print are unchanged.
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
   Award, Briefcase, Building2, Calendar, CalendarClock, CheckCircle2, Download, FileSpreadsheet, FileText,
   Percent, Printer, TrendingDown, TrendingUp, UserPlus
@@ -165,6 +164,7 @@ export default function WorkforceReports() {
     if (!source) return;
     setExportingPdf(true);
     try {
+      const { html2canvas, jsPDF } = await loadPdfLibs();
       const bg = getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff";
       const canvas = await html2canvas(source, { scale: 2, backgroundColor: bg, useCORS: true });
       const imgData = canvas.toDataURL("image/png");

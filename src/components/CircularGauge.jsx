@@ -6,7 +6,10 @@ const STROKE = 9;
 const RADIUS = (SIZE_PX - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const TONE_STROKE = { success: "#1a7f37", warn: "#D99E32", accent: "#D61F26" };
+// Theme tokens, not hexes, so the ring follows dark mode. Warn uses the
+// deepened --gold-ink because the same colour also sets the label text
+// below, and the brand --gold is 2.36:1 on a card.
+const TONE_STROKE = { success: "var(--success)", warn: "var(--gold-ink)", accent: "var(--accent)" };
 
 export default function CircularGauge({ value, label, tone }) {
   const pct = Math.max(0, Math.min(100, value));

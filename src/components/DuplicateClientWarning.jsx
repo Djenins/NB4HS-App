@@ -5,7 +5,6 @@
 // ConfirmModal.jsx -- there's no shadcn Dialog primitive installed) rather
 // than inventing a new modal shell. Never merges anything itself -- just
 // routes the user to one of three explicit choices.
-import { useEffect } from "react";
 import { ExternalLink, UserPlus, UserRoundPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { formatAddress, formatPhone } from "../lib/utils.js";
@@ -13,6 +12,7 @@ import { resolveEnrollmentsForClient } from "../lib/masterClients.js";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const PROGRAM_LABEL_KEY = { case: "navCaseManagement", job: "navJobDeveloper", student: "navStudents", food: "navFoodDistribution" };
 
@@ -20,17 +20,13 @@ export default function DuplicateClientWarning({ matches, onOpenExisting, onEnro
   const { data } = useApp();
   const t = useT();
 
-  useEffect(() => {
-    function onKeydown(e) { if (e.key === "Escape") onCancel(); }
-    document.addEventListener("keydown", onKeydown);
-    return () => document.removeEventListener("keydown", onKeydown);
-  }, [onCancel]);
+  const boxRef = useModalA11y(onCancel, !!(matches && matches.length));
 
   if (!matches || !matches.length) return null;
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-2xl" role="alertdialog" aria-modal="true" aria-labelledby="dup-warning-title">
+      <div ref={boxRef} className="modal-box max-w-2xl" role="alertdialog" aria-modal="true" aria-labelledby="dup-warning-title">
         <p id="dup-warning-title" className="mb-1 text-base font-bold text-card-foreground">{t("duplicateWarningTitle")}</p>
         <p className="mb-4 text-sm text-muted">{t("duplicateWarningDesc")}</p>
 

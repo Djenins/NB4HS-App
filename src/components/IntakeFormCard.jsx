@@ -7,8 +7,7 @@
 // masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
 // width at the end.
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
   AlertTriangle, Briefcase, Camera, Check, ChevronDown, ChevronUp, ClipboardList, FileText,
   Home, MapPin, Phone, Printer, Save, ShieldCheck, Users, UsersRound,
@@ -255,6 +254,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     if (!source) return;
     setExporting(true);
     try {
+      const { html2canvas, jsPDF } = await loadPdfLibs();
       const bg = getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff";
       const canvas = await html2canvas(source, { scale: 2, backgroundColor: bg, useCORS: true });
       const imgData = canvas.toDataURL("image/png");

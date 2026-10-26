@@ -20,9 +20,9 @@
 // ("Overview / Client Management / Programs / Operations / Administration")
 // is reproduced via NAV_SECTION (constants.js) mapped onto the *real* nav
 // vocabulary, not the mockup's literal (partly fictional) item labels.
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
@@ -39,6 +39,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import LangSelect from "./LangSelect.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+
+// Shown while a lazily-loaded staff page's chunk is fetched. On a normal
+// connection that's under the 300ms delay in .route-loading, so nothing
+// flashes; only a genuinely slow fetch shows the thin progress rule.
+function RouteLoading({ label }) {
+  return (
+    <div className="route-loading" role="status" aria-live="polite">
+      <span className="route-loading-bar" aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
 
 function NavIcon({ name, className }) {
   const Cmp = NAV_ICONS[name] || GraduationCap;
@@ -153,7 +165,7 @@ function SidebarSearch({ students, classes, t }) {
 
   return (
     <div className="relative px-3 pb-2">
-      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 transition-colors focus-within:border-white/60 focus-within:bg-white/10">
         <Search className="h-4 w-4 shrink-0 text-sidebar-text" strokeWidth={2} />
         <input
           type="text"
@@ -166,7 +178,7 @@ function SidebarSearch({ students, classes, t }) {
       </div>
       <AnimatePresence>
         {query && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -188,7 +200,7 @@ function SidebarSearch({ students, classes, t }) {
             ) : (
               <div className="px-3 py-2 text-sm text-muted">{t("sidebarNoStudentResults")}</div>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -455,7 +467,9 @@ export default function Shell() {
               <Outlet />
             ) : (
               <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
-                <Outlet />
+                <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
+                  <Outlet />
+                </Suspense>
               </main>
             )}
 

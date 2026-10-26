@@ -17,16 +17,8 @@ import { Card, CardContent } from "../components/ui/card.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
+import { avatarColorFor } from "../lib/avatarTone.js";
 
-const AVATAR_COLORS = [
-  "bg-violet-100 text-violet-700", "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
-  "bg-sky-100 text-sky-700", "bg-rose-100 text-rose-700", "bg-teal-100 text-teal-700"
-];
-function avatarColorFor(str) {
-  let h = 0;
-  for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
 function initialsOfName(name, email) {
   const src = (name || "").trim() || email || "";
   const parts = src.split(/\s+/).filter(Boolean);

@@ -43,6 +43,7 @@ import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
 import { CalendarError, CalendarSkeleton } from "../components/calendar/CalendarStatus.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
@@ -74,9 +75,10 @@ function initialView(configuredView) {
 }
 
 function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
-    title: "", personName: "", notes: "",
+    title: "", personName: "", notes: "", location: "",
     date: defaultDate, startTime: "09:00", endTime: "",
     availability: "busy"
   });
@@ -85,7 +87,7 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{label}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} /></div>
@@ -104,6 +106,9 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEndTime")}</label><input type="time" className={inputClass} value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} /></div>
         </div>
         <div className="mt-3">
+          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("classLocationLabel")}</label><input className={inputClass} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} /></div>
+        </div>
+        <div className="mt-3">
           <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label>
           <input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} />
         </div>
@@ -117,6 +122,7 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
 }
 
 function CalendarSettingsModal({ config, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [defaultView, setDefaultView] = useState(config.calendarDefaultView || "week");
   const [defaultFilter, setDefaultFilter] = useState(config.calendarDefaultFilter || "all");
@@ -125,7 +131,7 @@ function CalendarSettingsModal({ config, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-md" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-md" role="dialog" aria-modal="true">
         <p className="mb-1 text-base font-bold text-card-foreground">{t("calendarSettings")}</p>
         <p className="mb-4 text-xs text-muted">{t("calendarSettingsDesc")}</p>
 
@@ -333,7 +339,12 @@ export default function CalendarPage() {
         if (label && labels.indexOf(label) === -1) labels.push(label);
       });
       const count = list.reduce((n, c) => n + studentsForClass(data.students, c.key).length, 0);
-      return { subtitle: labels.join(" · "), count: count };
+      // One card per day covers every class meeting that day, so its
+      // location is the set of distinct rooms -- "Computer Lab" once when
+      // Level 1 and Level 2 share it, "Computer Lab · Room 2" when they don't.
+      const locations = [];
+      list.forEach((c) => { if (c.location && locations.indexOf(c.location) === -1) locations.push(c.location); });
+      return { subtitle: labels.join(" · "), count: count, location: locations.join(" · ") };
     };
   }, [data.classes, data.students, data.customServices, lang]);
 
@@ -345,10 +356,10 @@ export default function CalendarPage() {
         .map((b) => Object.assign({}, b, classMeta(b.classKeys)));
       const dayEvents = events.filter((e) => e.date === dateStr);
       let blocks = sortDayBlocks(
-        classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, event: e })))
+        classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, location: e.location, event: e })))
       );
       if (filter !== "all") blocks = blocks.filter((b) => b.kind === filter);
-      if (q) blocks = blocks.filter((b) => b.title.toLowerCase().includes(q) || (b.event?.personName || "").toLowerCase().includes(q));
+      if (q) blocks = blocks.filter((b) => b.title.toLowerCase().includes(q) || (b.event?.personName || "").toLowerCase().includes(q) || (b.location || "").toLowerCase().includes(q));
       return { date: d, dateStr, blocks };
     });
   }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime, classAccents, classMeta]);
@@ -356,7 +367,7 @@ export default function CalendarPage() {
   // Day view gets a taller hour so a single column can carry more detail;
   // the grid otherwise spans 8 AM-6 PM, widened to cover anything actually
   // scheduled outside that window.
-  const grid = useMemo(() => buildTimeGrid(dayBlocks, view === "day" ? 84 : 64), [dayBlocks, view]);
+  const grid = useMemo(() => buildTimeGrid(dayBlocks, view === "day" ? 84 : 72), [dayBlocks, view]);
 
   const summary = useMemo(() => {
     let classes = 0, visits = 0, appointments = 0;

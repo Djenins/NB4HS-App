@@ -17,6 +17,7 @@ import {
 import { formatAddress, formatPhone } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
 import { Button } from "./ui/button.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const STEP_KEYS = ["employer", "jobDetails", "employment", "application"];
 const STEP_LABEL_KEY = { employer: "stepEmployerLabel", jobDetails: "stepJobDetailsLabel", employment: "stepEmploymentLabel", application: "stepApplicationLabel" };
@@ -75,6 +76,7 @@ function emptyFields(lockEmployerId) {
 }
 
 export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const { showToast } = useApp();
   const t = useT();
   const [step, setStep] = useState(0);
@@ -114,14 +116,14 @@ export default function JobOpeningWizard({ jobOpening, lockEmployerId, employers
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-2xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-2xl" role="dialog" aria-modal="true">
         <div className="mb-4 flex flex-wrap gap-1">
           {STEP_KEYS.map((key, i) => (
             <span
               key={key}
               className={
                 "rounded-full px-3 py-1 text-xs font-semibold " +
-                (i === step ? "bg-primary text-white" : i < step ? "bg-primary-tint text-primary" : "bg-tint-neutral text-muted")
+                (i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-primary-tint text-primary" : "bg-tint-neutral text-muted")
               }
             >
               {i + 1}. {t(STEP_LABEL_KEY[key])}
