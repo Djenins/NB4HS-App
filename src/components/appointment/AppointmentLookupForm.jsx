@@ -112,7 +112,7 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
         type="submit"
         disabled={busy}
         className={cn(
-          "mt-5 flex w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 font-bold text-white",
+          "mt-5 flex w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 font-bold text-primary-foreground",
           "min-h-[60px] text-[1.05rem] sm:min-h-[68px] sm:text-[1.2rem]",
           "shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150",
           "hover:bg-primary-dark active:bg-primary-dark",

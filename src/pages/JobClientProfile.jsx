@@ -32,6 +32,7 @@ import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 const TAB_KEYS = ["overview", "applications", "interviews", "services", "documents", "notes", "history"];
 const TAB_LABEL = {
@@ -69,7 +70,7 @@ function Chip({ active, onClick, children }) {
       onClick={onClick}
       className={
         "rounded-full border px-3 py-1 text-xs font-semibold transition-colors " +
-        (active ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-[#b7c0d1]")
+        (active ? "border-primary bg-primary-tint text-primary" : "border-border bg-background text-muted hover:border-line-strong")
       }
     >
       {children}
@@ -120,6 +121,7 @@ function ApplicationRowMenu({ onDelete }) {
 }
 
 function PersonalInfoModal({ record, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     phone: record.phone || "", email: record.email || "", street: record.street || "", city: record.city || "", zip: record.zip || "",
@@ -130,7 +132,7 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("personalInformationLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("phone")}</label><input className={inputClass} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} placeholder={t("phPhone")} /></div>
@@ -152,6 +154,7 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
 }
 
 function AddApplicationModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({ company: "", position: "", appliedDate: "", status: "applied", nextStepDate: "", nextStepNote: "", interviewDate: "", interviewNotes: "" });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
@@ -159,7 +162,7 @@ function AddApplicationModal({ onSave, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addApplicationBtn")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("companyLabel")} *</label><input className={inputClass} value={fields.company} onChange={(e) => setField("company", e.target.value)} placeholder={t("phCompany")} /></div>
@@ -194,11 +197,12 @@ function AddApplicationModal({ onSave, onCancel }) {
 }
 
 function AddNoteModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [content, setContent] = useState("");
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
         <textarea
           value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
@@ -214,6 +218,7 @@ function AddNoteModal({ onSave, onCancel }) {
 }
 
 function UploadDocumentModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fileName, setFileName] = useState("");
   const fileRef = useRef(null);
@@ -224,7 +229,7 @@ function UploadDocumentModal({ onSave, onCancel }) {
   }
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
         <input
           ref={fileRef} type="file" onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}

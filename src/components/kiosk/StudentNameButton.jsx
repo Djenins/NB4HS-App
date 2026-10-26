@@ -29,7 +29,7 @@ export default function StudentNameButton({ student, busy = false, disabled = fa
       <span
         className={cn(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[1.05rem] font-extrabold",
-          busy ? "bg-primary text-white" : "bg-primary-tint text-primary"
+          busy ? "bg-primary text-primary-foreground" : "bg-primary-tint text-primary"
         )}
         aria-hidden="true"
       >

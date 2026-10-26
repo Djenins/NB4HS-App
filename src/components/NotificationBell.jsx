@@ -76,7 +76,7 @@ function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
       <div className="mt-0.5 text-xs text-muted">{n.message}</div>
       {appt && (
         <>
-          <div className="mt-1 text-[11px] text-muted">
+          <div className="mt-1 text-xs text-muted">
             {fmtDateLong(appt.date, lang)}{appt.time ? " · " + appt.time : ""}
           </div>
           {!rescheduling && (appt.status === "requested" || appt.status === "scheduled") && (

@@ -136,11 +136,11 @@ export default function CheckIn() {
             compact={compact}
             icon={(props) => <User {...props} />}
             iconBg="var(--gold-tint)"
-            iconColor="var(--gold-dark)"
+            iconColor="var(--gold-ink)"
             title={t("iAmVisitor").replace(/\s*\(.*\)$/, "")}
             services={t("landingVisitorServices")}
             buttonLabel={t("checkInLabel")}
-            buttonClass="bg-gradient-to-r from-gold to-gold-dark hover:brightness-110"
+            buttonClass="bg-gradient-to-r from-gold to-gold-dark text-gold-foreground hover:brightness-110"
             onClick={() => navigate("/checkin/visitor")}
           />
           <RoleCard

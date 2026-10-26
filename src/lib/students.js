@@ -7,6 +7,7 @@
 import { COLUMN_ACCENTS, WEEKDAYS } from "./constants.js";
 import { t } from "./i18n.js";
 import { downloadBlob, fullServiceList, labelFor, parseCSVText } from "./utils.js";
+import { loadXlsx } from "./loadXlsx.js";
 
 export function studentDisplayName(s) { return (s.lastName || "") + ", " + (s.firstName || ""); }
 // mode: "name" (default, A-Z by last/first) | "id" (Student ID ascending --
@@ -122,8 +123,9 @@ export function studentCsvTemplateContent() {
 export function pastRosterCsvTemplateContent() {
   return "First Name,Last Name,Phone,Email,Street Address,City,ZIP Code,Classroom\r\n";
 }
-export function downloadStudentTemplate() {
-  if (typeof XLSX !== "undefined") {
+export async function downloadStudentTemplate() {
+  var XLSX = await loadXlsx();
+  if (XLSX) {
     try {
       var ws = XLSX.utils.aoa_to_sheet([["First Name", "Last Name", "Phone", "Email", "Street Address", "City", "ZIP Code"]]);
       var wb = XLSX.utils.book_new();
@@ -134,8 +136,9 @@ export function downloadStudentTemplate() {
   }
   downloadBlob(studentCsvTemplateContent(), "NB4HS-Student-Template.csv", "text/csv;charset=utf-8;");
 }
-export function downloadPastSessionTemplate() {
-  if (typeof XLSX !== "undefined") {
+export async function downloadPastSessionTemplate() {
+  var XLSX = await loadXlsx();
+  if (XLSX) {
     try {
       var ws = XLSX.utils.aoa_to_sheet([["First Name", "Last Name", "Phone", "Email", "Street Address", "City", "ZIP Code", "Classroom"]]);
       var wb = XLSX.utils.book_new();
@@ -225,8 +228,9 @@ export function readRowsFromFile(file, onRows, onError) {
     reader.onerror = function () { onError(); };
     reader.readAsText(file);
   } else {
-    if (typeof XLSX === "undefined") { onError(); return; }
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
+      var XLSX = await loadXlsx();
+      if (!XLSX) { onError(); return; }
       try {
         var data = new Uint8Array(e.target.result);
         var wb = XLSX.read(data, { type: "array" });

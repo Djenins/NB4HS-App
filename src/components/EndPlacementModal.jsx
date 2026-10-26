@@ -5,15 +5,17 @@ import { useT } from "../context/AppContext.jsx";
 import { todayStr } from "../lib/utils.js";
 import DatePicker from "./DatePicker.jsx";
 import { Button } from "./ui/button.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 export default function EndPlacementModal({ onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [endDate, setEndDate] = useState(todayStr());
   const [reason, setReason] = useState("");
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-md" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-md" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("markEndedBtn")}</p>
         <div className="space-y-3">
           <div>

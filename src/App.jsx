@@ -10,15 +10,13 @@
 // Also owns one bit of bootstrap logic that used to live at the top of the
 // original's init() (lines 3882-3903): the `?kiosk=1`/`#checkin` kiosk entry
 // point. This only runs once, on mount.
-import { useEffect, useRef } from "react";
+import { lazy, useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
 import Shell from "./components/Shell.jsx";
 import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import MyCaseload from "./pages/MyCaseload.jsx";
 import RequireRoute from "./components/RequireRoute.jsx";
 import CheckIn from "./pages/CheckIn.jsx";
 import CheckInStudent from "./pages/CheckInStudent.jsx";
@@ -29,33 +27,42 @@ import CheckOutScanSuccess from "./pages/CheckOutScanSuccess.jsx";
 import ApptRequest from "./pages/ApptRequest.jsx";
 import ApptRequestSuccess from "./pages/ApptRequestSuccess.jsx";
 import AppointmentLookup from "./pages/AppointmentLookup.jsx";
-import Search from "./pages/Search.jsx";
-import Reports from "./pages/Reports.jsx";
-import QRCode from "./pages/QRCode.jsx";
-import Manage from "./pages/Manage.jsx";
-import Students from "./pages/Students.jsx";
-import Assessments from "./pages/Assessments.jsx";
-import FoodDistribution from "./pages/FoodDistribution.jsx";
-import CalendarPage from "./pages/Calendar.jsx";
-import CaseManagement from "./pages/CaseManagement.jsx";
-import JobDeveloper from "./pages/JobDeveloper.jsx";
-import Workforce from "./pages/Workforce.jsx";
-import ClientProfile from "./pages/ClientProfile.jsx";
-import JobClientProfile from "./pages/JobClientProfile.jsx";
-import WorkforceDashboard from "./pages/WorkforceDashboard.jsx";
-import Employers from "./pages/Employers.jsx";
-import EmployerProfile from "./pages/EmployerProfile.jsx";
-import JobOpenings from "./pages/JobOpenings.jsx";
-import CandidateMatching from "./pages/CandidateMatching.jsx";
-import Referrals from "./pages/Referrals.jsx";
-import Placements from "./pages/Placements.jsx";
-import PlacementDetail from "./pages/PlacementDetail.jsx";
-import WorkforceReports from "./pages/WorkforceReports.jsx";
-import Outreach from "./pages/Outreach.jsx";
-import MyReports from "./pages/MyReports.jsx";
-import StaffReports from "./pages/StaffReports.jsx";
-import Users from "./pages/Users.jsx";
-import Settings from "./pages/Settings.jsx";
+
+// Code-split by route. The public kiosk/appointment pages above load eagerly
+// -- they're the first thing a client's device sees and should never wait on
+// a second request. Every staff page below is its own chunk, fetched the
+// first time it's opened (Shell wraps <Outlet/> in the Suspense boundary), so
+// the kiosk no longer downloads the dashboard, charts, reports and PDF export
+// just to show "Check in".
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const MyCaseload = lazy(() => import("./pages/MyCaseload.jsx"));
+const Search = lazy(() => import("./pages/Search.jsx"));
+const Reports = lazy(() => import("./pages/Reports.jsx"));
+const QRCode = lazy(() => import("./pages/QRCode.jsx"));
+const Manage = lazy(() => import("./pages/Manage.jsx"));
+const Students = lazy(() => import("./pages/Students.jsx"));
+const Assessments = lazy(() => import("./pages/Assessments.jsx"));
+const FoodDistribution = lazy(() => import("./pages/FoodDistribution.jsx"));
+const CalendarPage = lazy(() => import("./pages/Calendar.jsx"));
+const CaseManagement = lazy(() => import("./pages/CaseManagement.jsx"));
+const JobDeveloper = lazy(() => import("./pages/JobDeveloper.jsx"));
+const Workforce = lazy(() => import("./pages/Workforce.jsx"));
+const ClientProfile = lazy(() => import("./pages/ClientProfile.jsx"));
+const JobClientProfile = lazy(() => import("./pages/JobClientProfile.jsx"));
+const WorkforceDashboard = lazy(() => import("./pages/WorkforceDashboard.jsx"));
+const Employers = lazy(() => import("./pages/Employers.jsx"));
+const EmployerProfile = lazy(() => import("./pages/EmployerProfile.jsx"));
+const JobOpenings = lazy(() => import("./pages/JobOpenings.jsx"));
+const CandidateMatching = lazy(() => import("./pages/CandidateMatching.jsx"));
+const Referrals = lazy(() => import("./pages/Referrals.jsx"));
+const Placements = lazy(() => import("./pages/Placements.jsx"));
+const PlacementDetail = lazy(() => import("./pages/PlacementDetail.jsx"));
+const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
+const Outreach = lazy(() => import("./pages/Outreach.jsx"));
+const MyReports = lazy(() => import("./pages/MyReports.jsx"));
+const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
+const Users = lazy(() => import("./pages/Users.jsx"));
+const Settings = lazy(() => import("./pages/Settings.jsx"));
 
 function BootstrapEntry() {
   const { setKiosk } = useApp();

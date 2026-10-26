@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 function SectionCard({ title, action, children }) {
   return (
@@ -43,6 +44,7 @@ function FieldRow({ label, value }) {
 const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 
 function EditPlacementModal({ record, onSave, onCancel }) {
+  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     hourlyWage: record.hourlyWage || "", hoursPerWeek: record.hoursPerWeek || "", benefits: record.benefits || "",
@@ -51,7 +53,7 @@ function EditPlacementModal({ record, onSave, onCancel }) {
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal-box max-w-lg" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
         <p className="mb-4 text-base font-bold text-card-foreground">{t("editLabel")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hourlyWageLabel")}</label><input type="number" step="0.01" className={inputClass} value={fields.hourlyWage} onChange={(e) => setField("hourlyWage", e.target.value)} placeholder={t("phHourlyWage")} /></div>

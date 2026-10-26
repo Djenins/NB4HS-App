@@ -10,6 +10,7 @@ import {
 import { fmtDateLong } from "../lib/utils.js";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 
 function FieldRow({ label, value }) {
   return (
@@ -21,12 +22,13 @@ function FieldRow({ label, value }) {
 }
 
 export default function JobOpeningDetailModal({ jobOpening, onClose }) {
+  const boxRef = useModalA11y(onClose);
   const t = useT();
   const o = jobOpening;
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box max-w-xl" role="dialog" aria-modal="true">
+      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="m-0 text-base font-bold text-card-foreground">{o.title}</p>

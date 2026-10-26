@@ -8,6 +8,7 @@
 import { CASE_SERVICES, IMMIGRATION_STATUSES } from "./constants.js";
 import { inRange } from "./reports_data.js";
 import { csvEscape, downloadBlob, escapeHtml, normalizeDateCell, todayStr, uid } from "./utils.js";
+import { loadXlsx } from "./loadXlsx.js";
 
 export var CLIENT_KIND = {
   case: {
@@ -136,8 +137,9 @@ export function allDistributions(foodClients) {
 export function caseClientCsvTemplateContent() {
   return "First Name,Last Name,Email,Street Address,City,ZIP Code,Immigration Status,Intake Date (YYYY-MM-DD),Date of Birth (YYYY-MM-DD),Services (semicolon-separated)\r\n";
 }
-export function downloadCaseClientTemplate() {
-  if (typeof XLSX !== "undefined") {
+export async function downloadCaseClientTemplate() {
+  var XLSX = await loadXlsx();
+  if (XLSX) {
     try {
       var header = ["First Name", "Last Name", "Email", "Street Address", "City", "ZIP Code", "Immigration Status", "Intake Date (YYYY-MM-DD)", "Date of Birth (YYYY-MM-DD)", "Services (semicolon-separated)"];
       var ws = XLSX.utils.aoa_to_sheet([header]);
@@ -198,8 +200,9 @@ export function buildImportedCaseClients(rows) {
 export function foodClientCsvTemplateContent() {
   return "First Name,Last Name,Phone,Email,Street Address,City,ZIP Code,Household Size,Intake Date (YYYY-MM-DD)\r\n";
 }
-export function downloadFoodClientTemplate() {
-  if (typeof XLSX !== "undefined") {
+export async function downloadFoodClientTemplate() {
+  var XLSX = await loadXlsx();
+  if (XLSX) {
     try {
       var header = ["First Name", "Last Name", "Phone", "Email", "Street Address", "City", "ZIP Code", "Household Size", "Intake Date (YYYY-MM-DD)"];
       var ws = XLSX.utils.aoa_to_sheet([header]);

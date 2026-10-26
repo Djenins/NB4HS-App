@@ -376,7 +376,7 @@ export default function CaseManagement() {
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalClientsLabel")} value={totalClients} />
         <KpiStat icon={CalendarClock} tint="bg-tint-success text-success" label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} />
-        <KpiStat icon={Users} tint="bg-violet-100 text-violet-700" label={t("statActiveClientsLabel")} value={activeClients} />
+        <KpiStat icon={Users} tint="bg-violet-tint text-violet-ink" label={t("statActiveClientsLabel")} value={activeClients} />
         <KpiStat icon={Clock3} tint="bg-tint-warn text-gold-ink" label={t("statImportedContactsLabel")} value={importedCount} />
       </div>
 
@@ -414,7 +414,7 @@ export default function CaseManagement() {
             <button
               type="button"
               aria-label={t("filterLabel")}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted transition-colors hover:border-[#b7c0d1] hover:text-card-foreground"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted transition-colors hover:border-line-strong hover:text-card-foreground"
             >
               <SlidersHorizontal className="h-4.5 w-4.5" />
             </button>

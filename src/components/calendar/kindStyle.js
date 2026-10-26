@@ -15,16 +15,18 @@
 // to a var(), and an opacity modifier on one of those compiles to an
 // invalid rgb(var(--x) / .5) that renders as no background at all.
 //
-// Each entry carries the whole card recipe -- tint, border, 3px left accent,
-// colored title -- so the week grid, month chips, agenda rows, legend and
-// drawer all draw the same event the same way.
-import { CalendarClock, GraduationCap, PartyPopper, UserRound } from "lucide-react";
+// Each entry carries the whole card recipe -- tint, border, left accent,
+// icon disc, colored time -- so the week grid, month chips, agenda rows,
+// legend and drawer all draw the same event the same way. `iconBg` is the
+// disc behind the card's icon, one step deeper than `cardBg`.
+import { CalendarClock, FileText, Monitor, PartyPopper, UserRound } from "lucide-react";
 
 export var KIND_STYLE = {
   class: {
-    icon: GraduationCap,
+    icon: Monitor,
     label: "calendarClassLabel",
     chipBg: "bg-primary-tint",
+    iconBg: "bg-[var(--ev-class-chip)]",
     chipFg: "text-primary",
     dot: "bg-primary",
     cardBg: "bg-[var(--ev-class-bg)]",
@@ -36,6 +38,7 @@ export var KIND_STYLE = {
     icon: UserRound,
     label: "calendarVisitLabel",
     chipBg: "bg-tint-success",
+    iconBg: "bg-[var(--ev-visit-chip)]",
     chipFg: "text-success",
     dot: "bg-success",
     cardBg: "bg-[var(--ev-visit-bg)]",
@@ -47,6 +50,7 @@ export var KIND_STYLE = {
     icon: CalendarClock,
     label: "calendarAppointmentLabel",
     chipBg: "bg-[var(--ev-appt-bg)]",
+    iconBg: "bg-[var(--ev-appt-chip)]",
     chipFg: "text-[var(--ev-appt-fg)]",
     dot: "bg-[var(--ev-appt-fg)]",
     cardBg: "bg-[var(--ev-appt-bg)]",
@@ -58,6 +62,7 @@ export var KIND_STYLE = {
     icon: PartyPopper,
     label: "calendarHolidayLabel",
     chipBg: "bg-accent-tint",
+    iconBg: "bg-[var(--ev-holiday-chip)]",
     chipFg: "text-accent",
     dot: "bg-accent",
     cardBg: "bg-[var(--ev-holiday-bg)]",
@@ -76,13 +81,16 @@ export var KIND_STYLE = {
 // Slot 1's violet is deliberately a lighter, bluer hue than the appointment
 // purple (--ev-appt-fg): the two kinds still differ by hue, and they always
 // differ by icon (graduation cap vs. clock) and by the type word in the
-// tooltip, legend and drawer -- colour is never the only signal here.
+// tooltip, legend and drawer -- colour is never the only signal here. Each
+// slot also has its own icon (monitor / document), so two groupings differ
+// by glyph as well as hue.
 export var CLASS_ACCENTS = [
   KIND_STYLE.class,
   {
-    icon: GraduationCap,
+    icon: FileText,
     label: "calendarClassLabel",
     chipBg: "bg-[var(--ev-class-alt-bg)]",
+    iconBg: "bg-[var(--ev-class-alt-chip)]",
     chipFg: "text-[var(--ev-class-alt-fg)]",
     dot: "bg-[var(--ev-class-alt-fg)]",
     cardBg: "bg-[var(--ev-class-alt-bg)]",

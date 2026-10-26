@@ -197,7 +197,7 @@ export default function CheckOut() {
             {list.map((v) => {
               const name = v.firstName + " " + v.lastName;
               return (
-                <div key={v.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border-l-4 border-success bg-card p-4 shadow-card">
+                <div key={v.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar className="h-11 w-11 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(v)}</AvatarFallback></Avatar>
                     <div className="min-w-0">

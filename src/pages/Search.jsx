@@ -15,7 +15,7 @@
 // checkinData.js's updateVisit().
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Award, ChevronDown, ChevronUp, Clock, Columns3, Copy, DoorOpen, Download,
   Eye, LogIn, MoreHorizontal, Pencil, Printer, RefreshCw, Search as SearchIcon,
@@ -32,6 +32,7 @@ import {
   initialsOf, labelFor, minutesBetween, todayStr
 } from "../lib/utils.js";
 import DatePicker from "../components/DatePicker.jsx";
+import { useModalA11y } from "../lib/useModalA11y.js";
 import Pagination from "../components/Pagination.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import { Badge } from "../components/ui/badge.jsx";
@@ -40,6 +41,7 @@ import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "../components/ui/dropdown-menu.jsx";
+import { avatarColorFor } from "../lib/avatarTone.js";
 
 function Sparkline({ data, color }) {
   if (!data.length) return null;
@@ -60,7 +62,7 @@ function Sparkline({ data, color }) {
 
 function KpiCard({ icon: Icon, tint, num, label, trend, color, index }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
+    <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.05 }}>
       <Card>
         <CardContent className="flex items-center gap-3 p-5">
           <div className={"flex h-11 w-11 shrink-0 items-center justify-center rounded-xl " + tint}>
@@ -73,7 +75,7 @@ function KpiCard({ icon: Icon, tint, num, label, trend, color, index }) {
           <Sparkline data={trend} color={color} />
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -85,7 +87,7 @@ function StatusBadge({ checkedOut, t }) {
 
 function FilterFieldBox({ label, children, className }) {
   return (
-    <div className={"relative min-w-[150px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-[#b7c0d1] " + (className || "")}>
+    <div className={"relative min-w-[150px] flex-1 rounded-lg border border-border bg-background px-4 py-2 transition-colors hover:border-line-strong " + (className || "")}>
       <div className="text-xs font-medium text-muted">{label}</div>
       {children}
     </div>
@@ -123,15 +125,6 @@ function SortHeader({ label, sortKey, sort, onSort, className }) {
   );
 }
 
-const AVATAR_COLORS = [
-  "bg-violet-100 text-violet-700", "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
-  "bg-sky-100 text-sky-700", "bg-rose-100 text-rose-700", "bg-teal-100 text-teal-700"
-];
-function avatarColorFor(str) {
-  let h = 0;
-  for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
 
 function fmtDateShort(dateStr, lang) {
   if (!dateStr) return "—";
@@ -173,6 +166,9 @@ export default function Search() {
   const [grants, setGrants] = useState([]);
   const [grantTags, setGrantTags] = useState({});
   const [grantTagVisit, setGrantTagVisit] = useState(null);
+  const detailBoxRef = useModalA11y(() => setDetailVisit(null), !!detailVisit);
+  const editBoxRef = useModalA11y(() => closeEditVisit(), !!(editVisit && editForm));
+  const grantBoxRef = useModalA11y(() => setGrantTagVisit(null), !!grantTagVisit);
   const [pendingGrantId, setPendingGrantId] = useState("");
 
   useEffect(() => {
@@ -395,7 +391,7 @@ export default function Search() {
             <button
               type="button"
               onClick={resetFilters}
-              className="flex min-w-[130px] items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-[#b7c0d1] hover:text-card-foreground"
+              className="flex min-w-[130px] items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-line-strong hover:text-card-foreground"
             >
               {t("clearFilters")} <RefreshCw className="h-3.5 w-3.5" />
             </button>
@@ -574,10 +570,10 @@ export default function Search() {
 
       {detailVisit ? (
         <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) setDetailVisit(null); }}>
-          <div className="modal-box" style={{ maxWidth: 480 }}>
+          <div ref={detailBoxRef} role="dialog" aria-modal="true" className="modal-box" style={{ maxWidth: 480 }}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="m-0">{t("visitDetailsModalTitle")}</h3>
-              <button onClick={() => setDetailVisit(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
+              <button type="button" aria-label={t("closeLabel")} onClick={() => setDetailVisit(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
             </div>
             <div className="mb-4 flex items-center gap-3">
               <Avatar className="h-11 w-11"><AvatarFallback>{initialsOf(detailVisit)}</AvatarFallback></Avatar>
@@ -605,10 +601,10 @@ export default function Search() {
 
       {editVisit && editForm ? (
         <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) closeEditVisit(); }}>
-          <div className="modal-box" style={{ maxWidth: 560 }}>
+          <div ref={editBoxRef} role="dialog" aria-modal="true" className="modal-box" style={{ maxWidth: 560 }}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="m-0">{t("editVisitModalTitle")}</h3>
-              <button onClick={closeEditVisit} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
+              <button type="button" aria-label={t("closeLabel")} onClick={closeEditVisit} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); saveEditVisit(); }}>
               <div className="grid grid-2">
@@ -688,10 +684,10 @@ export default function Search() {
 
       {grantTagVisit ? (
         <div className="modal-overlay no-print" onClick={(e) => { if (e.target === e.currentTarget) setGrantTagVisit(null); }}>
-          <div className="modal-box" style={{ maxWidth: 420 }}>
+          <div ref={grantBoxRef} role="dialog" aria-modal="true" className="modal-box" style={{ maxWidth: 420 }}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="m-0">Tag Grant</h3>
-              <button onClick={() => setGrantTagVisit(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
+              <button type="button" aria-label={t("closeLabel")} onClick={() => setGrantTagVisit(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-background"><X className="h-4 w-4" /></button>
             </div>
             <p className="muted" style={{ marginTop: 0 }}>{grantTagVisit.firstName} {grantTagVisit.lastName} · {fmtDateShort(grantTagVisit.date, lang)}</p>
             <div className="field">

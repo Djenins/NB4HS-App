@@ -32,7 +32,7 @@ const buttonVariants = cva(
         // --card they land at 1.4:1, so every secondary button in dark mode
         // was unreadable. Dark mode takes the theme ink and the themed
         // --secondary-border instead.
-        secondary: "bg-card text-navy dark:text-[color:var(--text)] border border-[#CBD5E1] dark:border-secondary-border hover:bg-primary-tint",
+        secondary: "bg-card text-navy dark:text-[color:var(--text)] border border-secondary-border hover:bg-primary-tint",
         outline: "border border-border bg-transparent hover:bg-background",
         // Needs an explicit colour: preflight is off, so nothing sets
         // `color:inherit` on a <button> and a ghost with no colour class of
@@ -44,7 +44,7 @@ const buttonVariants = cva(
         // No --success-dark token exists (only primary/accent have a dark
         // variant), so this uses a brightness filter for the hover-darken
         // instead of a second named color.
-        success: "bg-success text-white hover:brightness-90"
+        success: "bg-success text-success-foreground hover:brightness-90"
       },
       size: {
         default: "h-10 px-4 py-2",
