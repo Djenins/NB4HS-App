@@ -1,7 +1,10 @@
 -- Phase 6, part B -- email copies of staff report notices, "R3"
 -- (plans/staff-reporting-architecture.md §6; decision D9: Resend).
--- NOT APPLIED. Dry-run only (supabase/tests/p6b_outbound_check.sql), waiting
--- for review. Builds on p6a.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261027030000) after a
+-- rolled-back dry run of supabase/tests/p6b_outbound_check.sql passed.
+-- Afterwards p6b_outbound_check, p6a_reports_check and p1_access_check passed
+-- against the live database. Builds on p6a. Email stays idle until the Vault
+-- secrets and the send-outbound function's secrets are set.
 --
 -- How it works:
 --   * The report RPCs queue an email in the same transaction as the in-app
