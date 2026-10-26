@@ -88,6 +88,14 @@ describe("Shell sidebar", () => {
     expect(crumb.textContent).toContain(translate("navDashboard", "en"));
   });
 
+  it("offers Your profile in the account menu", async () => {
+    setViewport("desktop");
+    renderShell();
+    const trigger = screen.getByRole("button", { name: new RegExp(translate("sidebarAccountMenu", "en")) });
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+    expect(await screen.findByRole("menuitem", { name: translate("profileMenuItem", "en") })).toBeInTheDocument();
+  });
+
   it("shows full-width nav labels on a desktop viewport", () => {
     setViewport("desktop");
     renderShell();

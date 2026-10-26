@@ -17,10 +17,12 @@ import { useNavItems } from "../lib/useNavItems.js";
 import { landingItem } from "../lib/workspaces.js";
 
 // Can these nav items (and, under the permissions model, these permissions)
-// open this page? A page that isn't a sidebar item:
+// open this page? Pages that aren't sidebar items:
+//   profile    your own profile -- anyone signed in
 //   clients    a client's profile -- anyone who can read participant records
 export function routeAllowed(routeKey, items, opts) {
   if (Array.isArray(routeKey)) return routeKey.some((k) => routeAllowed(k, items, opts));
+  if (routeKey === "profile") return true;
   if (routeKey === "clients") return items.length > 0 && (!opts.fromPermissions || opts.can("participants.view"));
   return items.indexOf(routeKey) !== -1;
 }

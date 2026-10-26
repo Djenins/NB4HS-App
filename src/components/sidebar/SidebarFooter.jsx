@@ -1,8 +1,10 @@
 // SidebarFooter.jsx -- the signed-in staff member (initials avatar, name,
-// role; opens the account menu with Sign out), the notifications bell with
+// role; opens the account menu with Your profile and Sign out), the
+// notifications bell with
 // its real unread count, and the Light/Dark switch. Everything comes from
 // the live session -- nothing here is sample data.
-import { LogOut } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import { cn } from "../../lib/cn.js";
 import { roleLabel } from "../../lib/utils.js";
@@ -23,6 +25,7 @@ const BELL = cn(FOCUS_RING, "h-10 w-10 rounded-xl text-sb-icon hover:bg-sb-hover
 
 export default function SidebarFooter({ collapsed, t }) {
   const { session, logout } = useApp();
+  const navigate = useNavigate();
   const name = session ? (session.currentUserName || session.currentUserEmail || "") : "";
   const role = roleLabel(session && session.role, "en");
 
@@ -40,6 +43,9 @@ export default function SidebarFooter({ collapsed, t }) {
           <div className="truncate text-sm font-semibold">{name}</div>
           <div className="truncate text-xs text-muted">{role}</div>
         </div>
+        <DropdownMenuItem onSelect={() => navigate("/profile")}>
+          <UserRound className="h-4 w-4" /> {t("profileMenuItem")}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={logout}>
           <LogOut className="h-4 w-4" /> {t("signOut")}
         </DropdownMenuItem>
