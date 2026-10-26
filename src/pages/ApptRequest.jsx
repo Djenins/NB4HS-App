@@ -11,10 +11,11 @@
 //
 // The appointment system underneath is untouched. Fields are still
 // uncontrolled and read off form.elements at submit time, "Meet With" is
-// still fed by the live staff_directory, "Meeting With" still only appears
-// while no specific person is chosen, the same five fields are required, the
-// record handed to createAppointment() is byte-for-byte the same shape, and
-// success still lands on /appointments/request/success.
+// still fed by the live staff list, "Meeting With" still only appears while no
+// specific person is chosen, the same five fields are required, and success
+// still lands on /appointments/request/success. The request itself goes
+// through requestAppointment() (the request_appointment RPC), which resolves
+// the chosen person server-side -- the page never sees staff email addresses.
 //
 // Two behavioural additions ride along, both required by the kiosk brief:
 // the validation results that already drove the toast and red borders now
@@ -26,7 +27,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarCheck, TriangleAlert } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { createAppointment } from "../lib/clientsData.js";
+import { requestAppointment } from "../lib/clientsData.js";
 import { bookStaffAppointment, fetchBookableStaff } from "../lib/availability.js";
 import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import YourInformationSection from "../components/appointment/YourInformationSection.jsx";
@@ -86,7 +87,7 @@ export default function ApptRequest() {
     const fields = {
       firstName: val("firstName"), lastName: val("lastName"), phone: val("phone"), email: val("email"),
       date: val("date"), time: val("time"), reason: val("reason"),
-      assignedEmail: "", meetingWith: val("meetingWith") || "case_manager"
+      staffId: null, meetingWith: val("meetingWith") || "case_manager"
     };
     const missing = REQUIRED_FIELDS.filter((f) => !fields[f]);
     if (missing.length) {
@@ -107,9 +108,10 @@ export default function ApptRequest() {
     setBusy(true);
     try {
       // A chosen person: hold their open slot (rejects if it was just taken).
-      // No preference: the original free-form request, assigned by staff.
+      // No preference: the free-form request (request_appointment RPC),
+      // assigned by staff.
       if (picked) await bookStaffAppointment(Object.assign({}, fields, { staffId: picked.id }));
-      else await createAppointment(Object.assign({}, fields, { source: "client" }));
+      else await requestAppointment(fields);
       navigate("/appointments/request/success");
     } catch (err) {
       if (err && err.slotTaken) {
@@ -120,7 +122,7 @@ export default function ApptRequest() {
       }
       // Nothing is cleared: the visitor keeps everything they typed and can
       // simply tap Submit again.
-      console.warn("createAppointment failed", err);
+      console.warn("requestAppointment failed", err);
       setSubmitError(t("apptRequestErrorDesc"));
       showToast(t("apptRequestErrorDesc"));
     } finally {

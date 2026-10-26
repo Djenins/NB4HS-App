@@ -1,51 +1,59 @@
 // EmployerPipelineTracker.jsx -- horizontal 6-stage tracker (Prospect ->
 // Contacted -> Meeting Scheduled -> Partner -> Hiring -> Inactive) for the
-// Employer Profile page. A new sibling component rather than a
-// generalization of JobPipelineTracker.jsx (the job-seeker equivalent), to
-// keep the two pipelines fully independent -- same clickable-dot idiom,
-// own stage list/icon map. Clicking a stage sets partnershipStage directly
-// (no drag/drop, matching JobPipelineTracker's precedent).
-import { Briefcase, Calendar, Handshake, PauseCircle, Phone, Search } from "lucide-react";
+// Employer Profile page. A sibling component rather than a generalization
+// of JobPipelineTracker.jsx (the job-seeker equivalent), to keep the two
+// pipelines fully independent -- same numbered-step idiom, own stage list.
+// Clicking a stage sets partnershipStage directly (no drag/drop, matching
+// JobPipelineTracker's precedent).
+//
+// Info-tone stepper: completed steps tinted, the current step solid (and
+// aria-current="step"), later steps outlined. Every step keeps its number
+// and label visible, so colour is never the only signal. On a phone the row
+// scrolls sideways inside itself instead of squeezing the labels.
+import { useT } from "../context/AppContext.jsx";
+import { cn } from "../lib/cn.js";
 import { EMPLOYER_PARTNERSHIP_STAGES, partnershipStageIndex } from "../lib/employerProfile.js";
+import { BUTTON_RESET } from "./ui/button.jsx";
 
-const STAGE_ICON = {
-  prospect: Search, contacted: Phone, meeting_scheduled: Calendar,
-  partner: Handshake, hiring: Briefcase, inactive: PauseCircle
+const CIRCLE = {
+  done: "border-tone-info-border bg-tone-info-chip text-tone-info-ink",
+  current: "border-tone-info-solid bg-tone-info-solid text-tone-info-on-solid",
+  todo: "border-line-strong bg-card text-muted group-hover:border-primary group-hover:text-primary"
 };
 
 export default function EmployerPipelineTracker({ stage, onChange }) {
+  const t = useT();
   const activeIndex = partnershipStageIndex(stage);
+  const last = EMPLOYER_PARTNERSHIP_STAGES.length - 1;
 
   return (
-    <div className="flex flex-wrap items-center">
+    <ol aria-label={t("partnershipStageLabel")} className="m-0 flex list-none overflow-x-auto p-0">
       {EMPLOYER_PARTNERSHIP_STAGES.map((s, i) => {
-        const Icon = STAGE_ICON[s.key];
-        const isDone = i <= activeIndex;
-        const isActive = i === activeIndex;
+        const state = i < activeIndex ? "done" : i === activeIndex ? "current" : "todo";
         return (
-          <div key={s.key} className="flex items-center">
+          <li key={s.key} className="relative flex min-w-[4.5rem] flex-1 justify-center">
+            {i < last ? (
+              <span
+                aria-hidden="true"
+                className={cn("absolute left-1/2 top-5 h-0.5 w-full -translate-y-1/2", i < activeIndex ? "bg-tone-info-solid" : "bg-line-strong")}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() => onChange(s.key)}
-              title={s.en}
-              className="flex flex-col items-center gap-1 border-0 bg-transparent p-0"
+              aria-current={state === "current" ? "step" : undefined}
+              className={cn(BUTTON_RESET, "group relative flex w-full flex-col items-center gap-1.5 rounded-control px-1 py-1 text-center focus-visible:outline-none focus-visible:ring-2")}
             >
-              <span
-                className={
-                  "flex h-9 w-9 items-center justify-center rounded-full " +
-                  (isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-primary-tint text-primary" : "bg-tint-neutral text-muted")
-                }
-              >
-                <Icon className="h-4 w-4" />
+              <span className={cn("flex h-8 w-8 items-center justify-center rounded-chip border border-solid text-meta font-bold tabular-nums transition-colors duration-fast", CIRCLE[state])}>
+                {i + 1}
               </span>
-              <span className={"text-xs font-semibold " + (isActive ? "text-primary" : "text-muted")}>{s.en}</span>
+              <span className={cn("text-meta leading-tight", state === "current" ? "font-semibold text-card-foreground" : "font-medium text-muted")}>
+                {s.en}
+              </span>
             </button>
-            {i < EMPLOYER_PARTNERSHIP_STAGES.length - 1 && (
-              <span className={"mx-1.5 mb-4 h-px w-8 " + (i < activeIndex ? "bg-primary" : "bg-border")} />
-            )}
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

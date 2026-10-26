@@ -11,11 +11,14 @@
 // The sidebar is the floating, theme-aware AppSidebar (components/sidebar/),
 // mounted here once so every staff page -- Workforce, SNAP, Adult
 // Education, Case Management and the rest -- shares the same navigation.
-// Which entries it shows still comes only from nav.js's navItemsForRole();
-// Shell picks the layout (floating rail, tablet rail, phone drawer) and
-// owns the ⌘K search palette.
+// Which entries it shows comes from the signed-in person's permissions
+// (useNavItems: my_permissions(), with today's role rules as the fallback
+// while they load); Shell picks the layout (floating rail, tablet rail,
+// phone drawer), owns the ⌘K search palette, and shows a breadcrumb --
+// workspace › page -- in the topbar (plans/unified-access-architecture.md
+// §7.2).
 import { AnimatePresence } from "framer-motion";
-import { Menu } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useStaffT } from "../context/AppContext.jsx";
@@ -23,7 +26,9 @@ import { isClientFacingPath } from "../lib/i18n.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
-import { enabledWorkforceRoles, navItemsForRole } from "../lib/nav.js";
+import { navLabel } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
+import { navKeyForPath, visibleWorkspaces, workspaceOfItem } from "../lib/workspaces.js";
 import { fetchOutreachPrograms } from "../lib/outreachPrograms.js";
 import { searchPlaceholderKey, searchScopes } from "../lib/commandSearch.js";
 import { cn } from "../lib/cn.js";
@@ -99,11 +104,13 @@ function useOutreachPrograms(enabled, userKey) {
 }
 
 export default function Shell() {
-  const { data, session, authLoading, kiosk, setKiosk, config, updateConfig } = useApp();
+  const { data, session, authLoading, kiosk, setKiosk, config, updateConfig, can } = useApp();
+  // Staff chrome is English-only; client screens below carry their own
+  // translated top bar.
   const t = useStaffT();
   const lang = "en";
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
   // Everything from here to the early returns below must run on every
   // render: hooks have to keep the same order, and the first render
   // (authLoading) returns early.
@@ -111,9 +118,10 @@ export default function Shell() {
   const [tabletExpanded, setTabletExpanded] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const nav = useNavItems();
 
   const role = session ? session.role : null;
-  const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
+  const items = !kiosk && role ? nav.items : [];
   const showSidebar = !authLoading && !kiosk && !!role && items.length > 0;
   const outreachPrograms = useOutreachPrograms(items.indexOf("outreach") !== -1, session ? session.currentUserEmail : "");
 
@@ -196,7 +204,7 @@ export default function Shell() {
     // Job Developer's page lives inside the Workforce program now.
     workforce: items.indexOf("jobdeveloper") !== -1 ? pendingApptCount(data.appointments, "job_developer") : 0
   };
-  const scopes = searchScopes(items, role);
+  const scopes = searchScopes(items, can("admin.users.view"));
   const searchPlaceholder = t(searchPlaceholderKey(scopes));
   const pages = sections.flatMap((s) => s.entries.map((e) => ({ key: e.key, label: e.label, to: e.to, icon: e.icon, section: s.label })));
   const isMobile = viewport === "mobile";
@@ -210,6 +218,9 @@ export default function Shell() {
     setPaletteOpen(true);
   }
   const sidebarProps = { sections, badges, searchPlaceholder, onOpenSearch: openSearch, t };
+  // Breadcrumb: the workspace the page belongs to, then the page.
+  const pageKey = navKeyForPath(location.pathname);
+  const crumbWorkspace = pageKey ? visibleWorkspaces(items).find((w) => w.key === (workspaceOfItem(pageKey) || "home")) : null;
 
   return (
     <Fragment>
@@ -241,7 +252,10 @@ export default function Shell() {
                 home and for a client registering on their own phone. */}
             {clientView && !isKioskLanding && (
               <KioskTopBar
-                onBack={location.pathname === "/checkin" || (!kiosk && !session) ? null : () => navigate("/checkin")}
+                onBack={location.pathname === "/checkin" || (!kiosk && !session) ? null
+                  // Staff who reached a kiosk form from Visitor Search but
+                  // can't open check-in go back there instead.
+                  : () => navigate(kiosk || items.indexOf("checkin") !== -1 ? "/checkin" : "/search")}
               />
             )}
             {!clientView && (
@@ -258,7 +272,16 @@ export default function Shell() {
                     <Menu aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
                   </button>
                 )}
-                {(!showSidebar || isMobile) && (
+                {showSidebar && crumbWorkspace && navLabel(pageKey, lang) ? (
+                  <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
+                    <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-meta text-muted">
+                      <li className="truncate">{t(crumbWorkspace.label)}</li>
+                      <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                      <li className="truncate font-semibold text-card-foreground" aria-current="page">{navLabel(pageKey, lang)}</li>
+                    </ol>
+                  </nav>
+                ) : null}
+                {(!showSidebar || (isMobile && !crumbWorkspace)) && (
                   <div className="brand">
                     <img src={LOGO_DATA_URI} alt={ORG.name} />
                     {/* Next to the phone menu button the subtitle would wrap the bar onto two rows. */}

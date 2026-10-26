@@ -13,17 +13,17 @@ const kinds = (groups) => groups.map((g) => g.key);
 
 describe("searchScopes", () => {
   it("lets administrators search everything", () => {
-    const scopes = searchScopes(navItemsForRole("administrator", [], {}), "administrator");
+    const scopes = searchScopes(navItemsForRole("administrator", [], {}), true);
     expect(scopes).toEqual({ students: true, clients: true, staff: true });
     expect(searchPlaceholderKey(scopes)).toBe("cmdkPlaceholderAll");
   });
 
-  it("never lets anyone but an administrator search staff", () => {
-    expect(searchScopes(["users", "students"], "case_manager").staff).toBe(false);
+  it("only searches staff with the admin.users.view permission", () => {
+    expect(searchScopes(["users", "students"], false).staff).toBe(false);
   });
 
   it("follows the nav items: no Case Management, no client search", () => {
-    const scopes = searchScopes(navItemsForRole("job_developer", [], {}), "job_developer");
+    const scopes = searchScopes(navItemsForRole("job_developer", [], {}), false);
     expect(scopes.clients).toBe(false);
     expect(searchPlaceholderKey(scopes)).toBe("sidebarSearchPlaceholder");
   });
@@ -45,6 +45,6 @@ describe("buildResults", () => {
     const [students] = buildResults({ query: "st-7", scopes: { students: true, clients: false, staff: false }, data, pages });
     expect(students.results[0]).toMatchObject({ to: "/clients/NB-1", subtitle: "ST-7 · Morning ESL" });
     const [staff] = buildResults({ query: "marie@", scopes: { students: false, clients: false, staff: true }, data, pages });
-    expect(staff.results[0]).toMatchObject({ to: "/users", state: { focusUserId: "p1" } });
+    expect(staff.results[0]).toMatchObject({ to: "/admin/users/p1" });
   });
 });

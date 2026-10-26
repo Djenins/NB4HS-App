@@ -1,55 +1,49 @@
-// Dashboard.jsx -- Tailwind/shadcn/Recharts/Framer Motion redesign pass
-// (client-provided NB4HS dashboard mockup). Every *data* computation below
-// is unchanged from the previous version of this file (computeStats(),
-// rangeForPreset(), allDistributions(), classesMeetingToday(), etc. --
-// all still coming from the same lib/ modules); only the presentation
-// layer changed: shadcn Card instead of the plain .card/.stat-card classes,
-// Lucide icons instead of the inline SVG set, Recharts instead of Chart.js
-// (DashChart.jsx), Framer Motion for entrance animation. No section was
-// removed -- Today/TodaysClassWidget/Totals/Instructional Hours/gated Food
-// Distribution/Trends are all still here. One panel was *added* ("Check-
-// Ins Over Time" + "Recent Check-Ins", matching the mockup's most
-// prominent visual block) -- it's built entirely from data.visits +
-// computeDailyTrend(), both of which already existed and are already used
-// this same way on Reports.jsx, so nothing new was invented to build it.
-// Reports.jsx/StatCard.jsx/DashChart.jsx are untouched and keep using the
-// old plain-CSS/Chart.js system.
-import { AnimatePresence, m } from "framer-motion";
+// Dashboard.jsx -- the staff home page, on the design system's dashboard
+// template (plans/ui-design-system.md §2.4): PageHeader, titled KPI groups
+// of KpiCards, then charts and lists in SectionCards on a 12-column grid.
+//
+// Every *data* computation is unchanged (computeStats(), rangeForPreset(),
+// allDistributions(), classesMeetingToday(), computeDailyTrend(), ...), and
+// every section is still here: Right now, today's class check-ins, check-ins
+// over the last 7 days, recent check-ins, Totals, ESL instructional hours,
+// the role-gated Food distribution group and the monthly Trends.
+//
+// No range control in the header: each KPI group is a fixed period by
+// design (today / week / month / year side by side), so there is no single
+// range for a control to drive.
 import { CalendarDays, Clock3, DoorOpen, GraduationCap, LogIn, ShoppingBasket, Users } from "lucide-react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { allDistributions } from "../lib/clients.js";
-import { navItemsForRole } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import { computeDailyTrend, computeStats, fmtHour, inRange, rangeForPreset } from "../lib/reports_data.js";
 import { classesMeetingToday, studentsForClass } from "../lib/students.js";
 import { dateStrFromDate, fmtDuration, fmtTime, fullServiceList, labelFor, todayStr } from "../lib/utils.js";
+import BarList from "../components/BarList.jsx";
+import DashChart from "../components/DashChart.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
-import { Badge } from "../components/ui/badge.jsx";
-import EmptyState from "../components/EmptyState.jsx";
-import { CHART_GRID, CHART_LEGEND_STYLE, CHART_SERIES, CHART_TICK, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_STYLE } from "../components/chartTheme.js";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import ForYouPanel from "../components/home/ForYouPanel.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
-function StatTile({ icon: Icon, num, label, index }) {
+// A titled group of KPIs or panels. The h2 replaces the old uppercase
+// gold-dot overline: the heading carries the group on its own.
+function Section({ id, title, description, children }) {
   return (
-    <m.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.05 }}
-    >
-      <Card>
-        <CardContent className="flex items-center justify-between gap-4 p-5">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-muted">{label}</div>
-            <div className="mt-1 text-3xl font-extrabold tracking-tight text-card-foreground">{num}</div>
-          </div>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary">
-            <Icon className="h-5 w-5" strokeWidth={2} />
-          </div>
-        </CardContent>
-      </Card>
-    </m.div>
+    <section aria-labelledby={id}>
+      <div className="mb-3">
+        <h2 id={id} className="m-0 text-section font-semibold text-card-foreground">{title}</h2>
+        {description ? <p className="m-0 mt-0.5 text-meta text-muted">{description}</p> : null}
+      </div>
+      {children}
+    </section>
   );
+}
+
+function KpiGrid({ children }) {
+  return <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{children}</div>;
 }
 
 function TodaysClassWidget() {
@@ -58,96 +52,94 @@ function TodaysClassWidget() {
   const today = classesMeetingToday(data.classes);
   const todayStrVal = todayStr();
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("todaysClassCheckIns")}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {!today.length ? (
-          <EmptyState icon="calendar" message={t("noClassesMeetingToday")} />
-        ) : (
-          <div className="space-y-3">
-            {today.map((c) => {
-              const roster = studentsForClass(data.students, c.key);
-              const rosterIds = roster.map((s) => s.id);
-              const checkedIn = data.visits.filter((v) => v.date === todayStrVal && v.studentId && rosterIds.indexOf(v.studentId) !== -1).length;
-              const pct = roster.length ? Math.round((checkedIn / roster.length) * 100) : 0;
-              return (
-                <div key={c.key}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-semibold text-card-foreground">{c.name}</span>
-                    <span className="text-muted">{checkedIn}/{roster.length}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-tint-neutral">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: pct + "%" }} />
-                  </div>
+    <SectionCard title={t("todaysClassCheckIns")}>
+      {!today.length ? (
+        <EmptyState compact icon={CalendarDays} title={t("noClassesMeetingToday")} description={t("noClassesMeetingTodayHint")} />
+      ) : (
+        <ul className="m-0 grid list-none grid-cols-1 gap-x-8 gap-y-4 p-0 md:grid-cols-2">
+          {today.map((c) => {
+            const roster = studentsForClass(data.students, c.key);
+            const rosterIds = roster.map((s) => s.id);
+            const checkedIn = data.visits.filter((v) => v.date === todayStrVal && v.studentId && rosterIds.indexOf(v.studentId) !== -1).length;
+            const pct = roster.length ? Math.round((checkedIn / roster.length) * 100) : 0;
+            return (
+              <li key={c.key} className="m-0">
+                <div className="mb-1.5 flex items-baseline justify-between gap-3 text-ui">
+                  <span className="min-w-0 break-words font-semibold text-card-foreground">{c.name}</span>
+                  <span className="shrink-0 tabular-nums text-muted">{checkedIn}/{roster.length}</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                <div className="h-2 w-full overflow-hidden rounded-chip bg-surface-sunken" aria-hidden="true">
+                  {/* width is the live check-in share, so it stays inline */}
+                  <div className="h-full rounded-chip bg-tone-info-solid" style={{ width: pct + "%" }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
 
-function RecentCheckIns({ visits, services, lang, t }) {
+function RecentCheckIns({ visits, services, lang, t, className }) {
   const recent = visits.slice().sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn)).slice(0, 5);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("recentCheckInsTitle")}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {!recent.length ? (
-          <p className="text-sm text-muted">{t("noRecentCheckIns")}</p>
-        ) : (
-          <div className="space-y-1">
-            {recent.map((v) => {
-              const initials = ((v.firstName || "").charAt(0) + (v.lastName || "").charAt(0)).toUpperCase() || "?";
-              const programLabel = v.className || labelFor(services, v.service, lang);
-              return (
-                <div key={v.id} className="flex items-center gap-3 rounded-lg px-1 py-2">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-card-foreground">{v.firstName} {v.lastName}</div>
-                    <div className="truncate text-xs text-muted">{programLabel}</div>
-                  </div>
-                  <Badge variant="success" className="shrink-0">{fmtTime(v.timeIn)}</Badge>
+    <SectionCard title={t("recentCheckInsTitle")} className={className}>
+      {!recent.length ? (
+        <EmptyState compact icon={Users} title={t("noRecentCheckIns")} description={t("noRecentCheckInsHint")} />
+      ) : (
+        <ul className="m-0 flex list-none flex-col divide-y divide-line-subtle p-0">
+          {recent.map((v) => {
+            const initials = ((v.firstName || "").charAt(0) + (v.lastName || "").charAt(0)).toUpperCase() || "?";
+            const programLabel = v.className || labelFor(services, v.service, lang);
+            return (
+              <li key={v.id} className="m-0 flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-ui font-semibold text-card-foreground">{v.firstName} {v.lastName}</div>
+                  <div className="truncate text-meta text-muted">{programLabel}</div>
                 </div>
-              );
-            })}
+                <span className="shrink-0 text-meta tabular-nums text-muted">{fmtTime(v.timeIn)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SectionCard>
+  );
+}
+
+// New vs. returning is a two-part whole, so it is one proportion bar with
+// both numbers printed beside their swatches -- a two-slice donut would make
+// readers compare angles to read two numbers.
+function SplitBar({ parts, emptyTitle }) {
+  const total = parts.reduce((sum, p) => sum + p.value, 0);
+  if (!total) return <EmptyState compact title={emptyTitle} />;
+  return (
+    <div>
+      <div className="flex h-3 w-full gap-0.5 overflow-hidden rounded-chip" aria-hidden="true">
+        {parts.map((p) => (p.value > 0 ? (
+          // width is the data share, so it stays inline
+          <div key={p.label} className={"h-full " + p.fill} style={{ width: (p.value / total) * 100 + "%" }} />
+        ) : null))}
+      </div>
+      <dl className="m-0 mt-4 grid grid-cols-2 gap-4">
+        {parts.map((p) => (
+          <div key={p.label} className="min-w-0">
+            <dt className="flex items-center gap-2 text-meta text-muted">
+              <span className={"h-2.5 w-2.5 shrink-0 rounded-chip " + p.fill} aria-hidden="true" />
+              <span className="min-w-0 break-words">{p.label}</span>
+            </dt>
+            <dd className="m-0 mt-1 flex items-baseline gap-2">
+              <span className="text-heading font-bold tabular-nums text-card-foreground">{p.value}</span>
+              <span className="text-meta tabular-nums text-muted">{Math.round((p.value / total) * 100)}%</span>
+            </dd>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Small gold marker dot in front of each Dashboard section header -- the
-// brand spec calls out "Section headers" as one of the sparing places gold
-// belongs on this page. Scoped to Dashboard.jsx only (not main.css's shared
-// .section-label rule, which is also used by many other pages where gold
-// isn't called for) so it can't spread gold anywhere it wasn't asked for.
-function SectionLabel({ children, className }) {
-  return (
-    <div className={"section-label flex items-center gap-1.5" + (className ? " " + className : "")}>
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-      {children}
+        ))}
+      </dl>
     </div>
-  );
-}
-
-function ChartCard({ title, children }) {
-  return (
-    <Card>
-      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-      <CardContent className="pt-0">
-        <div className="h-[240px]">{children}</div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -161,19 +153,17 @@ export default function Dashboard() {
   const allStats = computeStats(data.visits, totalRange);
 
   // Rolling 7-day "Check-Ins Over Time" trend -- reuses computeDailyTrend(),
-  // the same function Reports.jsx's own trend chart (and the Food
-  // Distribution trend) already call; nothing new was built to compute this.
+  // the same function Reports.jsx's own trend chart already calls.
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   const trendRange = { from: dateStrFromDate(sevenDaysAgo), to: todayStr() };
   const checkInsTrend = computeDailyTrend(data.visits, trendRange);
-  const trendData = checkInsTrend.labels.map((label, i) => ({ label, count: checkInsTrend.data[i] }));
 
   // Food Distribution has its own nav item (Administrator + Staff only) --
   // only show its dashboard numbers to roles that actually have access to
   // that section, same gate as the nav itself.
-  const role = session ? session.role : null;
-  const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
+  const { items: navItems } = useNavItems();
+  const showFoodStats = navItems.indexOf("fooddistribution") !== -1;
   const distributions = allDistributions(data.foodClients);
   const distWeekRange = rangeForPreset("week");
   const distMonthRange = rangeForPreset("month");
@@ -184,152 +174,104 @@ export default function Dashboard() {
 
   const services = fullServiceList(data.customServices);
   const svcTop6 = allStats.svcSorted.slice(0, 6);
-  const svcPieData = svcTop6.map((x) => ({ name: labelFor(services, x.key, lang), value: x.count }));
+  const svcItems = svcTop6.map((x) => ({ label: labelFor(services, x.key, lang), count: x.count }));
   const hourTop6 = allStats.hourSorted.slice(0, 6);
   const dayNames = WEEKDAYS[lang] || WEEKDAYS.en;
-  const dayData = allStats.dayCounts.map((c, i) => ({ day: dayNames[i], count: c }));
-  const hourData = hourTop6.map((x) => ({ hour: fmtHour(x.hour), count: x.count }));
+  const hourItems = hourTop6.map((x) => ({ label: fmtHour(x.hour), count: x.count }));
   const newVsReturning = [
-    { name: t("newClients"), value: allStats.newCount, color: CHART_SERIES[1] },
-    { name: t("returningClients"), value: allStats.returningCount, color: CHART_SERIES[0] }
+    { label: t("newClients"), value: allStats.newCount, fill: "bg-tone-success-solid" },
+    { label: t("returningClients"), value: allStats.returningCount, fill: "bg-tone-info-solid" }
   ];
+  const noData = <EmptyState compact title={t("noReportDataMessage")} />;
 
   return (
-    <>
-      <h1>{t("dashboardTitle")}</h1>
-      <p className="mb-4 -mt-2 text-sm text-muted">{t("dashboardWelcomeSubtitle")}</p>
+    <div className="flex flex-col gap-8">
+      <PageHeader className="mb-0" title={t("dashboardTitle")} description={t("dashboardWelcomeSubtitle")} />
 
-      <SectionLabel>{t("dashSectionToday")}</SectionLabel>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={Users} num={s.todayVisits.length} label={t("todaysVisitors")} index={0} />
-        <StatTile icon={LogIn} num={s.currentlyIn.length} label={t("currentlyInBuilding")} index={1} />
-        <StatTile icon={DoorOpen} num={s.checkedOutToday.length} label={t("checkedOutToday")} index={2} />
-        <StatTile icon={Clock3} num={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} index={3} />
-      </div>
+      <ForYouPanel />
 
-      <div className="mt-5">
-        <TodaysClassWidget />
-      </div>
+      <Section id="dash-now" title={t("dashSectionToday")}>
+        <div className="flex flex-col gap-4">
+          <KpiGrid>
+            <KpiCard icon={Users} tone="info" value={s.todayVisits.length} label={t("todaysVisitors")} />
+            <KpiCard icon={LogIn} tone="success" value={s.currentlyIn.length} label={t("currentlyInBuilding")} />
+            <KpiCard icon={DoorOpen} tone="neutral" value={s.checkedOutToday.length} label={t("checkedOutToday")} />
+            <KpiCard icon={Clock3} tone="violet" value={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} />
+          </KpiGrid>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle>{t("checkInsOverTimeTitle")}</CardTitle>
-              <Badge variant="neutral">{t("last7DaysLabel")}</Badge>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="checkinsFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={CHART_SERIES[0]} stopOpacity={0.28} />
-                        <stop offset="100%" stopColor={CHART_SERIES[0]} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke={CHART_GRID} vertical={false} />
-                    <XAxis dataKey="label" tick={CHART_TICK} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
-                    <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
-                    <Area type="monotone" dataKey="count" stroke={CHART_SERIES[0]} strokeWidth={2.5} fill="url(#checkinsFill)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <TodaysClassWidget />
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <SectionCard className="lg:col-span-8" title={t("checkInsOverTimeTitle")} description={t("last7DaysLabel")}>
+              <DashChart
+                type="line"
+                title={t("checkInsOverTimeTitle")}
+                labels={checkInsTrend.labels}
+                datasets={[{ data: checkInsTrend.data }]}
+                fallback={noData}
+              />
+            </SectionCard>
+            <RecentCheckIns className="lg:col-span-4" visits={s.todayVisits} services={services} lang={lang} t={t} />
+          </div>
         </div>
-        <RecentCheckIns visits={s.todayVisits} services={services} lang={lang} t={t} />
-      </div>
+      </Section>
 
-      <SectionLabel>{t("dashSectionTotals")}</SectionLabel>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={CalendarDays} num={s.totalToday} label={t("totalToday")} index={0} />
-        <StatTile icon={CalendarDays} num={s.totalWeek} label={t("totalWeek")} index={1} />
-        <StatTile icon={CalendarDays} num={s.totalMonth} label={t("totalMonth")} index={2} />
-        <StatTile icon={CalendarDays} num={s.totalYear} label={t("totalYear")} index={3} />
-      </div>
+      <Section id="dash-totals" title={t("dashSectionTotals")}>
+        <KpiGrid>
+          <KpiCard icon={CalendarDays} tone="info" value={s.totalToday} label={t("totalToday")} />
+          <KpiCard icon={CalendarDays} tone="info" value={s.totalWeek} label={t("totalWeek")} />
+          <KpiCard icon={CalendarDays} tone="info" value={s.totalMonth} label={t("totalMonth")} />
+          <KpiCard icon={CalendarDays} tone="info" value={s.totalYear} label={t("totalYear")} />
+        </KpiGrid>
+      </Section>
 
       {/* Flat NRS/grant-reporting credit: every completed student check-in
           counts as STUDENT_VISIT_HOURS (4) hours regardless of actual Time
           In/Time Out -- see reports_data.js's computeStats(). Visitor/Case
           Management/Job Developer visits never count here. */}
-      <SectionLabel>{t("dashSectionInstructionalHours")}</SectionLabel>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={GraduationCap} num={s.studentHoursToday} label={t("instructionalHoursToday")} index={0} />
-        <StatTile icon={GraduationCap} num={s.studentHoursWeek} label={t("instructionalHoursWeek")} index={1} />
-        <StatTile icon={GraduationCap} num={s.studentHoursMonth} label={t("instructionalHoursMonth")} index={2} />
-        <StatTile icon={GraduationCap} num={s.studentHoursYear} label={t("instructionalHoursYear")} index={3} />
-      </div>
+      <Section id="dash-hours" title={t("dashSectionInstructionalHours")}>
+        <KpiGrid>
+          <KpiCard icon={GraduationCap} tone="violet" value={s.studentHoursToday} label={t("instructionalHoursToday")} />
+          <KpiCard icon={GraduationCap} tone="violet" value={s.studentHoursWeek} label={t("instructionalHoursWeek")} />
+          <KpiCard icon={GraduationCap} tone="violet" value={s.studentHoursMonth} label={t("instructionalHoursMonth")} />
+          <KpiCard icon={GraduationCap} tone="violet" value={s.studentHoursYear} label={t("instructionalHoursYear")} />
+        </KpiGrid>
+      </Section>
 
-      <AnimatePresence>
-        {showFoodStats && (
-          <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Not a :first-child on the page, but it is the first child of
-                this motion.div wrapper -- main.css's .section-label:first-child
-                rule (margin-top:0) would otherwise match it by accident, so
-                the normal 22px top margin is restored explicitly here. */}
-            <SectionLabel className="!mt-[22px]">{t("dashSectionFoodDistribution")}</SectionLabel>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatTile icon={ShoppingBasket} num={(data.foodClients || []).length} label={t("totalHouseholdsLabel")} index={0} />
-              <StatTile icon={ShoppingBasket} num={distWeek} label={t("distributionsWeekLabel")} index={1} />
-              <StatTile icon={ShoppingBasket} num={distMonth} label={t("distributionsMonthLabel")} index={2} />
-              <StatTile icon={ShoppingBasket} num={distYear} label={t("distributionsYearLabel")} index={3} />
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      {showFoodStats && (
+        <Section id="dash-food" title={t("dashSectionFoodDistribution")}>
+          <KpiGrid>
+            <KpiCard icon={ShoppingBasket} tone="success" value={(data.foodClients || []).length} label={t("totalHouseholdsLabel")} />
+            <KpiCard icon={ShoppingBasket} tone="success" value={distWeek} label={t("distributionsWeekLabel")} />
+            <KpiCard icon={ShoppingBasket} tone="success" value={distMonth} label={t("distributionsMonthLabel")} />
+            <KpiCard icon={ShoppingBasket} tone="success" value={distYear} label={t("distributionsYearLabel")} />
+          </KpiGrid>
+        </Section>
+      )}
 
-      <SectionLabel>{t("dashSectionTrends")}</SectionLabel>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title={t("mostRequestedServices")}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={svcPieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                {svcPieData.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
-              </Pie>
-              <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={CHART_LEGEND_STYLE} />
-              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title={t("newVsReturning")}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={newVsReturning} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                {newVsReturning.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={CHART_LEGEND_STYLE} />
-              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title={t("mostActiveDays")}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dayData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid stroke={CHART_GRID} vertical={false} />
-              <XAxis dataKey="day" tick={CHART_TICK} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
-              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
-              <Bar dataKey="count" fill={CHART_SERIES[0]} radius={[6, 6, 0, 0]} maxBarSize={42} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title={t("mostActiveHours")}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={hourData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid stroke={CHART_GRID} vertical={false} />
-              <XAxis dataKey="hour" tick={CHART_TICK} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={CHART_TICK} axisLine={false} tickLine={false} />
-              <RTooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} />
-              <Bar dataKey="count" fill={CHART_SERIES[2]} radius={[6, 6, 0, 0]} maxBarSize={42} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-    </>
+      {/* Every Trends panel reads the current month (allStats). */}
+      <Section id="dash-trends" title={t("dashSectionTrends")} description={t("thisMonth")}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <SectionCard className="lg:col-span-6" title={t("mostRequestedServices")}>
+            <BarList items={svcItems} label={t("mostRequestedServices")} empty={noData} />
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("newVsReturning")}>
+            <SplitBar parts={newVsReturning} emptyTitle={t("noReportDataMessage")} />
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("mostActiveDays")}>
+            <DashChart
+              type="bar"
+              title={t("mostActiveDays")}
+              labels={dayNames}
+              datasets={[{ data: allStats.dayCounts }]}
+              fallback={noData}
+            />
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("mostActiveHours")}>
+            <BarList items={hourItems} label={t("mostActiveHours")} tone="violet" empty={noData} />
+          </SectionCard>
+        </div>
+      </Section>
+    </div>
   );
 }

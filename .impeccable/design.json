@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T08:33:10Z",
+  "title": "Design System: NB4HS Management System",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Action Blue", "canonical": "#2563EB", "darkTheme": "#6A94F1", "tonalRamp": ["oklch(25% 0.12 264)", "oklch(35% 0.17 264)", "#1D4ED8", "#2563EB", "oklch(70% 0.14 264)", "#C3D6F8", "#DCE6FB", "#EFF4FE"] },
+      "navy": { "role": "primary", "displayName": "Brand Navy", "canonical": "#1F2A6D", "darkTheme": "#24317F", "tonalRamp": ["oklch(18% 0.08 272)", "#172052", "#1F2A6D", "oklch(42% 0.12 272)", "oklch(55% 0.1 272)", "oklch(70% 0.07 272)", "oklch(85% 0.035 272)", "oklch(95% 0.012 272)"] },
+      "accent-red": { "role": "secondary", "displayName": "Signal Red", "canonical": "#D61F26", "darkTheme": "#EA7075", "tonalRamp": ["oklch(28% 0.1 25)", "#9A161B", "#D61F26", "oklch(68% 0.16 25)", "#F3C8CA", "#F9DCDD", "#FAE8E8", "#FDF1F1"] },
+      "gold": { "role": "tertiary", "displayName": "Brand Gold", "canonical": "#D99E32", "darkTheme": "#E1B25C", "tonalRamp": ["oklch(30% 0.06 75)", "#8C5F1C", "#BF7821", "#D99E32", "#EAD3A8", "#F1E0BF", "#F8F0E2", "oklch(97% 0.015 80)"] },
+      "success": { "role": "tone", "displayName": "Field Green", "canonical": "#1a7f37", "darkTheme": "#3fbf6b", "tonalRamp": ["oklch(28% 0.07 150)", "oklch(38% 0.1 150)", "#1a7f37", "oklch(62% 0.14 150)", "#BBDDC7", "#D6ECDD", "#E6F4EA", "#EEF7F1"] },
+      "surface-page": { "role": "neutral", "displayName": "Page", "canonical": "#F8FAFC", "darkTheme": "#12151b", "tonalRamp": ["#0F172A", "#475569", "#64748B", "#B7C0D1", "#E5E7EB", "#EEF1F7", "#F3F5F9", "#F8FAFC"] },
+      "text": { "role": "neutral", "displayName": "Ink", "canonical": "#0F172A", "darkTheme": "#e8eaed" },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#64748B", "darkTheme": "#a2acba" },
+      "text-on-tint": { "role": "neutral", "displayName": "On-Tint Secondary", "canonical": "#5B6879", "darkTheme": "#AAB4C2" },
+      "surface-sunken": { "role": "neutral", "displayName": "Sunken Well", "canonical": "#F3F5F9", "darkTheme": "#181d24" },
+      "surface-card": { "role": "neutral", "displayName": "Card", "canonical": "#ffffff", "darkTheme": "#1c2129" }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Page Title", "purpose": "PageHeader h1. 24px, stepping to 28px at 768px (fixed step, not fluid)." },
+      "heading": { "displayName": "Heading", "purpose": "Entity and dialog titles." },
+      "section": { "displayName": "Section", "purpose": "Card, section, drawer and empty-state titles." },
+      "body": { "displayName": "Body", "purpose": "Descriptions and reading text." },
+      "ui": { "displayName": "UI", "purpose": "Default for tables, controls, buttons, nav, alerts." },
+      "meta": { "displayName": "Meta", "purpose": "Secondary lines, labels, table headers, hints. The 13px floor for running text." },
+      "caption": { "displayName": "Caption", "purpose": "Badges, counts and uppercase overlines only." },
+      "kpi": { "displayName": "KPI", "purpose": "KpiCard values; 24px stepping to 30px at 768px; tabular." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 6px 20px rgba(15,23,42,.06)", "dark": "0 1px 3px rgba(0,0,0,.4)", "purpose": "Every card at rest." },
+      { "name": "raised", "value": "0 10px 28px rgba(15,23,42,.10)", "dark": "0 6px 18px rgba(0,0,0,.45)", "purpose": "Hover on an interactive card; sticky toolbars." },
+      { "name": "overlay", "value": "0 20px 48px rgba(15,23,42,.18)", "dark": "0 16px 40px rgba(0,0,0,.55)", "purpose": "Dialogs, drawers, menus." },
+      { "name": "focus-ring", "value": "0 0 0 2px rgba(37,99,235,.34)", "dark": "0 0 0 2px rgba(106,148,241,.48)", "purpose": "Focus halo on every control (Tailwind ring-2 recoloured globally)." }
+    ],
+    "motion": [
+      { "name": "duration-fast", "value": "150ms", "purpose": "Colour and state changes." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Drawers, dialogs, card lift." },
+      { "name": "ease-out", "value": "cubic-bezier(.2,.8,.2,1)", "purpose": "Default easing; reduced motion keeps fades and drops movement." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px", "note": "Title and KPI type step up." },
+      { "name": "lg", "value": "1024px", "note": "PageHeader actions move beside the title; DataTable switches from stacked list to table." },
+      { "name": "xl", "value": "1280px" }
+    ],
+    "touch": { "coarsePointerMinTarget": "44px" },
+    "tones": {
+      "slots": ["bg", "border", "chip", "ink", "solid", "on-solid"],
+      "info": { "bg": "#EFF4FE", "border": "#C3D6F8", "chip": "#DCE6FB", "ink": "#1D4ED8", "solid": "#2563EB", "on-solid": "#ffffff" },
+      "success": { "bg": "#EEF7F1", "border": "#BBDDC7", "chip": "#D6ECDD", "ink": "#1a7f37", "solid": "#1a7f37", "on-solid": "#ffffff" },
+      "warning": { "bg": "#F8F0E2", "border": "#EAD3A8", "chip": "#F1E0BF", "ink": "#8C5F1C", "solid": "#D99E32", "on-solid": "#1F172A" },
+      "danger": { "bg": "#FDF1F1", "border": "#F3C8CA", "chip": "#F9DCDD", "ink": "#9A161B", "solid": "#D61F26", "on-solid": "#ffffff" },
+      "neutral": { "bg": "#EEF1F4", "border": "#D5DBE3", "chip": "#E2E7ED", "ink": "#475569", "solid": "#64748B", "on-solid": "#ffffff" },
+      "violet": { "bg": "#F6EFFB", "border": "#DCC4EF", "chip": "#ECDDF7", "ink": "#6B21A8", "solid": "#7C3AED", "on-solid": "#ffffff" }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action on a screen. 40px, 44px on touch.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>New visitor</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); font: 600 0.875rem/1 Inter, sans-serif; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring, rgba(37,99,235,.34)); } .ds-btn-primary { background: var(--primary, #2563EB); color: var(--primary-foreground, #fff); } .ds-btn-primary:hover { background: var(--primary-dark, #1D4ED8); } @media (pointer: coarse) { .ds-btn { height: 44px; } }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting actions: navy text on card with a slate hairline.",
+      "html": "<button class=\"ds-btn2\">Export</button>",
+      "css": ".ds-btn2 { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--secondary-border, #CBD5E1); border-radius: var(--radius-control, 10px); background: var(--card, #fff); color: var(--navy, #1F2A6D); font: 600 0.875rem/1 Inter, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-btn2:hover { background: var(--primary-tint, #E6EDFB); } .ds-btn2:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring, rgba(37,99,235,.34)); }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive confirmation only; names the action.",
+      "html": "<button class=\"ds-btn-danger\">Delete visit</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); background: var(--tone-danger-solid, #D61F26); color: var(--tone-danger-on-solid, #fff); font: 600 0.875rem/1 Inter, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-btn-danger:hover { background: var(--accent-dark, #9A161B); } .ds-btn-danger:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring, rgba(37,99,235,.34)); }"
+    },
+    {
+      "name": "Field with Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Visible label, 40px control, hint or error below.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-in\">Phone</label><input id=\"ds-in\" class=\"ds-input\" placeholder=\"(617) 555-0100\"><p class=\"ds-hint\">Used for appointment reminders.</p></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: Inter, sans-serif; } .ds-label { font-size: 0.8125rem; font-weight: 600; color: var(--text, #0F172A); } .ds-input { height: 40px; padding: 0 12px; border: 1px solid var(--border, #E5E7EB); border-radius: var(--radius-control, 10px); background: var(--card, #fff); color: var(--text, #0F172A); font-size: 0.875rem; transition: border-color 150ms; } .ds-input::placeholder { color: var(--muted, #64748B); } .ds-input:hover { border-color: var(--border-strong, #B7C0D1); } .ds-input:focus { outline: none; border-color: var(--primary, #2563EB); box-shadow: 0 0 0 2px var(--focus-ring, rgba(37,99,235,.34)); } .ds-hint { margin: 0; font-size: 0.8125rem; color: var(--muted, #64748B); }"
+    },
+    {
+      "name": "Filter Chips",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "Quick filters; active chip is solid blue; optional tone dot.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-on\" aria-pressed=\"true\">All</button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-dot\"></span>Classes</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; } .ds-chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: 1px solid var(--border, #E5E7EB); border-radius: 9999px; background: var(--card, #fff); color: var(--text, #0F172A); font: 600 0.8125rem/1 Inter, sans-serif; cursor: pointer; transition: border-color 150ms, color 150ms; } .ds-chip:hover { border-color: var(--primary, #2563EB); color: var(--primary, #2563EB); } .ds-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring, rgba(37,99,235,.34)); } .ds-chip-on, .ds-chip-on:hover { background: var(--primary, #2563EB); border-color: var(--primary, #2563EB); color: var(--primary-foreground, #fff); } .ds-dot { width: 8px; height: 8px; border-radius: 9999px; background: var(--tone-info-solid, #2563EB); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-info",
+      "description": "Tone from statusTone.js; dot plus label, never colour alone.",
+      "html": "<span class=\"ds-badge ds-badge-success\"><span class=\"ds-badge-dot\"></span>Checked in</span> <span class=\"ds-badge ds-badge-neutral\"><span class=\"ds-badge-dot\"></span>Checked out</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--radius-badge, 6px); font: 600 0.75rem/1.3 Inter, sans-serif; white-space: nowrap; } .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; } .ds-badge-success { background: var(--tone-success-bg, #EEF7F1); color: var(--tone-success-ink, #1a7f37); } .ds-badge-neutral { background: var(--tone-neutral-bg, #EEF1F4); color: var(--tone-neutral-ink, #475569); }"
+    },
+    {
+      "name": "KPI Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Label, tabular value, tone icon disc. Cards are still at rest.",
+      "html": "<div class=\"ds-kpi\"><div><div class=\"ds-kpi-label\">Today's visitors</div><div class=\"ds-kpi-value\">42</div></div><div class=\"ds-kpi-disc\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/></svg></div></div>",
+      "css": ".ds-kpi { display: flex; justify-content: space-between; gap: 12px; padding: 20px; border: 1px solid var(--border, #E5E7EB); border-radius: var(--radius-surface, 16px); background: var(--card, #fff); box-shadow: var(--shadow-card, 0 6px 20px rgba(15,23,42,.06)); font-family: Inter, sans-serif; } .ds-kpi-label { font-size: 0.8125rem; font-weight: 500; color: var(--muted, #64748B); } .ds-kpi-value { margin-top: 4px; font-size: 1.875rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--text, #0F172A); } .ds-kpi-disc { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-control, 10px); background: var(--tone-info-chip, #DCE6FB); color: var(--tone-info-ink, #1D4ED8); }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "table-header",
+      "description": "Sticky sunken header, subtle row rules, tabular figures.",
+      "html": "<div class=\"ds-table-wrap\"><table class=\"ds-table\"><thead><tr><th>Visitor</th><th>Time in</th><th>Status</th></tr></thead><tbody><tr><td>Marie Joseph</td><td>09:14</td><td>In</td></tr><tr><td>Jean Pierre</td><td>10:02</td><td>Out</td></tr></tbody></table></div>",
+      "css": ".ds-table-wrap { overflow: auto; border: 1px solid var(--border, #E5E7EB); border-radius: var(--radius-control, 10px); } .ds-table { width: 100%; border-collapse: collapse; font: 0.875rem/1.45 Inter, sans-serif; font-variant-numeric: tabular-nums; } .ds-table th { position: sticky; top: 0; padding: 10px 12px; text-align: left; background: var(--surface-sunken, #F3F5F9); color: var(--muted, #64748B); font-size: 0.8125rem; font-weight: 600; box-shadow: inset 0 -1px 0 var(--border, #E5E7EB); } .ds-table td { padding: 12px; color: var(--text, #0F172A); } .ds-table tbody tr + tr { border-top: 1px solid var(--border-subtle, #EEF1F7); } .ds-table tbody tr { transition: background-color 150ms; } .ds-table tbody tr:hover { background: var(--surface-sunken, #F3F5F9); }"
+    },
+    {
+      "name": "Alert",
+      "kind": "custom",
+      "description": "Inline callout: full tone hairline, icon on a deeper chip, no side stripe.",
+      "html": "<div class=\"ds-alert\" role=\"status\"><div class=\"ds-alert-chip\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg></div><div><div class=\"ds-alert-title\">Reports refresh nightly</div><div class=\"ds-alert-body\">Today's visits appear tomorrow morning.</div></div></div>",
+      "css": ".ds-alert { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--tone-info-border, #C3D6F8); border-radius: var(--radius-control, 10px); background: var(--tone-info-bg, #EFF4FE); font: 0.875rem/1.45 Inter, sans-serif; } .ds-alert-chip { display: flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 9999px; background: var(--tone-info-chip, #DCE6FB); color: var(--tone-info-ink, #1D4ED8); } .ds-alert-title { padding-top: 4px; font-weight: 600; color: var(--text, #0F172A); } .ds-alert-body { color: var(--text-on-tint, #5B6879); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "NB4HS Operate",
+    "overview": "A staff task surface. Case managers, front-desk staff, administrators and outreach workers come here to find a client, record what happened and report on it, so scanability and sameness come before expression. Every module should look and behave like every other one; consistency outranks local cleverness. The brand lives in precise details rather than in decoration: navy chrome, blue action, gold used sparingly, red only when something is wrong.\n\nThe density and finish of the Shared Calendar redesign is the quality reference. Its per-kind recipe (soft tint, hairline border, an icon disc one step deeper, an ink that clears AA on the tint) is generalised into six tones that colour every status, category and callout in the app. Surfaces are flat white cards on a cool off-white page, separated by hairlines and a single soft resting shadow. Text is comfortable for older and low-vision staff, targets are generous on touch, and layouts absorb Kreyòl and French strings about 30% longer than English.\n\nLight and dark themes share one token set (`html[data-theme=\"dark\"]`, scoped `@media not print`); the sidebar stays brand navy in both. The kiosk and public check-in flows keep their own larger touch scale and are not governed by the staff type ramp below.",
+    "keyCharacteristics": [
+      "Tokens live once in `src/styles/main.css` and reach Tailwind by name; no hex at the call site.",
+      "Six semantic tones × six slots (bg, border, chip, ink, solid, on-solid).",
+      "Radius by role: badge 6px, control 10px, surface 16px, chip full.",
+      "Monotonic elevation: card → raised → overlay.",
+      "Running text never below 13px; tabular figures on every number.",
+      "44px targets on coarse pointers."
+    ],
+    "rules": [
+      { "name": "The Red Means Wrong Rule", "body": "Red appears only for errors, validation, destructive actions and overdue work. Never for emphasis, branding or decoration.", "section": "colors" },
+      { "name": "The Status Has One Colour Rule", "body": "A status's tone comes from `src/lib/statusTone.js` (`\"<domain>:<status>\"` → tone), rendered through `StatusBadge`. The call site never chooses it. Unknown statuses fall back to neutral.", "section": "colors" },
+      { "name": "The Colour Is Never Alone Rule", "body": "Every tone use carries a label or icon; a dot or tint is reinforcement, not the message.", "section": "colors" },
+      { "name": "The 13px Floor Rule", "body": "Running text is never smaller than 13px (`text-meta`). 12px (`text-caption`) is for badges, counts and uppercase overlines only.", "section": "typography" },
+      { "name": "The Tabular Figures Rule", "body": "Every number column, KPI, time, count and detail value uses `tabular-nums`.", "section": "typography" },
+      { "name": "The Still Card Rule", "body": "Cards do not lift on hover. Only a card that is itself a link or button (`interactive`, clickable KpiCard) raises its border to `border-strong` and its shadow to raised. No translate.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** build new UI from `src/components/ui/` and the semantic tokens (`surface-*`, `line-*`, `tone-*`, `rounded-control/surface/badge/chip`, `shadow-card/raised/overlay`, `text-title…text-kpi`).",
+      "**Do** take every status colour from `statusTone` via `StatusBadge`; add new `\"<domain>:<status>\"` keys there, never pick a tone at the call site.",
+      "**Do** give every icon-only button a label (IconButton's required `label`; `aria-label` on icon-only segments).",
+      "**Do** use `tabular-nums` on every number, KPI, time and count.",
+      "**Do** keep running text at 13px or larger; 12px only for uppercase overlines and badges.",
+      "**Do** make every target 44px on coarse pointers.",
+      "**Do** use a Drawer to view a record and keep the list in view; reserve Dialog for protected focus.",
+      "**Do** send every user-facing string through `t()` with entries in en, ht and fr, and leave room for ~30% longer strings.",
+      "**Do** give tone surfaces a full hairline in their tone's `border` slot."
+    ],
+    "donts": [
+      "**Don't** nest a card in a card; inside a card, use divided rows (as DataTable's phone list does).",
+      "**Don't** put thick side-stripe borders on new components. The calendar event card's left kind accent is the calendar's own device and stays there.",
+      "**Don't** use a modal to show a record that a Drawer could show.",
+      "**Don't** use red for anything but errors, validation, destructive actions and overdue work, or let gold become a dominant colour.",
+      "**Don't** use the legacy classes (`.card`, `.btn-*`, `.modal-box`) or rely on the bare `button`/`input`/`h1` tag rules in main.css; they are deprecated and deleted in Phase 4.",
+      "**Don't** write hex values or Tailwind opacity modifiers on var()-backed colours (`border-primary/25` compiles to nothing); use the pre-blended `*-soft` and tone tokens.",
+      "**Don't** make cards lift on hover unless the whole card is a link or button.",
+      "**Don't** apply the staff type ramp to the kiosk or public check-in flows; they keep their own touch scale."
+    ]
+  }
+}

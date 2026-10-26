@@ -1,7 +1,7 @@
 -- Stage 0 security hardening, part B of 2 -- TIGHTENS POLICIES.
--- NOT YET APPLIED. Apply only after part A is in and the app from this
--- branch is deployed: the old client reads visits/students directly as
--- anon, which this removes.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026062909),
+-- after part A and the kiosk RPC client (PR #22) were live: the old client
+-- read visits/students directly as anon, which this removes.
 --
 -- * Policies that granted every authenticated user (`true`) now require an
 --   active staff profile, so an inactive or self-registered account sees

@@ -3,8 +3,8 @@
 // picked one to `onAddressSelect({ street, city, state, zip })` so the form
 // can fill its other fields.
 //
-// It renders a plain <input> with every prop passed through, so each form
-// keeps its own styling, and it works both controlled (value + onChange) and
+// It renders a plain <input> (or `as`, e.g. ui/field.jsx's Input) with every
+// prop passed through, so each form keeps its own styling, and it works both controlled (value + onChange) and
 // uncontrolled (the kiosk forms read values off the DOM at submit; there the
 // picked street is written into the input directly). The suggestion list is
 // portalled and fixed-positioned under the input, so no form needs a layout
@@ -18,7 +18,7 @@ import { cn } from "../lib/cn.js";
 
 const DEBOUNCE_MS = 250;
 
-export default function AddressInput({ onAddressSelect, onChange, onKeyDown, onBlur, value, className, ...rest }) {
+export default function AddressInput({ as: Control = "input", onAddressSelect, onChange, onKeyDown, onBlur, value, className, ...rest }) {
   const t = useT();
   const inputRef = useRef(null);
   const listId = useId();
@@ -80,7 +80,7 @@ export default function AddressInput({ onAddressSelect, onChange, onKeyDown, onB
 
   return (
     <>
-      <input
+      <Control
         {...rest}
         ref={inputRef}
         value={value}

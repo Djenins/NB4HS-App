@@ -238,11 +238,11 @@ Every phase preserves routes, permissions, data calls and business logic; change
 - This branch has about 75 uncommitted files of in-progress work (contrast tokens, `useModalA11y`, calendar tweaks, chart theme). They should be committed or merged first so the design-system work starts clean. I will not touch them without your go-ahead.
 - `/impeccable init`: a short interview that writes PRODUCT.md (users, tone, constraints).
 
-**Phase 1: foundation, with no visual change intended**
+**Phase 1: foundation, with no visual change intended**  _(done: branch `Djenins/design-tokens-foundation`)_
 - Add the tokens in §2.1–2.3 to `main.css` and `tailwind.config.js`, alias the old names to the new ones, and fix the Inter loading.
 - Pages keep rendering identically, because aliases cover the old names.
 
-**Phase 2: primitives plus the representative page**
+**Phase 2: primitives plus the representative page**  _(done: PR #33, approved; DESIGN.md written)_
 - Build the §2.4 components.
 - Migrate **Participants Search** (`/search`). It exercises nearly every component: header with menu, filters, a table with a phone card fallback, status badges, pagination, three modals, empty, loading and error states.
 - Validate with screenshots, `/impeccable critique`, then `/impeccable document` to write DESIGN.md.
@@ -252,14 +252,15 @@ Every phase preserves routes, permissions, data calls and business logic; change
 
 | Batch | Pages | Main work |
 |---|---|---|
-| 3a Participants | Students, Client Profile, Case Management, Assessments, My Caseload | Record-page template, `Dialog` migration, tables |
-| 3b Dashboards and reports | Dashboard, Reports, Workforce Dashboard, Workforce Reports, SNAP Dashboard | One `KpiCard`, chart cards, range `SegmentedControl` |
-| 3c Workforce | Job Developer, Employers, Job Openings, Candidate Matching, Referrals, Placements, the three profiles, 6 modals | FilterBar promoted to standard, toolbar above results, pagination everywhere, `Tabs` |
+| 3a Participants ✅ | Students, Client Profile, Case Management, Assessments, My Caseload | Record-page template, `Dialog` migration, tables |
+| 3b Dashboards and reports ✅ | Dashboard, Reports, Workforce Dashboard, Workforce Reports, SNAP Dashboard | One `KpiCard`, chart cards, range `SegmentedControl` |
+| 3c Workforce ✅ | Job Developer, Employers, Job Openings, Candidate Matching, Referrals, Placements, the three profiles, 6 modals | FilterBar promoted to standard, toolbar above results, pagination everywhere, `Tabs` |
 | 3d Outreach (SNAP and future programs) | `Outreach.jsx` shell, Contacts, Cases, Tasks, Staff, the detail modals | PageHeaders, `DataTable` with phone cards, Skeletons, `EmptyState` |
 | 3e Programs and admin | Food Distribution, Manage, Settings, Users, QR Code | The legacy-CSS pages: remove about 60 inline styles |
 | 3f Calendar | Calendar | Switch to the shared tokens and components; four small fixes; looks the same |
 | 3g Shell | Sidebar, topbar, ModuleNav, notifications | Tokens, quiet topbar, phone off-canvas nav |
 | 3h Public and kiosk | Check-in/out, appointments, login, reset | Touch-density variant on the shared tokens; a lighter touch, layouts unchanged |
+| 3i Staff Reports (landed with #31) | My Reports, Report Review, Reporting Settings, Staff Reports tables | Form-page and review-list templates, RangeBar, StatusBadge for report states |
 
 **Phase 4: clean-up**
 - Delete the legacy CSS that is now dead (`.btn-*`, `.modal-box`, `.card`, the bare `button`/`input`/`h1` tag rules, `.pill-row`), the local component copies and the token aliases.

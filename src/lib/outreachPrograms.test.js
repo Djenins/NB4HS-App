@@ -67,6 +67,12 @@ describe("Outreach sidebar entry", () => {
     expect(hasOutreachAccess("staff", { snap: null })).toBe(false);
   });
 
+  it("is not opened by a Staff Reports role, which isn't an outreach program", () => {
+    expect(hasOutreachAccess("staff", { staff_reports: "reviewer" })).toBe(false);
+    expect(navItemsForRole("staff", [], { staff_reports: "reviewer" })).not.toContain("outreach");
+    expect(hasOutreachAccess("staff", { staff_reports: "reviewer", snap: "worker" })).toBe(true);
+  });
+
   it("is hidden from other staff, and the old SNAP entry is gone", () => {
     expect(navItemsForRole("case_manager", [], {})).not.toContain("outreach");
     expect(navItemsForRole("job_developer", [])).not.toContain("outreach");

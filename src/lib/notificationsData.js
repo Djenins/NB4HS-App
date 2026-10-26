@@ -1,12 +1,13 @@
 // notificationsData.js -- Supabase CRUD for the `notifications` table.
-// Rows are inserted server-side (see notify_appointment_assignment trigger
-// on the appointments table); the client only ever reads/marks-read.
+// Rows are inserted server-side (the notify_appointment_assignment trigger,
+// the SNAP reminder job, the staff report RPCs); the client only ever
+// reads/marks-read. `link` is an in-app path the row opens, when it has one.
 import { supabase } from "./supabase.js";
 
 function notificationFromRow(row) {
   return {
     id: row.id, userId: row.user_id, appointmentId: row.appointment_id,
-    type: row.type, title: row.title || "", message: row.message || "",
+    type: row.type, title: row.title || "", message: row.message || "", link: row.link || null,
     read: !!row.read, createdAt: row.created_at
   };
 }

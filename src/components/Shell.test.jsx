@@ -28,6 +28,7 @@ vi.mock("../context/AppContext.jsx", async () => {
     authLoading,
     config,
     updateConfig,
+    can: () => true,
     kiosk: false,
     lang: "en",
     setLang: vi.fn(),
@@ -68,14 +69,32 @@ function setViewport(size) {
 
 const renderShell = () => render(<MemoryRouter initialEntries={["/dashboard"]}><Shell /></MemoryRouter>);
 // The Dashboard nav item: a text node when expanded, an aria-label when
-// collapsed to the icon rail.
-const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).length > 0;
+// collapsed to the icon rail. The topbar breadcrumb names the page too, so
+// only the sidebar's copy counts.
+const inBreadcrumb = (el) => !!el.closest('[aria-label="' + translate("breadcrumbLabel", "en") + '"]');
+const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).some((el) => !inBreadcrumb(el));
 const iconOnlyLink = () => screen.queryByRole("link", { name: translate("navDashboard", "en") });
 
 describe("Shell sidebar", () => {
   beforeEach(() => {
     updateConfig.mockClear();
     config = { theme: "light", sidebarCollapsed: false };
+  });
+
+  it("shows a workspace › page breadcrumb in the topbar", () => {
+    setViewport("desktop");
+    renderShell();
+    const crumb = screen.getByRole("navigation", { name: translate("breadcrumbLabel", "en") });
+    expect(crumb.textContent).toContain(translate("wsHome", "en"));
+    expect(crumb.textContent).toContain(translate("navDashboard", "en"));
+  });
+
+  it("offers Your profile in the account menu", async () => {
+    setViewport("desktop");
+    renderShell();
+    const trigger = screen.getByRole("button", { name: new RegExp(translate("sidebarAccountMenu", "en")) });
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+    expect(await screen.findByRole("menuitem", { name: translate("profileMenuItem", "en") })).toBeInTheDocument();
   });
 
   it("shows full-width nav labels on a desktop viewport", () => {

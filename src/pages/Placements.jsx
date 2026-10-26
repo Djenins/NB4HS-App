@@ -22,15 +22,21 @@
 // supervisor_name -- or is computed from start_date and the check-in rows
 // the way the rest of the module already computes them (daysBetween for
 // tenure, checkinState for the check-in filter). No new column.
+//
+// Layout follows the design system's list template: PageHeader, filters,
+// the toolbar ABOVE the results, then the results with Pagination under
+// them. With no placements at all only the "none" empty state shows.
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Building2, CircleCheck, Clock, DollarSign, Flag, HeartHandshake, Plus, RotateCcw, UserRound } from "lucide-react";
+import { Briefcase, Plus, RotateCcw } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { createPlacement } from "../lib/clientsData.js";
+import { paginateList } from "../lib/pagination.js";
 import { CHECKIN_TYPES, PLACEMENT_STATUSES, checkinState } from "../lib/placements.js";
 import { TENURE_BUCKETS, WAGE_BANDS, matchesPlacement } from "../lib/workforceFilters.js";
 import { sortPlacements } from "../lib/workforceSorters.js";
 import { todayStr } from "../lib/utils.js";
+import Pagination from "../components/Pagination.jsx";
 import PlacementFormModal from "../components/PlacementFormModal.jsx";
 import PlacementGridCard from "../components/PlacementGridCard.jsx";
 import PlacementListItem from "../components/PlacementListItem.jsx";
@@ -38,6 +44,7 @@ import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
 
 
 function distinct(list, key) {
@@ -62,6 +69,8 @@ export default function Placements() {
   const [supervisorFilter, setSupervisorFilter] = useState("");
   const [sort, setSort] = useState("newest");
   const [view, setView] = useState("list");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const jobClients = (data.jobClients || []).filter(function (c) { return c.active !== false; });
   const employers = data.employers || [];
@@ -87,29 +96,34 @@ export default function Placements() {
     };
   }
 
+  // Any change to what's shown starts the list back on page 1.
+  function setFilter(setter) {
+    return function (value) { setter(value); setPage(1); };
+  }
+
   const filters = [
     {
-      key: "status", icon: Flag, label: t("currentStatusLabel"), value: statusFilter, onChange: setStatusFilter,
+      key: "status", label: t("currentStatusLabel"), value: statusFilter, onChange: setFilter(setStatusFilter),
       options: [{ value: "", label: t("allStatusesLabel") }]
         .concat(PLACEMENT_STATUSES.map(function (s) { return { value: s.key, label: s.en }; }))
     },
     {
-      key: "employer", icon: Building2, label: t("employerLabel"), value: employerFilter, onChange: setEmployerFilter,
+      key: "employer", label: t("employerLabel"), value: employerFilter, onChange: setFilter(setEmployerFilter),
       options: [{ value: "", label: t("allEmployersLabel") }]
         .concat(distinct(placements, "employerName").map(function (n) { return { value: n, label: n }; }))
     },
     {
-      key: "position", icon: Briefcase, label: t("positionLabel"), value: positionFilter, onChange: setPositionFilter,
+      key: "position", label: t("positionLabel"), value: positionFilter, onChange: setFilter(setPositionFilter),
       options: [{ value: "", label: t("allPositionsLabel") }]
         .concat(distinct(placements, "positionTitle").map(function (n) { return { value: n, label: n }; }))
     },
     {
-      key: "tenure", icon: Clock, label: t("timeOnJobLabel"), value: tenureFilter, onChange: setTenureFilter,
+      key: "tenure", label: t("timeOnJobLabel"), value: tenureFilter, onChange: setFilter(setTenureFilter),
       options: [{ value: "", label: t("anyLabel") }]
         .concat(TENURE_BUCKETS.map(function (b) { return { value: b.value, label: t(b.labelKey) }; }))
     },
     {
-      key: "checkins", icon: CircleCheck, label: t("checkinsLabel"), value: checkinFilter, onChange: setCheckinFilter,
+      key: "checkins", label: t("checkinsLabel"), value: checkinFilter, onChange: setFilter(setCheckinFilter),
       options: [
         { value: "", label: t("anyLabel") },
         { value: "overdue", label: t("checkinOverdueLabel") },
@@ -118,12 +132,12 @@ export default function Placements() {
       ]
     },
     {
-      key: "wage", icon: DollarSign, label: t("hourlyWageLabel"), value: wageFilter, onChange: setWageFilter,
+      key: "wage", label: t("hourlyWageLabel"), value: wageFilter, onChange: setFilter(setWageFilter),
       options: [{ value: "", label: t("anyLabel") }]
         .concat(WAGE_BANDS.map(function (b) { return { value: b.value, label: t(b.labelKey) }; }))
     },
     {
-      key: "benefits", icon: HeartHandshake, label: t("benefitsLabel"), value: benefitsFilter, onChange: setBenefitsFilter,
+      key: "benefits", label: t("benefitsLabel"), value: benefitsFilter, onChange: setFilter(setBenefitsFilter),
       options: [
         { value: "", label: t("anyLabel") },
         { value: "yes", label: t("offersBenefitsLabel") },
@@ -131,7 +145,7 @@ export default function Placements() {
       ]
     },
     {
-      key: "supervisor", icon: UserRound, label: t("supervisorNameLabel"), value: supervisorFilter, onChange: setSupervisorFilter,
+      key: "supervisor", label: t("supervisorNameLabel"), value: supervisorFilter, onChange: setFilter(setSupervisorFilter),
       options: [{ value: "", label: t("allSupervisorsLabel") }]
         .concat(distinct(placements, "supervisorName").map(function (n) { return { value: n, label: n }; }))
     }
@@ -142,6 +156,7 @@ export default function Placements() {
     setSearch("");
     setStatusFilter(""); setEmployerFilter(""); setPositionFilter(""); setTenureFilter("");
     setCheckinFilter(""); setWageFilter(""); setBenefitsFilter(""); setSupervisorFilter("");
+    setPage(1);
   }
 
   const term = search.trim().toLowerCase();
@@ -153,6 +168,7 @@ export default function Placements() {
     return matchesPlacement(p2, filterValues, { today: todayStr(), term, checkinSummaryFor: checkinSummary });
   });
   const sorted = sortPlacements(matched, sort);
+  const paged = paginateList(sorted, page, pageSize);
 
   const sortOptions = [
     { value: "newest", label: t("sortNewestStartLabel") },
@@ -168,18 +184,10 @@ export default function Placements() {
     showToast(t("placementAdded"));
   }
   function openPlacement(p) {
-    navigate("/placements/" + p.id);
+    navigate("/workforce/placements/" + p.id);
   }
 
   function renderResults() {
-    if (placements.length === 0) {
-      return (
-        <ResultsEmptyState
-          icon={Briefcase} title={t("noPlacementsTitle")} description={t("noPlacementsDesc")}
-          actionLabel={t("addPlacementBtn")} actionIcon={Plus} onAction={function () { setAdding(true); }}
-        />
-      );
-    }
     if (sorted.length === 0) {
       return (
         <ResultsEmptyState
@@ -189,53 +197,66 @@ export default function Placements() {
       );
     }
 
-    const rows = sorted.map(function (p) {
+    const rows = paged.items.map(function (p) {
       const Row = view === "grid" ? PlacementGridCard : PlacementListItem;
       return <Row key={p.id} placement={p} checkins={checkinsByPlacement[p.id]} lang={lang} onOpen={openPlacement} />;
     });
 
-    return view === "grid"
-      ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{rows}</div>
-      : <div className="flex flex-col gap-3">{rows}</div>;
+    return (
+      <>
+        {view === "grid"
+          ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{rows}</div>
+          : <div className="flex flex-col gap-3">{rows}</div>}
+        <Pagination
+          bare
+          page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+          onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+          onChange={function (delta) { setPage(paged.page + delta); }}
+        />
+      </>
+    );
   }
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-1">{t("placementsTitle")}</h1>
-          <p className="m-0 text-sm text-muted">{t("placementsDesc")}</p>
-        </div>
-        <Button onClick={function () { setAdding(true); }} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
-          <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addPlacementBtn")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("placementsTitle")}
+        description={t("placementsDesc")}
+        actions={
+          <Button onClick={function () { setAdding(true); }}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> {t("addPlacementBtn")}
+          </Button>
+        }
+      />
 
-      {placements.length > 0 && (
-        <SearchFilterPanel
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder={t("placementSearchPlaceholder")}
-          filters={filters}
-          activeCount={activeFilterCount}
-          onClearAll={clearAll}
+      {placements.length === 0 ? (
+        <ResultsEmptyState
+          icon={Briefcase} title={t("noPlacementsTitle")} description={t("noPlacementsDesc")}
+          actionLabel={t("addPlacementBtn")} actionIcon={Plus} onAction={function () { setAdding(true); }}
         />
-      )}
-
-      <div className="mt-5">{renderResults()}</div>
-
-      {placements.length > 0 && (
-        <div className="mt-5">
-          <ResultsToolbar
-            id="placements"
-            total={sorted.length}
-            sort={sort}
-            onSortChange={setSort}
-            sortOptions={sortOptions}
-            view={view}
-            onViewChange={setView}
+      ) : (
+        <>
+          <SearchFilterPanel
+            search={search}
+            onSearchChange={function (value) { setSearch(value); setPage(1); }}
+            searchPlaceholder={t("placementSearchPlaceholder")}
+            filters={filters}
+            activeCount={activeFilterCount}
+            onClearAll={clearAll}
           />
-        </div>
+          <div className="mt-6">
+            <ResultsToolbar
+              id="placements"
+              total={sorted.length}
+              sort={sort}
+              onSortChange={function (value) { setSort(value); setPage(1); }}
+              sortOptions={sortOptions}
+              view={view}
+              onViewChange={setView}
+            />
+            {renderResults()}
+          </div>
+        </>
       )}
 
       {adding && (

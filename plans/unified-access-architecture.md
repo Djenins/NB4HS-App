@@ -1,6 +1,13 @@
 # NB4HS Unified Architecture: Users, Positions, Roles, Permissions, Workspaces
 
-Status: **proposal, awaiting owner approval. Nothing below has been implemented.**
+Status: **approved 2026-10-26** with the recommended defaults D1–D13. **Phase 0 complete 2026-10-26:**
+- PR #23 merged, so the repo matches the live database.
+- PR #31 merged (Staff Reports R1 is live).
+- PR #34 merged: security hotfixes, CI and the new appointment-request path.
+- Migrations p0a (20261026084229) and p0b (20261026084847) applied and verified on live.
+- One test appointment was submitted on the live site, checked and deleted.
+
+Open from §2.1: S7 and S8 (Phase 3), S11 (Phase 1), S13 (review).
 Audit date 2026-10-26. The audit was read-only: the repository at `origin/main` (d47f5bc), the open PR branches and the live Supabase project `vkbzarlkqzvhsfdmxyyq`, read with SELECT queries only.
 
 This builds on three earlier plans. It does not replace them:

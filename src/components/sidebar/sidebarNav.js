@@ -15,12 +15,9 @@ import { NAV_ICONS } from "../../lib/navIcons.js";
 import { navLabel, navPath, navSectionLabel, navSectionsForItems } from "../../lib/nav.js";
 import { programName, programsVisibleTo } from "../../lib/outreachPrograms.js";
 
-// Every page that belongs to the Workforce program, so the single Workforce
-// entry stays highlighted anywhere inside it.
-var WORKFORCE_PATHS = [
-  "/workforce", "/jobdeveloper", "/workforcedashboard", "/employers", "/jobopenings",
-  "/candidatematching", "/referrals", "/placements", "/workforcereports"
-];
+// Every Workforce page lives under /workforce (routes.js), so the single
+// Workforce entry stays highlighted anywhere inside it.
+var WORKFORCE_PATHS = ["/workforce"];
 
 // Program entries open a workspace with its own section menu (ModuleNav);
 // the sidebar marks them with a chevron.
@@ -29,19 +26,22 @@ var WORKSPACE_KEYS = ["fooddistribution", "students", "casemanagement", "outreac
 function entryFor(v, lang) {
   var match = [navPath(v)];
   if (v === "workforce") match = WORKFORCE_PATHS;
-  if (v === "students") match = ["/students", "/assessments"];
+  if (v === "students") match = ["/students"];
+  // Staff Accounts opens Administration; its other sections (roles,
+  // positions, audit) keep the entry lit too. System Settings
+  // (/admin/settings) is its own entry and wins as the longer match.
+  if (v === "users") match = ["/admin"];
   return { key: v, label: navLabel(v, lang), to: navPath(v), icon: NAV_ICONS[v], match: match, workspace: WORKSPACE_KEYS.indexOf(v) !== -1 };
 }
 
 function outreachEntries(programs, role, programRoles, lang) {
   var visible = programsVisibleTo(programs, role, programRoles);
   if (!visible.length) return [entryFor("outreach", lang)];
-  return visible.map(function (p, i) {
-    var to = "/outreach/" + p.key;
+  return visible.map(function (p) {
+    var to = "/" + p.key;
     return {
       key: "outreach:" + p.key, label: programName(p, lang), to: to, icon: NAV_ICONS[p.key] || NAV_ICONS.outreach,
-      // Bare /outreach redirects into the first program, so it belongs to that entry.
-      match: i === 0 ? [to, "/outreach"] : [to], workspace: true
+      match: [to], workspace: true
     };
   });
 }
@@ -57,6 +57,9 @@ export function sidebarSections(items, opts) {
     if (s.key === "workforceDevelopment") return;
     var entries = [];
     s.items.forEach(function (v) {
+      // Assessments is a section of Adult Education (AdultEdNav), not a
+      // program of its own; its page keeps the Adult Education entry lit.
+      if (v === "assessments") return;
       if (v === "outreach") entries = entries.concat(outreachEntries(o.programs, o.role, o.programRoles, lang));
       else entries.push(entryFor(v, lang));
     });

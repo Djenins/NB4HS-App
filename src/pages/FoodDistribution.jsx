@@ -298,7 +298,7 @@ function ExportDataDetails({ open, onToggle }) {
 
 // The module's own menu (ModuleNav, same strip as Outreach/Workforce and
 // Case Management): Dashboard / Households / Distributions / Export, one URL
-// per section (/fooddistribution/:section).
+// per section (/food/:section).
 const SECTIONS = [
   { key: "dashboard", label: "snapSectionDashboard", icon: LayoutGrid },
   { key: "households", label: "foodSectionHouseholds", icon: Home },
@@ -575,7 +575,7 @@ export default function FoodDistribution() {
     distributions: allDists.filter((d) => d.foodClientId === c.id)
   }));
   const section = SECTIONS.some((s) => s.key === params.section) ? params.section : "dashboard";
-  const go = (key) => navigate("/fooddistribution/" + key);
+  const go = (key) => navigate("/food/" + key);
 
   return (
     <>

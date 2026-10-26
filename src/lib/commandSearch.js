@@ -8,16 +8,16 @@
 // navigation can't disagree about access:
 //   students     -> "students" (Adult Education)
 //   case clients -> "casemanagement"
-//   staff        -> "users", administrators only
+//   staff        -> the admin.users.view permission (Administration's own gate)
 // Pages are the sidebar's own entries, which are already filtered.
 import { studentMatchesSearch } from "./students.js";
 import { roleLabel } from "./utils.js";
 
 export var RESULT_LIMIT = 5;
 
-export function searchScopes(items, role) {
+export function searchScopes(items, canViewStaff) {
   var has = function (v) { return (items || []).indexOf(v) !== -1; };
-  return { students: has("students"), clients: has("casemanagement"), staff: role === "administrator" && has("users") };
+  return { students: has("students"), clients: has("casemanagement"), staff: !!canViewStaff };
 }
 
 // The placeholder names only what this person can actually find.
@@ -76,7 +76,7 @@ export function buildResults(opts) {
         return {
           id: "client:" + c.id, kind: "client", title: fullName(c),
           subtitle: [c.nbId, c.phone].filter(Boolean).join(" · "),
-          to: c.nbId ? "/clients/" + c.nbId : "/casemanagement/clients"
+          to: c.nbId ? "/clients/" + c.nbId : "/case-management"
         };
       }) });
     }
@@ -84,8 +84,7 @@ export function buildResults(opts) {
       groups.push({ key: "staff", results: (data.profiles || []).filter(function (p) {
         return ((p.name || "") + " " + (p.email || "")).toLowerCase().indexOf(q) !== -1;
       }).slice(0, RESULT_LIMIT).map(function (p) {
-        // Staff Accounts has no per-person page; it pages to this row and highlights it.
-        return { id: "staff:" + p.id, kind: "staff", title: p.name || p.email, subtitle: [p.email, roleLabel(p.role, lang)].filter(Boolean).join(" · "), to: "/users", state: { focusUserId: p.id } };
+        return { id: "staff:" + p.id, kind: "staff", title: p.name || p.email, subtitle: [p.email, roleLabel(p.role, lang)].filter(Boolean).join(" · "), to: "/admin/users/" + p.id };
       }) });
     }
   }

@@ -5,9 +5,13 @@
 // the stage configured for that milestone and hidden when there is none.
 // Appointments, events and partner referrals arrive in later phases and are
 // named as not-yet-built, not faked.
+//
+// Layout follows the dashboard template (plans/ui-design-system.md §2.4):
+// PageHeader with the range as a SegmentedControl, a KpiCard row, then
+// SectionCards on a 12-column grid at lg.
 import { useEffect, useState } from "react";
 import {
-  AlarmClock, ArrowRight, CalendarCheck, ClipboardCheck, FolderOpen, ListPlus, MessageSquarePlus, Send, UserPlus, Users
+  AlarmClock, CalendarCheck, ClipboardCheck, FolderOpen, ListPlus, MessageSquarePlus, Percent, Send, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
@@ -17,32 +21,35 @@ import { programName, programScopeNote } from "../../lib/outreachPrograms.js";
 import { addDays, completionRate, fetchOutreachDashboard, fetchRecentActivity, fetchTasks, taskBuckets } from "../../lib/snapTasks.js";
 import { fmtDateLong, fmtTime, todayStr } from "../../lib/utils.js";
 import BarList from "../BarList.jsx";
-import { SectionCard, SectionEmpty } from "../SectionCard.jsx";
+import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
-import { Button } from "../ui/button.jsx";
+import { Button, BUTTON_RESET } from "../ui/button.jsx";
 import { Card } from "../ui/card.jsx";
-import { SNAP_CONTROL } from "./SnapField.jsx";
+import { EmptyState } from "../ui/empty-state.jsx";
+import { KpiCard } from "../ui/kpi-card.jsx";
+import { PageHeader } from "../ui/page-header.jsx";
+import { SectionCard } from "../ui/section-card.jsx";
+import { SegmentedControl } from "../ui/segmented-control.jsx";
+import { Skeleton } from "../ui/skeleton.jsx";
+import { StatusBadge } from "../ui/status-badge.jsx";
 import { SnapTaskRows } from "./SnapTaskList.jsx";
 
 const RANGES = [7, 30, 90];
-const BTN_RESET = "min-h-0 rounded-none border-0 bg-transparent p-0 font-normal text-left transform-none";
 
-function Kpi({ icon: Icon, tint, label, value, onDrill }) {
-  const body = (
-    <>
-      <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}><Icon className="h-5 w-5" aria-hidden="true" /></span>
-      <span className="mt-3 block text-sm font-semibold text-muted">{label}</span>
-      <span className="mt-1 flex items-center gap-2 text-3xl font-extrabold tracking-tight text-card-foreground">
-        {value}{onDrill && <ArrowRight className="h-4 w-4 text-primary" aria-hidden="true" />}
-      </span>
-    </>
-  );
+// Placeholder shaped like a BarList while the dashboard aggregate loads.
+function BarListSkeleton() {
   return (
-    <Card className={cn("p-5 shadow-card hover:shadow-card", onDrill && "transition-colors hover:border-primary-soft")}>
-      {onDrill ? <button type="button" onClick={onDrill} className={cn(BTN_RESET, "block w-full")}>{body}</button> : body}
-    </Card>
+    <div className="grid gap-3">
+      {["w-full", "w-4/5", "w-3/5", "w-2/5"].map((w) => (
+        <div key={w} className="flex items-center gap-3">
+          <Skeleton className="h-4 w-24 shrink-0" />
+          <Skeleton className={cn("h-6", w)} />
+        </div>
+      ))}
+    </div>
   );
 }
+
 
 export default function SnapDashboard({ onNavigate }) {
   const { data, lang, session } = useApp();
@@ -52,6 +59,7 @@ export default function SnapDashboard({ onNavigate }) {
   const [days, setDays] = useState(30);
   const [metrics, setMetrics] = useState(null);
   const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [stages, setStages] = useState([]);
   const [myTasks, setMyTasks] = useState([]);
   const [attention, setAttention] = useState([]);
@@ -64,7 +72,7 @@ export default function SnapDashboard({ onNavigate }) {
       .then((m) => { if (!cancelled) { setMetrics(m); setLoadError(false); } })
       .catch((err) => { console.warn("outreach_dashboard failed", err); if (!cancelled) setLoadError(true); });
     return () => { cancelled = true; };
-  }, [program, days, today]);
+  }, [program, days, today, reloadKey]);
 
   function loadLists() {
     fetchCaseStages(program).then(setStages).catch(() => {});
@@ -80,91 +88,134 @@ export default function SnapDashboard({ onNavigate }) {
   const bars = (rows, labelFor) => (rows || []).map((r) => ({ label: labelFor(r), count: Number(r.count) }));
   const assisted = milestoneStage(stages, "application_assisted");
   const referred = milestoneStage(stages, "referred_external");
+  const overdue = Number(m.overdue_tasks || 0);
+  // A value, or a skeleton the size of one while the aggregate loads.
+  const val = (v) => (metrics ? v : <Skeleton className="mt-1 h-8 w-14" />);
+
+  // 6, 7 or 8 tiles depending on which milestones the program configures.
+  // 6 sits as 3+3 at lg; 7 and 8 as 4+3 / 4+4. On the two-column phone grid
+  // an odd count lets the last tile (completion rate) span the row.
+  const kpiCount = 6 + (assisted ? 1 : 0) + (referred ? 1 : 0);
+  const kpiCols = kpiCount === 6 ? "lg:grid-cols-3" : "lg:grid-cols-4";
+  const lastSpan = kpiCount % 2 ? "col-span-2 lg:col-span-1" : "";
+
+  const rangeControl = (
+    <SegmentedControl
+      label={t("snapRangeLabel")}
+      value={days}
+      onChange={setDays}
+      options={RANGES.map((n) => ({ value: n, label: t("snapRange_" + n) }))}
+    />
+  );
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0">{programName(info, lang)}</h1>
-        <div className="flex items-center gap-2">
-          <label htmlFor="snap-range" className="text-sm text-muted">{t("snapRangeLabel")}</label>
-          <select id="snap-range" className={SNAP_CONTROL + " !w-auto"} value={days} onChange={(e) => setDays(Number(e.target.value))}>
-            {RANGES.map((n) => <option key={n} value={n}>{t("snapRange_" + n)}</option>)}
-          </select>
-        </div>
-      </div>
-      {programRole === "worker" && <p className="!m-0 !text-sm text-muted">{t("snapDashboardScopeWorker")}</p>}
+      <PageHeader
+        className="mb-0"
+        title={programName(info, lang)}
+        description={programRole === "worker" ? t("snapDashboardScopeWorker") : undefined}
+        actions={rangeControl}
+      />
 
       <SectionCard title={t("snapQuickActions")}>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" className="gap-1.5" onClick={() => onNavigate("contacts", "new")}><UserPlus className="h-4 w-4" aria-hidden="true" />{t("snapAddContact")}</Button>
-          <Button variant="secondary" className="gap-1.5" onClick={() => onNavigate("cases", "new")}><FolderOpen className="h-4 w-4" aria-hidden="true" />{t("snapOpenCase")}</Button>
-          <Button variant="secondary" className="gap-1.5" onClick={() => onNavigate("contacts")}><MessageSquarePlus className="h-4 w-4" aria-hidden="true" />{t("snapLogActivity")}</Button>
-          <Button variant="secondary" className="gap-1.5" onClick={() => onNavigate("tasks", "new")}><ListPlus className="h-4 w-4" aria-hidden="true" />{t("snapAddTask")}</Button>
+          <Button variant="secondary" onClick={() => onNavigate("contacts", "new")}><UserPlus className="h-4 w-4" aria-hidden="true" />{t("snapAddContact")}</Button>
+          <Button variant="secondary" onClick={() => onNavigate("cases", "new")}><FolderOpen className="h-4 w-4" aria-hidden="true" />{t("snapOpenCase")}</Button>
+          <Button variant="secondary" onClick={() => onNavigate("contacts")}><MessageSquarePlus className="h-4 w-4" aria-hidden="true" />{t("snapLogActivity")}</Button>
+          <Button variant="secondary" onClick={() => onNavigate("tasks", "new")}><ListPlus className="h-4 w-4" aria-hidden="true" />{t("snapAddTask")}</Button>
         </div>
       </SectionCard>
 
-      {loadError ? <SectionEmpty message={t("snapDashboardLoadError")} /> : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Kpi icon={Users} tint="bg-primary-tint text-primary" label={t("snapKpiIndividuals")} value={metrics ? m.individuals_contacted : "…"} onDrill={() => onNavigate("contacts")} />
-          <Kpi icon={UserPlus} tint="bg-primary-tint text-primary" label={t("snapKpiNewContacts")} value={metrics ? m.new_contacts : "…"} onDrill={() => onNavigate("contacts")} />
-          <Kpi icon={FolderOpen} tint="bg-tint-success text-success" label={t("snapKpiCasesOpened")} value={metrics ? m.cases_opened : "…"} onDrill={() => onNavigate("cases")} />
-          {assisted && <Kpi icon={ClipboardCheck} tint="bg-tint-success text-success" label={t("snapKpiApplications")} value={metrics ? m.applications_assisted : "…"} onDrill={() => onNavigate("cases")} />}
-          {referred && <Kpi icon={Send} tint="bg-tint-neutral text-muted" label={stageLabel(stages, referred.key, lang)} value={metrics ? m.referred_external : "…"} onDrill={() => onNavigate("cases")} />}
-          <Kpi icon={CalendarCheck} tint="bg-tint-warn text-gold-ink" label={t("snapKpiFollowUpsDue")} value={metrics ? m.follow_ups_due : "…"} onDrill={() => onNavigate("tasks")} />
-          <Kpi icon={AlarmClock} tint="bg-accent-tint text-accent" label={t("snapKpiOverdue")} value={metrics ? m.overdue_tasks : "…"} onDrill={() => onNavigate("tasks")} />
-          <Kpi icon={ClipboardCheck} tint="bg-tint-neutral text-muted" label={t("snapKpiCompletion")} value={metrics ? (rate === null ? "—" : rate + "%") : "…"} />
+      {loadError ? (
+        <Card>
+          <EmptyState
+            variant="error"
+            compact
+            title={t("snapDashboardLoadError")}
+            description={t("snapDashboardLoadErrorHint")}
+            action={<Button variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>{t("snapDashboardRetry")}</Button>}
+          />
+        </Card>
+      ) : (
+        <div className={cn("grid grid-cols-2 gap-4", kpiCols)}>
+          <KpiCard icon={Users} tone="info" label={t("snapKpiIndividuals")} value={val(m.individuals_contacted)} onClick={() => onNavigate("contacts")} />
+          <KpiCard icon={UserPlus} tone="info" label={t("snapKpiNewContacts")} value={val(m.new_contacts)} onClick={() => onNavigate("contacts")} />
+          <KpiCard icon={FolderOpen} tone="success" label={t("snapKpiCasesOpened")} value={val(m.cases_opened)} onClick={() => onNavigate("cases")} />
+          {assisted && <KpiCard icon={ClipboardCheck} tone="success" label={t("snapKpiApplications")} value={val(m.applications_assisted)} onClick={() => onNavigate("cases")} />}
+          {referred && <KpiCard icon={Send} tone="violet" label={stageLabel(stages, referred.key, lang)} value={val(m.referred_external)} onClick={() => onNavigate("cases")} />}
+          <KpiCard icon={CalendarCheck} tone="warning" label={t("snapKpiFollowUpsDue")} value={val(m.follow_ups_due)} onClick={() => onNavigate("tasks")} />
+          <KpiCard icon={AlarmClock} tone={overdue > 0 ? "danger" : "neutral"} label={t("snapKpiOverdue")} value={val(m.overdue_tasks)} onClick={() => onNavigate("tasks")} />
+          <KpiCard className={lastSpan} icon={Percent} tone="neutral" label={t("snapKpiCompletion")} value={val(rate === null ? "—" : rate + "%")} />
         </div>
       )}
 
-      {metrics && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <SectionCard title={t("snapChartActivity")}><BarList items={bars(m.activity_by_week, (r) => fmtDateLong(r.week, lang))} /></SectionCard>
-          <SectionCard title={t("snapChartByType")}><BarList items={bars(m.activity_by_type, (r) => t("snapType_" + r.key))} /></SectionCard>
-          <SectionCard title={t("snapChartBySource")}><BarList items={bars(m.contacts_by_source, (r) => t("snapSource_" + r.key))} /></SectionCard>
-          <SectionCard title={t("snapChartByStage")}><BarList items={bars((m.cases_by_stage || []).filter((r) => Number(r.count) > 0), (r) => stageLabel(stages, r.key, lang))} /></SectionCard>
+      {!loadError && (
+        <div className="grid gap-5 lg:grid-cols-12">
+          <SectionCard className="lg:col-span-6" title={t("snapChartActivity")}>
+            {metrics ? <BarList items={bars(m.activity_by_week, (r) => fmtDateLong(r.week, lang))} /> : <BarListSkeleton />}
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("snapChartByType")}>
+            {metrics ? <BarList items={bars(m.activity_by_type, (r) => t("snapType_" + r.key))} /> : <BarListSkeleton />}
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("snapChartBySource")}>
+            {metrics ? <BarList items={bars(m.contacts_by_source, (r) => t("snapSource_" + r.key))} /> : <BarListSkeleton />}
+          </SectionCard>
+          <SectionCard className="lg:col-span-6" title={t("snapChartByStage")}>
+            {metrics ? <BarList items={bars((m.cases_by_stage || []).filter((r) => Number(r.count) > 0), (r) => stageLabel(stages, r.key, lang))} /> : <BarListSkeleton />}
+          </SectionCard>
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <SectionCard title={t("snapMyFollowUps")}>
+      <div className="grid gap-5 lg:grid-cols-12">
+        <SectionCard className="lg:col-span-4" title={t("snapMyFollowUps")}>
           <SnapTaskRows tasks={myTasks} onChanged={loadLists} emptyMessage={t("snapNothingHere")} showClient />
         </SectionCard>
-        <SectionCard title={t("snapCasesAttention")}>
+        <SectionCard className="lg:col-span-4" title={t("snapCasesAttention")} flush={attention.length > 0}>
           {attention.length ? (
-            <ul className="m-0 list-none space-y-2 p-0">
+            <ul className="m-0 list-none divide-y divide-border border-t border-border p-0">
               {attention.map((c) => (
                 <li key={c.id}>
-                  <button type="button" onClick={() => onNavigate("cases")} className={cn(BTN_RESET, "block w-full rounded-lg border border-border p-3 text-sm hover:bg-background")}>
-                    <span className="block font-semibold text-card-foreground">{(c.firstName + " " + c.lastName).trim()} · {c.caseNumber}</span>
-                    <span className="mt-1 flex flex-wrap gap-1.5">
-                      <Badge>{stageLabel(stages, c.stageKey, lang)}</Badge>
-                      {c.reviewStatus === "requested" && <Badge variant="warn">{t("snapReview_requested")}</Badge>}
-                      {c.followUpDate && c.followUpDate < today && <Badge variant="accent">{t("snapFollowUpDate")}: {fmtDateLong(c.followUpDate, lang)}</Badge>}
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("cases")}
+                    className={cn(BUTTON_RESET, "block w-full px-5 py-3 text-left transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 sm:px-6")}
+                  >
+                    <span className="block text-ui font-semibold leading-snug text-card-foreground">
+                      {(c.firstName + " " + c.lastName).trim()} · <span className="tabular-nums">{c.caseNumber}</span>
+                    </span>
+                    <span className="mt-1.5 flex flex-wrap gap-1.5">
+                      <Badge variant="neutral">{stageLabel(stages, c.stageKey, lang)}</Badge>
+                      {c.reviewStatus === "requested" && <StatusBadge domain="caseReview" status="requested">{t("snapReview_requested")}</StatusBadge>}
+                      {c.followUpDate && c.followUpDate < today && (
+                        <StatusBadge domain="task" status="overdue">{t("snapFollowUpDate")}: {fmtDateLong(c.followUpDate, lang)}</StatusBadge>
+                      )}
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
-          ) : <SectionEmpty message={t("snapNothingHere")} />}
+          ) : <EmptyState compact title={t("snapNothingHere")} description={t("snapCasesAttentionEmptyHint")} />}
         </SectionCard>
-        <SectionCard title={t("snapRecentActivity")}>
+        <SectionCard className="lg:col-span-4" title={t("snapRecentActivity")}>
           {recent.length ? (
-            <ul className="m-0 list-none space-y-2 p-0 text-sm">
+            <ul className="m-0 list-none divide-y divide-border p-0">
               {recent.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-center gap-2">
-                  <Badge>{t("snapType_" + a.type)}</Badge>
-                  <span className="text-card-foreground">{a.clientName}</span>
-                  <span className="ml-auto text-xs text-muted">{fmtDateLong(a.occurredAt.slice(0, 10), lang)} {fmtTime(a.occurredAt)} · {nameOf(a.staffId)}</span>
+                <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="neutral">{t("snapType_" + a.type)}</Badge>
+                    <span className="text-ui text-card-foreground">{a.clientName}</span>
+                  </div>
+                  <div className="mt-1 text-meta tabular-nums text-muted">
+                    {fmtDateLong(a.occurredAt.slice(0, 10), lang)} {fmtTime(a.occurredAt)} · {nameOf(a.staffId)}
+                  </div>
                 </li>
               ))}
             </ul>
-          ) : <SectionEmpty message={t("snapNothingHere")} />}
+          ) : <EmptyState compact title={t("snapNothingHere")} description={t("snapRecentActivityEmptyHint")} />}
         </SectionCard>
       </div>
 
-      <div className="info-callout !mb-0">
-        <p className="!m-0 !text-sm">{t("snapComingNext")} {programScopeNote(info, lang)}</p>
-      </div>
+      <Alert tone="info">{t("snapComingNext")} {programScopeNote(info, lang)}</Alert>
     </div>
   );
 }

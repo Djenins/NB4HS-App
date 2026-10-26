@@ -1,6 +1,6 @@
 # Staff Biweekly Reporting — Architecture Proposal
 
-Status: **proposal, awaiting approval. Nothing below has been implemented.**
+Status: **approved 2026-10-26. Stage R1 live (migration 20261026075822, PR #31). Stage R2 (reminders) live (migration 20261026155659).**
 Organization-wide module (not part of SNAP / Outreach). Staff submit a report every two weeks to the
 Executive Director, Bernard Georges, and to any other explicitly granted reviewer.
 
@@ -110,8 +110,8 @@ toggle; plus department list and staff ↔ department assignments; plus who hold
 ```
 departments                (id, key, name, active, sort_order)                     -- org registry
 staff_departments          (user_id→profiles, department_id, active, primary key(user_id, department_id))
-program_staff              -- CHECK widened: program in ('snap','staff_reports'),
-                           --   program_role adds 'reviewer'
+programs                   -- (O1 registry) row 'staff_reports', module 'staff_reporting'
+program_staff              -- role CHECK per program: staff_reports takes reviewer | program_admin
 reporting_schedules        (id, name, first_period_start date, period_days int default 14 check > 0,
                             deadline_days_after_end int default 1, deadline_time time default '17:00',
                             time_zone text default 'America/New_York' (validated against pg_timezone_names),
@@ -214,7 +214,7 @@ only after you confirm.
 | Stage | Contents | Tests |
 |---|---|---|
 | **R1 — Core reporting** | departments, staff_departments, schedules, periods, staff_reports, versions, reviews, `notifications.link`, `staff_reports` program roles; RPCs + RLS + audit; My Reports (drafts, autosave, submit, revise); Staff Reports (overview, table, detail, acknowledge, request revision); Schedule tab; bell links; in-app notifications for submit/revision/ack | deadline/period math incl. DST (Nov 1 2026, Mar 14 2027) and midnight/date boundaries; status transitions; validation; duplicate prevention; multi-department expectations; nav/route guard by role; page tests for draft→resume→submit and reviewer actions; SQL `begin…rollback` script for RLS: staff can't read others', can't spoof `staff_id`, can't change status, non-reviewer admin can't read |
-| **R2 — Reminders & overdue** | `report_reminders_sent`, `staff_reports_tick()`, hourly pg_cron job; overdue status in dashboard | reminder due-time calc per offset; dedupe on re-run; cancellation after submission; overdue + grace |
+| **R2 — Reminders & overdue** | `staff_report_notices_sent`, `staff_reports_tick()`, hourly pg_cron job; overdue status in dashboard | reminder due-time calc per offset; dedupe on re-run; cancellation after submission; overdue + grace |
 | **R3 — Email** | `outbound_messages`, pg_net, Edge Function `send-outbound`, templates, retry/backoff, queue health card | queue claim, retry/backoff, failure after N, "sent" only on provider 2xx, submission survives provider failure (function tested with a stubbed provider) |
 | **R4 — Attachments & export** | private bucket + policies, upload/download with signed URLs, CSV export, print/PDF | type/size limits, attachment access follows report access |
 
@@ -224,7 +224,17 @@ for links; Vercel deploy of the frontend only when you authorize production.
 
 ---
 
-## 8. Decisions needed before R1
+## 8. Decisions (answered 2026-10-26)
+
+- Reviewer: a separate test account for now (email to be confirmed); Bernard's inactive profile is left untouched.
+- Departments: the suggested six.
+- Schedule: 14-day periods from Mon Nov 2 2026, due the Monday after each period at 5:00 PM America/New_York, no grace.
+- One report per department.
+- Defaults taken without a separate answer: everyone assigned to a covered department reports; email waits for R3.
+- Navigation as built: My Reports shows for every staff role (the page says when someone has no department), not only
+  for assigned staff.
+
+### Original questions
 
 1. **Bernard's account** — confirm the inactive "Bernard Georges" profile (by email) is his, and that I may
    reactivate it and grant `reviewer`. Any other reviewers (e.g., a deputy)?

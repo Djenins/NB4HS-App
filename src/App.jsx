@@ -1,5 +1,4 @@
-// App.jsx -- top-level route table. "/" is staff-only (sign-in, or the
-// dashboard once signed in); clients use the kiosk at /kiosk. Public routes plus
+// App.jsx -- top-level route table. Public routes (Login, StaffLogin) plus
 // a Shell layout route that owns everything reachable while signed in or in
 // kiosk mode. Route paths mirror the original's `view` string vocabulary
 // (see lib/nav.js) so this is a faithful reshaping of nav_shell.js's
@@ -14,6 +13,8 @@
 import { lazy, useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
+import { LEGACY_REDIRECTS } from "./lib/routes.js";
+import LegacyRedirect from "./components/LegacyRedirect.jsx";
 import Shell from "./components/Shell.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
@@ -29,6 +30,9 @@ import ApptRequestSuccess from "./pages/ApptRequestSuccess.jsx";
 import AppointmentLookup from "./pages/AppointmentLookup.jsx";
 import ClientRegister from "./pages/ClientRegister.jsx";
 import ClientRegisterSuccess from "./pages/ClientRegisterSuccess.jsx";
+import { navPath } from "./lib/nav.js";
+import { useNavItems } from "./lib/useNavItems.js";
+import { landingItem } from "./lib/workspaces.js";
 
 // Code-split by route. The public kiosk/appointment pages above load eagerly
 // -- they're the first thing a client's device sees and should never wait on
@@ -43,11 +47,11 @@ const Reports = lazy(() => import("./pages/Reports.jsx"));
 const QRCode = lazy(() => import("./pages/QRCode.jsx"));
 const Manage = lazy(() => import("./pages/Manage.jsx"));
 const Students = lazy(() => import("./pages/Students.jsx"));
+const Assessments = lazy(() => import("./pages/Assessments.jsx"));
 const FoodDistribution = lazy(() => import("./pages/FoodDistribution.jsx"));
 const CalendarPage = lazy(() => import("./pages/Calendar.jsx"));
 const CaseManagement = lazy(() => import("./pages/CaseManagement.jsx"));
 const JobDeveloper = lazy(() => import("./pages/JobDeveloper.jsx"));
-const Workforce = lazy(() => import("./pages/Workforce.jsx"));
 const ClientProfile = lazy(() => import("./pages/ClientProfile.jsx"));
 const JobClientProfile = lazy(() => import("./pages/JobClientProfile.jsx"));
 const WorkforceDashboard = lazy(() => import("./pages/WorkforceDashboard.jsx"));
@@ -60,16 +64,23 @@ const Placements = lazy(() => import("./pages/Placements.jsx"));
 const PlacementDetail = lazy(() => import("./pages/PlacementDetail.jsx"));
 const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
 const Outreach = lazy(() => import("./pages/Outreach.jsx"));
-const Users = lazy(() => import("./pages/Users.jsx"));
+const MyReports = lazy(() => import("./pages/MyReports.jsx"));
+const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
+const Admin = lazy(() => import("./pages/Admin.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Availability = lazy(() => import("./pages/Availability.jsx"));
 
-// "/" is for staff only: the sign-in page, or straight into the app once
-// signed in. Clients never land here -- they get the kiosk link (/kiosk).
+// "/" is for staff only: the sign-in page, or straight to their landing page
+// once signed in. Clients never land here -- they get the kiosk link (/kiosk).
 function StaffHome() {
   const { session, authLoading } = useApp();
+  const { items } = useNavItems();
   if (authLoading) return null;
-  if (session) return <Navigate to="/dashboard" replace />;
+  if (session) {
+    const landing = landingItem(items, session.primaryWorkspace);
+    if (landing) return <Navigate to={navPath(landing)} replace />;
+  }
   return <StaffLogin />;
 }
 
@@ -119,48 +130,53 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<Shell />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/mycaseload" element={<MyCaseload />} />
+          <Route path="/dashboard" element={<RequireRoute routeKey="dashboard"><Dashboard /></RequireRoute>} />
+          <Route path="/mycaseload" element={<RequireRoute routeKey="mycaseload"><MyCaseload /></RequireRoute>} />
           <Route path="/availability" element={<RequireRoute routeKey="availability"><Availability /></RequireRoute>} />
-          <Route path="/checkin" element={<CheckIn />} />
-          <Route path="/checkin/student" element={<CheckInStudent />} />
-          <Route path="/checkin/visitor" element={<CheckInVisitor />} />
-          <Route path="/checkin/success" element={<CheckInSuccess />} />
-          <Route path="/checkout" element={<CheckOut />} />
-          <Route path="/checkout/scan-success" element={<CheckOutScanSuccess />} />
+          <Route path="/checkin" element={<RequireRoute routeKey="checkin" kiosk><CheckIn /></RequireRoute>} />
+          <Route path="/checkin/student" element={<RequireRoute routeKey="checkin" kiosk><CheckInStudent /></RequireRoute>} />
+          <Route path="/checkin/visitor" element={<RequireRoute routeKey={["checkin", "search"]} kiosk><CheckInVisitor /></RequireRoute>} />
+          <Route path="/checkin/success" element={<RequireRoute routeKey={["checkin", "search"]} kiosk><CheckInSuccess /></RequireRoute>} />
+          <Route path="/checkout" element={<RequireRoute routeKey="checkout" kiosk><CheckOut /></RequireRoute>} />
+          <Route path="/checkout/scan-success" element={<RequireRoute routeKey="checkout" kiosk><CheckOutScanSuccess /></RequireRoute>} />
           <Route path="/appointments/request" element={<ApptRequest />} />
           <Route path="/appointments/request/success" element={<ApptRequestSuccess />} />
           <Route path="/appointments/lookup" element={<AppointmentLookup />} />
           <Route path="/register" element={<ClientRegister />} />
           <Route path="/register/success" element={<ClientRegisterSuccess />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/fooddistribution/:section?" element={<FoodDistribution />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/qrcode" element={<QRCode />} />
+          <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
+          <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
+          <Route path="/food/:section?" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
+          <Route path="/calendar" element={<RequireRoute routeKey="calendar"><CalendarPage /></RequireRoute>} />
+          <Route path="/qrcode" element={<RequireRoute routeKey="qrcode"><QRCode /></RequireRoute>} />
           <Route path="/manage" element={<RequireRoute routeKey="manage"><Manage /></RequireRoute>} />
-          <Route path="/students/:section?" element={<Students />} />
-          {/* Assessments is a tab inside Adult Education now; keep old links working. */}
-          <Route path="/assessments" element={<Navigate to="/students/assessments" replace />} />
-          <Route path="/casemanagement/:section?" element={<CaseManagement />} />
-          <Route path="/outreach/:program?/:section?" element={<RequireRoute routeKey="outreach"><Outreach /></RequireRoute>} />
-          {/* SNAP Outreach became a program inside Outreach (O1); keep old links working. */}
-          <Route path="/snap/*" element={<Navigate to="/outreach/snap" replace />} />
-          <Route path="/workforce/:section?" element={<Workforce />} />
-          <Route path="/jobdeveloper" element={<JobDeveloper />} />
-          <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />
-          <Route path="/workforcedashboard" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />
-          <Route path="/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
-          <Route path="/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
-          <Route path="/jobopenings" element={<RequireRoute routeKey="jobopenings"><JobOpenings /></RequireRoute>} />
-          <Route path="/candidatematching" element={<RequireRoute routeKey="candidatematching"><CandidateMatching /></RequireRoute>} />
-          <Route path="/referrals" element={<RequireRoute routeKey="referrals"><Referrals /></RequireRoute>} />
-          <Route path="/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />
-          <Route path="/placements/:placementId" element={<RequireRoute routeKey="placements"><PlacementDetail /></RequireRoute>} />
-          <Route path="/workforcereports" element={<RequireRoute routeKey="workforcereports"><WorkforceReports /></RequireRoute>} />
-          <Route path="/clients/:nbId" element={<ClientProfile />} />
-          <Route path="/users" element={<RequireRoute routeKey="users"><Users /></RequireRoute>} />
-          <Route path="/settings" element={<RequireRoute routeKey="settings"><Settings /></RequireRoute>} />
+          <Route path="/students/:section?" element={<RequireRoute routeKey="students"><Students /></RequireRoute>} />
+          <Route path="/students/assessments" element={<RequireRoute routeKey="assessments"><Assessments /></RequireRoute>} />
+          <Route path="/case-management/:section?" element={<RequireRoute routeKey="casemanagement"><CaseManagement /></RequireRoute>} />
+          <Route path="/myreports" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
+          <Route path="/myreports/:reportId" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
+          <Route path="/staffreports" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
+          <Route path="/staffreports/:reportId" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
+          {/* Outreach is the engine; each Outreach program is its own workspace (D3). */}
+          <Route path="/snap/:section?" element={<RequireRoute routeKey="outreach"><Outreach program="snap" /></RequireRoute>} />
+          <Route path="/workforce" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />
+          <Route path="/workforce/participants" element={<RequireRoute routeKey="jobdeveloper"><JobDeveloper /></RequireRoute>} />
+          <Route path="/workforce/participants/:clientId" element={<RequireRoute routeKey="jobdeveloper"><JobClientProfile /></RequireRoute>} />
+          <Route path="/workforce/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
+          <Route path="/workforce/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
+          <Route path="/workforce/jobs" element={<RequireRoute routeKey="jobopenings"><JobOpenings /></RequireRoute>} />
+          <Route path="/workforce/matching" element={<RequireRoute routeKey="candidatematching"><CandidateMatching /></RequireRoute>} />
+          <Route path="/workforce/referrals" element={<RequireRoute routeKey="referrals"><Referrals /></RequireRoute>} />
+          <Route path="/workforce/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />
+          <Route path="/workforce/placements/:placementId" element={<RequireRoute routeKey="placements"><PlacementDetail /></RequireRoute>} />
+          <Route path="/workforce/reports" element={<RequireRoute routeKey="workforcereports"><WorkforceReports /></RequireRoute>} />
+          <Route path="/profile" element={<RequireRoute routeKey="profile"><Profile /></RequireRoute>} />
+          <Route path="/clients/:nbId" element={<RequireRoute routeKey="clients"><ClientProfile /></RequireRoute>} />
+          <Route path="/admin/settings" element={<RequireRoute routeKey="settings"><Settings /></RequireRoute>} />
+          {/* Administration is gated by the new permissions inside Admin.jsx. */}
+          <Route path="/admin/:section?/:id?" element={<Admin />} />
+          {/* Every earlier address redirects to its page's new home (routes.js). */}
+          {LEGACY_REDIRECTS.map((r) => <Route key={r.from} path={r.from} element={<LegacyRedirect to={r.to} />} />)}
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

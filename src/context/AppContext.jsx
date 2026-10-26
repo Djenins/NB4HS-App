@@ -16,7 +16,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { isClientFacingPath, t } from "../lib/i18n.js";
-import { applyTheme, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
+import { applyTheme, effectiveClosingTime, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
 import {
   checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudents, fetchVisitCount, fetchVisits, subscribeTable
 } from "../lib/checkinData.js";
@@ -30,6 +30,8 @@ import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } fr
 import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
 import { fetchMyProgramRoles } from "../lib/programStaff.js";
+import { can as canPermission, fetchMyPermissions } from "../lib/permissions.js";
+import { fetchAppSettings } from "../lib/permissionAdmin.js";
 
 const AppContext = createContext(null);
 
@@ -270,17 +272,45 @@ export function AppProvider({ children }) {
   // whether the Outreach sidebar entry, its programs and sections show (see
   // nav.js / outreachPrograms.js). Refetched by Staff & Access after a role
   // change, since that can change the current user's own access.
+  //
+  // `permissions` is the same person's effective access under the new model
+  // (my_permissions(), plans/unified-access-architecture.md). Only the
+  // Administration area (Phase 2) reads it so far; the old role rules above
+  // still decide the rest of the app. Refetched with the program roles, since
+  // a role change moves both.
   const [programRoles, setProgramRoles] = useState({});
+  const [permissions, setPermissions] = useState([]);
+  // False until this session's first my_permissions() answer is in, so
+  // permission-gated pages (Administration) wait instead of redirecting.
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const refetchProgramRoles = useCallback(
-    () => fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
+    () => Promise.all([
+      fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
+      fetchMyPermissions().then((rows) => setPermissions(rows))
+    ]),
     [session]
   );
   useEffect(() => {
-    if (!session || !session.id) { setProgramRoles({}); return undefined; }
+    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); setPermissionsLoaded(false); return undefined; }
     let cancelled = false;
+    setPermissionsLoaded(false);
     fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
+    fetchMyPermissions().then((rows) => { if (!cancelled) { setPermissions(rows); setPermissionsLoaded(true); } });
     return () => { cancelled = true; };
   }, [session]);
+  const can = useCallback((key, program) => canPermission(permissions, key, program), [permissions]);
+
+  // Organization settings (app_settings, Phase 5) -- today the auto check-out
+  // closing time. Empty before the first save from System Settings (or
+  // before p5a is applied); the sweep then keeps this browser's own setting.
+  const [orgSettings, setOrgSettings] = useState({});
+  const refetchOrgSettings = useCallback(() => fetchAppSettings().then(setOrgSettings).catch(() => setOrgSettings({})), []);
+  useEffect(() => {
+    if (!session || !session.id) { setOrgSettings({}); return; }
+    refetchOrgSettings();
+  }, [session, refetchOrgSettings]);
+  const orgSettingsRef = useRef(orgSettings);
+  useEffect(() => { orgSettingsRef.current = orgSettings; }, [orgSettings]);
 
   const markNotifRead = useCallback((id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
@@ -447,8 +477,7 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     function sweep() {
-      const cfg = getConfig();
-      const closingTime = cfg.closingTime || "17:00";
+      const closingTime = effectiveClosingTime(orgSettingsRef.current, getConfig());
       const now = new Date();
       const stale = visitsRef.current.filter((v) => {
         if (v.timeOut) return false;
@@ -473,11 +502,13 @@ export function AppProvider({ children }) {
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
-    refetchStudents, refetchVisits, refetchProgramRoles
+    refetchStudents, refetchVisits, refetchProgramRoles,
+    permissions, permissionsLoaded, can,
+    orgSettings, refetchOrgSettings
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits, refetchProgramRoles
+    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, can, orgSettings, refetchOrgSettings
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

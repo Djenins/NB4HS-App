@@ -423,6 +423,40 @@ export async function updateClientRecord(id, patch) {
   return masterFromRow(data);
 }
 
+// ---------- intake forms (case management only) ----------
+// Since p3c_case_management_policies the intake form has its own table,
+// readable and saveable only with case_management.intake.view / .edit (audit
+// finding S8: it used to sit on clients, which every staff account reads).
+// Until that migration is applied the table doesn't exist, so these fall
+// back to the old columns on clients -- the app works on either side of it.
+function intakeTableMissing(error) {
+  return !!error && (error.code === "42P01" || error.code === "PGRST205"
+    || (/client_intakes/.test(error.message || "") && /does not exist|schema cache/i.test(error.message || "")));
+}
+
+// { form, savedAt } for a client's intake, null if none (or not allowed),
+// or { useClientRecord: true } before the table exists.
+export async function fetchClientIntake(clientId) {
+  const { data, error } = await supabase.from("client_intakes").select("form, saved_at").eq("client_id", clientId).maybeSingle();
+  if (error) {
+    if (intakeTableMissing(error)) return { useClientRecord: true };
+    console.warn("fetchClientIntake failed", error);
+    return null;
+  }
+  return data ? { form: data.form, savedAt: data.saved_at } : null;
+}
+
+// Saves the form; returns when it was saved.
+export async function saveClientIntake(clientId, form) {
+  const savedAt = new Date().toISOString();
+  const { data, error } = await supabase.from("client_intakes")
+    .upsert({ client_id: clientId, form, saved_at: savedAt }).select("saved_at").single();
+  if (!error) return data.saved_at;
+  if (!intakeTableMissing(error)) throw error;
+  const updated = await updateClientRecord(clientId, { intakeForm: form, intakeFormSavedAt: savedAt });
+  return updated.intakeFormSavedAt;
+}
+
 // ---------- case clients + notes (privacy-restricted) ----------
 
 export async function fetchCaseClients() {
@@ -757,13 +791,8 @@ export async function fetchAppointments() {
   if (error) { console.warn("fetchAppointments failed", error); return []; }
   return data.map(appointmentFromRow);
 }
-// No .select() chained here -- the anon kiosk appointment-request flow
-// inserts as an unauthenticated client, and the `appointments_select` RLS
-// policy is authenticated-only, so a chained .select().single() would fail
-// to read the just-inserted row back and Postgrest reports that as an RLS
-// violation on the whole request even though the insert itself succeeded.
-// Neither caller (ApptRequest.jsx, AppointmentsSection.jsx) uses the
-// returned row, so skipping the read-back avoids the false failure.
+// Staff-created appointments (AppointmentsSection.jsx). Clients requesting
+// their own go through requestAppointment() below instead.
 export async function createAppointment(fields) {
   const { error } = await supabase.from("appointments").insert(appointmentToRow(fields));
   if (error) throw error;
@@ -838,8 +867,27 @@ export async function deleteAppointment(id) {
 }
 
 // Public-safe staff picker for the kiosk/client-facing appointment request
-// form (no login) -- reads the `staff_directory` view (name/email/role only,
-// active case managers + job developers), not the full `profiles` table.
+// form (no login) -- the public_appointment_staff() RPC returns id, name and
+// role of active case managers + job developers, never their email.
+export async function fetchStaffDirectory() {
+  const { data, error } = await supabase.rpc("public_appointment_staff");
+  if (error) { console.warn("fetchStaffDirectory failed", error); return []; }
+  return data || [];
+}
+
+// A client's own appointment request (no login). Goes through the
+// request_appointment() RPC, which always files it as 'requested' from source
+// 'client' and resolves the assignee from the picked staff id server-side --
+// anonymous callers can no longer insert into `appointments` directly.
+export async function requestAppointment(fields) {
+  const { error } = await supabase.rpc("request_appointment", {
+    p_first_name: fields.firstName, p_last_name: fields.lastName, p_phone: fields.phone,
+    p_email: fields.email || "", p_date: fields.date, p_time: fields.time, p_reason: fields.reason || "",
+    p_staff_id: fields.staffId || null, p_meeting_with: fields.meetingWith || "case_manager"
+  });
+  if (error) throw error;
+}
+
 // ---------- unified notes / documents / communications ----------
 
 // department scopes a client's notes to the program that wrote them --

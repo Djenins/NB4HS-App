@@ -1,36 +1,62 @@
 // CircularGauge.jsx -- small reusable SVG ring gauge (no chart library --
 // recharts is a dependency but only used for Dashboard.jsx's bar/line
 // charts; a single ring is simpler as plain SVG). Value is 0-100.
+//
+//   <CircularGauge value={72} label="Good" tone="success" title="Job Readiness Score" />
+//
+// The ring and its label use the design system's tone tokens (ink slot, so
+// the arc clears 3:1 on a card -- the warning *solid* is brand gold at
+// 2.36:1). Colour is never the only signal: the percentage sits in the
+// middle and the bucket label below. The whole gauge is one role="img" with
+// a spoken name ("Job Readiness Score: 72% -- Good").
+//
+// `tone` takes a design-system tone (success, info, warning, neutral...).
+// readinessBucket() in lib/jobProfile.js still returns the older names; they
+// map here: warn -> neutral ("Fair" is neither good nor a problem) and
+// accent -> warning ("Needs Attention" is a review flag, not an error, so it
+// stays off red -- the red-means-wrong rule).
+import { cn } from "../lib/cn.js";
+
 const SIZE_PX = 96;
 const STROKE = 9;
 const RADIUS = (SIZE_PX - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// Theme tokens, not hexes, so the ring follows dark mode. Warn uses the
-// deepened --gold-ink because the same colour also sets the label text
-// below, and the brand --gold is 2.36:1 on a card.
-const TONE_STROKE = { success: "var(--success)", warn: "var(--gold-ink)", accent: "var(--accent)" };
+const LEGACY_TONE = { warn: "neutral", accent: "warning" };
 
-export default function CircularGauge({ value, label, tone }) {
-  const pct = Math.max(0, Math.min(100, value));
+// Spelled out in full so Tailwind's scanner sees every class.
+const TONE = {
+  success: { arc: "stroke-tone-success-ink", ink: "text-tone-success-ink" },
+  info: { arc: "stroke-tone-info-ink", ink: "text-tone-info-ink" },
+  warning: { arc: "stroke-tone-warning-ink", ink: "text-tone-warning-ink" },
+  neutral: { arc: "stroke-tone-neutral-ink", ink: "text-tone-neutral-ink" },
+  danger: { arc: "stroke-tone-danger-ink", ink: "text-tone-danger-ink" },
+  violet: { arc: "stroke-tone-violet-ink", ink: "text-tone-violet-ink" }
+};
+
+export default function CircularGauge({ value, label, tone, title, className }) {
+  const pct = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
   const offset = CIRCUMFERENCE * (1 - pct / 100);
-  const color = TONE_STROKE[tone] || TONE_STROKE.success;
+  const colours = TONE[LEGACY_TONE[tone] || tone] || TONE.success;
+  const spoken = (title ? title + ": " : "") + pct + "%" + (label ? " — " + label : "");
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width={SIZE_PX} height={SIZE_PX} viewBox={`0 0 ${SIZE_PX} ${SIZE_PX}`}>
-        <circle cx={SIZE_PX / 2} cy={SIZE_PX / 2} r={RADIUS} fill="none" stroke="var(--border)" strokeWidth={STROKE} />
-        <circle
-          cx={SIZE_PX / 2} cy={SIZE_PX / 2} r={RADIUS} fill="none" stroke={color} strokeWidth={STROKE}
-          strokeDasharray={CIRCUMFERENCE} strokeDashoffset={offset} strokeLinecap="round"
-          transform={`rotate(-90 ${SIZE_PX / 2} ${SIZE_PX / 2})`}
-          style={{ transition: "stroke-dashoffset 0.3s ease" }}
-        />
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className="fill-card-foreground" style={{ font: "700 20px Inter, sans-serif" }}>
+    <div role="img" aria-label={spoken} className={cn("flex flex-col items-center", className)}>
+      <div className="relative h-24 w-24">
+        <svg width={SIZE_PX} height={SIZE_PX} viewBox={`0 0 ${SIZE_PX} ${SIZE_PX}`} aria-hidden="true" focusable="false">
+          <circle cx={SIZE_PX / 2} cy={SIZE_PX / 2} r={RADIUS} fill="none" strokeWidth={STROKE} className="stroke-tone-neutral-chip" />
+          <circle
+            cx={SIZE_PX / 2} cy={SIZE_PX / 2} r={RADIUS} fill="none" strokeWidth={STROKE}
+            strokeDasharray={CIRCUMFERENCE} strokeDashoffset={offset} strokeLinecap="round"
+            transform={`rotate(-90 ${SIZE_PX / 2} ${SIZE_PX / 2})`}
+            className={cn("transition-[stroke-dashoffset] duration-base ease-out", colours.arc)}
+          />
+        </svg>
+        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-heading font-bold tabular-nums text-card-foreground">
           {pct}%
-        </text>
-      </svg>
-      {label && <span className="mt-1 text-xs font-semibold" style={{ color }}>{label}</span>}
+        </span>
+      </div>
+      {label ? <span aria-hidden="true" className={cn("mt-1 text-meta font-semibold", colours.ink)}>{label}</span> : null}
     </div>
   );
 }

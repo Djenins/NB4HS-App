@@ -1,10 +1,10 @@
-// JobDeveloper.jsx -- the job-seeker caseload, on the same chrome as the
-// rest of the module: components/SearchFilterPanel.jsx,
-// components/ResultsToolbar.jsx and components/ResultsEmptyState.jsx around
-// JobClientListItem (default) and JobClientGridCard. The 10-column table
-// those two replace kept its whole vocabulary in the move -- the bulk-select
-// checkbox, the profile link, work-permit and resume state, the follow-up
-// chip -- and bulk selection works identically in either layout.
+// JobDeveloper.jsx -- the job-seeker caseload, on the NB4HS Operate design
+// system (plans/ui-design-system.md) and the module's shared list chrome:
+// PageHeader, a KpiCard row, collapsible SectionCards for the add form and
+// AppointmentsSection, then components/SearchFilterPanel.jsx,
+// components/ResultsToolbar.jsx (above the results), JobClientListItem
+// (default) or JobClientGridCard, and Pagination inside the results area.
+// Bulk selection works identically in either layout.
 //
 // The Follow-Ups Due KPI stays clickable, but it no longer owns a filter of
 // its own: it drives the Follow-Up filter tile, and the tile drives it back.
@@ -12,19 +12,17 @@
 // active-filter count and Clear all can never disagree about whether the
 // list is filtered.
 //
-// The Add a Client form and AppointmentsSection are this page's own
-// workflows and are left as they were, except that the add form now starts
-// collapsed -- this is a caseload, so it should open on the clients rather
-// than on an empty form, and the header's Add Client button still expands
-// and scrolls to it.
+// The add form starts collapsed -- this is a caseload, so it should open on
+// the clients rather than on an empty form -- and the header's Add Client
+// button expands and scrolls to it.
 //
 // Every filter reads a field job_clients already carries -- employment_status,
 // pipeline_stage, has_resume, work_authorization, city, barriers,
 // intake_date -- or the follow-up map computeFollowUps() already builds from
 // the applications rows. No new column.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, AlertTriangle, Briefcase, Calendar, CalendarClock, CalendarDays, ChevronDown, ChevronUp, FileCheck2, FileText, MapPin, Plus, RotateCcw, ShieldCheck, Trash2, TrendingUp, User, UserPlus, Users } from "lucide-react";
+import { AlertCircle, Briefcase, CalendarClock, ChevronDown, FileCheck2, Plus, RotateCcw, Search as SearchIcon, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient } from "../lib/clients.js";
@@ -48,82 +46,58 @@ import ResultsEmptyState from "../components/ResultsEmptyState.jsx";
 import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import { Field, Input, Select } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 import AddressInput from "../components/AddressInput.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 
-function KpiStat({ icon: Icon, tint, label, value, sub, onClick, active }) {
-  const interactive = onClick ? {
-    role: "button", tabIndex: 0, onClick,
-    onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } },
-    className: "cursor-pointer p-6"
-  } : { className: "p-6" };
+// A SectionCard whose body can be collapsed (the same pattern as
+// CaseManagement.jsx). The toggle is a real button with aria-expanded in
+// the card's action slot; collapsed, only the header (and any `extra`, e.g.
+// the duplicate-client warning) renders.
+function CollapsibleSection({ title, description, collapsed, onToggle, cardRef, children, extra }) {
+  const t = useT();
+  const bodyId = useId();
   return (
-    <Card className={active ? "ring-2 ring-primary" : ""}>
-      <CardContent {...interactive}>
-        <div className={"flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl " + tint}>
-          <Icon className="h-6 w-6" strokeWidth={2} />
-        </div>
-        <div className="mt-3 truncate text-sm font-semibold text-muted">{label}</div>
-        <div className="mt-1 text-4xl font-extrabold tracking-tight text-card-foreground">{value}</div>
-        {sub && <div className="mt-1 text-xs text-muted">{sub}</div>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={!collapsed}
-      className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
-    >
-      {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-        <Icon className="h-4.5 w-4.5" />
-      </span>
-      <CardTitle className="m-0">{title}</CardTitle>
-    </button>
-  );
-}
-
-function FormSection({ title, desc, children }) {
-  return (
-    <div className="grid grid-cols-1 gap-4 border-b border-border pb-6 last:border-b-0 last:pb-0 md:grid-cols-[220px_1fr]">
-      <div>
-        <h3 className="m-0 text-sm font-bold text-card-foreground">{title}</h3>
-        <p className="mt-1 text-sm text-muted">{desc}</p>
-      </div>
-      <div className="space-y-3">{children}</div>
+    <div ref={cardRef} className="mb-5 scroll-mt-4">
+      <SectionCard
+        title={title}
+        description={description}
+        flush={collapsed}
+        action={
+          <IconButton
+            variant="secondary"
+            label={collapsed ? t("expandSectionLabel") : t("collapseSectionLabel")}
+            aria-expanded={!collapsed}
+            aria-controls={bodyId}
+            onClick={onToggle}
+          >
+            <ChevronDown className={cn("transition-transform duration-fast", !collapsed && "rotate-180")} aria-hidden="true" />
+          </IconButton>
+        }
+      >
+        {collapsed ? (extra || null) : <><div id={bodyId}>{children}</div>{extra}</>}
+      </SectionCard>
     </div>
   );
 }
 
-function TextField({ id, label, required, invalid, value, onChange, placeholder, type, onAddressSelect }) {
-  // Street fields pass onAddressSelect and get address suggestions.
-  const InputEl = onAddressSelect ? AddressInput : "input";
-  const addressProps = onAddressSelect ? { onAddressSelect } : {};
+// One titled group of the add form: the title/description beside the
+// fields from lg up (stacked below, where the sidebar leaves ~500px).
+function FormSection({ title, desc, children }) {
   return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
-        {label}{required ? <span className="text-accent"> *</span> : null}
-      </label>
-      <InputEl {...addressProps}
-        id={id}
-        type={type || "text"}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={cn(
-          "h-11 min-h-0 w-full rounded-lg border bg-background px-3 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/15",
-          invalid ? "border-accent bg-tint-danger" : "border-border focus:border-primary"
-        )}
-      />
+    <div className="grid grid-cols-1 gap-4 border-b border-line-subtle pb-6 last:border-b-0 last:pb-0 lg:grid-cols-3 lg:gap-6">
+      <div>
+        <h3 className="m-0 text-ui font-semibold text-card-foreground">{title}</h3>
+        <p className="m-0 mt-1 text-meta text-muted">{desc}</p>
+      </div>
+      <div className="space-y-4 lg:col-span-2">{children}</div>
     </div>
   );
 }
@@ -139,6 +113,7 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
   const [pendingClient, setPendingClient] = useState(null);
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+  function invalid(name) { return errors.indexOf(name) !== -1 ? true : undefined; }
 
   // Resume upload is now a two-step process: the job client row has to
   // exist first (Supabase Storage paths are prefixed by its id -- see
@@ -189,81 +164,12 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
   }
 
   return (
-    <Card ref={forwardRef} className="mb-5">
-      <CardHeader className="space-y-0">
-        <SectionCardHeader icon={UserPlus} title={t("addJobClientTitle")} collapsed={collapsed} onToggle={onToggle} />
-      </CardHeader>
-      {collapsed ? null : (
-        <CardContent className="space-y-6 pt-0">
-          <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField id="new-job-client-first-name" label={t("firstName")} required invalid={errors.indexOf("firstName") !== -1} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-              <TextField id="new-job-client-last-name" label={t("lastName")} required invalid={errors.indexOf("lastName") !== -1} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-              <TextField id="new-job-client-phone" label={t("phone")} invalid={errors.indexOf("phone") !== -1} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder="(401) 555-0123" />
-              <TextField id="new-job-client-email" label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder="name@example.com" />
-              <div>
-                <label htmlFor="new-job-client-intake-date" className="mb-1 block text-xs font-semibold text-card-foreground">{t("intakeDateLabel")}</label>
-                <DatePicker id="new-job-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} />
-              </div>
-            </div>
-          </FormSection>
-
-          <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-job-client-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
-              <TextField id="new-job-client-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-              <TextField id="new-job-client-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
-            </div>
-            <p className="text-xs text-muted">{t("stateAlwaysRI")}</p>
-          </FormSection>
-
-          <FormSection title={t("sectionJobDetails")} desc={t("sectionJobDetailsDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="new-job-client-work-permit" className="mb-1 block text-xs font-semibold text-card-foreground">{t("workPermitLabel")}</label>
-                <select
-                  id="new-job-client-work-permit"
-                  value={fields.workPermit}
-                  onChange={(e) => setField("workPermit", e.target.value)}
-                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-                >
-                  <option value="no">{t("noOption")}</option>
-                  <option value="yes">{t("yesOption")}</option>
-                </select>
-              </div>
-              {fields.workPermit === "yes" && (
-                <div>
-                  <label htmlFor="new-job-client-work-permit-expiration" className="mb-1 block text-xs font-semibold text-card-foreground">{t("workPermitExpirationLabel")}</label>
-                  <DatePicker id="new-job-client-work-permit-expiration" value={fields.workPermitExpiration} onChange={(v) => setField("workPermitExpiration", v)} />
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="new-job-client-has-resume" className="mb-1 block text-xs font-semibold text-card-foreground">{t("resumeQuestionLabel")}</label>
-                <select
-                  id="new-job-client-has-resume"
-                  value={fields.hasResume}
-                  onChange={(e) => setField("hasResume", e.target.value)}
-                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-                >
-                  <option value="no">{t("noOption")}</option>
-                  <option value="yes">{t("yesOption")}</option>
-                </select>
-              </div>
-              {fields.hasResume === "yes" && (
-                <div>
-                  <label htmlFor="new-job-client-resume-file" className="mb-1 block text-xs font-semibold text-card-foreground">{t("uploadResumeLabel")}</label>
-                  <input ref={fileRef} type="file" id="new-job-client-resume-file" accept=".pdf,.doc,.docx" className="block w-full text-sm text-card-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary" />
-                </div>
-              )}
-            </div>
-          </FormSection>
-
-          <Button onClick={submit}>{t("addJobClientBtn")}</Button>
-        </CardContent>
-      )}
-      {dupMatches && (
+    <CollapsibleSection
+      cardRef={forwardRef}
+      title={t("addJobClientTitle")}
+      collapsed={collapsed}
+      onToggle={onToggle}
+      extra={dupMatches ? (
         <DuplicateClientWarning
           matches={dupMatches}
           onOpenExisting={(nbId) => { setDupMatches(null); setPendingClient(null); navigate("/clients/" + nbId); }}
@@ -271,8 +177,79 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
           onCreateAnyway={() => finalizeCreate(pendingClient.payload, null, pendingClient.file)}
           onCancel={() => { setDupMatches(null); setPendingClient(null); }}
         />
-      )}
-    </Card>
+      ) : null}
+    >
+      <div className="space-y-6">
+        <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("firstName")} htmlFor="new-job-client-first-name" required>
+              <Input id="new-job-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+            </Field>
+            <Field label={t("lastName")} htmlFor="new-job-client-last-name" required>
+              <Input id="new-job-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+            </Field>
+            <Field label={t("phone")} htmlFor="new-job-client-phone">
+              <Input id="new-job-client-phone" type="tel" aria-invalid={invalid("phone")} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
+            </Field>
+            <Field label={t("email")} htmlFor="new-job-client-email">
+              <Input id="new-job-client-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} />
+            </Field>
+            <Field label={t("intakeDateLabel")} htmlFor="new-job-client-intake-date">
+              <div className="ds-control"><DatePicker id="new-job-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} /></div>
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Field label={t("address")} htmlFor="new-job-client-street" className="sm:col-span-2 xl:col-span-1">
+              <AddressInput as={Input} id="new-job-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+            </Field>
+            <Field label={t("city")} htmlFor="new-job-client-city">
+              <Input id="new-job-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+            </Field>
+            <Field label={t("zip")} htmlFor="new-job-client-zip">
+              <Input id="new-job-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+            </Field>
+          </div>
+          <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>
+        </FormSection>
+
+        <FormSection title={t("sectionJobDetails")} desc={t("sectionJobDetailsDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("workPermitLabel")} htmlFor="new-job-client-work-permit">
+              <Select id="new-job-client-work-permit" value={fields.workPermit} onChange={(e) => setField("workPermit", e.target.value)}>
+                <option value="no">{t("noOption")}</option>
+                <option value="yes">{t("yesOption")}</option>
+              </Select>
+            </Field>
+            {fields.workPermit === "yes" && (
+              <Field label={t("workPermitExpirationLabel")} htmlFor="new-job-client-work-permit-expiration">
+                <div className="ds-control"><DatePicker id="new-job-client-work-permit-expiration" value={fields.workPermitExpiration} onChange={(v) => setField("workPermitExpiration", v)} /></div>
+              </Field>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("resumeQuestionLabel")} htmlFor="new-job-client-has-resume">
+              <Select id="new-job-client-has-resume" value={fields.hasResume} onChange={(e) => setField("hasResume", e.target.value)}>
+                <option value="no">{t("noOption")}</option>
+                <option value="yes">{t("yesOption")}</option>
+              </Select>
+            </Field>
+            {fields.hasResume === "yes" && (
+              <Field label={t("uploadResumeLabel")} htmlFor="new-job-client-resume-file">
+                <input
+                  ref={fileRef} type="file" id="new-job-client-resume-file" accept=".pdf,.doc,.docx"
+                  className="block min-h-0 w-full rounded-control border border-dashed border-border bg-card p-1.5 text-ui text-card-foreground file:mr-3 file:rounded-control file:border-0 file:bg-surface-sunken file:px-3 file:py-1.5 file:text-ui file:font-semibold file:text-card-foreground focus:border-primary focus:outline-none focus:ring-2"
+                />
+              </Field>
+            )}
+          </div>
+        </FormSection>
+
+        <Button onClick={submit}><Plus className="h-4 w-4" aria-hidden="true" />{t("addJobClientBtn")}</Button>
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -336,7 +313,7 @@ export default function JobDeveloper() {
 
   const filters = [
     {
-      key: "followUp", icon: AlertCircle, label: t("followUpColumnLabel"), value: followUpFilter,
+      key: "followUp", label: t("followUpColumnLabel"), value: followUpFilter,
       onChange: setFilter(setFollowUpFilter),
       options: [
         { value: "", label: t("anyLabel") },
@@ -345,15 +322,15 @@ export default function JobDeveloper() {
       ]
     },
     {
-      key: "status", icon: Briefcase, label: t("employmentStatusLabel"), value: statusFilter,
+      key: "status", label: t("employmentStatusLabel"), value: statusFilter,
       onChange: setFilter(setStatusFilter), options: optionsFrom(EMPLOYMENT_STATUSES, t("allEmploymentStatusesLabel"))
     },
     {
-      key: "stage", icon: TrendingUp, label: t("pipelineStageLabel"), value: stageFilter,
+      key: "stage", label: t("pipelineStageLabel"), value: stageFilter,
       onChange: setFilter(setStageFilter), options: optionsFrom(JOB_PIPELINE_STAGES, t("allStagesLabel"))
     },
     {
-      key: "resume", icon: FileText, label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
+      key: "resume", label: t("resumeLabel"), value: resumeFilter, onChange: setFilter(setResumeFilter),
       options: [
         { value: "", label: t("anyLabel") },
         { value: "yes", label: t("resumeOnFileLabel") },
@@ -361,20 +338,20 @@ export default function JobDeveloper() {
       ]
     },
     {
-      key: "workAuth", icon: ShieldCheck, label: t("workAuthorizationLabel"), value: workAuthFilter,
+      key: "workAuth", label: t("workAuthorizationLabel"), value: workAuthFilter,
       onChange: setFilter(setWorkAuthFilter), options: optionsFrom(WORK_AUTH_STATUSES, t("allWorkAuthorizationsLabel"))
     },
     {
-      key: "city", icon: MapPin, label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
+      key: "city", label: t("locationLabel"), value: cityFilter, onChange: setFilter(setCityFilter),
       options: [{ value: "", label: t("allCitiesLabel") }].concat(cities.map(function (c) { return { value: c, label: c }; }))
     },
     {
-      key: "barrier", icon: AlertTriangle, label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
+      key: "barrier", label: t("barriersLabel"), value: barrierFilter, onChange: setFilter(setBarrierFilter),
       options: [{ value: "", label: t("anyLabel") }, { value: "__none", label: t("noBarriersReportedLabel") }]
         .concat(BARRIERS_TO_EMPLOYMENT.map(function (b) { return { value: b.key, label: b.en }; }))
     },
     {
-      key: "intake", icon: CalendarDays, label: t("intakeDateLabel"), value: intakeFilter, onChange: setFilter(setIntakeFilter),
+      key: "intake", label: t("intakeDateLabel"), value: intakeFilter, onChange: setFilter(setIntakeFilter),
       options: [
         { value: "", label: t("anyTimeLabel") },
         { value: "30", label: t("last30DaysLabel") },
@@ -500,50 +477,53 @@ export default function JobDeveloper() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-1">{t("jobDeveloperTitle")}</h1>
-          <p className="m-0 text-sm text-muted">{t("jobDeveloperDesc")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" className="h-12 gap-2 rounded-[12px] px-5 text-[15px]">
-                {t("actionsLabel")} <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={scrollToAppointments}>
-                <CalendarClock className="h-3.5 w-3.5" /> {t("appointmentsTitle")}
-              </DropdownMenuItem>
-              {selected.size > 0 && (
-                <DropdownMenuItem onSelect={removeSelected} className="text-accent focus:bg-tint-danger">
-                  <Trash2 className="h-3.5 w-3.5" /> {t("deleteSelectedLabel")}
+      <PageHeader
+        title={t("jobDeveloperTitle")}
+        description={t("jobDeveloperDesc")}
+        actions={
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary">
+                  {t("actionsLabel")} <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={scrollToAppointments}>
+                  <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" /> {t("appointmentsTitle")}
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={scrollToAddClient} className="h-12 gap-2 rounded-[12px] px-6 text-[15px]">
-            <Plus className="h-[18px] w-[18px]" aria-hidden="true" /> {t("addClientShortcutBtn")}
-          </Button>
-        </div>
-      </div>
+                {selected.size > 0 && (
+                  <DropdownMenuItem onSelect={removeSelected} className="text-tone-danger-ink focus:bg-tone-danger-bg data-[highlighted]:bg-tone-danger-bg">
+                    <Trash2 className="h-4 w-4" aria-hidden="true" /> {t("deleteSelectedLabel")}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={scrollToAddClient}>
+              <Plus className="h-4 w-4" aria-hidden="true" /> {t("addClientShortcutBtn")}
+            </Button>
+          </>
+        }
+      />
 
-      <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-6">
-        <KpiStat
-          icon={AlertCircle} tint="bg-tint-danger text-accent" label={t("statFollowUpsDueLabel")} value={followUpsDueCount} sub={t("statActionNeededLabel")}
+      {/* Six headline numbers: two per row on phones and tablets, three per
+          row from lg, so each label keeps room for Kreyol/French. */}
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <KpiCard
+          icon={AlertCircle} tone="warning" label={t("statFollowUpsDueLabel")} value={followUpsDueCount}
+          hint={followUpFilter === "due" ? t("kpiFilterActiveHint") : t("statActionNeededLabel")}
           onClick={function () { setFollowUpFilter(followUpFilter === "due" ? "" : "due"); setPage(1); }}
-          active={followUpFilter === "due"}
+          pressed={followUpFilter === "due"}
         />
-        <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalJobClientsLabel")} value={totalClients} sub={t("statAllTimeLabel")} />
-        <KpiStat icon={Calendar} tint="bg-tint-success text-success" label={t("statActivelyLookingLabel")} value={activelyLooking} sub={t("statCurrentlyLookingLabel")} />
-        <KpiStat icon={UserPlus} tint="bg-violet-tint text-violet-ink" label={t("statInterviewsLabel")} value={interviewsScheduled} sub={t("statScheduledLabel")} />
-        <KpiStat icon={User} tint="bg-tint-warn text-gold-ink" label={t("statEmployedLabel")} value={employed} sub={t("statPlacedLabel")} />
-        <KpiStat icon={FileCheck2} tint="bg-cyan-100 text-cyan-700" label={t("statResumesCompletedLabel")} value={resumesCompleted} sub={t("statUpToDateLabel")} />
+        <KpiCard icon={Users} tone="info" label={t("totalJobClientsLabel")} value={totalClients} hint={t("statAllTimeLabel")} />
+        <KpiCard icon={SearchIcon} tone="info" label={t("statActivelyLookingLabel")} value={activelyLooking} hint={t("statCurrentlyLookingLabel")} />
+        <KpiCard icon={CalendarClock} tone="violet" label={t("statInterviewsLabel")} value={interviewsScheduled} hint={t("statScheduledLabel")} />
+        <KpiCard icon={Briefcase} tone="success" label={t("statEmployedLabel")} value={employed} hint={t("statPlacedLabel")} />
+        <KpiCard icon={FileCheck2} tone="neutral" label={t("statResumesCompletedLabel")} value={resumesCompleted} hint={t("statUpToDateLabel")} />
       </div>
 
       <AddJobClientCard forwardRef={addClientRef} collapsed={!opens.addJobClient} onToggle={() => setOpen("addJobClient", !opens.addJobClient)} />
-      <div ref={appointmentsRef}>
+      <div ref={appointmentsRef} className="scroll-mt-4">
         <AppointmentsSection
           open={opens.appointments}
           onToggle={(v) => setOpen("appointments", v)}
@@ -555,36 +535,18 @@ export default function JobDeveloper() {
         />
       </div>
 
-      {jobClients.length > 0 && (
-        <SearchFilterPanel
-          className="mt-5"
-          search={search}
-          onSearchChange={function (value) { setSearch(value); setPage(1); }}
-          searchPlaceholder={t("jobClientSearchPlaceholder")}
-          filters={filters}
-          activeCount={activeFilterCount}
-          onClearAll={clearAll}
-        />
-      )}
+      {jobClients.length > 0 ? (
+        <>
+          <SearchFilterPanel
+            className="mb-5"
+            search={search}
+            onSearchChange={function (value) { setSearch(value); setPage(1); }}
+            searchPlaceholder={t("jobClientSearchPlaceholder")}
+            filters={filters}
+            activeCount={activeFilterCount}
+            onClearAll={clearAll}
+          />
 
-      {paged.items.length > 0 && (
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <label className="m-0 flex items-center gap-2 text-sm font-medium text-card-foreground">
-            <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} aria-label={t("selectAllLabel")} />
-            {t("selectAllLabel")}
-          </label>
-          <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
-            <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}>
-              <Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}
-            </Button>
-          </BulkActionsBar>
-        </div>
-      )}
-
-      <div className="mt-4">{renderResults()}</div>
-
-      {jobClients.length > 0 && (
-        <div className="mt-5">
           <ResultsToolbar
             id="job-clients"
             total={sorted.length}
@@ -594,13 +556,33 @@ export default function JobDeveloper() {
             view={view}
             onViewChange={setView}
           />
-          <Pagination
-            page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
-            onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
-            onChange={function (delta) { setPage(paged.page + delta); }}
-          />
-        </div>
-      )}
+
+          {paged.items.length > 0 && (
+            <>
+              <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-ui font-medium text-card-foreground">
+                <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+                {t("selectAllLabel")}
+              </label>
+              <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
+                <Button variant="danger" size="sm" onClick={removeSelected}>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />{t("deleteSelectedLabel")}
+                </Button>
+              </BulkActionsBar>
+            </>
+          )}
+
+          {renderResults()}
+
+          {paged.total ? (
+            <Pagination
+              bare
+              page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+              onPageSizeChange={function (n) { setPageSize(n); setPage(1); }} itemLabel={t("resultsLabel")}
+              onChange={function (delta) { setPage(paged.page + delta); }}
+            />
+          ) : null}
+        </>
+      ) : renderResults()}
     </>
   );
 }

@@ -2,7 +2,7 @@
 // kiosk: who the visitor would like to meet and when.
 //
 // The two staff controls keep the exact relationship they always had. "Meet
-// With" lists the live staff_directory (fetched by the page, never hardcoded)
+// With" lists the live staff list (fetched by the page, never hardcoded)
 // plus a "No preference" option; "Meeting With" -- the role fallback -- only
 // appears while no specific person is chosen, because picking a person
 // already determines the role. Preferred Date is still the app-wide

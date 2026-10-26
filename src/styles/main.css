@@ -9,7 +9,7 @@
     --primary:#2563EB; --primary-dark:#1D4ED8;
     --navy:#1F2A6D; --navy-dark:#172052;
     --accent:#D61F26; --accent-dark:#9A161B;
-    --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
+    --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:var(--gold);
     --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
     --secondary-border:#CBD5E1;
     --radius:18px;
@@ -17,7 +17,7 @@
     --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
     /* Neutral/semantic tints reused by badges, code, board columns, etc. so dark mode can re-theme them centrally.
        tint-warn now matches gold-tint since warnings are gold; tint-danger matches the new red's tint. */
-    --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
+    --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:var(--gold-tint); --tint-danger:var(--accent-tint);
     /* Shared Calendar event kinds. Each timed/all-day event on the calendar
        is drawn as a soft tint + a hairline border + a solid left accent, and
        the accent/foreground is the kind's existing brand token (blue class /
@@ -27,7 +27,7 @@
        rgb(var(--x) / .5) and the surface silently renders transparent. The
        appointment purple has no brand token of its own (see kindStyle.js),
        so its foreground is defined here alongside its tints. */
-    --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8; --ev-class-fg:#1D4ED8;
+    --ev-class-bg:var(--tone-info-bg); --ev-class-border:var(--tone-info-border); --ev-class-fg:var(--tone-info-ink);
     /* Second class palette. classGroupAccents() in lib/calendar.js hands the
        week's distinct class groupings a palette index, so e.g. Level 1 & 2
        (Mon/Wed/Fri) and Level 3 (Tue/Thu) read as different classes at a
@@ -36,26 +36,25 @@
        hue, and always by icon + label as well, since colour is never the
        only signal on this grid. */
     --ev-class-alt-bg:#F5F1FE; --ev-class-alt-border:#D5CBF8; --ev-class-alt-fg:#5B21B6;
-    --ev-visit-bg:#EEF7F1; --ev-visit-border:#BBDDC7;
-    --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
-    --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
+    --ev-visit-bg:var(--tone-success-bg); --ev-visit-border:var(--tone-success-border);
+    --ev-appt-bg:var(--tone-violet-bg); --ev-appt-border:var(--tone-violet-border); --ev-appt-fg:var(--tone-violet-ink);
+    --ev-holiday-bg:var(--tone-danger-bg); --ev-holiday-border:var(--tone-danger-border);
     /* The time grid's own hairlines, a step lighter than --border: the hour
        rules and day dividers repeat ten times a column, so at --border
        strength the grid reads as a spreadsheet rather than a calendar. */
-    --cal-grid:#EEF1F7;
+    --cal-grid:var(--border-subtle);
     /* Today's column wash and the per-kind icon disc on an event card (one
        step deeper than the card's own tint so the disc reads as a disc). */
     --cal-today-bg:#F5F8FE;
-    --ev-class-chip:#DCE6FB; --ev-class-alt-chip:#E7E0FC; --ev-visit-chip:#D6ECDD; --ev-appt-chip:#ECDDF7; --ev-holiday-chip:#F9DCDD;
+    --ev-class-chip:var(--tone-info-chip); --ev-class-alt-chip:#E7E0FC; --ev-visit-chip:var(--tone-success-chip); --ev-appt-chip:var(--tone-violet-chip); --ev-holiday-chip:var(--tone-danger-chip);
     /* Secondary text *on an event tint*. --muted (#64748B) is 4.76:1 on
        white but only 4.23-4.35:1 once the surface is one of the --ev-*-bg
        tints, which fails AA for the 13px card subtitle and attendee count.
        One step darker clears 5.0:1 on every event tint while still reading
        as secondary next to the navy title. */
-    --ev-ink-soft:#5B6879;
-    /* Focus halo. Matches the `outline:3px solid rgba(37,99,235,.28)` this
-       file already uses on input:focus, so Tailwind ring-* focus states and
-       the plain-CSS ones are the same colour. */
+    --ev-ink-soft:var(--text-on-tint);
+    /* Focus halo. Used by both the input:focus outline and Tailwind ring-*
+       focus states, so plain-CSS and utility focus look the same. */
     --focus-ring:rgba(37,99,235,.34);
     /* Soft border tints -- the hairline around a tinted callout, where the
        full-strength brand colour is too loud. These exist because a Tailwind
@@ -85,8 +84,6 @@
        needs no adjustment -- --gold is already lightened there (8.26:1 on
        --card, 6.29:1 on the dark tint) -- so it just tracks it. */
     --gold-ink:#8C5F1C;
-    /* Spacing scale (8pt system) -- used by new components; existing
-       hard-coded values are left alone unless called out below. */
     /* Violet: the fourth KPI/icon hue next to blue, green and gold (stat
        tiles, .icon-badge.violet, detail-row icons). Ink is 6.4:1 on the tint. */
     --violet-tint:#EDE9FE; --violet-ink:#6D28D9;
@@ -104,53 +101,114 @@
     --avatar-4-bg:#E0F2FE; --avatar-4-fg:#0369A1;
     --avatar-5-bg:#FFE4E6; --avatar-5-fg:#BE123C;
     --avatar-6-bg:#CCFBF1; --avatar-6-fg:#0F766E;
-    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:40px; --sp-8:48px;
     --radius-lg:20px;
     /* Elevation scale */
     --shadow-sm:0 6px 20px rgba(15,23,42,.06); --shadow-md:0 3px 10px rgba(20,30,50,.1); --shadow-lg:0 8px 24px rgba(20,30,50,.14);
+
+    /* ============ NB4HS Operate design system (plans/ui-design-system.md) ============
+       Everything below is the semantic layer new and migrated UI is built on.
+       Older names above stay as aliases until Phase 4 deletes the legacy CSS.
+       Nothing here changes how an existing screen renders. */
+
+    /* Surfaces: page -> card -> sunken well (table header, toolbar, input fill). */
+    --surface-page:var(--bg); --surface-card:var(--card); --surface-sunken:#F3F5F9;
+    --surface-overlay:rgba(15,20,30,.5);
+    /* Lines: subtle for repeated internal rules (table rows, the calendar
+       grid), default for edges, strong for hover/emphasis. */
+    --border-subtle:#EEF1F7; --border-strong:#B7C0D1;
+    /* Secondary text that sits on a tone tint rather than on a card: --muted
+       drops under AA on the tints, this clears 5:1 on all of them. */
+    --text-on-tint:#5B6879;
+
+    /* Tones: the calendar's per-kind recipe, generalised. Every status, category
+       and alert colour in the app picks one tone and uses its slots:
+         bg      tinted surface (badge, callout, event card)
+         border  hairline around that surface
+         chip    icon disc one step deeper than bg
+         ink     text and icons on bg (>= 4.5:1, checked in tokens.test.js)
+         solid   filled emphasis (dots, bars, solid buttons)
+         on-solid text on solid
+       info = primary blue, success = green, warning = gold, danger = red (errors
+       and overdue only), neutral = slate, violet = appointments/secondary. */
+    --tone-info-bg:#EFF4FE; --tone-info-border:#C3D6F8; --tone-info-chip:#DCE6FB; --tone-info-ink:var(--primary-dark); --tone-info-solid:var(--primary); --tone-info-on-solid:var(--primary-foreground);
+    --tone-success-bg:#EEF7F1; --tone-success-border:#BBDDC7; --tone-success-chip:#D6ECDD; --tone-success-ink:var(--success); --tone-success-solid:var(--success); --tone-success-on-solid:var(--success-foreground);
+    --tone-warning-bg:#F8F0E2; --tone-warning-border:#EAD3A8; --tone-warning-chip:#F1E0BF; --tone-warning-ink:var(--gold-ink); --tone-warning-solid:var(--gold); --tone-warning-on-solid:#1F172A;
+    --tone-danger-bg:#FDF1F1; --tone-danger-border:#F3C8CA; --tone-danger-chip:#F9DCDD; --tone-danger-ink:var(--accent-dark); --tone-danger-solid:var(--accent); --tone-danger-on-solid:#ffffff;
+    --tone-neutral-bg:#EEF1F4; --tone-neutral-border:#D5DBE3; --tone-neutral-chip:#E2E7ED; --tone-neutral-ink:#475569; --tone-neutral-solid:#64748B; --tone-neutral-on-solid:#ffffff;
+    --tone-violet-bg:#F6EFFB; --tone-violet-border:#DCC4EF; --tone-violet-chip:#ECDDF7; --tone-violet-ink:#6B21A8; --tone-violet-solid:#7C3AED; --tone-violet-on-solid:#ffffff;
+
+    /* Radius by role, not by size: a control is never rounder than the
+       surface it sits on. */
+    --radius-control:10px; --radius-surface:16px; --radius-badge:6px;
+
+    /* Elevation, monotonic: rest -> hover/sticky -> floating overlay. */
+    --shadow-card:0 6px 20px rgba(15,23,42,.06);
+    --shadow-raised:0 10px 28px rgba(15,23,42,.10);
+    --shadow-overlay:0 20px 48px rgba(15,23,42,.18);
+
+    /* Type scale (staff UI). Running text never goes below 13px; 12px is for
+       uppercase overlines and badges only. The kiosk keeps its own touch scale. */
+    --fs-title:1.5rem;
+    --fs-heading:1.25rem; --fs-section:1rem; --fs-body:0.9375rem;
+    --fs-ui:0.875rem; --fs-meta:0.8125rem; --fs-caption:0.75rem; --fs-kpi:1.5rem;
+
+    /* Motion */
+    --duration-fast:150ms; --duration-base:200ms; --ease-out:cubic-bezier(.2,.8,.2,1);
   }
   /* Dark theme: same brand hues, re-tuned for a dark surface. Primary/accent/
      gold are lightened so they stay readable on a dark background -- solid
      buttons keep white text either way, so this doesn't hurt button
      contrast, only helps link/icon/text contrast. Toggled via
      html[data-theme="dark"], set in JS and persisted alongside other config. */
-  html[data-theme="dark"]{
-    --primary:#6A94F1; --primary-dark:#A2BCF6;
-    --navy:#24317F; --navy-dark:#1B255F;
-    --accent:#EA7075; --accent-dark:#F09498;
-    --success:#3fbf6b; --gold:#E1B25C; --gold-dark:#E7C27E; --warn:#E1B25C;
-    --bg:#12151b; --card:#1c2129; --text:#e8eaed; --muted:#a2acba; --border:#333c48;
-    --secondary-border:#475569;
-    --primary-tint:#192643; --accent-tint:#411B1C; --gold-tint:#3F331D;
-    --tint-neutral:#242b34; --tint-success:#16321f; --tint-warn:#3F331D; --tint-danger:#411B1C;
-    --ev-class-bg:#1A2542; --ev-class-border:#31456F; --ev-class-fg:#A2BCF6;
-    --ev-class-alt-bg:#241E45; --ev-class-alt-border:#453A76; --ev-class-alt-fg:#C4B2F5;
-    --ev-visit-bg:#16301F; --ev-visit-border:#2A5539;
-    --ev-appt-bg:#2A1C3A; --ev-appt-border:#4C3465; --ev-appt-fg:#C9A2E8;
-    --ev-holiday-bg:#3A1C1E; --ev-holiday-border:#6B3033;
-    --cal-grid:#272F3B;
-    --cal-today-bg:#171D2A;
-    --ev-class-chip:#25365E; --ev-class-alt-chip:#342C5E; --ev-visit-chip:#1F4029; --ev-appt-chip:#3B2953; --ev-holiday-chip:#4E2427;
-    --violet-tint:#2C2447; --violet-ink:#B39EF2;
-    --pink-tint:#3D1A2E; --pink-ink:#F9A8D4;
-    --teal-tint:#133A36; --teal-ink:#5EEAD4;
-    --sky-tint:#10304A; --sky-ink:#7DD3FC;
-    --avatar-1-bg:#2C2447; --avatar-1-fg:#C4B5FD;
-    --avatar-2-bg:#123527; --avatar-2-fg:#6EE7B7;
-    --avatar-3-bg:#3B2D12; --avatar-3-fg:#FCD34D;
-    --avatar-4-bg:#12304A; --avatar-4-fg:#7DD3FC;
-    --avatar-5-bg:#3F1A24; --avatar-5-fg:#FDA4AF;
-    --avatar-6-bg:#12332F; --avatar-6-fg:#5EEAD4;
-    --ev-ink-soft:#AAB4C2;
-    --focus-ring:rgba(106,148,241,.48);
-    /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
-       that reads as a hairline on white disappears on a dark surface. */
-    --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
-    --primary-foreground:#0F172A;
-    --success-foreground:#0F172A;
-    --gold-ink:#E1B25C;
-    --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
+  @media not print{
+    html[data-theme="dark"]{
+      --primary:#6A94F1; --primary-dark:#A2BCF6;
+      --navy:#24317F; --navy-dark:#1B255F;
+      --accent:#EA7075; --accent-dark:#F09498;
+      --success:#3fbf6b; --gold:#E1B25C; --gold-dark:#E7C27E;
+      --bg:#12151b; --card:#1c2129; --text:#e8eaed; --muted:#a2acba; --border:#333c48;
+      --secondary-border:#475569;
+      --primary-tint:#192643; --accent-tint:#411B1C; --gold-tint:#3F331D;
+      --tint-neutral:#242b34; --tint-success:#16321f;
+      --ev-class-alt-bg:#241E45; --ev-class-alt-border:#453A76; --ev-class-alt-fg:#C4B2F5;
+      --cal-today-bg:#171D2A;
+      --ev-class-alt-chip:#342C5E;
+      --violet-tint:#2C2447; --violet-ink:#B39EF2;
+      --pink-tint:#3D1A2E; --pink-ink:#F9A8D4;
+      --teal-tint:#133A36; --teal-ink:#5EEAD4;
+      --sky-tint:#10304A; --sky-ink:#7DD3FC;
+      --avatar-1-bg:#2C2447; --avatar-1-fg:#C4B5FD;
+      --avatar-2-bg:#123527; --avatar-2-fg:#6EE7B7;
+      --avatar-3-bg:#3B2D12; --avatar-3-fg:#FCD34D;
+      --avatar-4-bg:#12304A; --avatar-4-fg:#7DD3FC;
+      --avatar-5-bg:#3F1A24; --avatar-5-fg:#FDA4AF;
+      --avatar-6-bg:#12332F; --avatar-6-fg:#5EEAD4;
+      --focus-ring:rgba(106,148,241,.48);
+      /* Blended over the dark --card at a slightly higher ratio -- a 30% mix
+         that reads as a hairline on white disappears on a dark surface. */
+      --border-primary-soft:#37496F; --border-accent-soft:#643D44; --border-success-soft:#285840;
+      --primary-foreground:#0F172A;
+      --success-foreground:#0F172A;
+      --gold-ink:#E1B25C;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 3px 10px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
+
+      --surface-sunken:#181d24;
+      --border-subtle:#272F3B; --border-strong:#4B5768;
+      --text-on-tint:#AAB4C2;
+      --tone-info-bg:#1A2542; --tone-info-border:#31456F; --tone-info-chip:#25365E;
+      --tone-success-bg:#16301F; --tone-success-border:#2A5539; --tone-success-chip:#1F4029;
+      --tone-warning-bg:#3F331D; --tone-warning-border:#6A5530; --tone-warning-chip:#4E3F22;
+      --tone-danger-bg:#3A1C1E; --tone-danger-border:#6B3033; --tone-danger-chip:#4E2427; --tone-danger-on-solid:#0F172A;
+      --tone-neutral-bg:#242B34; --tone-neutral-border:#3A4452; --tone-neutral-chip:#2E3742; --tone-neutral-ink:#C3CBD6; --tone-neutral-solid:#94A3B8; --tone-neutral-on-solid:#0F172A;
+      --tone-violet-bg:#2A1C3A; --tone-violet-border:#4C3465; --tone-violet-chip:#3B2953; --tone-violet-ink:#C9A2E8; --tone-violet-solid:#B39EF2; --tone-violet-on-solid:#0F172A;
+      --shadow-card:0 1px 3px rgba(0,0,0,.4);
+      --shadow-raised:0 6px 18px rgba(0,0,0,.45);
+      --shadow-overlay:0 16px 40px rgba(0,0,0,.55);
+    }
   }
+  /* Page titles and KPI values step up once at tablet width rather than
+     scaling fluidly. */
+  @media (min-width:768px){ :root{ --fs-title:1.75rem; --fs-kpi:1.875rem; } }
   *{box-sizing:border-box;}
   /* Tailwind's preflight is deliberately off (see tailwind.config.js), and
      preflight is what normally gives every element `border-width:0;
@@ -194,9 +252,8 @@
 
      Overriding the default here recolours every one of them at once, with no
      per-file edit and nothing to keep in sync: a dropped `/15` and a bare
-     `ring-2` both land on the NB4HS focus halo. --focus-ring matches the
-     `outline:3px solid rgba(37,99,235,.28)` this file already uses on
-     input:focus, so Tailwind and plain-CSS focus states finally agree.
+     `ring-2` both land on the NB4HS focus halo. input:focus uses the
+     same --focus-ring, so Tailwind and plain-CSS focus states agree.
      Offset colour tracks --card so ring-offset-* reads correctly in dark
      mode instead of Tailwind's hardcoded white. */
   :where(*, *::before, *::after){
@@ -326,7 +383,7 @@
   input[type="checkbox"], input[type="radio"]{
     width:18px; height:18px; min-height:auto; padding:0; flex:0 0 auto; accent-color:var(--primary); cursor:pointer;
   }
-  input:focus, select:focus, textarea:focus{outline:3px solid rgba(37,99,235,.28); border-color:var(--primary); background-color:var(--card);}
+  input:focus, select:focus, textarea:focus{outline:3px solid var(--focus-ring); border-color:var(--primary); background-color:var(--card);}
   /* Horizontal group of radio options with inline labels (gender, deduction
      day, account type, etc.) -- one shared class instead of re-typing the
      same flex/gap inline style at every call site. */
@@ -392,9 +449,9 @@
   .badge-tag{background:var(--primary-tint); color:var(--primary); margin:2px 4px 2px 0;}
   .badge-warn{background:var(--tint-warn); color:var(--warn);}
   .appt-row{background:var(--card); border-radius:12px; padding:16px 18px; margin-bottom:12px; border:1px solid var(--border); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
-  .appt-row:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .appt-row:hover{box-shadow:var(--shadow-md); border-color:var(--border-strong); transform:translateY(-1px);}
   .case-client-card{background:var(--card); border-radius:var(--radius); padding:20px; margin-bottom:14px; border:1px solid var(--border); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
-  .case-client-card:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .case-client-card:hover{box-shadow:var(--shadow-md); border-color:var(--border-strong); transform:translateY(-1px);}
   .case-client-name-btn{background:none; border:none; padding:0; font-weight:700; font-size:1.05rem; color:var(--primary); cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px;}
   .case-client-name-btn:hover{text-decoration:underline;}
   .chevron-hint{color:var(--muted); font-size:.8em; font-weight:400; text-decoration:none; display:inline-block;}
@@ -442,17 +499,13 @@
   .bar-fill{background:var(--primary); height:100%; display:flex; align-items:center; justify-content:flex-end; color:var(--primary-foreground); font-size:.75rem; font-weight:700; padding-right:6px; border-radius:6px; min-width:2px;}
   .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
   .pill{padding:8px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.9rem; cursor:pointer; transition:background .1s ease, border-color .1s ease;}
-  .pill:hover{border-color:#b7c0d1;}
+  .pill:hover{border-color:var(--border-strong);}
   .pill.active{background:var(--primary); color:#fff; border-color:var(--primary);}
   .pill.active:hover{background:var(--primary-dark);}
   @keyframes success-pop{0%{transform:scale(0.6); opacity:0;} 70%{transform:scale(1.06); opacity:1;} 100%{transform:scale(1);}}
   .success-icon{width:88px; height:88px; border-radius:50%; background:var(--success); color:var(--success-foreground); display:flex; align-items:center; justify-content:center; margin:0 auto 18px auto; animation:success-pop .35s ease-out;}
   .success-icon .icon{stroke-width:3;}
   .muted{color:var(--muted);}
-  /* Horizontal strips that scroll sideways on phones (ModuleNav): keep the
-     swipe, hide the bar. */
-  .no-scrollbar{scrollbar-width:none; -ms-overflow-style:none;}
-  .no-scrollbar::-webkit-scrollbar{display:none;}
   .skip-link{
     position:absolute; left:-9999px; top:0; background:var(--primary); color:var(--primary-foreground); padding:12px 18px;
     border-radius:0 0 8px 0; font-weight:700; z-index:1000;
@@ -500,7 +553,7 @@
   .board-col-head h3{margin:0; font-size:.95rem; font-weight:700;}
   .board-col-count{background:var(--card); color:var(--muted); font-weight:700; font-size:.72rem; padding:3px 10px; border-radius:999px; border:1px solid var(--border); white-space:nowrap;}
   .student-card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:10px; border:1px solid var(--border); cursor:grab; box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;}
-  .student-card:hover{box-shadow:var(--shadow-md); border-color:#c7cedb; transform:translateY(-1px);}
+  .student-card:hover{box-shadow:var(--shadow-md); border-color:var(--border-strong); transform:translateY(-1px);}
   .student-card:active{cursor:grabbing; transform:none;}
   .student-card .name{font-weight:700; font-size:.95rem;}
   .student-card select{margin-top:8px; min-height:36px; padding:4px 8px; font-size:.83rem;}
@@ -541,7 +594,7 @@
   /* In-app confirmation dialog -- replaces window.confirm() so destructive
      actions match the app's own visual language and work in dark mode. */
   .modal-overlay{
-    position:fixed; inset:0; background:rgba(15,20,30,.5); display:flex; align-items:center; justify-content:center;
+    position:fixed; inset:0; background:var(--surface-overlay); display:flex; align-items:center; justify-content:center;
     z-index:1200; padding:20px; animation:modal-fade-in .12s ease-out;
   }
   @keyframes modal-fade-in{from{opacity:0;} to{opacity:1;}}
@@ -559,6 +612,10 @@
      defined above) -- no new hues introduced for this layout.
   ========================================================= */
   .app-shell{display:flex; flex:1; min-height:0;}
+  /* Scrolls without showing a scrollbar (the sidebar's nav list,
+     ModuleNav's strip on phones). */
+  .no-scrollbar{scrollbar-width:none; -ms-overflow-style:none;}
+  .no-scrollbar::-webkit-scrollbar{display:none;}
   /* Floating sidebar tokens (components/sidebar/). The sidebar follows the
      Light/Dark theme like the rest of the app: a translucent off-white panel
      in light mode, deep navy (never pure black) in dark. Tailwind exposes
@@ -813,8 +870,20 @@
     font-size:1rem; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
     background:var(--bg); color:var(--text); min-height:52px;
   }
-  .date-picker-trigger:hover{background:var(--card); border-color:#c7cedb;}
+  .date-picker-trigger:hover{background:var(--card); border-color:var(--border-strong);}
   .date-picker.field-invalid .date-picker-trigger{border-color:var(--accent); background:var(--tint-danger);}
+  /* Design-system control size for the date picker (40px, 10px radius, UI
+     type), opted into by a wrapper -- e.g. FilterField on Visitor Search --
+     until the picker itself moves onto the shared Input. */
+  .ds-control .date-picker-trigger{
+    min-height:0; height:40px; padding:0 12px; gap:8px; border-radius:var(--radius-control);
+    background:var(--card); font-size:var(--fs-ui); transform:none;
+  }
+  .ds-control .date-picker-trigger:hover{border-color:var(--border-strong);}
+  .ds-control .date-picker-trigger:focus-visible{outline:none; border-color:var(--primary); box-shadow:0 0 0 2px var(--focus-ring);}
+  .ds-control .date-picker-trigger span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ds-control .date-picker-trigger .icon{width:16px; height:16px; vertical-align:0; color:var(--muted);}
+  @media (pointer: coarse){ .ds-control .date-picker-trigger{height:44px;} }
   .date-picker-panel{
     position:absolute; top:calc(100% + 8px); left:0; z-index:60; width:320px; max-width:90vw;
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg);
@@ -849,22 +918,8 @@
     border-radius:50%; background:var(--primary);
   }
   @media print{
-    /* Printed reports should always be light, regardless of on-screen dark mode. */
-    :root, html[data-theme="dark"]{
-      --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
-      --primary:#2563EB; --primary-dark:#1D4ED8; --navy:#1F2A6D; --navy-dark:#172052;
-      --accent:#D61F26; --accent-dark:#9A161B; --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821; --warn:#D99E32;
-      --primary-tint:#E6EDFB; --accent-tint:#FAE8E8; --gold-tint:#F8F0E2;
-      --tint-neutral:#eef1f4; --tint-success:#e6f4ea; --tint-warn:#F8F0E2; --tint-danger:#FAE8E8;
-      --ev-class-bg:#EFF4FE; --ev-class-border:#C3D6F8;
-      --ev-visit-bg:#EEF7F1; --ev-visit-border:#BBDDC7;
-      --ev-appt-bg:#F6EFFB; --ev-appt-border:#DCC4EF; --ev-appt-fg:#6B21A8;
-      --ev-holiday-bg:#FDF1F1; --ev-holiday-border:#F3C8CA;
-      --focus-ring:rgba(37,99,235,.34);
-      --border-primary-soft:#BED0F9; --border-accent-soft:#F3BCBE; --border-success-soft:#BAD9C3;
-      --primary-foreground:#ffffff; --success-foreground:#ffffff;
-      --gold-ink:#8C5F1C;
-    }
+    /* Printed reports are always light: the dark token block above is
+       screen-only, so print resolves the full :root palette by itself. */
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}
     .content-col > header.topbar{position:static;}

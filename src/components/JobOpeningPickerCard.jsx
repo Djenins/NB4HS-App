@@ -1,18 +1,17 @@
 // JobOpeningPickerCard.jsx -- one selectable job opening in the Candidate
-// Matching page's left rail. Same tile idiom as FilterSelectCard (pale-blue
-// icon square, title, supporting line) but as a radio-style choice: the
-// selected opening takes the primary border and tint.
+// Matching page's picker panel. A radio-style choice, not a card: the
+// selected opening takes the primary border and tint, and aria-pressed
+// carries the same state for assistive tech, so colour is never the only
+// signal.
 //
-// main.css styles the bare `button` tag app-wide (min-height:52px, 20px
-// padding, 2px border, and a 1px hover lift) because Tailwind's preflight is
-// off, so this cancels all of it via BTN_RESET the same way ModuleNav.jsx
-// does -- otherwise every row inflates into a 52px pill that jumps on hover.
+// main.css styles the bare `button` tag app-wide (52px min-height, padding,
+// 2px border, hover lift) because Tailwind's preflight is off; BUTTON_RESET
+// cancels it the same way every ui button does.
 import { Briefcase } from "lucide-react";
 import { cn } from "../lib/cn.js";
-import { employmentTypeLabel, statusBadgeVariant, statusLabel } from "../lib/jobOpenings.js";
-import { Badge } from "./ui/badge.jsx";
-
-const BTN_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal transform-none";
+import { employmentTypeLabel, statusLabel } from "../lib/jobOpenings.js";
+import { BUTTON_RESET } from "./ui/button.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
 
 export default function JobOpeningPickerCard({ opening, selected, onSelect }) {
   const meta = [opening.employerCity, employmentTypeLabel(opening.employmentType)].filter(Boolean);
@@ -23,26 +22,26 @@ export default function JobOpeningPickerCard({ opening, selected, onSelect }) {
       onClick={function () { onSelect(opening.id); }}
       aria-pressed={selected}
       className={cn(
-        BTN_RESET,
-        "flex w-full items-start gap-3 rounded-[12px] border p-3 text-left transition-colors",
-        selected ? "border-primary bg-primary-tint" : "border-border bg-card hover:border-primary-soft"
+        BUTTON_RESET,
+        "flex w-full items-start gap-3 rounded-control border border-solid p-3 text-left transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2",
+        selected ? "border-primary bg-primary-tint" : "border-border bg-card hover:border-line-strong hover:bg-surface-sunken"
       )}
     >
       <span
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]",
-          selected ? "bg-card text-primary" : "bg-primary-tint text-primary"
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-control",
+          selected ? "bg-card text-primary" : "bg-tone-info-chip text-tone-info-ink"
         )}
       >
         <Briefcase className="h-[18px] w-[18px]" aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-bold text-card-foreground">{opening.title}</span>
-          <Badge variant={statusBadgeVariant(opening.status)}>{statusLabel(opening.status)}</Badge>
+        <span className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+          <span className="min-w-0 text-ui font-semibold text-card-foreground [overflow-wrap:anywhere]">{opening.title}</span>
+          <StatusBadge domain="opening" status={opening.status}>{statusLabel(opening.status)}</StatusBadge>
         </span>
-        <span className="mt-0.5 block truncate text-sm text-muted">{opening.employerName || "—"}</span>
-        {meta.length > 0 && <span className="mt-0.5 block truncate text-xs text-muted">{meta.join(" • ")}</span>}
+        <span className="mt-0.5 block truncate text-meta text-muted">{opening.employerName || "—"}</span>
+        {meta.length > 0 && <span className="mt-0.5 block truncate text-meta text-muted">{meta.join(" • ")}</span>}
       </span>
     </button>
   );

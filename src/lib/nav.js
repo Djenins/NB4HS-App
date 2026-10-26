@@ -1,11 +1,12 @@
 // nav.js -- which nav tabs each role sees, and their labels/paths. Ported
 // from nav_shell.js's navItemsForRole()/navLabel(). Route paths use the same
-// keys as the original `view` strings (so "casemanagement" -> "/casemanagement"),
+// keys as the original `view` strings; each key's URL is in routes.js,
 // keeping the URL vocabulary identical to the old view vocabulary -- there's
 // no reason to invent new names for things that already had good ones.
 import { NAV_GROUP, NAV_SECTION, NAV_SECTION_ORDER } from "./constants.js";
 import { t } from "./i18n.js";
 import { hasOutreachAccess } from "./outreachPrograms.js";
+import { pathForNavKey } from "./routes.js";
 
 // The 7 Workforce Development pages -- deliberately NOT hardcoded into any
 // role's base array below. Whether a role gets them is decided at the
@@ -22,16 +23,22 @@ var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candida
 // holding a role in any outreach program, and for administrators -- who
 // manage program staff but only see the sections outreachSectionsFor()
 // (outreachPrograms.js) gives them.
+// Staff Reports follows the same rule with the `staff_reports` program:
+// reviewers read reports, administrators only configure the schedule.
+// Every staff member gets My Reports; the page itself says when they have
+// nothing to report.
 export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   var base;
-  if (role === "administrator") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "casemanagement", "jobdeveloper", "users", "settings"];
-  else if (role === "staff") base = ["dashboard", "availability", "checkout", "search", "reports", "fooddistribution", "calendar"];
-  else if (role === "receptionist") base = ["availability", "checkin", "checkout", "calendar"];
-  else if (role === "case_manager") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "casemanagement"];
-  else if (role === "job_developer") base = ["dashboard", "mycaseload", "availability", "checkin", "checkout", "search", "reports", "calendar", "qrcode", "manage", "students", "jobdeveloper"];
+  if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "availability", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
+  else if (role === "staff") base = ["dashboard", "checkout", "search", "reports", "fooddistribution", "calendar", "availability"];
+  else if (role === "receptionist") base = ["checkin", "checkout", "calendar", "availability"];
+  else if (role === "case_manager") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "availability", "qrcode", "manage", "students", "assessments", "casemanagement"];
+  else if (role === "job_developer") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "calendar", "availability", "qrcode", "manage", "students", "assessments", "jobdeveloper"];
   else return [];
 
   if (hasOutreachAccess(role, programRoles)) base = base.concat(["outreach"]);
+  base = base.concat(["myreports"]);
+  if (role === "administrator" || (programRoles && programRoles.staff_reports)) base = base.concat(["staffreports"]);
 
   var hasWorkforceAccess = role === "administrator" || (workforceAllowedRoles || []).indexOf(role) !== -1;
   if (!hasWorkforceAccess) return base;
@@ -56,11 +63,13 @@ export function navLabel(v, lang) {
     checkout: t("navCheckOut", lang),
     dashboard: t("navDashboard", lang),
     mycaseload: t("navMyCaseload", lang),
-    availability: t("navAvailability", lang),
+    myreports: t("navMyReports", lang),
+    staffreports: t("navStaffReports", lang),
     search: t("navSearch", lang),
     reports: t("navReports", lang),
     fooddistribution: t("navFoodDistribution", lang),
     calendar: t("navCalendar", lang),
+    availability: t("navAvailability", lang),
     qrcode: t("navQR", lang),
     manage: t("navManage", lang),
     students: t("navAdultEducation", lang),
@@ -81,8 +90,10 @@ export function navLabel(v, lang) {
   }[v];
 }
 
+// Each page's URL lives in routes.js (pages sit under their workspace since
+// Phase 4b: /students/assessments, /workforce/employers...).
 export function navPath(v) {
-  return "/" + v;
+  return pathForNavKey(v);
 }
 
 // Purely a scanning aid on the flat tab bar: a visual divider between the

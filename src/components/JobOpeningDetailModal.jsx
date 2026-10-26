@@ -1,94 +1,82 @@
-// JobOpeningDetailModal.jsx -- read-only "View" modal for a job opening row,
+// JobOpeningDetailModal.jsx -- read-only "View" panel for a job opening,
 // distinct from JobOpeningWizard.jsx's editable form per the spec's separate
-// View/Edit row actions. Same SectionCard/FieldRow idiom as
-// EmployerProfile.jsx/JobClientProfile.jsx.
+// View/Edit row actions. Looking at a record doesn't need protected focus,
+// so this is a right-hand Drawer that keeps the list in view. The name and
+// props ({ jobOpening, onClose }) are unchanged, so JobOpenings.jsx and
+// EmployerProfile.jsx keep mounting it the same way (render to open,
+// unmount to close).
+import { Briefcase } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import {
   applyMethodLabel, educationLevelLabel, employmentTypeLabel, englishLevelLabel, experienceLevelLabel,
-  formatPayRange, sourceLabel, statusBadgeVariant, statusLabel
+  formatPayRange, sourceLabel, statusLabel
 } from "../lib/jobOpenings.js";
 import { fmtDateLong } from "../lib/utils.js";
-import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
+import { DetailRow, Drawer } from "./ui/drawer.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
 
-function FieldRow({ label, value }) {
+function Row({ label, value }) {
+  return <DetailRow label={label}>{value || value === 0 ? value : "—"}</DetailRow>;
+}
+
+function LongText({ label, children }) {
+  if (!children) return null;
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
-      <span className="shrink-0 text-muted">{label}</span>
-      <span className="text-right font-semibold text-card-foreground">{value || "—"}</span>
+    <div className="mt-5">
+      <h3 className="m-0 mb-1 text-meta font-semibold text-muted">{label}</h3>
+      <p className="m-0 whitespace-pre-line text-body text-card-foreground">{children}</p>
     </div>
   );
 }
 
 export default function JobOpeningDetailModal({ jobOpening, onClose }) {
-  const boxRef = useModalA11y(onClose);
   const t = useT();
   const o = jobOpening;
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="m-0 text-base font-bold text-card-foreground">{o.title}</p>
-            <p className="m-0 text-sm text-muted">{o.employerName}</p>
-          </div>
-          <Badge variant={statusBadgeVariant(o.status)}>{statusLabel(o.status)}</Badge>
-        </div>
-
-        <FieldRow label={t("departmentLabel")} value={o.department} />
-        <FieldRow label={t("locationLabel")} value={o.employerCity} />
-        <FieldRow label={t("payLabel")} value={formatPayRange(o)} />
-        <FieldRow label={t("employmentTypeLabel")} value={employmentTypeLabel(o.employmentType)} />
-        <FieldRow label={t("scheduleLabel")} value={o.schedule} />
-        <FieldRow label={t("hoursPerWeekLabel")} value={o.hoursPerWeek} />
-        <FieldRow label={t("benefitsLabel")} value={o.benefits} />
-        <FieldRow label={t("jobStartDateLabel")} value={fmtDateLong(o.startDate)} />
-        <FieldRow label={t("openingsCountLabel")} value={o.openingsCount} />
-        <FieldRow label={t("applicationDeadlineLabel")} value={fmtDateLong(o.applicationDeadline)} />
-        <FieldRow label={t("educationLabel")} value={educationLevelLabel(o.education)} />
-        <FieldRow label={t("experienceLabel")} value={experienceLevelLabel(o.experience)} />
-        <FieldRow label={t("englishLevelRequiredLabel")} value={englishLevelLabel(o.englishLevelRequired)} />
-        <FieldRow label={t("transportationRequiredLabel")} value={o.transportationRequired ? t("yesOption") : t("noOption")} />
-        <FieldRow label={t("certificationsLabel")} value={(o.certifications || []).join(", ")} />
-        <FieldRow label={t("skillsLabel")} value={(o.skills || []).join(", ")} />
-        <FieldRow label={t("languagesLabel")} value={(o.languages || []).join(", ")} />
-        <FieldRow label={t("applyMethodLabel")} value={applyMethodLabel(o.applyMethod)} />
-        {o.applyWebsite && <FieldRow label={t("applyWebsiteLabel")} value={o.applyWebsite} />}
-        {o.applyEmail && <FieldRow label={t("applyEmailLabel")} value={o.applyEmail} />}
-        <FieldRow label={t("postedDateLabel")} value={fmtDateLong(o.postedDate)} />
-        <FieldRow label={t("sourceFieldLabel")} value={sourceLabel(o.source)} />
-
-        {o.description && (
-          <div className="mt-3">
-            <p className="mb-1 text-xs font-semibold text-muted">{t("descriptionLabel")}</p>
-            <p className="text-sm text-card-foreground">{o.description}</p>
-          </div>
-        )}
-        {o.responsibilities && (
-          <div className="mt-3">
-            <p className="mb-1 text-xs font-semibold text-muted">{t("responsibilitiesLabel")}</p>
-            <p className="text-sm text-card-foreground">{o.responsibilities}</p>
-          </div>
-        )}
-        {o.requirements && (
-          <div className="mt-3">
-            <p className="mb-1 text-xs font-semibold text-muted">{t("requirementsLabel")}</p>
-            <p className="text-sm text-card-foreground">{o.requirements}</p>
-          </div>
-        )}
-        {o.internalNotes && (
-          <div className="mt-3">
-            <p className="mb-1 text-xs font-semibold text-muted">{t("internalNotesLabel")}</p>
-            <p className="text-sm text-card-foreground">{o.internalNotes}</p>
-          </div>
-        )}
-
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <Button onClick={onClose}>{t("cancelLabel")}</Button>
-        </div>
+    <Drawer
+      open
+      onClose={onClose}
+      title={o.title}
+      subtitle={o.employerName}
+      icon={<Briefcase />}
+      closeLabel={t("closeLabel")}
+      footer={<Button variant="secondary" onClick={onClose}>{t("closeLabel")}</Button>}
+    >
+      <div className="mb-3">
+        <StatusBadge domain="opening" status={o.status}>{statusLabel(o.status)}</StatusBadge>
       </div>
-    </div>
+
+      <dl className="m-0">
+        <Row label={t("departmentLabel")} value={o.department} />
+        <Row label={t("locationLabel")} value={o.employerCity} />
+        <Row label={t("payLabel")} value={formatPayRange(o)} />
+        <Row label={t("employmentTypeLabel")} value={employmentTypeLabel(o.employmentType)} />
+        <Row label={t("scheduleLabel")} value={o.schedule} />
+        <Row label={t("hoursPerWeekLabel")} value={o.hoursPerWeek} />
+        <Row label={t("benefitsLabel")} value={o.benefits} />
+        <Row label={t("jobStartDateLabel")} value={fmtDateLong(o.startDate)} />
+        <Row label={t("openingsCountLabel")} value={o.openingsCount} />
+        <Row label={t("applicationDeadlineLabel")} value={fmtDateLong(o.applicationDeadline)} />
+        <Row label={t("educationLabel")} value={educationLevelLabel(o.education)} />
+        <Row label={t("experienceLabel")} value={experienceLevelLabel(o.experience)} />
+        <Row label={t("englishLevelRequiredLabel")} value={englishLevelLabel(o.englishLevelRequired)} />
+        <Row label={t("transportationRequiredLabel")} value={o.transportationRequired ? t("yesOption") : t("noOption")} />
+        <Row label={t("certificationsLabel")} value={(o.certifications || []).join(", ")} />
+        <Row label={t("skillsLabel")} value={(o.skills || []).join(", ")} />
+        <Row label={t("languagesLabel")} value={(o.languages || []).join(", ")} />
+        <Row label={t("applyMethodLabel")} value={applyMethodLabel(o.applyMethod)} />
+        {o.applyWebsite && <Row label={t("applyWebsiteLabel")} value={o.applyWebsite} />}
+        {o.applyEmail && <Row label={t("applyEmailLabel")} value={o.applyEmail} />}
+        <Row label={t("postedDateLabel")} value={fmtDateLong(o.postedDate)} />
+        <Row label={t("sourceFieldLabel")} value={sourceLabel(o.source)} />
+      </dl>
+
+      <LongText label={t("descriptionLabel")}>{o.description}</LongText>
+      <LongText label={t("responsibilitiesLabel")}>{o.responsibilities}</LongText>
+      <LongText label={t("requirementsLabel")}>{o.requirements}</LongText>
+      <LongText label={t("internalNotesLabel")}>{o.internalNotes}</LongText>
+    </Drawer>
   );
 }

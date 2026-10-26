@@ -1,34 +1,35 @@
-// StudentCard.jsx -- one drag-and-drop-able roster row on the Students
-// Kanban board, in either view mode (a compact clickable-name row + a
-// "move to..." select) or edit mode (inline edit form). The name is a
-// button -- clicking it fires onViewDetails so Students.jsx can pop the
-// full detail (ID, contact info, assessment, outcome) in a modal instead of
-// cluttering every card; underlying drag/edit/move/dropout logic is
-// otherwise untouched, still native HTML5 drag-and-drop wired through the
-// same onMove/onSave/onRemove/onDropout props Students.jsx passes in.
-import { useState } from "react";
+// StudentCard.jsx -- one drag-and-drop-able roster card on the Students
+// Kanban board, in either view mode (a clickable name, row actions and a
+// "Classroom" select to move the student) or edit mode (inline edit form).
+// The name is a button -- clicking it fires onViewDetails so Students.jsx can
+// open the full detail (ID, contact info, assessment, outcome) in a drawer
+// instead of cluttering every card. Native HTML5 drag-and-drop, wired through
+// the same onMove/onSave/onRemove/onDropout props Students.jsx passes in.
+//
+// Design-system pass: a Card on the shared tokens, IconButton row actions,
+// labelled Field/Input/Select controls and a StatusBadge for "dropped out".
+// Props and exports are unchanged.
+import { useId, useState } from "react";
 import { LogOut, Pencil, X } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { formatPhone, initialsOf } from "../lib/utils.js";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
-import { Badge } from "./ui/badge.jsx";
-import { Button } from "./ui/button.jsx";
+import { BUTTON_RESET, Button } from "./ui/button.jsx";
+import { Card } from "./ui/card.jsx";
+import { Field, Input, Select } from "./ui/field.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
+import { cn } from "../lib/cn.js";
 import { avatarColorFor } from "../lib/avatarTone.js";
 import AddressInput from "./AddressInput.jsx";
-
-// main.css's global `input, select, textarea{ min-height:52px; ... }` rule
-// (element selector) would otherwise floor every field on this compact card
-// at 52px tall -- `min-h-0` (a class selector, higher specificity) cancels
-// it, same fix Search.jsx's redesigned fields already use.
 
 // Re-exported for the cards that already import it from here.
 export { avatarColorFor };
 
-const editInputClass = "h-9 min-h-0 w-full rounded-lg border border-border bg-background px-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
-
 export default function StudentCard({ student, classes, editing, onMove, onEditStart, onEditCancel, onSave, onRemove, onDropout, onViewDetails }) {
   const t = useT();
+  const uid = useId();
   const [fields, setFields] = useState(() => ({
     firstName: student.firstName || "", lastName: student.lastName || "", phone: student.phone || "",
     email: student.email || "", street: student.street || "", city: student.city || "", zip: student.zip || "",
@@ -43,70 +44,91 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
   }
 
   if (editing) {
+    const fid = (k) => uid + "-" + k;
     return (
-      <div className="space-y-2 rounded-xl border border-border bg-card p-3.5 shadow-card">
-        <div className="text-sm font-bold text-card-foreground">{t("editStudentTitle")}</div>
-        <input type="text" placeholder={t("firstName")} aria-label={t("firstName")} className={editInputClass} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-        <input type="text" placeholder={t("lastName")} aria-label={t("lastName")} className={editInputClass} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-        <input type="text" placeholder={t("phone")} aria-label={t("phone")} className={editInputClass} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
-        <input type="text" placeholder={t("email")} aria-label={t("email")} className={editInputClass} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
-        <AddressInput type="text" placeholder={t("address")} aria-label={t("address")} className={editInputClass} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
-        <input type="text" placeholder={t("city")} aria-label={t("city")} className={editInputClass} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-        <input type="text" placeholder={t("zip")} aria-label={t("zip")} className={editInputClass} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+      <Card className="space-y-3 p-3.5">
+        <div className="text-ui font-semibold text-card-foreground">{t("editStudentTitle")}</div>
+        <Field label={t("firstName")} htmlFor={fid("firstName")}>
+          <Input id={fid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+        </Field>
+        <Field label={t("lastName")} htmlFor={fid("lastName")}>
+          <Input id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+        </Field>
+        <Field label={t("phone")} htmlFor={fid("phone")}>
+          <Input id={fid("phone")} type="tel" value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
+        </Field>
+        <Field label={t("email")} htmlFor={fid("email")}>
+          <Input id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+        </Field>
+        <Field label={t("address")} htmlFor={fid("street")}>
+          <AddressInput as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+        </Field>
+        <Field label={t("city")} htmlFor={fid("city")}>
+          <Input id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+        </Field>
+        <Field label={t("zip")} htmlFor={fid("zip")}>
+          <Input id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+        </Field>
         <div className="grid grid-cols-2 gap-2">
-          <input type="number" placeholder={t("pretestReadingLabel")} aria-label={t("pretestReadingLabel")} className={editInputClass} value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} />
-          <input type="number" placeholder={t("posttestReadingLabel")} aria-label={t("posttestReadingLabel")} className={editInputClass} value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} />
+          <Field label={t("pretestReadingLabel")} htmlFor={fid("pre")}>
+            <Input id={fid("pre")} type="number" className="tabular-nums" value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} />
+          </Field>
+          <Field label={t("posttestReadingLabel")} htmlFor={fid("post")}>
+            <Input id={fid("post")} type="number" className="tabular-nums" value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} />
+          </Field>
         </div>
         <div className="flex gap-2 pt-1">
           <Button size="sm" className="flex-1" onClick={save}>{t("saveLabel")}</Button>
           <Button size="sm" variant="secondary" className="flex-1" onClick={onEditCancel}>{t("cancelLabel")}</Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
   const name = student.firstName + " " + student.lastName;
+  const moveId = uid + "-move";
 
   return (
-    <div
-      className="cursor-grab rounded-lg border border-border bg-card p-2.5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover active:cursor-grabbing"
+    <Card
+      interactive
+      className="cursor-grab p-3 active:cursor-grabbing"
       draggable="true"
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", student.id); e.dataTransfer.effectAllowed = "move"; }}
     >
       <button
         type="button"
         onClick={onViewDetails}
-        className="flex min-h-0 w-full items-center gap-2 border-0 bg-transparent p-0 text-left"
+        className={cn(BUTTON_RESET, "group flex w-full items-center gap-2.5 rounded-control text-left focus-visible:outline-none focus-visible:ring-2")}
       >
         <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(student)}</AvatarFallback></Avatar>
-        <span className="min-w-0 flex-1 truncate text-sm font-bold text-card-foreground hover:text-primary hover:underline">{name}</span>
+        <span className="min-w-0 flex-1 truncate text-ui font-semibold text-card-foreground group-hover:text-primary group-hover:underline">{name}</span>
       </button>
-      {student.nbId && <div className="mt-1"><NbIdBadge nbId={student.nbId} /></div>}
 
-      <div className="mt-1.5 flex items-center justify-start gap-0.5">
-        {student.classKey && (
-          <Button variant="ghost" size="icon" title={t("dropoutBtn")} aria-label={t("dropoutBtn")} onClick={onDropout} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
-            <LogOut className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Button variant="ghost" size="icon" title={t("editStudentTitle")} aria-label={t("editStudentTitle")} onClick={onEditStart} className="h-7 w-7 text-muted hover:bg-background hover:text-card-foreground">
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove} className="h-7 w-7 text-muted hover:bg-tint-danger hover:text-accent">
-          <X className="h-3.5 w-3.5" />
-        </Button>
+      {student.nbId || student.droppedOut ? (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {student.nbId ? <NbIdBadge nbId={student.nbId} /> : null}
+          {student.droppedOut ? <StatusBadge domain="enrollment" status="droppedOut">{t("droppedOutBadge")}</StatusBadge> : null}
+        </div>
+      ) : null}
+
+      <div className="mt-2 flex items-center gap-0.5">
+        {student.classKey ? (
+          <IconButton size="sm" label={t("dropoutBtn")} onClick={onDropout}><LogOut aria-hidden="true" /></IconButton>
+        ) : null}
+        <IconButton size="sm" label={t("editStudentTitle")} onClick={onEditStart}><Pencil aria-hidden="true" /></IconButton>
+        <IconButton size="sm" variant="danger" label={t("deleteLabel")} onClick={onRemove}><X aria-hidden="true" /></IconButton>
       </div>
 
-      {student.droppedOut && <div className="mt-1"><Badge variant="warn">{t("droppedOutBadge")}</Badge></div>}
-
-      <select
-        value={student.classKey || "waiting"}
-        onChange={(e) => onMove(e.target.value === "waiting" ? null : e.target.value)}
-        className="mt-2.5 h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-      >
-        <option value="waiting">{t("waitingList")}</option>
-        {classes.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
-      </select>
-    </div>
+      <Field label={t("classroomColumn")} htmlFor={moveId} className="mt-2">
+        <Select
+          id={moveId}
+          value={student.classKey || "waiting"}
+          onChange={(e) => onMove(e.target.value === "waiting" ? null : e.target.value)}
+        >
+          <option value="waiting">{t("waitingList")}</option>
+          {classes.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+        </Select>
+      </Field>
+    </Card>
   );
 }

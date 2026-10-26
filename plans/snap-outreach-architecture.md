@@ -214,7 +214,7 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 **Files changed**
 - `supabase/migrations/2026071…–20260902…` (33 files) — the already-applied migrations, recovered verbatim from `supabase_migrations.schema_migrations`. Documentation of what's live; do not re-run.
 - `supabase/migrations/20261026061431_stage0a_kiosk_rpcs_and_signup.sql` — **applied 2026-10-26**; additive: `is_staff()`, kiosk RPCs (`kiosk_visits`, `kiosk_roster`, `public_visit_count`, `kiosk_create_visit`, `kiosk_student_check_in`), new signups start inactive, advisor revokes.
-- `supabase/migrations/20261026120100_stage0b_tighten_policies.sql` — `true` policies → `is_staff()`; anon loses SELECT/INSERT on `visits` and SELECT on `students`; grants writable only by Manage-page roles.
+- `supabase/migrations/20261026062909_stage0b_tighten_policies.sql` — **applied 2026-10-26**; `true` policies → `is_staff()`; anon loses SELECT/INSERT on `visits` and SELECT on `students`; grants writable only by Manage-page roles.
 - `src/lib/checkinData.js` — `createVisit` via RPC; new `checkInStudentVisit`, `fetchKioskVisits`, `fetchKioskRoster`, `fetchVisitCount`.
 - `src/context/AppContext.jsx` — signed-out kiosk loads RPC views and polls every 30 s; staff path unchanged; `data.visitsOnFile`.
 - `src/pages/CheckInStudent.jsx` — tap-in calls `checkInStudentVisit` (contact details copied server-side).
@@ -224,7 +224,9 @@ Branch `Djenins/snap-stage0-baseline-and-security` (from `main` @ 87aa962).
 
 - `src/components/Shell.jsx` + `Shell.test.jsx` — pre-existing crash fix (from c9a7aeb): `useIsMobile()` ran after the `authLoading` early return, so any full page load straight onto a Shell route (e.g. `/?kiosk=1`, or reloading `/dashboard`) threw "Rendered more hooks than during the previous render" and blanked the app. Hook moved above the returns; regression test fails without the fix.
 
-**Rollout (each step safe alone):** ~~apply 0a~~ (done 2026-10-26, version 20261026061431) → deploy this branch → smoke-test kiosk check-in/out + staff login → apply 0b → re-run Supabase security advisor.
+**Rollout — complete 2026-10-26:** 0a applied (20261026061431) → PR #22 merged and deployed → kiosk check-in, tap-in, check-out and staff sign-in smoke-tested on the live site by NB4HS → 0b applied (20261026062909) → advisor re-run.
+
+**Verified after applying 0b:** as `anon`, `visits`/`students`/`clients` return 0 rows while `kiosk_roster()` (10) and `public_visit_count()` (14) still work; the only remaining public/`true` policies are `appointments_insert` (public request form) and `classes_select`; the live kiosk roster renders with no console errors. Advisor: `create_student` and the trigger functions no longer anon-callable; remaining findings are the intentional kiosk/lookup RPCs, the `staff_directory` view, and leaked-password protection (dashboard toggle, still off). A pre-0b snapshot of all 102 policies was saved for rollback.
 
 **Verified after applying 0a:** grants (anon can call only the five kiosk RPCs; `is_staff`, `create_student`, trigger functions not anon-callable); RPC results match tables (roster 10 = 10 active enrolled students, visit count 14). In the browser, signed out: landing stats 4 / 10 / 14; kiosk landing, student roster (names only) and check-out (empty — 0 open visits) render; the page's only Supabase calls were `rpc/kiosk_visits`, `rpc/kiosk_roster`, `rpc/public_visit_count` and `classes`. **Not exercised:** visitor check-in, student tap-in, check-out — each writes real visit records on the live project.
 

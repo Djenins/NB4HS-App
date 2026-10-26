@@ -5,7 +5,8 @@
 // seconds so the next person starts fresh.
 import { useLocation, useNavigate } from "react-router-dom";
 import { RotateCcw } from "lucide-react";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
+import { useNavItems } from "../lib/useNavItems.js";
 import KioskResult, { RESULT_PRIMARY_BTN } from "../components/kiosk/KioskResult.jsx";
 
 export default function CheckInSuccess() {
@@ -14,6 +15,11 @@ export default function CheckInSuccess() {
   const location = useLocation();
   const isStudent = location.state && location.state.kind === "student";
   const className = (location.state && location.state.className) || "";
+  // Back to check-in -- or, for staff who checked a visitor in from Visitor
+  // Search and can't open the check-in screen, back to Visitor Search.
+  const { kiosk } = useApp();
+  const { items } = useNavItems();
+  const home = kiosk || items.indexOf("checkin") !== -1 ? "/checkin" : "/search";
 
   const heading = isStudent ? t("checkInSuccessStudent") : t("checkInSuccess");
   const sub = isStudent
@@ -24,8 +30,9 @@ export default function CheckInSuccess() {
     <KioskResult
       title={heading}
       returnAfterMs={8000}
+      onReturn={() => navigate(home, { replace: true })}
       actions={
-        <button type="button" onClick={() => navigate("/checkin", { replace: true })} className={RESULT_PRIMARY_BTN}>
+        <button type="button" onClick={() => navigate(home, { replace: true })} className={RESULT_PRIMARY_BTN}>
           <RotateCcw size={22} strokeWidth={2.2} aria-hidden="true" />
           {t("newCheckIn")}
         </button>

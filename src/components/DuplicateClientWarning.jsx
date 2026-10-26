@@ -1,10 +1,10 @@
-// DuplicateClientWarning.jsx -- "Possible existing client found" modal shown
-// from Case Management/Job Developer's add-client flows when
-// findPossibleDuplicates() (masterClients.js) turns up a likely match.
-// Reuses the app's existing modal-overlay/modal-box markup (same idiom as
-// ConfirmModal.jsx -- there's no shadcn Dialog primitive installed) rather
-// than inventing a new modal shell. Never merges anything itself -- just
-// routes the user to one of three explicit choices.
+// DuplicateClientWarning.jsx -- "Possible existing client found", shown
+// from the add-client flows (Case Management, Job Developer, Students, Food
+// Distribution, Outreach contacts) when findPossibleDuplicates()
+// (masterClients.js) turns up a likely match. A Dialog: it interrupts on
+// purpose, so a duplicate record isn't created by accident. Never merges
+// anything itself -- it routes to one of three explicit choices: enroll the
+// existing client, open them, or create a new record anyway.
 import { ExternalLink, UserPlus, UserRoundPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { formatAddress, formatPhone } from "../lib/utils.js";
@@ -12,65 +12,67 @@ import { resolveEnrollmentsForClient } from "../lib/masterClients.js";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
+import { Dialog } from "./ui/dialog.jsx";
 
 const PROGRAM_LABEL_KEY = { case: "navCaseManagement", job: "navJobDeveloper", student: "navStudents", food: "navFoodDistribution" };
 
 export default function DuplicateClientWarning({ matches, onOpenExisting, onEnrollExisting, onCreateAnyway, onCancel }) {
   const { data } = useApp();
   const t = useT();
-
-  const boxRef = useModalA11y(onCancel, !!(matches && matches.length));
-
-  if (!matches || !matches.length) return null;
+  const open = !!(matches && matches.length);
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-2xl" role="alertdialog" aria-modal="true" aria-labelledby="dup-warning-title">
-        <p id="dup-warning-title" className="mb-1 text-base font-bold text-card-foreground">{t("duplicateWarningTitle")}</p>
-        <p className="mb-4 text-sm text-muted">{t("duplicateWarningDesc")}</p>
-
-        <div className="max-h-72 space-y-3 overflow-auto">
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      title={t("duplicateWarningTitle")}
+      description={t("duplicateWarningDesc")}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel}>{t("cancelLabel")}</Button>
+          <Button variant="outline" onClick={onCreateAnyway}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />{t("createNewClientAnywayBtn")}
+          </Button>
+        </>
+      }
+    >
+      {open ? (
+        <ul className="m-0 list-none divide-y divide-line-subtle p-0">
           {matches.map(({ client }) => {
             const enrollments = resolveEnrollmentsForClient(client.nbId, data);
             return (
-              <div key={client.id} className="rounded-lg border border-border p-3">
+              <li key={client.id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-card-foreground">{(client.firstName + " " + client.lastName).trim()}</span>
+                  <span className="text-ui font-semibold text-card-foreground">{(client.firstName + " " + client.lastName).trim()}</span>
                   <NbIdBadge nbId={client.nbId} />
                 </div>
-                <div className="mt-1.5 grid grid-cols-1 gap-1 text-sm text-muted sm:grid-cols-2">
+                <div className="mt-1.5 grid grid-cols-1 gap-1 text-meta tabular-nums text-muted sm:grid-cols-2">
                   <span>{formatPhone(client.phone) || "—"}</span>
                   <span>{client.email || "—"}</span>
                   <span className="sm:col-span-2">{formatAddress(client) || "—"}</span>
                 </div>
-                {enrollments.length > 0 && (
+                {enrollments.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {enrollments.map(({ enrollment, programType }) => (
                       <Badge key={enrollment.id} variant="neutral">{t(PROGRAM_LABEL_KEY[programType] || programType)}</Badge>
                     ))}
                   </div>
-                )}
-                <div className="mt-3">
-                  <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => onEnrollExisting(client)}>
-                    <UserRoundPlus className="h-3.5 w-3.5" /> {t("enrollExistingClientBtn")}
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => onEnrollExisting(client)}>
+                    <UserRoundPlus className="h-4 w-4" aria-hidden="true" />{t("enrollExistingClientBtn")}
                   </Button>
-                  <Button size="sm" variant="ghost" className="ml-2 gap-1.5" onClick={() => onOpenExisting(client.nbId)}>
-                    <ExternalLink className="h-3.5 w-3.5" /> {t("openExistingClientBtn")}
+                  <Button size="sm" variant="ghost" onClick={() => onOpenExisting(client.nbId)}>
+                    <ExternalLink className="h-4 w-4" aria-hidden="true" />{t("openExistingClientBtn")}
                   </Button>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
-
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button variant="outline" className="gap-1.5" onClick={onCreateAnyway}>
-            <UserPlus className="h-4 w-4" /> {t("createNewClientAnywayBtn")}
-          </Button>
-        </div>
-      </div>
-    </div>
+        </ul>
+      ) : null}
+    </Dialog>
   );
 }

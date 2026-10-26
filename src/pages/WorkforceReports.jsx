@@ -7,23 +7,25 @@
 // new reports_data.js additions are computeMonthlyCounts/computeAnnualCounts
 // (month/year bucketing) and exportWorkforceCSV/exportWorkforceExcel.
 //
-// Presentation matches the rest of the module. This page has no result set,
-// so it gets no filter panel and no list/grid toggle -- what it has instead
-// is the date range, which scopes every number on the page, so that is the
-// control that took the module's treatment: the round pills became a
-// segmented control in the same idiom as ResultsToolbar's view toggle
-// (pills were the one thing the redesign brief asked us to avoid), sitting
-// in a panel card rather than floating. Every chart is now a
-// components/SectionCard.jsx, shared with WorkforceDashboard.jsx, and the
-// six hand-rolled "no data" paragraphs became one SectionEmpty.
+// Presentation follows the design system's dashboard template: PageHeader
+// with the range SegmentedControl in its actions, a toolbar row (the range
+// in words, custom dates, exports), one KpiCard row, then SectionCards on a
+// 12-column grid at lg.
+//
+// Six range-scoped KPIs sit in grid-cols-2 lg:grid-cols-3 (3+3, no orphan).
+// Retention rate is not range-scoped and has no period delta, so it moved
+// out of the KPI row into the Retention panel, where a meter replaces the
+// old two-slice doughnut (a ratio against 100% is a meter, not a pie). The
+// three "top N" panels draw BarList directly: it labels every bar, where a
+// vertical bar chart thins out long employer names on narrow screens.
 //
 // The printRef still wraps exactly the report body and the controls card
 // still carries no-print, so PDF export and browser print are unchanged.
 import { useRef, useState } from "react";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
-  Award, Briefcase, Building2, Calendar, CalendarClock, CheckCircle2, Download, FileSpreadsheet, FileText,
-  Percent, Printer, TrendingDown, TrendingUp, UserPlus
+  Award, Briefcase, Building2, Calendar, CalendarClock, CheckCircle2, ChevronDown, Download, FileSpreadsheet, FileText,
+  Printer, UserPlus
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
@@ -35,47 +37,52 @@ import {
   countInRange, employersAddedItems, hireItems, interviewItems, jobsPostedItems,
   placementItems, referralItems, retentionSplit, topCounts
 } from "../lib/workforceMetrics.js";
-import { cn } from "../lib/cn.js";
 import { addDays, fmtDateLong, fullIndustryList, todayStr } from "../lib/utils.js";
 import BarList from "../components/BarList.jsx";
 import DashChart from "../components/DashChart.jsx";
-import DatePicker from "../components/DatePicker.jsx";
 import Sparkline from "../components/Sparkline.jsx";
-import { SectionCard, SectionEmpty } from "../components/SectionCard.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card } from "../components/ui/card.jsx";
-
-// main.css styles the bare `button` tag app-wide (min-height:52px, 20px
-// padding, 2px border) plus a 1px hover lift, so every button built here has
-// to cancel it -- same reset ModuleNav.jsx and ResultsToolbar.jsx carry.
-const BTN_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal transform-none";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { Select } from "../components/ui/field.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { RangeBar } from "../components/ui/range-bar.jsx";
+import { TrendDelta } from "../components/ui/trend-delta.jsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 const PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
 
-function TrendBadge({ pct, none, t }) {
-  if (none) return <span className="text-xs font-medium text-muted">{t("noChangeVsPreviousPeriod")}</span>;
-  const up = pct >= 0;
+// A ratio against 100% drawn as a meter: one track, one fill, the number and
+// its basis spelled out beside it so nothing depends on reading the bar.
+function RetentionMeter({ rate, retention, t }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", up ? "text-success" : "text-accent")}>
-      {up ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-      {up ? "+" : ""}{pct}%
-      <span className="font-medium text-muted">{t("vsPreviousPeriod")}</span>
-    </span>
-  );
-}
-function KpiCard({ icon: Icon, tint, iconColor, value, label, pct, none, t }) {
-  return (
-    <Card className="flex items-start gap-3 p-5 shadow-card hover:shadow-card">
-      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]", tint)}>
-        <Icon className={cn("h-5 w-5", iconColor)} strokeWidth={2} aria-hidden="true" />
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-kpi text-card-foreground">{rate}%</span>
+        <span className="text-ui text-muted">{t("retainedLabel")}</span>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-2xl font-extrabold tracking-tight text-card-foreground">{value}</div>
-        <div className="mt-0.5 truncate text-sm font-semibold text-muted">{label}</div>
-        {pct !== undefined && <div className="mt-2"><TrendBadge pct={pct} none={none} t={t} /></div>}
+      <div
+        role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate} aria-label={t("retentionRateLabel")}
+        className="mt-3 h-3 w-full overflow-hidden rounded-chip bg-surface-sunken"
+      >
+        <div className="h-full rounded-chip bg-primary" style={{ width: Math.max(0, Math.min(100, rate)) + "%" }} />
       </div>
-    </Card>
+      <dl className="m-0 mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <dt className="text-meta text-muted">{t("retainedLabel")}</dt>
+          <dd className="m-0 text-section font-semibold tabular-nums text-card-foreground">{retention.retained}</dd>
+        </div>
+        <div>
+          <dt className="text-meta text-muted">{t("notRetainedLabel")}</dt>
+          <dd className="m-0 text-section font-semibold tabular-nums text-card-foreground">{retention.notRetained}</dd>
+        </div>
+      </dl>
+      <p className="m-0 mt-3 text-meta text-muted tabular-nums">
+        {retention.retained} / {retention.eligible} {t("eligiblePlacementsLabel")}
+      </p>
+    </div>
   );
 }
 
@@ -191,164 +198,114 @@ export default function WorkforceReports() {
     }
   }
 
+  const rangeOptions = PRESETS.map(function (p) { return { value: p, label: t(PRESET_LABEL_KEY[p]) }; });
+  const emptyForRange = <EmptyState compact title={t("noReportDataMessage")} description={t("wfReportsEmptyRangeHint")} />;
+
+  function trendPanel(title, trend) {
+    return (
+      <SectionCard title={title} className="lg:col-span-6">
+        <DashChart type="line" labels={trend.labels} datasets={[{ data: trend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={trend.labels} data={trend.data} />} />
+      </SectionCard>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="m-0 text-2xl font-extrabold tracking-tight text-card-foreground">{t("workforceReportsTitle")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("workforceReportsDesc")}</p>
-        </div>
-        {/* The range the whole page is scoped to, spelled the way every
-            other date in the app is spelled rather than as raw ISO. */}
-        <div className="inline-flex items-center gap-2 rounded-[12px] border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-card">
-          <Calendar className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-          {fmtDateLong(range.from, lang)} &ndash; {fmtDateLong(range.to, lang)}
-        </div>
-      </div>
-
-      {/* main.css styles the bare `button` tag app-wide, so the segmented
-          range control cancels it via BTN_RESET the same way ModuleNav and
-          ResultsToolbar do. */}
-      <Card className="no-print p-5 shadow-card hover:shadow-card sm:p-6">
-        <span className="mb-3 block text-[15px] font-bold text-card-foreground">{t("dateRangeLabel")}</span>
-        <div className="flex flex-wrap items-center gap-1 rounded-[12px] border border-border p-1">
-          {PRESETS.map(function (p) {
-            return (
-              <button
-                key={p}
-                type="button"
-                onClick={function () { setReportRange(p); }}
-                aria-pressed={reportRange === p}
-                className={cn(
-                  BTN_RESET,
-                  "rounded-[10px] px-4 py-2 text-sm font-semibold transition-colors",
-                  reportRange === p ? "bg-primary-tint text-primary" : "text-muted hover:bg-background"
-                )}
-              >
-                {t(PRESET_LABEL_KEY[p])}
-              </button>
-            );
-          })}
-        </div>
-
-        {reportRange === "custom" && (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="wfrep-from" className="mb-1 block text-xs font-semibold text-muted">{t("filterDateFrom")}</label>
-              <DatePicker id="wfrep-from" value={customFrom} onChange={setCustomFrom} />
-            </div>
-            <div>
-              <label htmlFor="wfrep-to" className="mb-1 block text-xs font-semibold text-muted">{t("filterDateTo")}</label>
-              <DatePicker id="wfrep-to" value={customTo} onChange={setCustomTo} />
-            </div>
+    <>
+      <PageHeader
+        title={t("workforceReportsTitle")}
+        description={t("workforceReportsDesc")}
+        meta={
+          <span className="inline-flex items-center gap-1.5 text-meta font-medium tabular-nums text-card-foreground">
+            <Calendar className="h-4 w-4 text-muted" aria-hidden="true" />
+            {fmtDateLong(range.from, lang)} &ndash; {fmtDateLong(range.to, lang)}
+          </span>
+        }
+        actions={
+          <div className="no-print flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" loading={exportingPdf}>
+                  {exportingPdf ? null : <Download className="h-4 w-4" aria-hidden="true" />}{t("exportLabel")}<ChevronDown className="h-4 w-4 text-muted" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}><FileText className="h-4 w-4 text-muted" aria-hidden="true" />{t("exportCSV")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4 text-muted" aria-hidden="true" />{t("exportExcel")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}><Download className="h-4 w-4 text-muted" aria-hidden="true" />{t("exportPdf")}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="secondary" onClick={function () { window.print(); }}>
+              <Printer className="h-4 w-4" aria-hidden="true" />{t("printPdf")}
+            </Button>
           </div>
-        )}
+        }
+      />
 
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-          <Button variant="secondary" onClick={handleExportCSV} className="h-10 gap-2 rounded-[10px] px-4 text-sm">
-            <FileText className="h-4 w-4 text-primary" aria-hidden="true" /> {t("exportCSV")}
-          </Button>
-          <Button variant="secondary" onClick={handleExportExcel} className="h-10 gap-2 rounded-[10px] px-4 text-sm">
-            <FileSpreadsheet className="h-4 w-4 text-success" aria-hidden="true" /> {t("exportExcel")}
-          </Button>
-          <Button variant="secondary" disabled={exportingPdf} onClick={handleExportPdf} className="h-10 gap-2 rounded-[10px] px-4 text-sm">
-            <Download className="h-4 w-4 text-accent" aria-hidden="true" /> {exportingPdf ? "…" : t("exportPdf")}
-          </Button>
-          <Button variant="secondary" onClick={function () { window.print(); }} className="h-10 gap-2 rounded-[10px] px-4 text-sm">
-            <Printer className="h-4 w-4 text-accent" aria-hidden="true" /> {t("printPdf")}
-          </Button>
-        </div>
-      </Card>
+      <RangeBar
+        idBase="wfrep"
+        label={t("dateRangeLabel")}
+        value={reportRange}
+        onChange={setReportRange}
+        options={rangeOptions}
+        custom={{ from: customFrom, to: customTo, onFrom: setCustomFrom, onTo: setCustomTo, fromLabel: t("filterDateFrom"), toLabel: t("filterDateTo") }}
+      />
 
-      <div ref={printRef} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard icon={Briefcase} tint="bg-primary-tint" iconColor="text-primary" value={jobsPostedKpi.value} label={t("statJobsPostedLabel")} pct={jobsPostedKpi.trend.pct} none={jobsPostedKpi.trend.none} t={t} />
-          <KpiCard icon={CheckCircle2} tint="bg-tint-success" iconColor="text-success" value={placementsKpi.value} label={t("placementsTitle")} pct={placementsKpi.trend.pct} none={placementsKpi.trend.none} t={t} />
-          <KpiCard icon={Building2} tint="bg-gold-tint" iconColor="text-gold-dark" value={employersAddedKpi.value} label={t("statEmployersAddedLabel")} pct={employersAddedKpi.trend.pct} none={employersAddedKpi.trend.none} t={t} />
-          <KpiCard icon={UserPlus} tint="bg-tint-warn" iconColor="text-gold-ink" value={referralsKpi.value} label={t("referralsLabel")} pct={referralsKpi.trend.pct} none={referralsKpi.trend.none} t={t} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard icon={CalendarClock} tint="bg-primary-tint" iconColor="text-primary" value={interviewsKpi.value} label={t("statInterviewsLabel")} pct={interviewsKpi.trend.pct} none={interviewsKpi.trend.none} t={t} />
-          <KpiCard icon={Award} tint="bg-tint-success" iconColor="text-success" value={hiresKpi.value} label={t("totalHiresLabel")} pct={hiresKpi.trend.pct} none={hiresKpi.trend.none} t={t} />
-          <KpiCard icon={Percent} tint="bg-gold-tint" iconColor="text-gold-dark" value={retentionRate === null ? "—" : retentionRate + "%"} label={t("retentionRateLabel")} t={t} />
+      <div ref={printRef} className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <KpiCard icon={Briefcase} tone="info" value={jobsPostedKpi.value} label={t("statJobsPostedLabel")} hint={<TrendDelta trend={jobsPostedKpi.trend} t={t} />} />
+          <KpiCard icon={CheckCircle2} tone="success" value={placementsKpi.value} label={t("placementsTitle")} hint={<TrendDelta trend={placementsKpi.trend} t={t} />} />
+          <KpiCard icon={Building2} tone="neutral" value={employersAddedKpi.value} label={t("statEmployersAddedLabel")} hint={<TrendDelta trend={employersAddedKpi.trend} t={t} />} />
+          <KpiCard icon={UserPlus} tone="info" value={referralsKpi.value} label={t("referralsLabel")} hint={<TrendDelta trend={referralsKpi.trend} t={t} />} />
+          <KpiCard icon={CalendarClock} tone="violet" value={interviewsKpi.value} label={t("statInterviewsLabel")} hint={<TrendDelta trend={interviewsKpi.trend} t={t} />} />
+          <KpiCard icon={Award} tone="success" value={hiresKpi.value} label={t("totalHiresLabel")} hint={<TrendDelta trend={hiresKpi.trend} t={t} />} />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SectionCard title={t("statJobsPostedLabel")}>
-              <DashChart type="line" labels={jobsPostedTrend.labels} datasets={[{ data: jobsPostedTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={jobsPostedTrend.labels} data={jobsPostedTrend.data} />} />
-            </SectionCard>
-          <SectionCard title={t("placementsTitle")}>
-              <DashChart type="line" labels={placementsTrend.labels} datasets={[{ data: placementsTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={placementsTrend.labels} data={placementsTrend.data} />} />
-            </SectionCard>
-          <SectionCard title={t("statEmployersAddedLabel")}>
-              <DashChart type="line" labels={employersAddedTrend.labels} datasets={[{ data: employersAddedTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={employersAddedTrend.labels} data={employersAddedTrend.data} />} />
-            </SectionCard>
-          <SectionCard title={t("referralsLabel")}>
-              <DashChart type="line" labels={referralsTrend.labels} datasets={[{ data: referralsTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={referralsTrend.labels} data={referralsTrend.data} />} />
-            </SectionCard>
-          <SectionCard title={t("statInterviewsLabel")}>
-              <DashChart type="line" labels={interviewsTrend.labels} datasets={[{ data: interviewsTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={interviewsTrend.labels} data={interviewsTrend.data} />} />
-            </SectionCard>
-          <SectionCard title={t("totalHiresLabel")}>
-              <DashChart type="line" labels={hiresTrend.labels} datasets={[{ data: hiresTrend.data, fill: true, tension: 0.3 }]} fallback={<Sparkline labels={hiresTrend.labels} data={hiresTrend.data} />} />
-            </SectionCard>
-        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {trendPanel(t("statJobsPostedLabel"), jobsPostedTrend)}
+          {trendPanel(t("placementsTitle"), placementsTrend)}
+          {trendPanel(t("statEmployersAddedLabel"), employersAddedTrend)}
+          {trendPanel(t("referralsLabel"), referralsTrend)}
+          {trendPanel(t("statInterviewsLabel"), interviewsTrend)}
+          {trendPanel(t("totalHiresLabel"), hiresTrend)}
 
-        <SectionCard title={t("retentionRateLabel")}>
-              {retention.eligible === 0 ? (
-              <SectionEmpty message={t("noReportDataMessage")} />
+          <SectionCard title={t("retentionRateLabel")} description={t("wfRetentionBasisHint")} className="lg:col-span-5">
+            {retention.eligible === 0 || retentionRate === null ? (
+              <EmptyState compact title={t("noReportDataMessage")} description={t("wfRetentionEmptyHint")} />
             ) : (
-              <DashChart
-                type="doughnut"
-                labels={[t("retainedLabel"), t("notRetainedLabel")]}
-                datasets={[{ data: [retention.retained, retention.notRetained] }]}
-                fallback={
-                  <p className="py-6 text-center text-sm text-card-foreground">
-                    {retentionRate}% {t("retainedLabel").toLowerCase()} ({retention.retained} / {retention.eligible} {t("eligiblePlacementsLabel")})
-                  </p>
-                }
-              />
+              <RetentionMeter rate={retentionRate} retention={retention} t={t} />
             )}
-            </SectionCard>
+          </SectionCard>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SectionCard title={t("topHiringEmployersLabel")}>
-              {topHiringEmployers.length === 0 ? <SectionEmpty message={t("noReportDataMessage")} /> : (
-                <DashChart type="bar" labels={topHiringEmployers.map((x) => x.label)} datasets={[{ data: topHiringEmployers.map((x) => x.count) }]} fallback={<BarList items={topHiringEmployers} />} />
-              )}
-            </SectionCard>
-          <SectionCard title={t("topIndustriesLabel")}>
-              {topIndustries.length === 0 ? <SectionEmpty message={t("noReportDataMessage")} /> : (
-                <DashChart type="bar" labels={topIndustries.map((x) => x.label)} datasets={[{ data: topIndustries.map((x) => x.count) }]} fallback={<BarList items={topIndustries} />} />
-              )}
-            </SectionCard>
-        </div>
+          <SectionCard title={t("mostSuccessfulJobDevelopersLabel")} className="lg:col-span-7">
+            {topJobDevelopers.length === 0 ? emptyForRange : <BarList items={topJobDevelopers} />}
+          </SectionCard>
 
-        <SectionCard title={t("mostSuccessfulJobDevelopersLabel")}>
-              {topJobDevelopers.length === 0 ? <SectionEmpty message={t("noReportDataMessage")} /> : (
-              <DashChart type="bar" labels={topJobDevelopers.map((x) => x.label)} datasets={[{ data: topJobDevelopers.map((x) => x.count) }]} fallback={<BarList items={topJobDevelopers} />} />
-            )}
-            </SectionCard>
+          <SectionCard title={t("topHiringEmployersLabel")} className="lg:col-span-6">
+            {topHiringEmployers.length === 0 ? emptyForRange : <BarList items={topHiringEmployers} />}
+          </SectionCard>
+          <SectionCard title={t("topIndustriesLabel")} className="lg:col-span-6">
+            {topIndustries.length === 0 ? emptyForRange : <BarList items={topIndustries} />}
+          </SectionCard>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <SectionCard
-              title={t("monthlyPlacementsLabel")}
-              action={
-                <select
-                  value={selectedYear} onChange={function (e) { setSelectedYear(e.target.value); }} aria-label={t("selectYearLabel")}
-                  className="h-9 min-h-0 rounded-[10px] border border-border bg-card py-0 pl-3 text-sm font-medium text-card-foreground focus:border-primary focus:outline-none focus:ring-2"
-                >
+            title={t("monthlyPlacementsLabel")}
+            className="lg:col-span-6"
+            action={
+              <div className="flex items-center gap-2">
+                <label htmlFor="wfrep-year" className="text-meta font-semibold text-card-foreground">{t("selectYearLabel")}</label>
+                <Select id="wfrep-year" value={selectedYear} onChange={function (e) { setSelectedYear(e.target.value); }} className="h-8 w-auto tabular-nums">
                   {yearOptions.map(function (y) { return <option key={y} value={y}>{y}</option>; })}
-                </select>
-              }
-            >
-              <DashChart type="bar" labels={monthlyPlacements.labels} datasets={[{ data: monthlyPlacements.data }]} fallback={<BarList items={monthlyPlacements.labels.map((l, i) => ({ label: l, count: monthlyPlacements.data[i] }))} />} />
-            </SectionCard>
-          <SectionCard title={t("annualPlacementsLabel")}>
-              <DashChart type="bar" labels={annualPlacements.labels} datasets={[{ data: annualPlacements.data }]} fallback={<BarList items={annualPlacements.labels.map((l, i) => ({ label: l, count: annualPlacements.data[i] }))} />} />
-            </SectionCard>
+                </Select>
+              </div>
+            }
+          >
+            <DashChart type="bar" labels={monthlyPlacements.labels} datasets={[{ data: monthlyPlacements.data }]} fallback={<BarList items={monthlyPlacements.labels.map((l, i) => ({ label: l, count: monthlyPlacements.data[i] }))} />} />
+          </SectionCard>
+          <SectionCard title={t("annualPlacementsLabel")} className="lg:col-span-6">
+            <DashChart type="bar" labels={annualPlacements.labels} datasets={[{ data: annualPlacements.data }]} fallback={<BarList items={annualPlacements.labels.map((l, i) => ({ label: l, count: annualPlacements.data[i] }))} />} />
+          </SectionCard>
         </div>
       </div>
-    </div>
+    </>
   );
 }

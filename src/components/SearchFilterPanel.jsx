@@ -1,88 +1,52 @@
-// SearchFilterPanel.jsx -- the standard search + filter card: a search row
-// (search field + Clear all), the collapsible "Filters (n) / Hide filters"
-// header, and a two-column grid of FilterSelectCard tiles (one column on
-// phones). Shared by the Job Openings and Candidate Matching pages.
+// SearchFilterPanel.jsx -- the Workforce list pages' search + filter panel,
+// now a thin adapter over the design system's FilterBar: the search box on
+// its own row, filters in a responsive grid underneath (collapsed behind
+// "Filters (n)" on phones), and Clear all. Shared by Job Developer,
+// Employers, Job Openings, Candidate Matching, Referrals and Placements.
 //
 // It owns no filter state of its own -- the page keeps every value and hands
 // them down as a `filters` array of
-// { key, icon, label, value, options, onChange } descriptors, so collapsing
-// the panel can never drop a selection.
-import { useState } from "react";
-import { ChevronDown, ChevronUp, RotateCcw, Search } from "lucide-react";
+// { key, icon, label, value, options, onChange } descriptors (`icon` is
+// accepted and ignored: a visible label carries each filter now).
+import { useId } from "react";
 import { useT } from "../context/AppContext.jsx";
-import FilterSelectCard from "./FilterSelectCard.jsx";
-import { Button } from "./ui/button.jsx";
-import { Card } from "./ui/card.jsx";
-
-// Phones start with the grid collapsed so the results are reachable without
-// scrolling past every tile; anything tablet-width and up starts open. Read
-// once on mount, never on resize -- re-deciding mid-session would fight the
-// user's own Hide/Show choice.
-function initiallyOpen() {
-  if (typeof window === "undefined" || !window.matchMedia) return true;
-  return window.matchMedia("(min-width: 768px)").matches;
-}
+import { Select } from "./ui/field.jsx";
+import { FilterBar, FilterField } from "./ui/filter-bar.jsx";
+import { SearchInput } from "./ui/search-input.jsx";
 
 export default function SearchFilterPanel({ search, onSearchChange, searchPlaceholder, filters, activeCount, onClearAll, className }) {
   const t = useT();
-  const [open, setOpen] = useState(initiallyOpen);
-
+  const idBase = useId();
   return (
-    <Card className={"p-5 shadow-card hover:shadow-card sm:p-6 " + (className || "")}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" aria-hidden="true" />
-          <input
-            type="text"
-            value={search}
-            onChange={function (e) { onSearchChange(e.target.value); }}
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-            className="h-[52px] min-h-0 w-full rounded-[12px] border border-border bg-card py-0 pl-12 pr-4 text-base text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2"
-          />
-        </div>
-        <Button
-          variant="secondary"
-          onClick={onClearAll}
-          className="h-[52px] shrink-0 gap-2 rounded-[12px] px-5 text-[15px]"
-        >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" /> {t("clearAllLabel")}
-        </Button>
-      </div>
-
-      <div className="mt-5 flex items-center gap-4">
-        <span className="text-[15px] font-bold text-card-foreground">
-          {t("filtersLabel")}{activeCount ? " (" + activeCount + ")" : ""}
-        </span>
-        <Button
-          variant="ghost"
-          onClick={function () { setOpen(!open); }}
-          aria-expanded={open}
-          className="h-8 gap-1 px-1 text-sm font-semibold text-primary hover:bg-primary-tint"
-        >
-          {open ? t("hideFiltersLabel") : t("showFiltersLabel")}
-          {open
-            ? <ChevronUp className="h-4 w-4" aria-hidden="true" />
-            : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
-        </Button>
-      </div>
-
-      {open && (
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filters.map(function (f) {
-            return (
-              <FilterSelectCard
-                key={f.key}
-                icon={f.icon}
-                label={f.label}
-                value={f.value}
-                options={f.options}
-                onChange={f.onChange}
-              />
-            );
-          })}
-        </div>
-      )}
-    </Card>
+    <FilterBar
+      className={className}
+      search={
+        <SearchInput
+          value={search}
+          onChange={function (e) { onSearchChange(e.target.value); }}
+          onClear={function () { onSearchChange(""); }}
+          clearLabel={t("clearAllLabel")}
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
+        />
+      }
+      activeCount={activeCount || 0}
+      canClear={Boolean(activeCount) || Boolean(search)}
+      onClear={onClearAll}
+      clearLabel={t("clearAllLabel")}
+      filtersLabel={t("filtersLabel")}
+      gridClassName={filters.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}
+    >
+      {filters.map(function (f) {
+        const id = idBase + "-" + f.key;
+        return (
+          <FilterField key={f.key} label={f.label} htmlFor={id}>
+            <Select id={id} value={f.value} onChange={function (e) { f.onChange(e.target.value); }}>
+              {f.options.map(function (o) { return <option key={o.value || "__all"} value={o.value}>{o.label}</option>; })}
+            </Select>
+          </FilterField>
+        );
+      })}
+    </FilterBar>
   );
 }

@@ -1,76 +1,109 @@
 // PlacementDetail.jsx -- Placement detail page (a real route, not a modal,
 // per the spec -- the timeline + four check-in forms + end-placement flow
-// is too much for a modal). SectionCard/FieldRow idiom from
-// EmployerProfile.jsx.
+// is too much for a modal). Record-page anatomy from ClientProfile.jsx /
+// ClientHeader.jsx: back link, an identity header (avatar, name as the h1,
+// status badge, position/employer/start date) with at most two actions,
+// then ui SectionCards -- details and the retention timeline as divided
+// rows on the left, one SectionCard per check-in form on the right. Every
+// modal is a ui Dialog.
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Briefcase, Building2, CalendarDays, CircleStop, Pencil } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { updatePlacement, updatePlacementCheckin } from "../lib/clientsData.js";
-import { CHECKIN_TYPES, placementStatusBadgeVariant, placementStatusLabel } from "../lib/placements.js";
+import { avatarColorFor } from "../lib/avatarTone.js";
+import { CHECKIN_TYPES, placementStatusLabel } from "../lib/placements.js";
 import { fmtDateLong } from "../lib/utils.js";
-import { avatarColorFor } from "../components/StudentCard.jsx";
 import EndPlacementModal from "../components/EndPlacementModal.jsx";
 import PlacementCheckinCard from "../components/PlacementCheckinCard.jsx";
 import PlacementTimeline from "../components/PlacementTimeline.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
-import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent } from "../components/ui/card.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
+import { Card } from "../components/ui/card.jsx";
+import { Dialog } from "../components/ui/dialog.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { Field, Input, Textarea } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { StatusBadge } from "../components/ui/status-badge.jsx";
 
-function SectionCard({ title, action, children }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="m-0 text-sm font-bold text-card-foreground">{title}</h3>
-          {action}
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
+// One label/value pair in the details card's divided list.
 function FieldRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-semibold text-card-foreground">{value || "—"}</span>
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <dt className="text-meta text-muted">{label}</dt>
+      <dd className="m-0 min-w-0 break-words text-right text-ui font-semibold tabular-nums text-card-foreground">{value || "—"}</dd>
     </div>
   );
 }
 
-const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+// Header meta line item: icon + a visually hidden label for screen readers.
+function MetaItem({ icon: Icon, label, children }) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <dt className="sr-only">{label}</dt>
+      <dd className="m-0 min-w-0 break-words">{children}</dd>
+    </div>
+  );
+}
 
 function EditPlacementModal({ record, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
   const [fields, setFields] = useState({
     hourlyWage: record.hourlyWage || "", hoursPerWeek: record.hoursPerWeek || "", benefits: record.benefits || "",
     supervisorName: record.supervisorName || "", supervisorContact: record.supervisorContact || ""
   });
+  const [saving, setSaving] = useState(false);
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  async function submit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(fields);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("editLabel")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hourlyWageLabel")}</label><input type="number" step="0.01" className={inputClass} value={fields.hourlyWage} onChange={(e) => setField("hourlyWage", e.target.value)} placeholder={t("phHourlyWage")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("hoursPerWeekLabel")}</label><input className={inputClass} value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} placeholder={t("phHoursPerWeek")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorNameLabel")}</label><input className={inputClass} value={fields.supervisorName} onChange={(e) => setField("supervisorName", e.target.value)} placeholder={t("phSupervisorName")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("supervisorContactLabel")}</label><input className={inputClass} value={fields.supervisorContact} onChange={(e) => setField("supervisorContact", e.target.value)} placeholder={t("phSupervisorContact")} /></div>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("editLabel")}
+      description={record.participantName}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit }}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>{t("cancelLabel")}</Button>
+          <Button type="submit" loading={saving}>{t("saveLabel")}</Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("hourlyWageLabel")} htmlFor="edit-placement-wage">
+            <Input id="edit-placement-wage" type="number" step="0.01" inputMode="decimal" className="tabular-nums" value={fields.hourlyWage} onChange={(e) => setField("hourlyWage", e.target.value)} placeholder={t("phHourlyWage")} />
+          </Field>
+          <Field label={t("hoursPerWeekLabel")} htmlFor="edit-placement-hours">
+            <Input id="edit-placement-hours" className="tabular-nums" value={fields.hoursPerWeek} onChange={(e) => setField("hoursPerWeek", e.target.value)} placeholder={t("phHoursPerWeek")} />
+          </Field>
+          <Field label={t("supervisorNameLabel")} htmlFor="edit-placement-supervisor">
+            <Input id="edit-placement-supervisor" value={fields.supervisorName} onChange={(e) => setField("supervisorName", e.target.value)} placeholder={t("phSupervisorName")} />
+          </Field>
+          <Field label={t("supervisorContactLabel")} htmlFor="edit-placement-supervisor-contact">
+            <Input id="edit-placement-supervisor-contact" value={fields.supervisorContact} onChange={(e) => setField("supervisorContact", e.target.value)} placeholder={t("phSupervisorContact")} />
+          </Field>
         </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("benefitsLabel")}</label>
-          <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} placeholder={t("phBenefits")} />
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
-        </div>
+        <Field label={t("benefitsLabel")} htmlFor="edit-placement-benefits">
+          <Textarea id="edit-placement-benefits" rows={2} value={fields.benefits} onChange={(e) => setField("benefits", e.target.value)} placeholder={t("phBenefits")} />
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -87,8 +120,22 @@ export default function PlacementDetail() {
     .filter((c) => c.placementId === placementId)
     .sort((a, b) => CHECKIN_TYPES.findIndex((c) => c.key === a.checkinType) - CHECKIN_TYPES.findIndex((c) => c.key === b.checkinType));
 
+  function goBack() { navigate("/workforce/placements"); }
+
   if (!record) {
-    return <Card><CardContent className="p-10 text-center text-sm text-muted">{t("placementNotFoundMessage")}</CardContent></Card>;
+    return (
+      <Card>
+        <EmptyState
+          variant="error"
+          title={t("placementNotFoundMessage")}
+          action={
+            <Button variant="secondary" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("navPlacements")}
+            </Button>
+          }
+        />
+      </Card>
+    );
   }
 
   async function updateRecord(patch) {
@@ -104,53 +151,82 @@ export default function PlacementDetail() {
     showToast(t("placementEnded"));
   }
 
+  const name = record.participantName || "";
+
   return (
     <>
-      <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/placements")}>
-        <ArrowLeft className="h-3.5 w-3.5" /> {t("navPlacements")}
-      </Button>
-
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
+      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={goBack}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t("navPlacements")}
+          </Button>
           <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0"><AvatarFallback className={avatarColorFor(record.participantName || "")}>{(record.participantName || "?").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="m-0 text-xl">{record.participantName}</h1>
-                <Badge variant={placementStatusBadgeVariant(record.currentStatus)}>{placementStatusLabel(record.currentStatus)}</Badge>
+            <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
+              <AvatarFallback className={avatarColorFor(name) + " text-section"}>{(name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              {/* m-0 and explicit weight: main.css still styles bare h1 at 2rem/800. */}
+              <h1 className="m-0 text-heading font-bold text-card-foreground [text-wrap:balance]">{name || "—"}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <StatusBadge domain="placement" status={record.currentStatus}>{placementStatusLabel(record.currentStatus)}</StatusBadge>
               </div>
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-                <span>{record.positionTitle}</span>
-                <span>{record.employerName}</span>
-                <span>{t("jobStartDateLabel")}: {fmtDateLong(record.startDate)}</span>
-              </div>
-              <div className="mt-3"><PlacementTimeline checkins={checkins} /></div>
+              <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
+                <MetaItem icon={Briefcase} label={t("positionLabel")}>{record.positionTitle || "—"}</MetaItem>
+                <MetaItem icon={Building2} label={t("employerLabel")}>{record.employerName || "—"}</MetaItem>
+                <MetaItem icon={CalendarDays} label={t("jobStartDateLabel")}>
+                  <span>{t("jobStartDateLabel")}: <span className="tabular-nums">{fmtDateLong(record.startDate)}</span></span>
+                </MetaItem>
+              </dl>
             </div>
           </div>
-          {record.currentStatus === "active" && (
-            <Button variant="destructive" size="sm" onClick={() => setEnding(true)}>{t("markEndedBtn")}</Button>
-          )}
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[35fr_65fr]">
-        <div className="space-y-5">
-          <SectionCard title={t("placementDetailsLabel")} action={<Button size="icon" variant="ghost" onClick={() => setEditing(true)} aria-label={t("editLabel")}><Pencil className="h-3.5 w-3.5" /></Button>}>
-            <FieldRow label={t("hourlyWageLabel")} value={record.hourlyWage ? "$" + record.hourlyWage + "/hr" : ""} />
-            <FieldRow label={t("hoursPerWeekLabel")} value={record.hoursPerWeek} />
-            <FieldRow label={t("benefitsLabel")} value={record.benefits} />
-            <FieldRow label={t("supervisorNameLabel")} value={record.supervisorName} />
-            <FieldRow label={t("supervisorContactLabel")} value={record.supervisorContact} />
-            {record.currentStatus === "ended" && (
-              <>
-                <FieldRow label={t("endDateLabel")} value={fmtDateLong(record.endDate)} />
-                <FieldRow label={t("reasonForLeavingLabel")} value={record.reasonForLeaving} />
-              </>
-            )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => setEditing(true)}>
+            <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editLabel")}
+          </Button>
+          {/* Ending is consequential, so it opens a confirm-with-reason
+              dialog whose submit is the danger button. */}
+          {record.currentStatus === "active" && (
+            <Button variant="secondary" onClick={() => setEnding(true)}>
+              <CircleStop className="h-4 w-4" aria-hidden="true" /> {t("markEndedBtn")}
+            </Button>
+          )}
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,35fr)_minmax(0,65fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <SectionCard
+            title={t("placementDetailsLabel")}
+            action={
+              <IconButton label={t("editLabel")} onClick={() => setEditing(true)}>
+                <Pencil aria-hidden="true" />
+              </IconButton>
+            }
+          >
+            <dl className="m-0 divide-y divide-line-subtle">
+              <FieldRow label={t("hourlyWageLabel")} value={record.hourlyWage ? record.hourlyWage + t("perHourSuffix") : ""} />
+              <FieldRow label={t("hoursPerWeekLabel")} value={record.hoursPerWeek} />
+              <FieldRow label={t("benefitsLabel")} value={record.benefits} />
+              <FieldRow label={t("supervisorNameLabel")} value={record.supervisorName} />
+              <FieldRow label={t("supervisorContactLabel")} value={record.supervisorContact} />
+              {record.currentStatus === "ended" && (
+                <>
+                  <FieldRow label={t("endDateLabel")} value={fmtDateLong(record.endDate)} />
+                  <FieldRow label={t("reasonForLeavingLabel")} value={record.reasonForLeaving} />
+                </>
+              )}
+            </dl>
+          </SectionCard>
+
+          <SectionCard title={t("checkinsLabel")} flush>
+            <PlacementTimeline checkins={checkins} startDate={record.startDate} />
           </SectionCard>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex min-w-0 flex-col gap-6">
           {checkins.map((c) => <PlacementCheckinCard key={c.id} checkin={c} onUpdate={(patch) => updateCheckin(c.id, patch)} />)}
         </div>
       </div>

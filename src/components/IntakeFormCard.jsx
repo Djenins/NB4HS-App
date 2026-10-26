@@ -6,16 +6,23 @@
 // Layout mirrors the org's paper form: numbered sections in a two-column
 // masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
 // width at the end.
-import { useRef, useState } from "react";
+//
+// Every visible string goes through t() (en/ht/fr); option values stay the
+// org's English wording (see OPTION_KEYS). The print window and the PDF are
+// copies of the form as rendered, so they come out in the UI language.
+import { useEffect, useId, useRef, useState } from "react";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
-  AlertTriangle, Briefcase, Camera, Check, ChevronDown, ChevronUp, ClipboardList, FileText,
-  Home, MapPin, Phone, Printer, Save, ShieldCheck, Users, UsersRound,
+  AlertTriangle, Briefcase, Camera, Check, ChevronDown, FileText,
+  Home, MapPin, Phone, Plus, Printer, Save, ShieldCheck, Users, UsersRound,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
-import { Button } from "./ui/button.jsx";
+import { useT } from "../context/AppContext.jsx";
+import { Card, CardTitle } from "./ui/card.jsx";
+import { BUTTON_RESET, Button } from "./ui/button.jsx";
+import { Field, Input } from "./ui/field.jsx";
+import { SectionCard } from "./ui/section-card.jsx";
 import { cn } from "../lib/cn.js";
-import { updateClientRecord } from "../lib/clientsData.js";
+import { fetchClientIntake, saveClientIntake, updateClientRecord } from "../lib/clientsData.js";
 import AddressInput from "./AddressInput.jsx";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
@@ -40,91 +47,178 @@ const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", 
 const RACE_ETHNICITY_OPTIONS = ["American Indian/Alaska Native", "Asian", "Black/African American", "Hispanic/Latino", "Native Hawaiian/Pacific Islander", "White", "Two or More Races", "Prefer not to say"];
 const INCOME_BRACKET_OPTIONS = ["Under $15,000", "$15,000-$29,999", "$30,000-$44,999", "$45,000-$59,999", "$60,000+", "Prefer not to say"];
 
-function Field({ label, value, onChange, type, placeholder, className, inputMode, onAddressSelect }) {
+// Display labels for the option values above. The English string is what
+// gets saved (intakeForm, and raceEthnicity / gender / householdIncomeBracket
+// on the client record), so it never changes -- only the label shown next
+// to the box is translated. TPS, CBP1, SNAP, DHS and Healthsource RI are
+// proper names and show as-is in every language.
+const OPTION_KEYS = {
+  "Male": "intakeOptMale",
+  "Female": "intakeOptFemale",
+  "High School": "intakeOptHighSchool",
+  "Associate": "intakeOptAssociate",
+  "Bachelor": "intakeOptBachelor",
+  "Masters": "intakeOptMasters",
+  "Doctorate": "intakeOptDoctorate",
+  "American Indian/Alaska Native": "intakeOptRaceAmIndian",
+  "Asian": "intakeOptRaceAsian",
+  "Black/African American": "intakeOptRaceBlack",
+  "Hispanic/Latino": "intakeOptRaceHispanic",
+  "Native Hawaiian/Pacific Islander": "intakeOptRacePacific",
+  "White": "intakeOptRaceWhite",
+  "Two or More Races": "intakeOptRaceTwoOrMore",
+  "Prefer not to say": "intakeOptPreferNotToSay",
+  "Under $15,000": "intakeOptIncomeUnder15k",
+  "$15,000-$29,999": "intakeOptIncome15to30k",
+  "$30,000-$44,999": "intakeOptIncome30to45k",
+  "$45,000-$59,999": "intakeOptIncome45to60k",
+  "$60,000+": "intakeOptIncome60kPlus",
+  "Creole": "intakeOptLangCreole",
+  "French": "intakeOptLangFrench",
+  "English": "intakeOptLangEnglish",
+  "Spanish": "intakeOptLangSpanish",
+  "YES": "intakeOptYes",
+  "NO": "intakeOptNo",
+  "Income": "intakeOptIncome",
+  "Housing": "intakeOptHousing",
+  "Transportation": "intakeOptTransportation",
+  "Employment": "intakeOptEmployment",
+  "Language": "intakeOptLanguage",
+  "Legal": "intakeOptLegal",
+  "Domestic Violence": "intakeOptDomesticViolence",
+  "Substance Abuse": "intakeOptSubstanceAbuse",
+  "Bad Landlord History": "intakeOptBadLandlord",
+  "Previous Eviction": "intakeOptPreviousEviction",
+  "Criminal Background": "intakeOptCriminalBackground",
+  "Health insurance": "intakeOptHealthInsurance",
+  "School": "intakeOptSchool",
+  "Counseling": "intakeOptCounseling",
+  "Primary Care Physician": "intakeOptPrimaryCare",
+  "Shelter": "intakeOptShelter",
+  "Job Search": "intakeOptJobSearch",
+  "Education": "intakeOptEducation",
+  "Training": "intakeOptTraining",
+  "Medical": "intakeOptMedical",
+  "Immigration Services": "intakeOptImmigrationServices",
+  "Childcare": "intakeOptChildcare",
+  "Parenting/Parenting Aid": "intakeOptParenting",
+  "Domestic Violence Specialist": "intakeOptDvSpecialist",
+  "Food Resources": "intakeOptFoodResources",
+  "Benefits": "intakeOptBenefits",
+  "Other": "intakeOptOther",
+  "Apartment Rental": "intakeOptApartmentRental",
+  "Housing Authority": "intakeOptHousingAuthority",
+  "Voucher": "intakeOptVoucher",
+  "US Citizen": "intakeOptUsCitizen",
+  "Permanent Resident": "intakeOptPermanentResident",
+  "Visa": "intakeOptVisa",
+  "Humanitarian parole": "intakeOptHumanitarianParole",
+  "Pending Case": "intakeOptPendingCase",
+  "Full time": "intakeOptFullTime",
+  "Part Time": "intakeOptPartTime",
+  "Permit": "intakeOptPermit",
+  "Driver's License": "intakeOptDriversLicense",
+  "Married": "intakeOptMarried",
+  "Single": "intakeOptSingle",
+  "Divorced": "intakeOptDivorced",
+  "Separated": "intakeOptSeparated",
+  "Widowed": "intakeOptWidowed",
+  "Cash": "intakeOptCash",
+  "Good": "intakeOptGood",
+  "Bad": "intakeOptBad",
+};
+
+function optionLabel(t, opt) {
+  return OPTION_KEYS[opt] ? t(OPTION_KEYS[opt]) : opt;
+}
+
+// Local wrappers over the ui Field/Input so the ~60 form questions below
+// stay one line each. Ids come from useId: the visible label is wired to its
+// control, and the print/PDF export clones the DOM as-is.
+function IntakeField({ label, value, onChange, type, placeholder, className, inputMode, onAddressSelect }) {
+  const id = useId();
   // The street field passes onAddressSelect and gets address suggestions.
-  const InputEl = onAddressSelect ? AddressInput : "input";
-  const addressProps = onAddressSelect ? { onAddressSelect } : {};
+  const Control = onAddressSelect ? AddressInput : Input;
+  const addressProps = onAddressSelect ? { as: Input, onAddressSelect } : {};
   return (
-    <div className={className}>
-      <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label>
-      <InputEl {...addressProps}
-        type={type || "text"}
-        inputMode={inputMode}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-9 min-h-0 w-full rounded-md border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-      />
-    </div>
+    <Field label={label} htmlFor={id} className={className}>
+      <Control {...addressProps} id={id} type={type || "text"} inputMode={inputMode} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+    </Field>
   );
 }
 
 // InlineField -- label to the left, input filling the rest of the row.
 // Matches the Housing Information section's "question: [box]" layout.
 function InlineField({ label, value, onChange, placeholder, className }) {
+  const id = useId();
   return (
-    <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <label className="text-sm font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-9 min-h-0 w-full rounded-md border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 sm:w-48"
-      />
+    <div className={cn("flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4", className)}>
+      <label htmlFor={id} className="m-0 text-meta font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
+      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="sm:w-48 sm:shrink-0" />
     </div>
   );
 }
 
+// fieldset/legend so a screen reader announces the question with each
+// option. main.css leaves fieldset's UA border alone, hence border-0.
+const FIELDSET = "m-0 min-w-0 border-0 p-0";
+const LEGEND = "mb-2 p-0 text-meta font-semibold text-card-foreground";
+const OPTION = "m-0 flex min-h-8 cursor-pointer items-center gap-2 text-ui font-medium text-card-foreground";
+const OPTION_INPUT = "h-4 w-4 shrink-0 cursor-pointer accent-primary";
+
 function RadioGroup({ label, name, value, onChange, options, className, vertical }) {
+  const t = useT();
   return (
-    <div className={className}>
-      {label ? <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label> : null}
-      <div className={vertical ? "flex flex-col gap-1.5" : "flex flex-wrap gap-x-4 gap-y-1.5"}>
+    <fieldset className={cn(FIELDSET, className)}>
+      {label ? <legend className={LEGEND}>{label}</legend> : null}
+      <div className={vertical ? "flex flex-col gap-1" : "flex flex-wrap gap-x-5 gap-y-1"}>
         {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
-            <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className="h-3.5 w-3.5 accent-primary" />
-            {opt}
+          <label key={opt} className={OPTION}>
+            <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className={OPTION_INPUT} />
+            {optionLabel(t, opt)}
           </label>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
 function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
+  const t = useT();
   const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
   return (
-    <div className={className}>
-      {label ? <label className="mb-1 block text-sm font-semibold text-card-foreground">{label}</label> : null}
-      <div className={cn("grid grid-cols-1 gap-1.5", colsClass)}>
+    <fieldset className={cn(FIELDSET, className)}>
+      {label ? <legend className={LEGEND}>{label}</legend> : null}
+      <div className={cn("grid grid-cols-1 gap-x-4 gap-y-1", colsClass)}>
         {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
-            <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className="h-3.5 w-3.5 accent-primary" />
-            {opt}
+          <label key={opt} className={OPTION}>
+            <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className={OPTION_INPUT} />
+            {optionLabel(t, opt)}
           </label>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
-// Section -- a standalone numbered card (number badge + icon chip + title),
-// matching the reference form's per-section card treatment.
+// Section -- one numbered SectionCard per part of the paper form: the
+// number chip + icon keep the paper form's numbering easy to follow.
 function Section({ number, icon: Icon, title, children, className }) {
   return (
-    <div className={cn("rounded-2xl border border-border bg-card p-6 shadow-card", className)}>
-      <div className="mb-5 flex items-center gap-3 rounded-lg bg-primary-tint px-3 py-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-          {number}
+    <SectionCard
+      className={className}
+      title={
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-chip bg-primary text-meta font-bold text-primary-foreground tabular-nums">
+            {number}
+          </span>
+          <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          {title}
         </span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-primary">
-          <Icon className="h-4.5 w-4.5" />
-        </span>
-        <span className="m-0 text-sm font-bold uppercase leading-none tracking-wide text-primary">{title}</span>
-      </div>
+      }
+    >
       <div className="space-y-5">{children}</div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -132,25 +226,30 @@ function esc(v) {
   return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
+// Same anatomy as Case Management's other collapsible cards: title on the
+// left, a 36px chevron control on the right that turns when open. The whole
+// header row is the button, so the target stays large.
+function SectionCardHeader({ title, collapsed, onToggle }) {
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={!collapsed}
-      className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
+      className={BUTTON_RESET + " group flex w-full items-center justify-between gap-3 rounded-control text-left text-card-foreground focus-visible:outline-none focus-visible:ring-2"}
     >
-      {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-        <Icon className="h-4.5 w-4.5" />
-      </span>
       <CardTitle className="m-0">{title}</CardTitle>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border bg-card text-card-foreground transition-colors duration-fast group-hover:border-line-strong group-hover:bg-surface-sunken [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+        <ChevronDown className={"h-[18px] w-[18px] transition-transform duration-fast" + (collapsed ? "" : " rotate-180")} aria-hidden="true" />
+      </span>
     </button>
   );
 }
 
-function initialIntake(client) {
+// `saved` is the stored form (client_intakes, or the client record before
+// p3c); without one the form starts from the client's contact details.
+function initialIntake(client, saved) {
   if (!client) return EMPTY_INTAKE;
+  if (saved) return Object.assign({}, EMPTY_INTAKE, saved);
   if (client.intakeForm) return Object.assign({}, EMPTY_INTAKE, client.intakeForm);
   return Object.assign({}, EMPTY_INTAKE, {
     fullName: [client.firstName, client.lastName].filter(Boolean).join(" "),
@@ -164,25 +263,46 @@ function initialIntake(client) {
   });
 }
 
-function formatSavedAt(iso) {
+function formatSavedAt(iso, t) {
   if (!iso) return "";
   const d = new Date(iso);
-  return "Saved " + d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return t("intakeSavedAtLabel") + " " + d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
+  const t = useT();
   const [f, setF] = useState(() => initialIntake(client));
   const [savedAt, setSavedAt] = useState(client && client.intakeFormSavedAt ? client.intakeFormSavedAt : null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [stored, setStored] = useState(null);
   const printRef = useRef(null);
+  const edited = useRef(false);
+
+  // The saved form lives in client_intakes (case managers only); load it
+  // unless the person has already started typing.
+  const clientId = client ? client.id : null;
+  useEffect(() => {
+    if (!clientId) return undefined;
+    let cancelled = false;
+    fetchClientIntake(clientId).then((res) => {
+      if (cancelled || !res || res.useClientRecord || edited.current) return;
+      setStored(res.form);
+      setF(initialIntake(client, res.form));
+      setSavedAt(res.savedAt);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   function set(name, value) {
+    edited.current = true;
     setF((prev) => Object.assign({}, prev, { [name]: value }));
     setSavedAt(null);
   }
   function toggleIn(name, opt) {
+    edited.current = true;
     setF((prev) => {
       const cur = prev[name];
       const next = cur.indexOf(opt) !== -1 ? cur.filter((v) => v !== opt) : cur.concat([opt]);
@@ -190,6 +310,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     });
   }
   function setChild(i, key, value) {
+    edited.current = true;
     setF((prev) => {
       const children = prev.children.slice();
       children[i] = Object.assign({}, children[i], { [key]: value });
@@ -197,6 +318,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     });
   }
   function addChild() {
+    edited.current = true;
     setF((prev) => Object.assign({}, prev, { children: prev.children.concat([Object.assign({}, EMPTY_CHILD)]) }));
   }
 
@@ -236,7 +358,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
 
     win.document.write(
       "<!doctype html><html data-theme=\"" + theme + "\"><head><meta charset=\"utf-8\">" +
-      "<title>Client Intake Form - " + esc(f.fullName || "Unnamed") + "</title>" +
+      "<title>" + esc(t("intakeFormTitle")) + " - " + esc(f.fullName || t("intakeUnnamedClient")) + "</title>" +
       headHtml +
       "<style>body{background:var(--bg);padding:24px}@media print{body{padding:0}}</style>" +
       "</head><body class=\"" + document.body.className + "\">" +
@@ -280,7 +402,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
         heightLeft -= pageHeight;
       }
 
-      pdf.save("Intake Form - " + (f.fullName || "Unnamed") + ".pdf");
+      pdf.save(t("intakePdfFilePrefix") + " - " + (f.fullName || t("intakeUnnamedClient")) + ".pdf");
     } catch (err) {
       console.warn("exportAsPdf failed", err);
     } finally {
@@ -289,7 +411,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   }
 
   function clearForm() {
-    setF(initialIntake(client));
+    setF(initialIntake(client, stored));
     setSavedAt(null);
     setSaveError("");
   }
@@ -299,15 +421,17 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     setSaving(true);
     setSaveError("");
     try {
-      const updated = await updateClientRecord(client.id, {
-        intakeForm: f, intakeFormSavedAt: new Date().toISOString(),
+      const when = await saveClientIntake(client.id, f);
+      // The demographic answers also live on the client record, for reports.
+      await updateClientRecord(client.id, {
         raceEthnicity: f.raceEthnicity, gender: f.gender,
         householdIncomeBracket: f.householdIncomeBracket, householdSize: f.householdSize,
       });
-      setSavedAt(updated.intakeFormSavedAt);
+      setStored(f);
+      setSavedAt(when);
     } catch (err) {
       console.warn("saveForm failed", err);
-      setSaveError("Couldn't save the form. Try again.");
+      setSaveError(t("intakeSaveError"));
     } finally {
       setSaving(false);
     }
@@ -316,191 +440,185 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const showContent = bare || !collapsed;
 
   return (
-    <Card className={cn("border-none bg-transparent shadow-none hover:shadow-none", bare ? "" : "mb-5")}>
+    // Not bare (Case Management): the toggle sits in its own Card, matching
+    // the page's other collapsible cards, and the open form's section cards
+    // stack below it -- never cards inside a card. Bare (Client Profile tab):
+    // just the sections.
+    <div className={bare ? undefined : "mb-5"}>
       {bare ? null : (
-        <CardHeader className="space-y-0">
-          <SectionCardHeader icon={ClipboardList} title="Client Intake Form" collapsed={collapsed} onToggle={onToggle} />
-        </CardHeader>
+        <Card className="p-5 sm:px-6">
+          <SectionCardHeader title={t("intakeFormTitle")} collapsed={collapsed} onToggle={onToggle} />
+        </Card>
       )}
       {showContent && (
-        <CardContent className={bare ? "space-y-5" : "space-y-5 pt-0"}>
+        <div className={bare ? "space-y-5" : "mt-5 space-y-5"}>
           <div ref={printRef} className="space-y-5">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <SectionCard>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Intake Date" type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
-              <Field label="U.S Entry Date" type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
+              <IntakeField label={t("intakeQIntakeDate")} type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
+              <IntakeField label={t("intakeQUsEntryDate")} type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
             </div>
-          </div>
+          </SectionCard>
 
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
             {/* Left column: 1 Personal, 2 Emergency Contact, 5 Barrier, 6 Referral, 8 Housing */}
             <div className="space-y-5">
-              <Section number={1} icon={MapPin} title="Personal Information">
+              <Section number={1} icon={MapPin} title={t("intakeSecPersonal")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="First and Last Name" placeholder="First and last name" value={f.fullName} onChange={(v) => set("fullName", v)} />
-                  <Field label="DOB" type="date" value={f.dob} onChange={(v) => set("dob", v)} />
+                  <IntakeField label={t("intakeQFullName")} placeholder={t("intakePhFullName")} value={f.fullName} onChange={(v) => set("fullName", v)} />
+                  <IntakeField label={t("intakeQDob")} type="date" value={f.dob} onChange={(v) => set("dob", v)} />
                 </div>
-                <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
+                <RadioGroup label={t("intakeQGender")} name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Address" placeholder="Street address, apartment, suite, etc." value={f.address} onChange={(v) => set("address", v)}
+                  <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)}
                     onAddressSelect={(a) => { set("address", a.street); if (a.city) set("city", a.city); if (a.state) set("state", a.state); if (a.zip) set("zip", a.zip); }} />
-                  <Field label="City" placeholder="e.g. Providence" value={f.city} onChange={(v) => set("city", v)} />
-                  <Field label="State" placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
+                  <IntakeField label={t("intakeQCity")} placeholder={t("intakeEgPrefix") + " Providence"} value={f.city} onChange={(v) => set("city", v)} />
+                  <IntakeField label={t("intakeQState")} placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Zip Code" placeholder="e.g. 02903" value={f.zip} onChange={(v) => set("zip", v)} />
-                  <Field label="Telephone" placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
-                  <Field label="Email" placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
+                  <IntakeField label={t("intakeQZip")} placeholder={t("intakeEgPrefix") + " 02903"} value={f.zip} onChange={(v) => set("zip", v)} />
+                  <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
+                  <IntakeField label={t("intakeQEmail")} placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
                 </div>
-                <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
-                <RadioGroup label="Race/Ethnicity" name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
+                <RadioGroup label={t("intakeQEducation")} name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
+                <RadioGroup label={t("intakeQRaceEthnicity")} name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Household Income" name="householdIncomeBracket" value={f.householdIncomeBracket} onChange={(v) => set("householdIncomeBracket", v)} options={INCOME_BRACKET_OPTIONS} vertical />
-                  <Field label="Household Size" type="text" inputMode="numeric" placeholder="e.g. 4" value={f.householdSize} onChange={(v) => set("householdSize", v)} />
+                  <RadioGroup label={t("intakeQHouseholdIncome")} name="householdIncomeBracket" value={f.householdIncomeBracket} onChange={(v) => set("householdIncomeBracket", v)} options={INCOME_BRACKET_OPTIONS} vertical />
+                  <IntakeField label={t("intakeQHouseholdSize")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 4"} value={f.householdSize} onChange={(v) => set("householdSize", v)} />
                 </div>
               </Section>
 
-              <Section number={2} icon={Phone} title="Emergency Contact">
+              <Section number={2} icon={Phone} title={t("intakeSecEmergency")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Name" placeholder="Full name" value={f.ecName} onChange={(v) => set("ecName", v)} />
-                  <Field label="Telephone" placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
+                  <IntakeField label={t("intakeQName")} placeholder={t("intakePhFullNameShort")} value={f.ecName} onChange={(v) => set("ecName", v)} />
+                  <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
                 </div>
-                <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
-                <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
+                <RadioGroup label={t("intakeQPrimaryLanguage")} name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
+                <RadioGroup label={t("intakeQNeedTranslator")} name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
               </Section>
 
-              <Section number={5} icon={AlertTriangle} title="Barrier (Check all that apply)">
+              <Section number={5} icon={AlertTriangle} title={t("intakeSecBarrier")}>
                 <CheckboxGroup values={f.barriers} onToggle={(o) => toggleIn("barriers", o)} options={BARRIER_OPTIONS} />
               </Section>
 
-              <Section number={6} icon={Users} title="Referral (Check all that apply)">
+              <Section number={6} icon={Users} title={t("intakeSecReferral")}>
                 <CheckboxGroup values={f.referrals} onToggle={(o) => toggleIn("referrals", o)} options={REFERRAL_OPTIONS} />
               </Section>
 
-              <Section number={8} icon={Home} title="Housing Information">
-                <CheckboxGroup label="Housing Type" values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
-                <InlineField label="How many bedrooms are you looking for?" value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder="e.g. 2" />
-                <InlineField label="Where would you prefer to be located?" value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder="e.g. Providence, Warwick, Cranston" />
-                <InlineField label="How much can you afford for monthly rent and utilities?" value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} placeholder="e.g. $1,200" />
-                <RadioGroup label="Do you need furniture?" name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
+              <Section number={8} icon={Home} title={t("intakeSecHousing")}>
+                <CheckboxGroup label={t("intakeQHousingType")} values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
+                <InlineField label={t("intakeQBedrooms")} value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder={t("intakeEgPrefix") + " 2"} />
+                <InlineField label={t("intakeQLocation")} value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder={t("intakeEgPrefix") + " Providence, Warwick, Cranston"} />
+                <InlineField label={t("intakeQBudget")} value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} placeholder={t("intakeEgPrefix") + " $1,200"} />
+                <RadioGroup label={t("intakeQNeedFurniture")} name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
               </Section>
             </div>
 
             {/* Right column: 3 Employment, 4 Additional Details, 7 Family Composition */}
             <div className="space-y-5">
-              <Section number={3} icon={Briefcase} title="Employment Information">
+              <Section number={3} icon={Briefcase} title={t("intakeSecEmployment")}>
                 <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                  <Field label="Social Security Number" placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
-                  <RadioGroup label="Are you Working?" name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
+                  <IntakeField label={t("intakeQSsn")} placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
+                  <RadioGroup label={t("intakeQWorking")} name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
                 </div>
-                <RadioGroup label="Immigration Status" name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
+                <RadioGroup label={t("intakeQImmigrationStatus")} name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
                 {f.immigrationStatus === "Pending Case" && (
-                  <Field label="Pending Case Detail" placeholder="Describe the pending case" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
+                  <IntakeField label={t("intakeQPendingCaseDetail")} placeholder={t("intakePhPendingCase")} value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
                 )}
-                <Field label="What kind of job are you looking for?" placeholder="e.g. Customer Service, Office Assistant, Driver" value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
+                <IntakeField label={t("intakeQJobLookingFor")} placeholder={t("intakePhJob")} value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Job Type" name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
+                  <RadioGroup label={t("intakeQJobType")} name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
                 </div>
-                <Field label="Skills" placeholder="e.g. Microsoft Office, Cleaning, Cooking, etc." value={f.skills} onChange={(v) => set("skills", v)} />
+                <IntakeField label={t("intakeQSkills")} placeholder={t("intakePhSkills")} value={f.skills} onChange={(v) => set("skills", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Do you own a car?" name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
-                  <RadioGroup label="License Type" name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
+                  <RadioGroup label={t("intakeQOwnCar")} name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
+                  <RadioGroup label={t("intakeQLicenseType")} name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
                 </div>
               </Section>
 
-              <Section number={4} icon={FileText} title="Additional Details">
-                <RadioGroup label="Marital Status" name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
-                <Field label="Identity Verification" placeholder="e.g. Passport, State ID, etc." value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
+              <Section number={4} icon={FileText} title={t("intakeSecAdditional")}>
+                <RadioGroup label={t("intakeQMaritalStatus")} name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
+                <IntakeField label={t("intakeQIdentityVerification")} placeholder={t("intakePhIdentity")} value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <CheckboxGroup label="Benefit" values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} cols={1} />
-                  <RadioGroup label="Medical Insurance?" name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
+                  <CheckboxGroup label={t("intakeQBenefit")} values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} cols={1} />
+                  <RadioGroup label={t("intakeQMedicalInsurance")} name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
                 </div>
-                <RadioGroup label="Medical Health Condition" name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.medicalHealthCondition === "Other" && <Field label="Medical Health Condition (Other)" placeholder="Please specify" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
-                <RadioGroup label="Mental Health Condition" name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.mentalHealthCondition === "Other" && <Field label="Mental Health Condition (Other)" placeholder="Please specify" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
+                <RadioGroup label={t("intakeQMedicalHealth")} name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.medicalHealthCondition === "Other" && <IntakeField label={t("intakeQMedicalHealthOther")} placeholder={t("intakePhSpecify")} value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
+                <RadioGroup label={t("intakeQMentalHealth")} name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.mentalHealthCondition === "Other" && <IntakeField label={t("intakeQMentalHealthOther")} placeholder={t("intakePhSpecify")} value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
               </Section>
 
-              <Section number={7} icon={UsersRound} title="Family Composition">
-                <Field label="How many Children?" type="text" inputMode="numeric" placeholder="e.g. 3" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
+              <Section number={7} icon={UsersRound} title={t("intakeSecFamily")}>
+                <IntakeField label={t("intakeQNumChildren")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 3"} value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
                 {f.children.map((c, i) => (
-                  <div key={i} className="overflow-hidden rounded-lg border border-border">
-                    <div className="border-b border-border bg-primary-tint px-3 py-2 text-sm font-semibold text-primary">Child {i + 1}</div>
-                    <div className="space-y-3 p-3">
-                      <Field label="Name" placeholder="Child's full name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                  <div key={i} className="overflow-hidden rounded-control border border-border">
+                    <div className="border-b border-border bg-surface-sunken px-4 py-2 text-ui font-semibold text-card-foreground">{t("intakeChildLabel")} <span className="tabular-nums">{i + 1}</span></div>
+                    <div className="space-y-4 p-4">
+                      <IntakeField label={t("intakeQName")} placeholder={t("intakePhChildName")} value={c.name} onChange={(v) => setChild(i, "name", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                        <Field label="Age" type="text" inputMode="numeric" placeholder="e.g. 8" value={c.age} onChange={(v) => setChild(i, "age", v)} />
-                        <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
+                        <IntakeField label={t("intakeQAge")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 8"} value={c.age} onChange={(v) => setChild(i, "age", v)} />
+                        <RadioGroup label={t("intakeQGender")} name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
                       </div>
-                      <Field label="School" placeholder="e.g. Roosevelt Elementary" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                      <IntakeField label={t("intakeQSchool")} placeholder={t("intakeEgPrefix") + " Roosevelt Elementary"} value={c.school} onChange={(v) => setChild(i, "school", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                        <Field label="Grade" placeholder="e.g. 3rd" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
-                        <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
+                        <IntakeField label={t("intakeQGrade")} placeholder={t("intakePhGrade")} value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
+                        <RadioGroup label={t("intakeQCustody")} name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
                       </div>
                     </div>
                   </div>
                 ))}
-                <div className="text-center">
-                  <button type="button" onClick={addChild} className="text-sm font-semibold text-primary hover:underline">
-                    + Add Another Child
-                  </button>
+                <div className="flex justify-center">
+                  <Button type="button" variant="ghost" size="sm" className="text-primary" onClick={addChild}>
+                    <Plus className="h-4 w-4" aria-hidden="true" /> {t("intakeAddChildBtn")}
+                  </Button>
                 </div>
-                <RadioGroup label="Are you the head of Household?" name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
+                <RadioGroup label={t("intakeQHeadOfHousehold")} name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
               </Section>
             </div>
           </div>
 
-          <Section number={9} icon={ShieldCheck} title="Authorization for Release of Information">
-            <RadioGroup label="I authorize the release of my information" name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
+          <Section number={9} icon={ShieldCheck} title={t("intakeSecAuthorization")}>
+            <RadioGroup label={t("intakeQAuthorizeRelease")} name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Client Name (Print)" placeholder="Type full name" value={f.clientName} onChange={(v) => set("clientName", v)} />
-              <Field label="Client Signature" value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder="Type full name to sign" />
-              <Field label="Client Date" type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
+              <IntakeField label={t("intakeQClientName")} placeholder={t("intakePhTypeName")} value={f.clientName} onChange={(v) => set("clientName", v)} />
+              <IntakeField label={t("intakeQClientSignature")} value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder={t("intakePhTypeToSign")} />
+              <IntakeField label={t("intakeQClientDate")} type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Case Manager Name (Print)" placeholder="Type full name" value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
-              <Field label="Case Manager Signature" value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder="Type full name to sign" />
-              <Field label="Case Manager Date" type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
+              <IntakeField label={t("intakeQCaseManagerName")} placeholder={t("intakePhTypeName")} value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
+              <IntakeField label={t("intakeQCaseManagerSignature")} value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder={t("intakePhTypeToSign")} />
+              <IntakeField label={t("intakeQCaseManagerDate")} type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
             </div>
           </Section>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             {client && client.id ? (
-              <Button onClick={saveForm} disabled={saving} className="gap-2 rounded-full px-6">
-                <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save Form"}
+              <Button onClick={saveForm} loading={saving}>
+                <Save className="h-4 w-4" aria-hidden="true" /> {t("intakeSaveFormBtn")}
               </Button>
             ) : null}
-            <Button
-              onClick={downloadFilledForm}
-              variant="secondary"
-              className="gap-2 rounded-full border-navy bg-navy px-6 text-navy-foreground hover:bg-navy-dark"
-            >
-              <Printer className="h-4 w-4" /> Download Filled Form (PDF)
+            <Button onClick={downloadFilledForm} variant="secondary">
+              <Printer className="h-4 w-4" aria-hidden="true" /> {t("intakeDownloadFilledBtn")}
             </Button>
-            <Button
-              onClick={exportAsPdf}
-              disabled={exporting}
-              variant="secondary"
-              className="gap-2 rounded-full px-6"
-            >
-              <Camera className="h-4 w-4" /> {exporting ? "Exporting…" : "Export as PDF"}
+            <Button onClick={exportAsPdf} loading={exporting} variant="secondary">
+              <Camera className="h-4 w-4" aria-hidden="true" /> {t("intakeExportPdfBtn")}
             </Button>
-            <button
-              type="button"
-              onClick={clearForm}
-              className="h-10 rounded-full border border-border bg-background px-6 text-sm font-semibold text-primary hover:bg-primary-tint"
-            >
-              Clear Form
-            </button>
+            <Button onClick={clearForm} variant="ghost">
+              {t("intakeClearFormBtn")}
+            </Button>
             {client && client.id ? (
-              <span className={cn("flex items-center gap-1.5 text-sm font-semibold sm:ml-auto", saveError ? "text-accent" : "text-success")}>
-                {saveError ? saveError : savedAt ? (<><Check className="h-4 w-4" /> {formatSavedAt(savedAt)}</>) : null}
+              <span
+                aria-live="polite"
+                className={cn("flex items-center gap-1.5 text-ui font-semibold sm:ml-auto", saveError ? "text-tone-danger-ink" : "text-tone-success-ink")}
+              >
+                {saveError ? saveError : savedAt ? (<><Check className="h-4 w-4" aria-hidden="true" /> {formatSavedAt(savedAt, t)}</>) : null}
               </span>
             ) : null}
           </div>
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </div>
   );
 }

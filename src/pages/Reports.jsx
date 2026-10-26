@@ -1,18 +1,21 @@
-// Reports.jsx -- Tailwind/shadcn redesign pass (same idiom as
-// CaseManagement.jsx/Students.jsx/Dashboard.jsx). All the underlying data
-// (range presets, stats, trends, exports) is unchanged from the original
-// port of reports_view.js -- only the presentation layer changed, plus two
-// new reports_data.js helpers (previousRange/trendPct/computeMostActiveDay)
-// to drive the KPI cards' "vs previous period" badges and the new "Most
-// Active Day"/"Peak Visit Time" card, both taken from the requested design.
+// Reports.jsx -- visit, food distribution and job reporting for a chosen
+// date range, on the design system's dashboard template
+// (plans/ui-design-system.md §2.4): PageHeader with export and print, one
+// range row above everything it scopes, KpiCard rows with a signed
+// "vs previous period" delta, then charts and ranked lists in SectionCards
+// on a 12-column grid.
+//
+// All the underlying data (range presets, previous-period comparison, stats,
+// trends, grant attribution, food and job numbers, CSV/Excel export) is
+// unchanged -- only the presentation layer changed.
 import { useEffect, useState } from "react";
 import {
-  Award, Briefcase, Calendar, Clock, FileSpreadsheet, FileText, GraduationCap, Home,
-  Printer, Repeat, TrendingDown, TrendingUp, UserPlus, Users
+  Award, Briefcase, Calendar, ChevronDown, Clock, Download, FileText, GraduationCap, Home,
+  Printer, Repeat, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { navItemsForRole } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import { fetchAllApplications, fetchAllDistributions, subscribeClientsTable } from "../lib/clientsData.js";
 import { applicationStatusLabel, pipelineStageLabel } from "../lib/jobProfile.js";
 import {
@@ -25,40 +28,31 @@ import { fmtDuration, fullServiceList, fullStaffList, labelFor, todayStr } from 
 import { cn } from "../lib/cn.js";
 import BarList from "../components/BarList.jsx";
 import DashChart from "../components/DashChart.jsx";
-import DatePicker from "../components/DatePicker.jsx";
-import Sparkline from "../components/Sparkline.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { RangeBar } from "../components/ui/range-bar.jsx";
+import { TrendDelta } from "../components/ui/trend-delta.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { Skeleton } from "../components/ui/skeleton.jsx";
 
 const PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
 
-function TrendBadge({ pct, none, t }) {
-  if (none) return <span className="text-xs font-medium text-muted">{t("noChangeVsPreviousPeriod")}</span>;
-  const up = pct >= 0;
-  return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", up ? "text-success" : "text-accent")}>
-      {up ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-      {up ? "+" : ""}{pct}%
-      <span className="font-medium text-muted">{t("vsPreviousPeriod")}</span>
-    </span>
-  );
+// Two-up / four-up KPI rows: 2 columns on phones, `cols` from lg.
+function KpiGrid({ cols = 4, children }) {
+  return <div className={cn("grid grid-cols-2 gap-4", cols === 4 ? "lg:grid-cols-4" : "lg:grid-cols-2")}>{children}</div>;
 }
 
-function KpiCard({ icon: Icon, tint, iconColor, value, label, pct, none, t }) {
+// A titled group of KPIs and panels.
+function Section({ id, title, children }) {
   return (
-    <Card>
-      <CardContent className="flex items-start gap-3 p-5">
-        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tint)}>
-          <Icon className={cn("h-5 w-5", iconColor)} strokeWidth={2} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-2xl font-extrabold tracking-tight text-card-foreground">{value}</div>
-          <div className="mt-0.5 truncate text-sm font-semibold text-muted">{label}</div>
-          <div className="mt-2"><TrendBadge pct={pct} none={none} t={t} /></div>
-        </div>
-      </CardContent>
-    </Card>
+    <section aria-labelledby={id} className="flex flex-col gap-4">
+      <h2 id={id} className="m-0 text-section font-semibold text-card-foreground">{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -86,6 +80,9 @@ export default function Reports() {
 
   const [grantBreakdown, setGrantBreakdown] = useState([]);
   const [grantTotals, setGrantTotals] = useState({ tagged: 0, untagged: 0 });
+  // Only the first load shows a skeleton; a range change keeps the previous
+  // breakdown on screen until the new one arrives (no flash).
+  const [grantsLoaded, setGrantsLoaded] = useState(false);
   const visitIdsKey = s.inRangeVisits.map((v) => v.id).join(",");
 
   useEffect(() => {
@@ -108,14 +105,15 @@ export default function Reports() {
         .sort((a, b) => b.count - a.count);
       setGrantBreakdown(rows);
       setGrantTotals({ tagged: taggedTotal, untagged: Math.max(0, totalServices - taggedTotal) });
+      setGrantsLoaded(true);
     })();
     return () => { cancelled = true; };
   }, [visitIdsKey, range.from, range.to]);
 
   // Food Distribution is Administrator/Staff only -- only show its numbers
   // here to roles that actually have that nav item, same gate as the nav.
-  const role = session ? session.role : null;
-  const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
+  const { items: navItems } = useNavItems();
+  const showFoodStats = navItems.indexOf("fooddistribution") !== -1;
 
   // food_distributions is its own table (not embedded on data.foodClients),
   // so it's fetched here directly -- same pattern FoodDistribution.jsx uses
@@ -139,7 +137,7 @@ export default function Reports() {
   const distVolumeTrend = computeDailyValueTrend(distributions, range, (d) => parseQuantity(d.quantity));
 
   // Job Developer outcome/funnel reporting.
-  const showJobStats = navItemsForRole(role).indexOf("jobdeveloper") !== -1;
+  const showJobStats = navItems.indexOf("jobdeveloper") !== -1;
   const [applications, setApplications] = useState([]);
   useEffect(() => {
     if (!showJobStats) return undefined;
@@ -171,294 +169,201 @@ export default function Reports() {
   const distTrendPct = trendPct(distInRange.length, distInPrev.length);
   const householdsTrendPct = trendPct(householdsServedCount, householdsServedPrevCount);
 
+  const noData = <EmptyState compact title={t("noReportDataMessage")} description={t("reportEmptyHint")} />;
+  const rangeOptions = PRESETS.map((p) => ({ value: p, label: t(PRESET_LABEL_KEY[p]) }));
+  const half = "lg:col-span-6";
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="m-0 text-2xl font-extrabold tracking-tight text-card-foreground">{t("reportsTitle")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("reportsSubtitle")}</p>
-        </div>
-        <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-card-foreground shadow-card">
-          <Calendar className="h-4 w-4 text-primary" />
-          {range.from} &ndash; {range.to}
-        </div>
-      </div>
-
-      <Card className="no-print">
-        <CardContent className="p-5">
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setReportRange(p)}
-                className={cn(
-                  "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
-                  reportRange === p ? "bg-primary text-primary-foreground" : "bg-background text-muted hover:bg-primary-tint hover:text-primary"
-                )}
-              >
-                {t(PRESET_LABEL_KEY[p])}
-              </button>
-            ))}
-          </div>
-          {reportRange === "custom" && (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="rep-from" className="mb-1 block text-xs font-semibold text-muted">{t("filterDateFrom")}</label>
-                <DatePicker id="rep-from" value={customFrom} onChange={setCustomFrom} />
-              </div>
-              <div>
-                <label htmlFor="rep-to" className="mb-1 block text-xs font-semibold text-muted">{t("filterDateTo")}</label>
-                <DatePicker id="rep-to" value={customTo} onChange={setCustomTo} />
-              </div>
-            </div>
-          )}
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-            <Button variant="secondary" onClick={handleExportCSV}>
-              <FileText className="h-4 w-4 text-primary" /> {t("exportCSV")}
-            </Button>
-            <Button variant="secondary" onClick={handleExportExcel}>
-              <FileSpreadsheet className="h-4 w-4 text-success" /> {t("exportExcel")}
-            </Button>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title={t("reportsTitle")}
+        description={t("reportsSubtitle")}
+        meta={
+          <span className="inline-flex items-center gap-1.5 text-meta font-medium tabular-nums text-card-foreground">
+            <Calendar className="h-4 w-4 text-muted" aria-hidden="true" />
+            {range.from} &ndash; {range.to}
+          </span>
+        }
+        actions={
+          <div className="no-print flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary">
+                  <Download className="h-4 w-4" aria-hidden="true" />{t("exportLabel")}<ChevronDown className="h-4 w-4 text-muted" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}>{t("exportCSV")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}>{t("exportExcel")}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="secondary" onClick={() => window.print()}>
-              <Printer className="h-4 w-4 text-accent" /> {t("printPdf")}
+              <Printer className="h-4 w-4" aria-hidden="true" />{t("printPdf")}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={Users} tint="bg-primary-tint" iconColor="text-primary" value={s.inRangeVisits.length} label={t("numVisitors")} pct={visitorsTrend.pct} none={visitorsTrend.none} t={t} />
-        <KpiCard icon={UserPlus} tint="bg-tint-success" iconColor="text-success" value={s.newCount} label={t("firstTime")} pct={firstTimeTrend.pct} none={firstTimeTrend.none} t={t} />
-        <KpiCard icon={Repeat} tint="bg-gold-tint" iconColor="text-gold-dark" value={s.returningCount} label={t("repeatVisitors")} pct={repeatTrend.pct} none={repeatTrend.none} t={t} />
-        <KpiCard icon={Clock} tint="bg-tint-warn" iconColor="text-gold-ink" value={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} pct={avgLenTrend.pct} none={avgLenTrend.none} t={t} />
-      </div>
+      <RangeBar
+        idBase="rep"
+        label={t("dateRangeLabel")}
+        value={reportRange}
+        onChange={setReportRange}
+        options={rangeOptions}
+        custom={{ from: customFrom, to: customTo, onFrom: setCustomFrom, onTo: setCustomTo, fromLabel: t("filterDateFrom"), toLabel: t("filterDateTo") }}
+      />
 
-      {/* Flat NRS/grant-reporting credit for the currently selected range --
-          4 hours per completed student check-in, see reports_data.js. Also
-          included as a summary line above the CSV/Excel export table. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={GraduationCap} tint="bg-primary-tint" iconColor="text-primary" value={s.studentHours} label={t("studentInstructionalHoursLabel")} pct={studentHoursTrend.pct} none={studentHoursTrend.none} t={t} />
-      </div>
+      <Section id="rep-visits" title={t("reportSectionVisits")}>
+        <KpiGrid>
+          <KpiCard icon={Users} tone="info" value={s.inRangeVisits.length} label={t("numVisitors")} hint={<TrendDelta trend={visitorsTrend} t={t} />} />
+          <KpiCard icon={UserPlus} tone="success" value={s.newCount} label={t("firstTime")} hint={<TrendDelta trend={firstTimeTrend} t={t} />} />
+          <KpiCard icon={Repeat} tone="violet" value={s.returningCount} label={t("repeatVisitors")} hint={<TrendDelta trend={repeatTrend} t={t} />} />
+          <KpiCard icon={Clock} tone="neutral" value={fmtDuration(s.avgLen, lang)} label={t("avgVisitLength")} hint={<TrendDelta trend={avgLenTrend} goodWhenUp={null} t={t} />} />
+        </KpiGrid>
 
-      <Card>
-        <CardHeader><CardTitle>{t("trendVisitsPerDay")}</CardTitle></CardHeader>
-        <CardContent className="pt-0">
-          <DashChart
-            type="line"
-            labels={trend.labels}
-            datasets={[{ data: trend.data, fill: true, tension: 0.3 }]}
-            fallback={<Sparkline labels={trend.labels} data={trend.data} />}
-          />
-        </CardContent>
-      </Card>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <SectionCard className="lg:col-span-8" title={t("trendVisitsPerDay")}>
+            <DashChart type="line" title={t("trendVisitsPerDay")} labels={trend.labels} datasets={[{ data: trend.data }]} fallback={noData} />
+          </SectionCard>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle>Grant Attribution</CardTitle>
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-muted">
-            <Award className="h-4 w-4 text-primary" />
-            {grantTotals.tagged} tagged &middot; {grantTotals.untagged} untagged
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {grantBreakdown.length ? (
-            <DashChart
-              type="bar"
-              labels={grantBreakdown.map((x) => x.label)}
-              datasets={[{ data: grantBreakdown.map((x) => x.count) }]}
-              fallback={<BarList items={grantBreakdown} />}
-            />
+          {/* The fifth visit figure sits here instead of alone on a second
+              KPI row. Flat NRS/grant-reporting credit for the selected range
+              -- 4 hours per completed student check-in, see reports_data.js;
+              also a summary line above the CSV/Excel export table. Most
+              active day and peak time stay behind the food-distribution gate
+              they have always had. */}
+          <SectionCard className="lg:col-span-4" title={t("reportHighlightsTitle")}>
+            <dl className="m-0 flex flex-col divide-y divide-line-subtle">
+              <div className="pb-4">
+                <dt className="flex items-center gap-2 text-meta text-muted">
+                  <GraduationCap className="h-4 w-4" aria-hidden="true" />{t("studentInstructionalHoursLabel")}
+                </dt>
+                <dd className="m-0 mt-1 text-heading font-bold tabular-nums text-card-foreground">{s.studentHours}</dd>
+                <dd className="m-0 mt-1"><TrendDelta trend={studentHoursTrend} t={t} /></dd>
+              </div>
+              {showFoodStats && (
+                <>
+                  <div className="py-4">
+                    <dt className="flex items-center gap-2 text-meta text-muted">
+                      <Calendar className="h-4 w-4" aria-hidden="true" />{t("mostActiveDayLabel")}
+                    </dt>
+                    <dd className="m-0 mt-1 text-heading font-bold text-card-foreground">
+                      {mostActiveDay ? dayNames[new Date(mostActiveDay.date + "T00:00:00").getDay()] : "–"}
+                    </dd>
+                    {mostActiveDay && <dd className="m-0 mt-0.5 text-meta tabular-nums text-muted">{mostActiveDay.date}</dd>}
+                  </div>
+                  <div className="pt-4">
+                    <dt className="flex items-center gap-2 text-meta text-muted">
+                      <Clock className="h-4 w-4" aria-hidden="true" />{t("peakVisitTimeLabel")}
+                    </dt>
+                    <dd className="m-0 mt-1 text-heading font-bold tabular-nums text-card-foreground">
+                      {peakHour ? fmtHour(peakHour.hour) : "–"}
+                    </dd>
+                    {peakHour && <dd className="m-0 mt-0.5 text-meta tabular-nums text-muted">{peakHour.count} {t("visitorsSuffix")}</dd>}
+                  </div>
+                </>
+              )}
+            </dl>
+          </SectionCard>
+        </div>
+
+        <SectionCard
+          title={t("grantAttributionTitle")}
+          action={
+            <span className="inline-flex items-center gap-1.5 text-meta font-medium tabular-nums text-muted">
+              <Award className="h-4 w-4" aria-hidden="true" />
+              {grantTotals.tagged} {t("grantTaggedLabel")} &middot; {grantTotals.untagged} {t("grantUntaggedLabel")}
+            </span>
+          }
+        >
+          {!grantsLoaded ? (
+            <div className="flex flex-col gap-4" aria-busy="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i}>
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="mt-2 h-2 w-full" />
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-sm text-muted">No services in this range are tagged to a grant yet. Tag visits from Search and case notes from Case Management to see a breakdown here.</p>
+            <BarList
+              items={grantBreakdown}
+              label={t("grantAttributionTitle")}
+              empty={<EmptyState compact icon={Award} title={t("grantAttributionEmptyTitle")} description={t("grantAttributionEmptyHint")} />}
+            />
           )}
-        </CardContent>
-      </Card>
+        </SectionCard>
+      </Section>
 
       {showFoodStats && (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard icon={FileText} tint="bg-gold-tint" iconColor="text-gold-dark" value={distInRange.length} label={t("distributionsInRangeLabel")} pct={distTrendPct.pct} none={distTrendPct.none} t={t} />
-            <KpiCard icon={Home} tint="bg-tint-success" iconColor="text-success" value={householdsServedCount} label={t("householdsServedLabel")} pct={householdsTrendPct.pct} none={householdsTrendPct.none} t={t} />
-            <Card className="sm:col-span-2 lg:col-span-2">
-              <CardContent className="grid h-full grid-cols-2 gap-4 p-5">
-                <div>
-                  <div className="text-xs font-semibold text-muted">{t("mostActiveDayLabel")}</div>
-                  <div className="mt-1 text-xl font-extrabold text-card-foreground">
-                    {mostActiveDay ? dayNames[new Date(mostActiveDay.date + "T00:00:00").getDay()] : "–"}
-                  </div>
-                  {mostActiveDay && (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-muted">
-                      <Calendar className="h-3.5 w-3.5" /> {mostActiveDay.date}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-muted">{t("peakVisitTimeLabel")}</div>
-                  <div className="mt-1 text-xl font-extrabold text-card-foreground">
-                    {peakHour ? fmtHour(peakHour.hour) : "–"}
-                  </div>
-                  {peakHour && (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-muted">
-                      <Users className="h-3.5 w-3.5" /> {peakHour.count} {t("visitorsSuffix")}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        <Section id="rep-food" title={t("dashSectionFoodDistribution")}>
+          <KpiGrid cols={2}>
+            <KpiCard icon={FileText} tone="info" value={distInRange.length} label={t("distributionsInRangeLabel")} hint={<TrendDelta trend={distTrendPct} t={t} />} />
+            <KpiCard icon={Home} tone="success" value={householdsServedCount} label={t("householdsServedLabel")} hint={<TrendDelta trend={householdsTrendPct} t={t} />} />
+          </KpiGrid>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <SectionCard className={half} title={t("trendDistributionsPerDay")}>
+              <DashChart type="line" title={t("trendDistributionsPerDay")} labels={distTrend.labels} datasets={[{ data: distTrend.data }]} fallback={noData} />
+            </SectionCard>
+            <SectionCard className={half} title={t("estimatedVolumeTrendTitle")} description={t("estimatedVolumeTrendNote")}>
+              <DashChart type="line" title={t("estimatedVolumeTrendTitle")} labels={distVolumeTrend.labels} datasets={[{ data: distVolumeTrend.data }]} fallback={noData} />
+            </SectionCard>
           </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle>{t("trendDistributionsPerDay")}</CardTitle></CardHeader>
-              <CardContent className="pt-0">
-                <DashChart
-                  type="line"
-                  labels={distTrend.labels}
-                  datasets={[{ data: distTrend.data, fill: true, tension: 0.3 }]}
-                  fallback={<Sparkline labels={distTrend.labels} data={distTrend.data} />}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("estimatedVolumeTrendTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="mb-2 text-xs text-muted">{t("estimatedVolumeTrendNote")}</p>
-                <DashChart
-                  type="line"
-                  labels={distVolumeTrend.labels}
-                  datasets={[{ data: distVolumeTrend.data, fill: true, tension: 0.3 }]}
-                  fallback={<Sparkline labels={distVolumeTrend.labels} data={distVolumeTrend.data} />}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        </Section>
       )}
 
       {showJobStats && (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard icon={Briefcase} tint="bg-primary-tint" iconColor="text-primary" value={jobOutcomes.applicationsInRange} label={t("applicationsInRangeLabel")} pct={0} none t={t} />
-            <KpiCard icon={UserPlus} tint="bg-tint-success" iconColor="text-success" value={jobOutcomes.placementsInRange} label={t("placementsInRangeLabel")} pct={0} none t={t} />
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle>{t("currentPipelineTitle")}</CardTitle></CardHeader>
-              <CardContent className="pt-0">
-                <p className="mb-2 text-xs text-muted">{t("currentPipelineNote")}</p>
-                <DashChart
-                  type="bar"
-                  labels={pipelineRows.map((x) => x.label)}
-                  datasets={[{ data: pipelineRows.map((x) => x.count) }]}
-                  fallback={<BarList items={pipelineRows} />}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>{t("applicationsByStatusTitle")}</CardTitle></CardHeader>
-              <CardContent className="pt-0">
-                {statusRows.length ? (
-                  <DashChart
-                    type="bar"
-                    labels={statusRows.map((x) => x.label)}
-                    datasets={[{ data: statusRows.map((x) => x.count) }]}
-                    fallback={<BarList items={statusRows} />}
-                  />
-                ) : (
-                  <p className="py-8 text-center text-sm text-muted">{t("noApplicationsInRange")}</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <Card>
-            <CardHeader><CardTitle>{t("trendApplicationsPerDay")}</CardTitle></CardHeader>
-            <CardContent className="pt-0">
+        <Section id="rep-jobs" title={t("reportSectionJobs")}>
+          <KpiGrid cols={2}>
+            <KpiCard icon={Briefcase} tone="info" value={jobOutcomes.applicationsInRange} label={t("applicationsInRangeLabel")} />
+            <KpiCard icon={UserPlus} tone="success" value={jobOutcomes.placementsInRange} label={t("placementsInRangeLabel")} />
+          </KpiGrid>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <SectionCard className={half} title={t("currentPipelineTitle")} description={t("currentPipelineNote")}>
+              <BarList items={pipelineRows} label={t("currentPipelineTitle")} empty={noData} />
+            </SectionCard>
+            <SectionCard className={half} title={t("applicationsByStatusTitle")}>
+              <BarList
+                items={statusRows}
+                label={t("applicationsByStatusTitle")}
+                empty={<EmptyState compact icon={Briefcase} title={t("noApplicationsInRange")} description={t("reportEmptyHint")} />}
+              />
+            </SectionCard>
+            <SectionCard className="lg:col-span-12" title={t("trendApplicationsPerDay")}>
               <DashChart
                 type="line"
+                title={t("trendApplicationsPerDay")}
                 labels={jobOutcomes.applicationsTrend.labels}
-                datasets={[{ data: jobOutcomes.applicationsTrend.data, fill: true, tension: 0.3 }]}
-                fallback={<Sparkline labels={jobOutcomes.applicationsTrend.labels} data={jobOutcomes.applicationsTrend.data} />}
+                datasets={[{ data: jobOutcomes.applicationsTrend.data }]}
+                fallback={noData}
               />
-            </CardContent>
-          </Card>
-        </>
+            </SectionCard>
+          </div>
+        </Section>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>{t("mostRequestedServices")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={s.svcSorted.map((x) => labelFor(services, x.key, lang))}
-              datasets={[{ data: s.svcSorted.map((x) => x.count) }]}
-              fallback={<BarList items={s.svcSorted.map((x) => ({ label: labelFor(services, x.key, lang), count: x.count }))} />}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>{t("visitsByStaff")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={s.staffSorted.map((x) => labelFor(staffList, x.key, lang))}
-              datasets={[{ data: s.staffSorted.map((x) => x.count) }]}
-              fallback={<BarList items={s.staffSorted.map((x) => ({ label: labelFor(staffList, x.key, lang), count: x.count }))} />}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>{t("visitsByWeekday")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={dayNames}
-              datasets={[{ data: s.dayCounts }]}
-              fallback={<BarList items={s.dayCounts.map((c, i) => ({ label: dayNames[i], count: c }))} />}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>{t("visitsByHour")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={hourTop8.map((x) => fmtHour(x.hour))}
-              datasets={[{ data: hourTop8.map((x) => x.count) }]}
-              fallback={<BarList items={hourTop8.map((x) => ({ label: fmtHour(x.hour), count: x.count }))} />}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>{t("visitsByCity")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={cityTop8.map((x) => x.label || t("locationUnknown"))}
-              datasets={[{ data: cityTop8.map((x) => x.count) }]}
-              fallback={<BarList items={cityTop8.map((x) => ({ label: x.label || t("locationUnknown"), count: x.count }))} />}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>{t("visitsByZip")}</CardTitle></CardHeader>
-          <CardContent className="pt-0">
-            <DashChart
-              type="bar"
-              labels={zipTop8.map((x) => x.label || t("locationUnknown"))}
-              datasets={[{ data: zipTop8.map((x) => x.count) }]}
-              fallback={<BarList items={zipTop8.map((x) => ({ label: x.label || t("locationUnknown"), count: x.count }))} />}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <Section id="rep-breakdown" title={t("reportSectionBreakdowns")}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <SectionCard className={half} title={t("mostRequestedServices")}>
+            <BarList items={s.svcSorted.map((x) => ({ label: labelFor(services, x.key, lang), count: x.count }))} label={t("mostRequestedServices")} empty={noData} />
+          </SectionCard>
+          <SectionCard className={half} title={t("visitsByStaff")}>
+            <BarList items={s.staffSorted.map((x) => ({ label: labelFor(staffList, x.key, lang), count: x.count }))} label={t("visitsByStaff")} empty={noData} />
+          </SectionCard>
+          <SectionCard className={half} title={t("visitsByWeekday")}>
+            <DashChart type="bar" title={t("visitsByWeekday")} labels={dayNames} datasets={[{ data: s.dayCounts }]} fallback={noData} />
+          </SectionCard>
+          <SectionCard className={half} title={t("visitsByHour")}>
+            <BarList items={hourTop8.map((x) => ({ label: fmtHour(x.hour), count: x.count }))} label={t("visitsByHour")} tone="violet" empty={noData} />
+          </SectionCard>
+          <SectionCard className={half} title={t("visitsByCity")}>
+            <BarList items={cityTop8.map((x) => ({ label: x.label || t("locationUnknown"), count: x.count }))} label={t("visitsByCity")} empty={noData} />
+          </SectionCard>
+          <SectionCard className={half} title={t("visitsByZip")}>
+            <BarList items={zipTop8.map((x) => ({ label: x.label || t("locationUnknown"), count: x.count }))} label={t("visitsByZip")} empty={noData} />
+          </SectionCard>
+        </div>
+      </Section>
     </div>
   );
 }

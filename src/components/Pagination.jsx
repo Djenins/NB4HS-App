@@ -17,9 +17,13 @@ import { cn } from "../lib/cn.js";
 import { paginationPageList } from "../lib/pagination.js";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const navBtnClass = "flex h-[46px] min-h-0 w-[46px] shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-sm font-semibold text-card-foreground transition-colors disabled:pointer-events-none disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-card";
+// 36px page buttons (44px on touch screens) on the design system's control
+// radius; transform-none cancels main.css's legacy hover-lift on <button>.
+const navBtnClass = "flex h-9 min-h-0 min-w-9 shrink-0 transform-none items-center justify-center rounded-control border border-solid border-border bg-card px-2 py-0 text-ui font-semibold tabular-nums text-card-foreground transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-w-11";
 
-export default function Pagination({ page, totalPages, total, pageSize, onPageSizeChange, itemLabel, onChange }) {
+// `bare` drops the bar's own fill and padding, for a Pagination that sits
+// inside a card body that already provides both.
+export default function Pagination({ page, totalPages, total, pageSize, onPageSizeChange, itemLabel, onChange, bare }) {
   const t = useT();
   if (totalPages <= 1 && !total) return null;
   const pages = paginationPageList(page, totalPages);
@@ -28,9 +32,12 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
   const rangeEnd = showMeta ? Math.min(page * pageSize, total) : null;
 
   return (
-    <div className="mt-4 flex flex-col gap-3 overflow-x-auto rounded-b-2xl border-t border-solid border-border bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className={cn(
+      "mt-4 flex flex-col gap-3 overflow-x-auto border-t border-solid border-border sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+      bare ? "pt-4" : "rounded-b-surface bg-card px-5 py-4"
+    )}>
       {showMeta ? (
-        <div className="shrink-0 whitespace-nowrap text-sm text-muted">
+        <div className="shrink-0 whitespace-nowrap text-ui tabular-nums text-muted">
           {t("showingRangeLabel")
             .replace("{start}", String(rangeStart))
             .replace("{end}", String(rangeEnd))
@@ -41,13 +48,13 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
 
       <div className="flex shrink-0 items-center gap-4">
         {showMeta && onPageSizeChange ? (
-          <div className="flex items-center gap-2.5 text-sm text-muted">
+          <div className="flex items-center gap-2.5 text-ui text-muted">
             <span className="whitespace-nowrap">{t("rowsPerPageLabel")}</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               aria-label={t("rowsPerPageLabel")}
-              className="h-[46px] min-h-0 w-[96px] shrink-0 rounded-xl border border-border bg-card pl-3 pr-7 text-sm font-semibold text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+              className="h-9 min-h-0 w-[84px] shrink-0 rounded-control border border-border bg-card py-0 pl-3 pr-8 text-ui font-semibold tabular-nums text-card-foreground focus:border-primary focus:outline-none focus:ring-2 [@media(pointer:coarse)]:h-11"
             >
               {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -63,14 +70,14 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
                   className={cn(
                     navBtnClass,
                     p === page
-                      ? "border-primary bg-primary text-primary-foreground shadow-[0_4px_10px_-2px_rgba(37,99,235,0.45)]"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "hover:border-primary-soft hover:bg-primary-tint"
                   )}
                 >
                   {p}
                 </button>
               ) : (
-                <span key={"gap-" + i} className="px-1 text-sm text-muted">{p}</span>
+                <span key={"gap-" + i} className="px-1 text-ui text-muted">{p}</span>
               )
             ))}
             <button
@@ -78,14 +85,14 @@ export default function Pagination({ page, totalPages, total, pageSize, onPageSi
               aria-label={t("nextPage")}
               className={cn(navBtnClass, "hover:border-primary-soft hover:bg-primary-tint")}
             >
-              <ChevronRight className="h-4.5 w-4.5" />
+              <ChevronRight className="h-[18px] w-[18px]" />
             </button>
             <button
               type="button" disabled={page >= totalPages} onClick={() => onChange(totalPages - page)}
               aria-label={t("lastPage")}
               className={cn(navBtnClass, "hover:border-primary-soft hover:bg-primary-tint")}
             >
-              <ChevronLast className="h-4.5 w-4.5" />
+              <ChevronLast className="h-[18px] w-[18px]" />
             </button>
           </div>
         ) : null}

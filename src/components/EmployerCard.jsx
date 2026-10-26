@@ -3,53 +3,75 @@
 // Directory spec -- which is also why grid, not list, stays this page's
 // default view. EmployerListItem.jsx is the same record laid out wide.
 //
-// Two things this card used to get wrong, both fixed by the page now passing
-// them in: `industry` was rendered as its raw key ("food_service") instead of
-// its label, and the Open Positions / Placements counts were hard-coded em
-// dashes. Both numbers are real -- job_openings and placements carry
-// employer_id -- so the page counts them and hands them down.
+// The page passes in the industry's label (not its raw key) and the real
+// Open Positions / Placements counts -- job_openings and placements carry
+// employer_id. The partnership stage is a StatusBadge on the "employer"
+// domain of lib/statusTone.js.
 import { Briefcase, ContactRound, Mail, MapPin, Phone, Trash2, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useT } from "../context/AppContext.jsx";
-import { businessInitials, partnershipStageBadgeVariant, partnershipStageLabel } from "../lib/employerProfile.js";
+import { businessInitials, partnershipStageLabel } from "../lib/employerProfile.js";
 import { formatPhone, fmtDateLong } from "../lib/utils.js";
 import { avatarColorFor } from "./StudentCard.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
-import { Badge } from "./ui/badge.jsx";
-import { Button } from "./ui/button.jsx";
+import { BUTTON_RESET } from "./ui/button.jsx";
 import { Card } from "./ui/card.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
+import { StatusBadge } from "./ui/status-badge.jsx";
+
+export function EmployerStageBadge({ stage }) {
+  return <StatusBadge domain="employer" status={stage}>{partnershipStageLabel(stage)}</StatusBadge>;
+}
+
+// "Open positions: 3 · Placements: 1" -- the two counts both layouts show.
+export function EmployerCounts({ openPositions, placementsCount }) {
+  const t = useT();
+  return (
+    <>
+      <span className="flex items-center gap-1.5">
+        <Briefcase className="h-4 w-4 shrink-0" aria-hidden="true" />
+        {t("openPositionsLabel")}: <span className="font-semibold tabular-nums text-card-foreground">{openPositions}</span>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <ContactRound className="h-4 w-4 shrink-0" aria-hidden="true" />
+        {t("placementsCountLabel")}: <span className="font-semibold tabular-nums text-card-foreground">{placementsCount}</span>
+      </span>
+    </>
+  );
+}
 
 export default function EmployerCard({ employer, industryLabel, openPositions, placementsCount, lang, onRemove }) {
   const t = useT();
   const navigate = useNavigate();
 
   return (
-    <Card className="flex h-full flex-col p-5 shadow-card transition-colors hover:border-primary-soft hover:shadow-card">
+    <Card interactive className="flex h-full flex-col p-4 sm:p-5">
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"
-          onClick={function () { navigate("/employers/" + employer.id); }}
-          className="flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left font-normal transform-none min-h-0"
+          onClick={function () { navigate("/workforce/employers/" + employer.id); }}
+          className={BUTTON_RESET + " group flex min-w-0 items-center gap-3 rounded-control text-left focus-visible:outline-none focus-visible:ring-2"}
         >
           <Avatar className="h-10 w-10 shrink-0">
             <AvatarFallback className={avatarColorFor(employer.businessName)}>{businessInitials(employer.businessName)}</AvatarFallback>
           </Avatar>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-card-foreground hover:text-primary hover:underline">
+            <span className="block truncate text-section font-semibold text-card-foreground group-hover:text-primary group-hover:underline">
               {employer.businessName || "—"}
             </span>
-            {industryLabel && <span className="block truncate text-xs text-muted">{industryLabel}</span>}
+            {industryLabel && <span className="block truncate text-meta text-muted">{industryLabel}</span>}
           </span>
         </button>
-        <Button
-          variant="ghost" size="icon" title={t("deleteLabel")} aria-label={t("deleteLabel")} onClick={onRemove}
-          className="h-8 w-8 shrink-0 text-muted hover:bg-tint-danger hover:text-accent"
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        <IconButton size="sm" label={t("deleteLabel")} onClick={onRemove} className="hover:bg-tone-danger-bg hover:text-tone-danger-ink">
+          <Trash2 aria-hidden="true" />
+        </IconButton>
       </div>
 
-      <div className="mb-4 mt-3 flex flex-col gap-1.5 text-sm">
+      <div className="mt-3">
+        <EmployerStageBadge stage={employer.partnershipStage} />
+      </div>
+
+      <div className="mb-4 mt-3 flex flex-col gap-1.5 text-meta">
         {employer.city && (
           <span className="flex items-center gap-2 text-muted">
             <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" /> {employer.city}
@@ -61,7 +83,7 @@ export default function EmployerCard({ employer, industryLabel, openPositions, p
           </span>
         )}
         {employer.contactPhone && (
-          <span className="flex items-center gap-2 text-muted">
+          <span className="flex items-center gap-2 tabular-nums text-muted">
             <Phone className="h-4 w-4 shrink-0" aria-hidden="true" /> {formatPhone(employer.contactPhone)}
           </span>
         )}
@@ -73,21 +95,12 @@ export default function EmployerCard({ employer, industryLabel, openPositions, p
         )}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-3 text-sm text-muted">
-        <span className="flex items-center gap-1.5">
-          <Briefcase className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {t("openPositionsLabel")}: <span className="font-semibold text-card-foreground">{openPositions}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <ContactRound className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {t("placementsCountLabel")}: <span className="font-semibold text-card-foreground">{placementsCount}</span>
-        </span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <Badge variant={partnershipStageBadgeVariant(employer.partnershipStage)}>{partnershipStageLabel(employer.partnershipStage)}</Badge>
+      <div className="mt-auto flex flex-col gap-2 border-t border-line-subtle pt-3 text-meta text-muted">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <EmployerCounts openPositions={openPositions} placementsCount={placementsCount} />
+        </div>
         {employer.lastMeetingDate && (
-          <span className="text-xs text-muted">{t("lastContactLabel")}: {fmtDateLong(employer.lastMeetingDate, lang)}</span>
+          <span className="tabular-nums">{t("lastContactLabel")}: {fmtDateLong(employer.lastMeetingDate, lang)}</span>
         )}
       </div>
     </Card>
