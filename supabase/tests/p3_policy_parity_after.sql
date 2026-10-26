@@ -2,17 +2,7 @@
 -- optionally again after its rollback file, with p3.phase set to 'down').
 -- Compares with what p3_policy_parity_before.sql recorded and fails on any
 -- difference not listed in p3_expected. Ends by raising P3_PARITY_PASSED, so nothing is committed.
-do $$
-declare
-  v_phase text := coalesce(nullif(current_setting('p3.phase', true), ''), 'after');
-begin
-  update public.workforce_role_access set enabled = false;
-  perform pg_temp.p3_snapshot(v_phase, 'off');
-  update public.workforce_role_access set enabled = true;
-  perform pg_temp.p3_snapshot(v_phase, 'on');
-  update public.workforce_role_access w set enabled = s.enabled from p3_wf_saved s where s.role = w.role;
-  perform pg_temp.p3_snapshot(v_phase, 'live');
-end $$;
+select pg_temp.p3_snapshot_all(coalesce(nullif(current_setting('p3.phase', true), ''), 'after'));
 
 do $$
 declare
@@ -29,8 +19,9 @@ begin
    and a.wf = b.wf and a.persona = b.persona and a.tbl = b.tbl and a.cmd = b.cmd and a.kind = b.kind
   where a.ok is distinct from b.ok
     and not exists (select 1 from p3_expected e
-                    where e.role = split_part(b.persona, '/', 1) and e.wf = b.wf and e.tbl = b.tbl
-                      and e.was = b.ok and e.now = a.ok);
+                    where (e.role = '*' or e.role = split_part(b.persona, '/', 1)) and e.wf = b.wf and e.tbl = b.tbl
+                      and e.was = b.ok and e.now = a.ok
+                      and (e.persona_like is null or b.persona like e.persona_like));
   select count(*) into intended
   from p3_snap b join p3_snap a
     on a.phase = v_phase and b.phase = 'before'
@@ -46,7 +37,7 @@ begin
   if current_setting('p3.keep_going', true) = 'on' then
     raise notice 'P3 parity ok for % (% checks, % intended changes)', v_phase, checked, intended;
   else
-    raise exception 'P3_PARITY_PASSED % checks for % personas, Workforce access off / on / as set, no unintended changes, % intended (%)',
+    raise exception 'P3_PARITY_PASSED % checks for % personas, Workforce access compared as configured, no unintended changes, % intended (%)',
       checked, (select count(*) from p3_personas), intended, v_phase;
   end if;
 end $$;

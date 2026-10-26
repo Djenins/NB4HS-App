@@ -3,6 +3,8 @@
 -- (generated from pg_policies on 2026-10-26), puts every intake form back on
 -- clients, and drops client_intakes. Not a migration -- run by hand only if
 -- p3c has to be undone. The dry run applies it and checks parity again.
+-- Order: p3 rollbacks undo in reverse (p3d, then p3c, p3b, p3a) -- later
+-- parts' policies use helpers the earlier parts created.
 
 drop trigger clients_route_intake on public.clients;
 update public.clients c set intake_form = i.form, intake_form_saved_at = i.saved_at
