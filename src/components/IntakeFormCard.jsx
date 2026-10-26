@@ -6,6 +6,10 @@
 // Layout mirrors the org's paper form: numbered sections in a two-column
 // masonry (1,2,5,6,8 left / 3,4,7 right), with Authorization spanning full
 // width at the end.
+//
+// Every visible string goes through t() (en/ht/fr); option values stay the
+// org's English wording (see OPTION_KEYS). The print window and the PDF are
+// copies of the form as rendered, so they come out in the UI language.
 import { useId, useRef, useState } from "react";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
@@ -42,6 +46,91 @@ const IMMIGRATION_OPTIONS = ["US Citizen", "Permanent Resident", "Visa", "TPS", 
 const RACE_ETHNICITY_OPTIONS = ["American Indian/Alaska Native", "Asian", "Black/African American", "Hispanic/Latino", "Native Hawaiian/Pacific Islander", "White", "Two or More Races", "Prefer not to say"];
 const INCOME_BRACKET_OPTIONS = ["Under $15,000", "$15,000-$29,999", "$30,000-$44,999", "$45,000-$59,999", "$60,000+", "Prefer not to say"];
 
+// Display labels for the option values above. The English string is what
+// gets saved (intakeForm, and raceEthnicity / gender / householdIncomeBracket
+// on the client record), so it never changes -- only the label shown next
+// to the box is translated. TPS, CBP1, SNAP, DHS and Healthsource RI are
+// proper names and show as-is in every language.
+const OPTION_KEYS = {
+  "Male": "intakeOptMale",
+  "Female": "intakeOptFemale",
+  "High School": "intakeOptHighSchool",
+  "Associate": "intakeOptAssociate",
+  "Bachelor": "intakeOptBachelor",
+  "Masters": "intakeOptMasters",
+  "Doctorate": "intakeOptDoctorate",
+  "American Indian/Alaska Native": "intakeOptRaceAmIndian",
+  "Asian": "intakeOptRaceAsian",
+  "Black/African American": "intakeOptRaceBlack",
+  "Hispanic/Latino": "intakeOptRaceHispanic",
+  "Native Hawaiian/Pacific Islander": "intakeOptRacePacific",
+  "White": "intakeOptRaceWhite",
+  "Two or More Races": "intakeOptRaceTwoOrMore",
+  "Prefer not to say": "intakeOptPreferNotToSay",
+  "Under $15,000": "intakeOptIncomeUnder15k",
+  "$15,000-$29,999": "intakeOptIncome15to30k",
+  "$30,000-$44,999": "intakeOptIncome30to45k",
+  "$45,000-$59,999": "intakeOptIncome45to60k",
+  "$60,000+": "intakeOptIncome60kPlus",
+  "Creole": "intakeOptLangCreole",
+  "French": "intakeOptLangFrench",
+  "English": "intakeOptLangEnglish",
+  "Spanish": "intakeOptLangSpanish",
+  "YES": "intakeOptYes",
+  "NO": "intakeOptNo",
+  "Income": "intakeOptIncome",
+  "Housing": "intakeOptHousing",
+  "Transportation": "intakeOptTransportation",
+  "Employment": "intakeOptEmployment",
+  "Language": "intakeOptLanguage",
+  "Legal": "intakeOptLegal",
+  "Domestic Violence": "intakeOptDomesticViolence",
+  "Substance Abuse": "intakeOptSubstanceAbuse",
+  "Bad Landlord History": "intakeOptBadLandlord",
+  "Previous Eviction": "intakeOptPreviousEviction",
+  "Criminal Background": "intakeOptCriminalBackground",
+  "Health insurance": "intakeOptHealthInsurance",
+  "School": "intakeOptSchool",
+  "Counseling": "intakeOptCounseling",
+  "Primary Care Physician": "intakeOptPrimaryCare",
+  "Shelter": "intakeOptShelter",
+  "Job Search": "intakeOptJobSearch",
+  "Education": "intakeOptEducation",
+  "Training": "intakeOptTraining",
+  "Medical": "intakeOptMedical",
+  "Immigration Services": "intakeOptImmigrationServices",
+  "Childcare": "intakeOptChildcare",
+  "Parenting/Parenting Aid": "intakeOptParenting",
+  "Domestic Violence Specialist": "intakeOptDvSpecialist",
+  "Food Resources": "intakeOptFoodResources",
+  "Benefits": "intakeOptBenefits",
+  "Other": "intakeOptOther",
+  "Apartment Rental": "intakeOptApartmentRental",
+  "Housing Authority": "intakeOptHousingAuthority",
+  "Voucher": "intakeOptVoucher",
+  "US Citizen": "intakeOptUsCitizen",
+  "Permanent Resident": "intakeOptPermanentResident",
+  "Visa": "intakeOptVisa",
+  "Humanitarian parole": "intakeOptHumanitarianParole",
+  "Pending Case": "intakeOptPendingCase",
+  "Full time": "intakeOptFullTime",
+  "Part Time": "intakeOptPartTime",
+  "Permit": "intakeOptPermit",
+  "Driver's License": "intakeOptDriversLicense",
+  "Married": "intakeOptMarried",
+  "Single": "intakeOptSingle",
+  "Divorced": "intakeOptDivorced",
+  "Separated": "intakeOptSeparated",
+  "Widowed": "intakeOptWidowed",
+  "Cash": "intakeOptCash",
+  "Good": "intakeOptGood",
+  "Bad": "intakeOptBad",
+};
+
+function optionLabel(t, opt) {
+  return OPTION_KEYS[opt] ? t(OPTION_KEYS[opt]) : opt;
+}
+
 // Local wrappers over the ui Field/Input so the ~60 form questions below
 // stay one line each. Ids come from useId: the visible label is wired to its
 // control, and the print/PDF export clones the DOM as-is.
@@ -74,6 +163,7 @@ const OPTION = "m-0 flex min-h-8 cursor-pointer items-center gap-2 text-ui font-
 const OPTION_INPUT = "h-4 w-4 shrink-0 cursor-pointer accent-primary";
 
 function RadioGroup({ label, name, value, onChange, options, className, vertical }) {
+  const t = useT();
   return (
     <fieldset className={cn(FIELDSET, className)}>
       {label ? <legend className={LEGEND}>{label}</legend> : null}
@@ -81,7 +171,7 @@ function RadioGroup({ label, name, value, onChange, options, className, vertical
         {options.map((opt) => (
           <label key={opt} className={OPTION}>
             <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className={OPTION_INPUT} />
-            {opt}
+            {optionLabel(t, opt)}
           </label>
         ))}
       </div>
@@ -90,6 +180,7 @@ function RadioGroup({ label, name, value, onChange, options, className, vertical
 }
 
 function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
+  const t = useT();
   const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
   return (
     <fieldset className={cn(FIELDSET, className)}>
@@ -98,7 +189,7 @@ function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
         {options.map((opt) => (
           <label key={opt} className={OPTION}>
             <input type="checkbox" checked={values.indexOf(opt) !== -1} onChange={() => onToggle(opt)} className={OPTION_INPUT} />
-            {opt}
+            {optionLabel(t, opt)}
           </label>
         ))}
       </div>
@@ -238,7 +329,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
 
     win.document.write(
       "<!doctype html><html data-theme=\"" + theme + "\"><head><meta charset=\"utf-8\">" +
-      "<title>Client Intake Form - " + esc(f.fullName || "Unnamed") + "</title>" +
+      "<title>" + esc(t("intakeFormTitle")) + " - " + esc(f.fullName || t("intakeUnnamedClient")) + "</title>" +
       headHtml +
       "<style>body{background:var(--bg);padding:24px}@media print{body{padding:0}}</style>" +
       "</head><body class=\"" + document.body.className + "\">" +
@@ -282,7 +373,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
         heightLeft -= pageHeight;
       }
 
-      pdf.save("Intake Form - " + (f.fullName || "Unnamed") + ".pdf");
+      pdf.save(t("intakePdfFilePrefix") + " - " + (f.fullName || t("intakeUnnamedClient")) + ".pdf");
     } catch (err) {
       console.warn("exportAsPdf failed", err);
     } finally {
@@ -333,114 +424,114 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
           <div ref={printRef} className="space-y-5">
           <SectionCard>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <IntakeField label="Intake Date" type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
-              <IntakeField label="U.S Entry Date" type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
+              <IntakeField label={t("intakeQIntakeDate")} type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
+              <IntakeField label={t("intakeQUsEntryDate")} type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
             </div>
           </SectionCard>
 
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
             {/* Left column: 1 Personal, 2 Emergency Contact, 5 Barrier, 6 Referral, 8 Housing */}
             <div className="space-y-5">
-              <Section number={1} icon={MapPin} title="Personal Information">
+              <Section number={1} icon={MapPin} title={t("intakeSecPersonal")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <IntakeField label="First and Last Name" placeholder="First and last name" value={f.fullName} onChange={(v) => set("fullName", v)} />
-                  <IntakeField label="DOB" type="date" value={f.dob} onChange={(v) => set("dob", v)} />
+                  <IntakeField label={t("intakeQFullName")} placeholder={t("intakePhFullName")} value={f.fullName} onChange={(v) => set("fullName", v)} />
+                  <IntakeField label={t("intakeQDob")} type="date" value={f.dob} onChange={(v) => set("dob", v)} />
                 </div>
-                <RadioGroup label="Gender" name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
+                <RadioGroup label={t("intakeQGender")} name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <IntakeField label="Address" placeholder="Street address, apartment, suite, etc." value={f.address} onChange={(v) => set("address", v)} />
-                  <IntakeField label="City" placeholder="e.g. Providence" value={f.city} onChange={(v) => set("city", v)} />
-                  <IntakeField label="State" placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
+                  <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)} />
+                  <IntakeField label={t("intakeQCity")} placeholder={t("intakeEgPrefix") + " Providence"} value={f.city} onChange={(v) => set("city", v)} />
+                  <IntakeField label={t("intakeQState")} placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <IntakeField label="Zip Code" placeholder="e.g. 02903" value={f.zip} onChange={(v) => set("zip", v)} />
-                  <IntakeField label="Telephone" placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
-                  <IntakeField label="Email" placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
+                  <IntakeField label={t("intakeQZip")} placeholder={t("intakeEgPrefix") + " 02903"} value={f.zip} onChange={(v) => set("zip", v)} />
+                  <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
+                  <IntakeField label={t("intakeQEmail")} placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
                 </div>
-                <RadioGroup label="Education" name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
-                <RadioGroup label="Race/Ethnicity" name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
+                <RadioGroup label={t("intakeQEducation")} name="education" value={f.education} onChange={(v) => set("education", v)} options={["High School", "Associate", "Bachelor", "Masters", "Doctorate"]} />
+                <RadioGroup label={t("intakeQRaceEthnicity")} name="raceEthnicity" value={f.raceEthnicity} onChange={(v) => set("raceEthnicity", v)} options={RACE_ETHNICITY_OPTIONS} vertical />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Household Income" name="householdIncomeBracket" value={f.householdIncomeBracket} onChange={(v) => set("householdIncomeBracket", v)} options={INCOME_BRACKET_OPTIONS} vertical />
-                  <IntakeField label="Household Size" type="text" inputMode="numeric" placeholder="e.g. 4" value={f.householdSize} onChange={(v) => set("householdSize", v)} />
+                  <RadioGroup label={t("intakeQHouseholdIncome")} name="householdIncomeBracket" value={f.householdIncomeBracket} onChange={(v) => set("householdIncomeBracket", v)} options={INCOME_BRACKET_OPTIONS} vertical />
+                  <IntakeField label={t("intakeQHouseholdSize")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 4"} value={f.householdSize} onChange={(v) => set("householdSize", v)} />
                 </div>
               </Section>
 
-              <Section number={2} icon={Phone} title="Emergency Contact">
+              <Section number={2} icon={Phone} title={t("intakeSecEmergency")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <IntakeField label="Name" placeholder="Full name" value={f.ecName} onChange={(v) => set("ecName", v)} />
-                  <IntakeField label="Telephone" placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
+                  <IntakeField label={t("intakeQName")} placeholder={t("intakePhFullNameShort")} value={f.ecName} onChange={(v) => set("ecName", v)} />
+                  <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
                 </div>
-                <RadioGroup label="Primary Language" name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
-                <RadioGroup label="Need Translator?" name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
+                <RadioGroup label={t("intakeQPrimaryLanguage")} name="primaryLanguage" value={f.primaryLanguage} onChange={(v) => set("primaryLanguage", v)} options={["Creole", "French", "English", "Spanish"]} />
+                <RadioGroup label={t("intakeQNeedTranslator")} name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
               </Section>
 
-              <Section number={5} icon={AlertTriangle} title="Barrier (Check all that apply)">
+              <Section number={5} icon={AlertTriangle} title={t("intakeSecBarrier")}>
                 <CheckboxGroup values={f.barriers} onToggle={(o) => toggleIn("barriers", o)} options={BARRIER_OPTIONS} />
               </Section>
 
-              <Section number={6} icon={Users} title="Referral (Check all that apply)">
+              <Section number={6} icon={Users} title={t("intakeSecReferral")}>
                 <CheckboxGroup values={f.referrals} onToggle={(o) => toggleIn("referrals", o)} options={REFERRAL_OPTIONS} />
               </Section>
 
-              <Section number={8} icon={Home} title="Housing Information">
-                <CheckboxGroup label="Housing Type" values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
-                <InlineField label="How many bedrooms are you looking for?" value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder="e.g. 2" />
-                <InlineField label="Where would you prefer to be located?" value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder="e.g. Providence, Warwick, Cranston" />
-                <InlineField label="How much can you afford for monthly rent and utilities?" value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} placeholder="e.g. $1,200" />
-                <RadioGroup label="Do you need furniture?" name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
+              <Section number={8} icon={Home} title={t("intakeSecHousing")}>
+                <CheckboxGroup label={t("intakeQHousingType")} values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
+                <InlineField label={t("intakeQBedrooms")} value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder={t("intakeEgPrefix") + " 2"} />
+                <InlineField label={t("intakeQLocation")} value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder={t("intakeEgPrefix") + " Providence, Warwick, Cranston"} />
+                <InlineField label={t("intakeQBudget")} value={f.monthlyBudget} onChange={(v) => set("monthlyBudget", v)} placeholder={t("intakeEgPrefix") + " $1,200"} />
+                <RadioGroup label={t("intakeQNeedFurniture")} name="needFurniture" value={f.needFurniture} onChange={(v) => set("needFurniture", v)} options={["YES", "NO"]} />
               </Section>
             </div>
 
             {/* Right column: 3 Employment, 4 Additional Details, 7 Family Composition */}
             <div className="space-y-5">
-              <Section number={3} icon={Briefcase} title="Employment Information">
+              <Section number={3} icon={Briefcase} title={t("intakeSecEmployment")}>
                 <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                  <IntakeField label="Social Security Number" placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
-                  <RadioGroup label="Are you Working?" name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
+                  <IntakeField label={t("intakeQSsn")} placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
+                  <RadioGroup label={t("intakeQWorking")} name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
                 </div>
-                <RadioGroup label="Immigration Status" name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
+                <RadioGroup label={t("intakeQImmigrationStatus")} name="immigrationStatus" value={f.immigrationStatus} onChange={(v) => set("immigrationStatus", v)} options={IMMIGRATION_OPTIONS} />
                 {f.immigrationStatus === "Pending Case" && (
-                  <IntakeField label="Pending Case Detail" placeholder="Describe the pending case" value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
+                  <IntakeField label={t("intakeQPendingCaseDetail")} placeholder={t("intakePhPendingCase")} value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
                 )}
-                <IntakeField label="What kind of job are you looking for?" placeholder="e.g. Customer Service, Office Assistant, Driver" value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
+                <IntakeField label={t("intakeQJobLookingFor")} placeholder={t("intakePhJob")} value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Job Type" name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
+                  <RadioGroup label={t("intakeQJobType")} name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
                 </div>
-                <IntakeField label="Skills" placeholder="e.g. Microsoft Office, Cleaning, Cooking, etc." value={f.skills} onChange={(v) => set("skills", v)} />
+                <IntakeField label={t("intakeQSkills")} placeholder={t("intakePhSkills")} value={f.skills} onChange={(v) => set("skills", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label="Do you own a car?" name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
-                  <RadioGroup label="License Type" name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
+                  <RadioGroup label={t("intakeQOwnCar")} name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
+                  <RadioGroup label={t("intakeQLicenseType")} name="licenseType" value={f.licenseType} onChange={(v) => set("licenseType", v)} options={["Permit", "Driver's License"]} />
                 </div>
               </Section>
 
-              <Section number={4} icon={FileText} title="Additional Details">
-                <RadioGroup label="Marital Status" name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
-                <IntakeField label="Identity Verification" placeholder="e.g. Passport, State ID, etc." value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
+              <Section number={4} icon={FileText} title={t("intakeSecAdditional")}>
+                <RadioGroup label={t("intakeQMaritalStatus")} name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
+                <IntakeField label={t("intakeQIdentityVerification")} placeholder={t("intakePhIdentity")} value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <CheckboxGroup label="Benefit" values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} cols={1} />
-                  <RadioGroup label="Medical Insurance?" name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
+                  <CheckboxGroup label={t("intakeQBenefit")} values={f.benefits} onToggle={(o) => toggleIn("benefits", o)} options={["Cash", "SNAP"]} cols={1} />
+                  <RadioGroup label={t("intakeQMedicalInsurance")} name="medicalInsurance" value={f.medicalInsurance} onChange={(v) => set("medicalInsurance", v)} options={["YES", "NO"]} />
                 </div>
-                <RadioGroup label="Medical Health Condition" name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.medicalHealthCondition === "Other" && <IntakeField label="Medical Health Condition (Other)" placeholder="Please specify" value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
-                <RadioGroup label="Mental Health Condition" name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
-                {f.mentalHealthCondition === "Other" && <IntakeField label="Mental Health Condition (Other)" placeholder="Please specify" value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
+                <RadioGroup label={t("intakeQMedicalHealth")} name="medicalHealthCondition" value={f.medicalHealthCondition} onChange={(v) => set("medicalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.medicalHealthCondition === "Other" && <IntakeField label={t("intakeQMedicalHealthOther")} placeholder={t("intakePhSpecify")} value={f.medicalHealthOther} onChange={(v) => set("medicalHealthOther", v)} />}
+                <RadioGroup label={t("intakeQMentalHealth")} name="mentalHealthCondition" value={f.mentalHealthCondition} onChange={(v) => set("mentalHealthCondition", v)} options={["Good", "Bad", "Other"]} />
+                {f.mentalHealthCondition === "Other" && <IntakeField label={t("intakeQMentalHealthOther")} placeholder={t("intakePhSpecify")} value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
               </Section>
 
-              <Section number={7} icon={UsersRound} title="Family Composition">
-                <IntakeField label="How many Children?" type="text" inputMode="numeric" placeholder="e.g. 3" value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
+              <Section number={7} icon={UsersRound} title={t("intakeSecFamily")}>
+                <IntakeField label={t("intakeQNumChildren")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 3"} value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
                 {f.children.map((c, i) => (
                   <div key={i} className="overflow-hidden rounded-control border border-border">
                     <div className="border-b border-border bg-surface-sunken px-4 py-2 text-ui font-semibold text-card-foreground">{t("intakeChildLabel")} <span className="tabular-nums">{i + 1}</span></div>
                     <div className="space-y-4 p-4">
-                      <IntakeField label="Name" placeholder="Child's full name" value={c.name} onChange={(v) => setChild(i, "name", v)} />
+                      <IntakeField label={t("intakeQName")} placeholder={t("intakePhChildName")} value={c.name} onChange={(v) => setChild(i, "name", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                        <IntakeField label="Age" type="text" inputMode="numeric" placeholder="e.g. 8" value={c.age} onChange={(v) => setChild(i, "age", v)} />
-                        <RadioGroup label="Gender" name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
+                        <IntakeField label={t("intakeQAge")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 8"} value={c.age} onChange={(v) => setChild(i, "age", v)} />
+                        <RadioGroup label={t("intakeQGender")} name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
                       </div>
-                      <IntakeField label="School" placeholder="e.g. Roosevelt Elementary" value={c.school} onChange={(v) => setChild(i, "school", v)} />
+                      <IntakeField label={t("intakeQSchool")} placeholder={t("intakeEgPrefix") + " Roosevelt Elementary"} value={c.school} onChange={(v) => setChild(i, "school", v)} />
                       <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-                        <IntakeField label="Grade" placeholder="e.g. 3rd" value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
-                        <RadioGroup label="Custody" name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
+                        <IntakeField label={t("intakeQGrade")} placeholder={t("intakePhGrade")} value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
+                        <RadioGroup label={t("intakeQCustody")} name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
                       </div>
                     </div>
                   </div>
@@ -450,22 +541,22 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                     <Plus className="h-4 w-4" aria-hidden="true" /> {t("intakeAddChildBtn")}
                   </Button>
                 </div>
-                <RadioGroup label="Are you the head of Household?" name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
+                <RadioGroup label={t("intakeQHeadOfHousehold")} name="headOfHousehold" value={f.headOfHousehold} onChange={(v) => set("headOfHousehold", v)} options={["YES", "NO"]} />
               </Section>
             </div>
           </div>
 
-          <Section number={9} icon={ShieldCheck} title="Authorization for Release of Information">
-            <RadioGroup label="I authorize the release of my information" name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
+          <Section number={9} icon={ShieldCheck} title={t("intakeSecAuthorization")}>
+            <RadioGroup label={t("intakeQAuthorizeRelease")} name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <IntakeField label="Client Name (Print)" placeholder="Type full name" value={f.clientName} onChange={(v) => set("clientName", v)} />
-              <IntakeField label="Client Signature" value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder="Type full name to sign" />
-              <IntakeField label="Client Date" type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
+              <IntakeField label={t("intakeQClientName")} placeholder={t("intakePhTypeName")} value={f.clientName} onChange={(v) => set("clientName", v)} />
+              <IntakeField label={t("intakeQClientSignature")} value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder={t("intakePhTypeToSign")} />
+              <IntakeField label={t("intakeQClientDate")} type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <IntakeField label="Case Manager Name (Print)" placeholder="Type full name" value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
-              <IntakeField label="Case Manager Signature" value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder="Type full name to sign" />
-              <IntakeField label="Case Manager Date" type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
+              <IntakeField label={t("intakeQCaseManagerName")} placeholder={t("intakePhTypeName")} value={f.caseManagerName} onChange={(v) => set("caseManagerName", v)} />
+              <IntakeField label={t("intakeQCaseManagerSignature")} value={f.caseManagerSignature} onChange={(v) => set("caseManagerSignature", v)} placeholder={t("intakePhTypeToSign")} />
+              <IntakeField label={t("intakeQCaseManagerDate")} type="date" value={f.caseManagerDate} onChange={(v) => set("caseManagerDate", v)} />
             </div>
           </Section>
           </div>
