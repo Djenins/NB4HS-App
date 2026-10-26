@@ -1,6 +1,10 @@
 -- Phase 3, part A -- the Students program's tables move from account-role
 -- checks to permissions (plans/unified-access-architecture.md §4, §5, §13
--- Phase 3). NOT YET APPLIED.
+-- Phase 3).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026190000), after
+-- rolled-back dry runs (parity up and down, program access checks). Afterwards
+-- on live: parity in reverse (rollback inside a transaction) found all 1,280
+-- answers equal to the old rules, and the p1, p2 and p3a checks passed.
 --
 -- NOBODY'S ACCESS CHANGES. supabase/tests/p3_policy_parity_*.sql proves it:
 -- for every combination of account type, Workforce access and program role,
