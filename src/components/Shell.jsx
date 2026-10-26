@@ -21,7 +21,7 @@
 // is reproduced via NAV_SECTION (constants.js) mapped onto the *real* nav
 // vocabulary, not the mockup's literal (partly fictional) item labels.
 import { AnimatePresence, m } from "framer-motion";
-import { ChevronsLeft, ChevronsRight, GraduationCap, LogOut, Moon, Search, Sun } from "lucide-react";
+import { Check, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, GraduationCap, LogOut, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -29,12 +29,15 @@ import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { NAV_ICONS } from "../lib/navIcons.js";
-import { enabledWorkforceRoles, navItemsForRole, navLabel, navPath, navSectionLabel, navSectionsForItems } from "../lib/nav.js";
+import { navLabel, navPath, navSectionLabel, navSectionsForItems } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
+import { useWorkspace } from "../lib/useWorkspace.js";
+import { navKeyForPath } from "../lib/workspaces.js";
 import { studentMatchesSearch } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
 import { roleLabel } from "../lib/utils.js";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu.jsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.jsx";
 import LangSelect from "./LangSelect.jsx";
 import NotificationBell from "./NotificationBell.jsx";
@@ -210,6 +213,52 @@ function SidebarSearch({ students, classes, t }) {
   );
 }
 
+// The workspace switcher at the top of the sidebar (plans/unified-access-
+// architecture.md §7.2): Home, each program the person can open, and
+// Administration. Hidden for people with a single workspace.
+function WorkspaceSwitcher({ ws, collapsed, t }) {
+  if (!ws.current || ws.workspaces.length < 2) return null;
+  const CurrentIcon = ws.current.icon;
+  return (
+    <div className={cn("px-3 pt-3", collapsed && "px-2")}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={collapsed ? t("wsSwitchLabel") + ": " + t(ws.current.label) : undefined}
+            className={cn(
+              BTN_RESET,
+              "flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+              collapsed && "justify-center px-0"
+            )}
+          >
+            <CurrentIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} aria-hidden="true" />
+            {!collapsed && (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-sidebar-text">{t("wsSwitchLabel")}</span>
+                  <span className="block truncate">{t(ws.current.label)}</span>
+                </span>
+                <ChevronsUpDown className="h-4 w-4 shrink-0 text-sidebar-text" aria-hidden="true" />
+              </>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side={collapsed ? "right" : "bottom"} className="min-w-[232px]">
+          <DropdownMenuLabel>{t("wsSwitchLabel")}</DropdownMenuLabel>
+          {ws.workspaces.map((w) => (
+            <DropdownMenuItem key={w.key} onSelect={() => ws.switchTo(w.key)}>
+              <w.icon className="h-4 w-4" aria-hidden="true" />
+              <span className="flex-1">{t(w.label)}</span>
+              {w.key === ws.current.key ? <Check className="h-4 w-4 text-primary" aria-label={t("wsCurrent")} /> : null}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 // Compact Light/Dark control for the sidebar footer. This is a separate,
 // dark-chrome-tuned build from components/ThemeToggle.jsx (which stays
 // exactly as it is for AuthShell.jsx's light login-panel controls) -- same
@@ -271,6 +320,11 @@ export default function Shell() {
   // Must stay above the early returns below: hooks have to run in the same
   // order every render, and the first render (authLoading) returns early.
   const isMobile = useIsMobile();
+  const nav = useNavItems();
+  const ws = useWorkspace(!kiosk && session ? nav.items : [], session ? session.primaryWorkspace : null);
+  // Phones: the sidebar is an off-canvas drawer; it closes on every navigation.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
 
   // Wait for Supabase to finish restoring any existing session before
   // deciding to redirect -- otherwise a valid session in localStorage loses
@@ -311,23 +365,23 @@ export default function Shell() {
   const isCalendar = location.pathname === "/calendar";
 
   const role = session ? session.role : null;
-  const items = !kiosk && role ? navItemsForRole(role, enabledWorkforceRoles(data.workforceRoleAccess), data.programRoles) : [];
+  const items = !kiosk && role ? nav.items : [];
   const showSidebar = !kiosk && role && items.length > 0;
-  const sections = navSectionsForItems(items);
-  const workforceSection = sections.find((s) => s.key === "workforceDevelopment");
-  // Workforce doesn't get its own top-level heading -- it renders nested
-  // inside "programs" instead (see the nav render loop below). If a role
-  // somehow has Workforce access but no other Programs items (e.g.
-  // receptionist granted access via Settings), fall back to leaving it as
-  // its own section rather than dropping it from the sidebar.
-  const hasPrograms = sections.some((s) => s.key === "programs");
-  const displaySections = hasPrograms ? sections.filter((s) => s.key !== "workforceDevelopment") : sections;
+  // The current workspace's pages: Home keeps its section headings; a
+  // program workspace is one list under its own name. Shared links follow.
+  const current = ws.current;
+  const displaySections = !current ? []
+    : current.key === "home" ? navSectionsForItems(current.items)
+    : [{ key: current.key, label: t(current.label), items: current.items }];
+  const sharedItems = ws.shared;
+  const pageKey = navKeyForPath(location.pathname);
   const badgeCounts = {
     casemanagement: pendingApptCount(data.appointments, "case_manager"),
     jobdeveloper: pendingApptCount(data.appointments, "job_developer")
   };
   const showStudentSearch = items.indexOf("students") !== -1;
-  const collapsed = showSidebar && (isMobile || !!config.sidebarCollapsed);
+  // The rail is a wide-screen preference; phones get the full drawer instead.
+  const collapsed = showSidebar && !isMobile && !!config.sidebarCollapsed;
   const displayName = session ? (session.currentUserName || session.currentUserEmail || "") : "";
   const nameParts = displayName.trim().split(/\s+/).filter(Boolean);
   const initials = (nameParts.length ? (nameParts[0].charAt(0) + (nameParts[1] ? nameParts[1].charAt(0) : "")) : "?").toUpperCase();
@@ -336,11 +390,18 @@ export default function Shell() {
     <Fragment>
       <TooltipProvider>
         <div className="app-shell">
+          {showSidebar && isMobile && drawerOpen && (
+            <div className="fixed inset-0 z-[1099] bg-surface-overlay" onMouseDown={() => setDrawerOpen(false)} aria-hidden="true" />
+          )}
           {showSidebar && (
             <aside
+              id="app-sidebar"
+              aria-label={t("navMainLabel")}
               className={cn(
-                "sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar-bg transition-[width] duration-200",
-                collapsed ? "w-[76px]" : "w-[264px]"
+                "flex flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar-bg",
+                isMobile
+                  ? cn("fixed inset-y-0 left-0 z-[1100] w-[288px] max-w-[85vw] shadow-overlay transition-transform duration-200", drawerOpen ? "translate-x-0" : "-translate-x-full invisible")
+                  : cn("sticky top-0 h-screen transition-[width] duration-200", collapsed ? "w-[76px]" : "w-[264px]")
               )}
             >
               <div className={cn("flex items-center gap-2 border-b border-sidebar-border px-4 py-4", collapsed && "justify-center px-2")}>
@@ -350,6 +411,16 @@ export default function Shell() {
                     <div className="truncate text-sm font-extrabold text-white">{ORG.shortName}</div>
                     <div className="truncate text-[11px] font-medium text-sidebar-text">{t("appTitle")}</div>
                   </div>
+                )}
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(false)}
+                    aria-label={t("closeLabel")}
+                    className={cn(BTN_RESET, "flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sidebar-text hover:bg-white/10 hover:text-white")}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 )}
                 {!isMobile && (
                   <button
@@ -376,9 +447,11 @@ export default function Shell() {
                 </button>
               )}
 
-              {showStudentSearch && !collapsed && <SidebarSearch students={data.students} classes={data.classes} t={t} />}
+              <WorkspaceSwitcher ws={ws} collapsed={collapsed} t={t} />
 
-              <nav className="flex-1 space-y-5 px-3 py-3" aria-label={t("navManage")}>
+              {showStudentSearch && !collapsed && current && current.key === "students" && <div className="pt-3"><SidebarSearch students={data.students} classes={data.classes} t={t} /></div>}
+
+              <nav className="flex-1 space-y-5 px-3 py-3" aria-label={current ? t(current.label) : t("navMainLabel")}>
                 {displaySections.map((section) => (
                   <div key={section.key}>
                     {!collapsed && (
@@ -387,7 +460,7 @@ export default function Shell() {
                       // applied sparingly, not a recolor of the label itself.
                       <div className="flex items-center gap-1.5 px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-text/70">
                         <span className="h-1 w-1 shrink-0 rounded-full bg-gold" />
-                        {navSectionLabel(section.key, lang)}
+                        {section.label || navSectionLabel(section.key, lang)}
                       </div>
                     )}
                     <div className="space-y-0.5">
@@ -395,18 +468,16 @@ export default function Shell() {
                         <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={badgeCounts[v] || 0} />
                       ))}
                     </div>
-                    {section.key === "programs" && workforceSection && (
-                      // Workforce is a single flat link into Workforce.jsx,
-                      // which owns its own tab strip for the individual
-                      // Employer & Job Opportunity Management pages -- same
-                      // level in the sidebar as Case Management etc, not a
-                      // nested submenu.
-                      <div className="mt-0.5">
-                        <NavItem v="workforce" lang={lang} collapsed={collapsed} badgeCount={0} />
-                      </div>
-                    )}
                   </div>
                 ))}
+                {sharedItems.length ? (
+                  // Reachable from every workspace.
+                  <div className="space-y-0.5 border-t border-sidebar-border pt-3">
+                    {sharedItems.map((v) => (
+                      <NavItem key={v} v={v} lang={lang} collapsed={collapsed} badgeCount={0} />
+                    ))}
+                  </div>
+                ) : null}
               </nav>
 
               <div className={cn("flex flex-col gap-3 border-t border-sidebar-border p-3", collapsed && "items-center")}>
@@ -452,6 +523,27 @@ export default function Shell() {
           <div className={isKioskLanding ? "content-col content-col--kiosk-landing" : "content-col"}>
             {!isKioskLanding && !isApptLookup && !isApptRequest && (
               <header className="topbar">
+                {showSidebar && isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    aria-label={t("openMenuLabel")}
+                    aria-controls="app-sidebar"
+                    aria-expanded={drawerOpen}
+                    className={cn(BTN_RESET, "flex h-11 w-11 items-center justify-center rounded-lg text-card-foreground hover:bg-surface-sunken")}
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                )}
+                {showSidebar && current && pageKey && navLabel(pageKey, lang) ? (
+                  <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
+                    <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-meta text-muted">
+                      <li className="truncate">{t(current.label)}</li>
+                      <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                      <li className="truncate font-semibold text-card-foreground" aria-current="page">{navLabel(pageKey, lang)}</li>
+                    </ol>
+                  </nav>
+                ) : null}
                 {!showSidebar && (
                   <div className="brand">
                     <img src={LOGO_DATA_URI} alt={ORG.name} />

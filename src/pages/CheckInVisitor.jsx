@@ -15,6 +15,7 @@ import { ArrowLeft, Calendar, ClipboardList, Clock, MapPin, UserRound } from "lu
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeServiceList, activeStaffList, fmtDateLong, fmtTime, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import KioskSidebar from "../components/kiosk/KioskSidebar.jsx";
 import KioskActionPanel from "../components/kiosk/KioskActionPanel.jsx";
 import VisitorInformationSection from "../components/kiosk/VisitorInformationSection.jsx";
@@ -22,10 +23,14 @@ import AddressSection from "../components/kiosk/AddressSection.jsx";
 import VisitDetailsSection from "../components/kiosk/VisitDetailsSection.jsx";
 
 export default function CheckInVisitor() {
-  const { data, lang, showToast } = useApp();
+  const { data, lang, showToast, kiosk } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const formRef = useRef(null);
+  // Back goes to check-in, or to Visitor Search for staff who came from there
+  // and can't open the check-in screen.
+  const { items } = useNavItems();
+  const back = kiosk || items.indexOf("checkin") !== -1 ? "/checkin" : "/search";
   const [service, setService] = useState("");
   const [staff, setStaff] = useState("");
   // Field name -> i18n key of the message shown under that field. Same set
@@ -126,7 +131,7 @@ export default function CheckInVisitor() {
         <div className="mb-3 flex shrink-0 items-center justify-between gap-4">
           <button
             type="button"
-            onClick={() => navigate("/checkin")}
+            onClick={() => navigate(back)}
             className="flex min-h-[48px] items-center gap-2.5 rounded-xl border border-border bg-card px-5 text-[1.02rem] font-bold text-navy dark:text-[color:var(--text)] transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <ArrowLeft size={20} strokeWidth={2.4} aria-hidden="true" />
