@@ -22,3 +22,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder
+      # Edge Functions run on Deno; their tests use fakes, no network or keys.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test --no-lock supabase/functions

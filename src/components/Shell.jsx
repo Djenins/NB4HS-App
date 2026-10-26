@@ -97,6 +97,9 @@ function useIsMobile() {
 const BTN_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal leading-none";
 
 function NavItem({ v, lang, collapsed, badgeCount }) {
+  // "users" opens Administration, whose other sections (roles, positions)
+  // should keep it highlighted too.
+  const inAdmin = useLocation().pathname.indexOf("/admin") === 0;
   const link = (
     <NavLink
       to={navPath(v)}
@@ -109,7 +112,7 @@ function NavItem({ v, lang, collapsed, badgeCount }) {
         cn(
           "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text no-underline transition-colors hover:bg-white/5 hover:text-sidebar-text-active",
           collapsed && "justify-center px-2",
-          isActive && "bg-sidebar-bg-active text-sidebar-text-active"
+          (isActive || (v === "users" && inAdmin)) && "bg-sidebar-bg-active text-sidebar-text-active"
         )
       }
     >

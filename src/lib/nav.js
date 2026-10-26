@@ -88,8 +88,9 @@ export function navLabel(v, lang) {
   }[v];
 }
 
+// Staff accounts moved into Administration (Phase 2); the nav key stays "users".
 export function navPath(v) {
-  return "/" + v;
+  return v === "users" ? "/admin/users" : "/" + v;
 }
 
 // Purely a scanning aid on the flat tab bar: a visual divider between the

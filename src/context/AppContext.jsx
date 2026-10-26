@@ -255,11 +255,15 @@ export function AppProvider({ children }) {
   // change, since that can change the current user's own access.
   //
   // `permissions` is the same person's effective access under the new model
-  // (my_permissions(), plans/unified-access-architecture.md). Phase 1 loads
-  // it but nothing renders from it yet; the old role rules above still decide
-  // what shows. Refetched with the program roles, since a role change moves both.
+  // (my_permissions(), plans/unified-access-architecture.md). Only the
+  // Administration area (Phase 2) reads it so far; the old role rules above
+  // still decide the rest of the app. Refetched with the program roles, since
+  // a role change moves both.
   const [programRoles, setProgramRoles] = useState({});
   const [permissions, setPermissions] = useState([]);
+  // False until this session's first my_permissions() answer is in, so
+  // permission-gated pages (Administration) wait instead of redirecting.
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const refetchProgramRoles = useCallback(
     () => Promise.all([
       fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
@@ -268,10 +272,11 @@ export function AppProvider({ children }) {
     [session]
   );
   useEffect(() => {
-    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); return undefined; }
+    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); setPermissionsLoaded(false); return undefined; }
     let cancelled = false;
+    setPermissionsLoaded(false);
     fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
-    fetchMyPermissions().then((rows) => { if (!cancelled) setPermissions(rows); });
+    fetchMyPermissions().then((rows) => { if (!cancelled) { setPermissions(rows); setPermissionsLoaded(true); } });
     return () => { cancelled = true; };
   }, [session]);
   const can = useCallback((key, program) => canPermission(permissions, key, program), [permissions]);
@@ -468,11 +473,11 @@ export function AppProvider({ children }) {
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
     refetchStudents, refetchVisits, refetchProgramRoles,
-    permissions, can
+    permissions, permissionsLoaded, can
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits, refetchProgramRoles, permissions, can
+    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, can
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
