@@ -19,6 +19,7 @@ import EmptyState from "../components/EmptyState.jsx";
 import { SectionCard } from "../components/SectionCard.jsx";
 import { Button } from "../components/ui/button.jsx";
 import ReportForm from "../components/reports/ReportForm.jsx";
+import ReportAttachments from "../components/reports/ReportAttachments.jsx";
 import { ReportContent, ReportHistory, ReportStatusBadge, TD, TH, fmtStamp, useProgramLabels } from "../components/reports/ReportParts.jsx";
 
 const DEFAULT_TZ = "America/New_York";
@@ -70,6 +71,7 @@ function ReportReadOnly({ report, history, periodLabel, programsText, onBack }) 
         <p className="!mb-0 !mt-1 !text-sm text-muted">{programsText} · {t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
         <div className="mt-5"><ReportContent content={report} /></div>
       </div>
+      <SectionCard title={t("srAttachments")}><ReportAttachments report={report} editable={false} /></SectionCard>
       <SectionCard title={t("srHistory")}><ReportHistory history={history} /></SectionCard>
     </div>
   );

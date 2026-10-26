@@ -256,6 +256,90 @@ export function toCsv(header, rows) {
   return [header].concat(rows).map(function (r) { return r.map(csvCell).join(","); }).join("\r\n");
 }
 
+// ---------- attachments (p6c) ----------
+
+export var ATTACHMENT_BUCKET = "staff-report-files";
+export var ATTACHMENTS_MAX = 5;
+export var ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+// The bucket's allowed types, with the extensions people recognise.
+export var ATTACHMENT_TYPES = {
+  "application/pdf": "PDF",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+  "image/png": "PNG",
+  "image/jpeg": "JPG"
+};
+
+// Why a file can't be attached ("type", "size", "count"), or null.
+export function attachmentProblem(file, currentCount) {
+  if (currentCount >= ATTACHMENTS_MAX) return "count";
+  if (!file || !ATTACHMENT_TYPES[file.type]) return "type";
+  if (!file.size || file.size > ATTACHMENT_MAX_BYTES) return "size";
+  return null;
+}
+
+// A storage-safe name that still reads like the original: no folders,
+// accents dropped (Rapò -> Rapo), other odd characters replaced, at most 100
+// characters, extension kept.
+export function safeFileName(name) {
+  var base = String(name || "file").split(/[\\/]/).pop().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var dot = base.lastIndexOf(".");
+  var ext = dot > 0 ? base.slice(dot).toLowerCase().replace(/[^.a-z0-9]/g, "").slice(0, 10) : "";
+  var stem = (dot > 0 ? base.slice(0, dot) : base).replace(/[^A-Za-z0-9 ._-]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 100 - ext.length);
+  return (stem || "file") + ext;
+}
+
+// Removable during editing only if added since the last submission -- the
+// same rule as staff_report_attachment_removable().
+export function attachmentRemovable(attachment, report) {
+  if (!report || (report.status !== "draft" && report.status !== "revision_requested")) return false;
+  return !report.submittedAt || attachment.createdAt > report.submittedAt;
+}
+
+export function fmtBytes(n) {
+  if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + " MB";
+  if (n >= 1024) return Math.round(n / 1024) + " KB";
+  return n + " B";
+}
+
+export async function fetchAttachments(reportId) {
+  const { data, error } = await supabase.from("staff_report_attachments").select("*").eq("report_id", reportId).order("created_at");
+  if (error) throw error;
+  return data.map(function (a) {
+    return { id: a.id, reportId: a.report_id, path: a.storage_path, name: a.file_name, type: a.mime_type, size: a.size_bytes, createdAt: a.created_at };
+  });
+}
+
+// Upload, then list. If listing fails the upload is removed again.
+export async function uploadAttachment(reportId, file) {
+  const name = safeFileName(file.name);
+  const path = reportId + "/" + crypto.randomUUID() + "-" + name;
+  const up = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (up.error) throw up.error;
+  const { error } = await supabase.from("staff_report_attachments")
+    .insert({ report_id: reportId, storage_path: path, file_name: name, mime_type: file.type, size_bytes: file.size });
+  if (error) {
+    await supabase.storage.from(ATTACHMENT_BUCKET).remove([path]);
+    throw error;
+  }
+}
+
+// The file first: once the list row is gone the bucket would no longer know
+// it was removable.
+export async function removeAttachment(attachment) {
+  const rm = await supabase.storage.from(ATTACHMENT_BUCKET).remove([attachment.path]);
+  if (rm.error) throw rm.error;
+  const { error } = await supabase.from("staff_report_attachments").delete().eq("id", attachment.id);
+  if (error) throw error;
+}
+
+// A link that works for one minute.
+export async function attachmentUrl(attachment) {
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(attachment.path, 60, { download: attachment.name });
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 // ---------- data ----------
 
 // Program names by key, for labels: { students: "Students", ... }.
