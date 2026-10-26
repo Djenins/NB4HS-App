@@ -1,6 +1,7 @@
 -- Outreach Management O1 -- SNAP becomes one program inside Outreach
 -- Management (plans/outreach-management-architecture.md §3.1, §6).
--- NOT YET APPLIED. No new features: this replaces SNAP-only hardcoding with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026074338) after PR #27
+-- review. No new features: this replaces SNAP-only hardcoding with
 -- configuration so a second outreach program is rows, not a schema change.
 --
 -- * `programs` registry; every `program` column now references it instead of

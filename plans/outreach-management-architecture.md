@@ -1,6 +1,6 @@
 # Outreach Management Module — Architecture Proposal (SNAP as first program)
 
-Status: **approved 2026-10-26** (D1–D6 as recommended). O1 implemented on branch `Djenins/outreach-o1-reframe`; migration not yet applied.
+Status: **approved 2026-10-26** (D1–D6 as recommended). O1 merged (PR #27) and its migration applied 2026-10-26.
 Supersedes the module framing in `snap-outreach-architecture.md` (§3, §5, §10); that file's
 decisions, security work and Stage 0–2b reports still stand.
 
@@ -284,7 +284,7 @@ Messaging (templates, consent-gated outbound log, provider) stays a separately a
 
 Branch `Djenins/outreach-o1-reframe` (from `main` @ e296476). No new features; SNAP works as before, inside Outreach.
 
-**Database** — `supabase/migrations/20261026140000_outreach_o1_programs_and_options.sql` (**not yet applied**):
+**Database** — `supabase/migrations/20261026074338_outreach_o1_programs_and_options.sql` (**applied 2026-10-26** after PR #27 review):
 - `programs` registry (key, module `outreach`, names en/ht/fr, case-number prefix, scope note en/ht/fr, `features`, active), seeded with SNAP (`contacts`, `cases`, `tasks`). Readable by active staff; admins add programs; admins and the program's admins edit it; no deletes.
 - `check (program in ('snap'))` on `program_staff`, `outreach_contacts`, `outreach_interactions`, `program_case_stages`, `assistance_cases`, `tasks` replaced by foreign keys to `programs`.
 - `program_option_sets` (per program: `assistance_type`, `closure_reason`), seeded with exactly the values the old CHECKs allowed and the app's existing en/ht/fr labels. Members read; admins and program admins edit; options are retired (`active = false`), never deleted. `assistance_case_rules()` validates against them: newly chosen values must be active, values already on the case stay valid.
@@ -308,6 +308,8 @@ Branch `Djenins/outreach-o1-reframe` (from `main` @ e296476). No new features; S
 - `vitest` 251/251 (new: section/feature/program visibility, sidebar entry, option lists, scope notes, milestones; module page redirects, URL sections, no access to other programs, switcher, `/snap` forwarding; case detail option lists, retired options, closure reasons, milestone labels; dashboard program and referral tile). `vite build` passes.
 - Browser (signed out): `/snap/cases` and `/outreach/snap` both return to the landing page, no console errors. Signed-in screens not exercised (no staff credentials, and the live database needs the migration first).
 
-**Rollout (order matters):** apply the migration (the deployed app keeps working: same defaults, same option values, `snap_dashboard` unchanged) → merge and deploy → smoke-test Outreach → SNAP as a SNAP role holder.
+**Rollout:** PR #27 merged 2026-10-26; migration applied the same day (version 20261026074338). Remaining: confirm the deploy, then smoke-test Outreach → SNAP signed in as a SNAP role holder.
+
+**Verified on the live project after applying:** RLS on `programs` and `program_option_sets` with their 6 policies, plus the 4 recreated consent and stage policies (10 in total across the four tables); no `'snap'` CHECK constraint left; 7 tables reference `programs`; SNAP seeded with 14 options and both milestone stages; `case_number` and `stage_key` have no column default; `next_snap_case_number()` gone; trigger functions callable by no one, `outreach_dashboard` / `snap_dashboard` / `has_any_program_role` by signed-in users only. Role checks with real accounts and temporary SNAP roles inside a rolled-back transaction (24/24): a worker reads the program and its 14 options but can't rename the program or add options; a new case gets `SNAP-2026-00002`, starts at New inquiry, gets its automatic follow-up, and its number can't be edited; an unknown assistance code is refused; both milestone dates are set by the configured stages; the worker records consent under the new any-program rule; `outreach_dashboard` counts the referral and `snap_dashboard` still returns the old keys; a supervisor is refused an unknown closure reason, closes with a SNAP one, and can't edit options; a program admin edits a SNAP option; an administrator without a SNAP role reads the options and adds a program but sees no contacts, cases, consents or notes; the SNAP supervisor can't edit the other program; anonymous callers see nothing; audit rows for programs and options carry a record id and program. Afterwards: only SNAP in `programs`, the one existing `program_staff` row unchanged, no test client, case, task or consent, and no edited option. The case-number and NB ID counters each advanced by one, so the next numbers skip one. Security advisor: no new anon findings, no tables without RLS; among signed-in-callable SECURITY DEFINER functions `next_snap_case_number` is gone and `has_any_program_role` is new (intended: RLS evaluates it as the caller, like `has_program_role`).
 
 **Known limitations:** reminder notifications keep the `snap_task_due` type and `snap_send_task_reminders()` / `snap_today()` names (program-agnostic in behaviour); `referred_to_dhs_at` keeps its column name (now "referred out" for any program); there's no settings UI yet for programs, options or stages (O5); the program switcher has no unread/count badges.
