@@ -3,7 +3,7 @@
 -- added. Not a migration -- run by hand only if p3a has to be undone.
 -- supabase/tests/p3_policy_parity_*.sql is run across up + down in the dry
 -- run to prove this returns every account to where it started.
--- Order: p3 rollbacks undo in reverse (newest first: p3e, p3d, p3c, p3b, p3a) -- later
+-- Order: p3 rollbacks undo in reverse (newest first: p3f, p3e, p3d, p3c, p3b, p3a) -- later
 -- parts' policies use helpers the earlier parts created.
 
 drop policy students_select on public.students;
