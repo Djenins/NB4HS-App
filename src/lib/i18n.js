@@ -2034,7 +2034,39 @@ export var STR = {
   intakePhGrade: { en: "e.g. 3rd", ht: "egz. 3yèm ane", fr: "ex. 3e année" },
   intakeEgPrefix: { en: "e.g.", ht: "egz.", fr: "ex." },
   intakeUnnamedClient: { en: "Unnamed", ht: "San non", fr: "Sans nom" },
-  intakePdfFilePrefix: { en: "Intake Form", ht: "Fòm Enskripsyon", fr: "Formulaire d'admission" }
+  intakePdfFilePrefix: { en: "Intake Form", ht: "Fòm Enskripsyon", fr: "Formulaire d'admission" },
+
+  // ---- Batch 3b: Outreach dashboard and task list ----
+  snapDashboardLoadErrorHint: { en: "Check your connection, then try again.", ht: "Verifye koneksyon ou, epi eseye ankò.", fr: "Vérifiez votre connexion, puis réessayez." },
+  snapDashboardRetry: { en: "Try again", ht: "Eseye ankò", fr: "Réessayer" },
+  snapCasesAttentionEmptyHint: { en: "Cases waiting for review or past their follow-up date appear here.", ht: "Dosye k ap tann revizyon oswa ki depase dat swivi yo ap parèt isit la.", fr: "Les dossiers en attente de révision ou dont la date de suivi est dépassée apparaissent ici." },
+  snapRecentActivityEmptyHint: { en: "Log a call or visit from Contacts and it will appear here.", ht: "Anrejistre yon apèl oswa yon vizit nan Kontak, l ap parèt isit la.", fr: "Enregistrez un appel ou une visite depuis Contacts et il apparaîtra ici." },
+  snapNoTasksHint: { en: "Follow-ups you add, or that open with a new case, appear here.", ht: "Swivi ou ajoute, oswa sa ki louvri ak yon nouvo dosye, ap parèt isit la.", fr: "Les suivis que vous ajoutez, ou créés avec un nouveau dossier, apparaissent ici." },
+  snapTaskDueToday: { en: "Due today", ht: "Pou jodi a", fr: "À faire aujourd'hui" },
+
+  // ---- Batch 3b: Workforce Dashboard and Reports ----
+  wfDashNoOpeningsHint: { en: "Post an opening from Job Openings and it will appear here.", ht: "Afiche yon pozisyon nan Pozisyon Travay epi l ap parèt isit la.", fr: "Publiez un poste depuis Postes à Pourvoir et il apparaîtra ici." },
+  wfDashNoActivityHint: { en: "Openings, referrals, interviews, placements and employer follow-ups will show here as they happen.", ht: "Pozisyon, referans, entèvyou, plasman ak swivi anplwayè ap parèt isit la lè yo fèt.", fr: "Les postes, orientations, entretiens, placements et suivis employeurs apparaîtront ici au fur et à mesure." },
+  wfReportsEmptyRangeHint: { en: "Choose a longer date range above.", ht: "Chwazi yon peryòd ki pi long anlè a.", fr: "Choisissez une période plus longue ci-dessus." },
+  wfRetentionBasisHint: { en: "Placements that started at least 90 days ago.", ht: "Plasman ki te kòmanse omwen 90 jou de sa.", fr: "Placements commencés il y a au moins 90 jours." },
+  wfRetentionEmptyHint: { en: "Retention is measured once a placement is 90 days old.", ht: "Nou mezire retansyon lè yon plasman gen 90 jou.", fr: "La rétention est mesurée lorsqu'un placement a 90 jours." },
+
+  // ---- Batch 3b: Dashboard and Reports ----
+  noClassesMeetingTodayHint: { en: "Classes on today's schedule will show their check-ins here.", ht: "Klas ki sou orè jodi a ap montre enskripsyon yo isit la.", fr: "Les cours prévus aujourd'hui afficheront leurs présences ici." },
+  noRecentCheckInsHint: { en: "People appear here as soon as they check in.", ht: "Moun ap parèt isit la depi yo enskri.", fr: "Les personnes apparaissent ici dès leur arrivée." },
+  reportEmptyHint: { en: "Try a wider date range.", ht: "Eseye yon peryòd ki pi long.", fr: "Essayez une période plus large." },
+  reportSectionVisits: { en: "Visits", ht: "Vizit", fr: "Visites" },
+  reportSectionJobs: { en: "Job placement", ht: "Plasman travay", fr: "Placement professionnel" },
+  reportSectionBreakdowns: { en: "Breakdowns", ht: "Detay", fr: "Répartitions" },
+  reportHighlightsTitle: { en: "At a glance", ht: "Yon ti apèsi", fr: "En un coup d'œil" },
+  grantAttributionTitle: { en: "Grant attribution", ht: "Atribisyon sibvansyon", fr: "Attribution des subventions" },
+  grantTaggedLabel: { en: "tagged", ht: "make", fr: "étiquetés" },
+  grantUntaggedLabel: { en: "untagged", ht: "pa make", fr: "non étiquetés" },
+  grantAttributionEmptyTitle: { en: "No services in this range are tagged to a grant yet", ht: "Poko gen sèvis nan peryòd sa a ki make pou yon sibvansyon", fr: "Aucun service de cette période n'est encore lié à une subvention" },
+  grantAttributionEmptyHint: { en: "Tag visits from Search and case notes from Case Management to see a breakdown here.", ht: "Make vizit nan Rechèch ak nòt dosye nan Jesyon Ka pou wè detay la isit la.", fr: "Étiquetez les visites dans Recherche et les notes dans Gestion des dossiers pour voir la répartition ici." },
+
+  // ---- Shared TrendDelta (report KPI hint, short form on phones) ----
+  noChangeShort: { en: "No change", ht: "Pa gen chanjman", fr: "Aucun changement" }
 };
 
 export function t(key, lang) {

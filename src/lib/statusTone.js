@@ -35,7 +35,33 @@ const STATUS_TONES = {
   "appointment:cancelled": "neutral",
 
   // Client communications log
-  "communication:followup": "warning"
+  "communication:followup": "warning",
+
+  // Outreach follow-up tasks (overdue/dueToday are derived from open + due date)
+  "task:overdue": "danger",
+  "task:dueToday": "warning",
+  "task:open": "info",
+  "task:done": "success",
+  "taskPriority:high": "warning",
+  "taskPriority:low": "neutral",
+  "caseReview:requested": "warning",
+
+  // Workforce: job openings, referrals, placements (not_selected is neutral -- it isn't an error)
+  "opening:draft": "neutral",
+  "opening:active": "success",
+  "opening:filled": "info",
+  "opening:expired": "warning",
+  "opening:archived": "neutral",
+  "referral:ready": "neutral",
+  "referral:interested": "info",
+  "referral:referred": "info",
+  "referral:applied": "warning",
+  "referral:interview": "warning",
+  "referral:offer": "success",
+  "referral:hired": "success",
+  "referral:not_selected": "neutral",
+  "placement:active": "success",
+  "placement:ended": "neutral"
 };
 
 export function statusTone(domain, status) {
