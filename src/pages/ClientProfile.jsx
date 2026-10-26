@@ -12,11 +12,15 @@
 // communications/appointments/enrollments into one sorted timeline, same
 // "aggregate what's already fetched" idiom as the Workforce Dashboard's
 // Recent Employer Activity feed (see plans/wobbly-munching-rose.md).
+//
+// Layout is the design system's record-page template (plans/ui-design-
+// system.md §2.4): back + entity header (ClientHeader) -> Tabs -> one
+// TabPanel of SectionCards. Every edit is a ui Dialog form.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Briefcase, CalendarClock, Download, FileText, GraduationCap, MessageCircle, Paperclip, ShoppingBasket,
-  StickyNote, Trash2, UserPlus, Users
+  ArrowLeft, Briefcase, CalendarClock, Download, FileText, GraduationCap, MessageCircle, Paperclip, ShoppingBasket,
+  StickyNote, Trash2, UserPlus, UserX, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { apptStatusLabel, meetingWithLabel } from "../lib/appointments.js";
@@ -35,16 +39,25 @@ import { fmtDateLong } from "../lib/utils.js";
 import ClientHeader from "../components/ClientHeader.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import IntakeFormCard from "../components/IntakeFormCard.jsx";
+import { Alert } from "../components/ui/alert.jsx";
+import { DetailRow } from "../components/ui/drawer.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent } from "../components/ui/card.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
+import { Card } from "../components/ui/card.jsx";
+import { Dialog } from "../components/ui/dialog.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { Field, Input, Select, Textarea } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { StatusBadge } from "../components/ui/status-badge.jsx";
+import { TabPanel, Tabs } from "../components/ui/tabs.jsx";
 
 const TABS = [
   "clientTabOverview", "clientTabPrograms", "clientTabAppointments", "clientTabServices",
   "clientTabNotes", "clientTabDocuments", "clientTabCommunications", "clientTabActivity"
 ];
 const TAB_KEYS = ["overview", "programs", "appointments", "services", "notes", "documents", "communications", "activity"];
+const TAB_ID_BASE = "client-profile";
 const PROGRAM_META = {
   case: { labelKey: "navCaseManagement", icon: Users, path: "/casemanagement" },
   job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/jobdeveloper" },
@@ -52,30 +65,37 @@ const PROGRAM_META = {
   food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/fooddistribution" }
 };
 
+// One list row inside a flush SectionCard: hairline between rows, card padding.
+const ROW = "border-b border-line-subtle px-5 py-4 last:border-b-0 sm:px-6";
+
 function FieldRow({ label, value }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-semibold text-card-foreground">{value || "—"}</span>
-    </div>
-  );
+  return <DetailRow label={label}>{value || "—"}</DetailRow>;
 }
 
-function TextField({ id, label, value, onChange, placeholder, type }) {
+// Runs an async save with the footer button in its loading state, so a
+// double-click can't submit twice. The caller closes the dialog on success.
+function useSaving() {
+  const [saving, setSaving] = useState(false);
+  async function run(fn) {
+    setSaving(true);
+    try { await fn(); } finally { setSaving(false); }
+  }
+  return [saving, run];
+}
+
+function DialogFooter({ onCancel, saving, disabled, submitLabel }) {
+  const t = useT();
   return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">{label}</label>
-      <input
-        id={id} type={type || "text"} value={value} onChange={onChange} placeholder={placeholder}
-        className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-      />
-    </div>
+    <>
+      <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>{t("cancelLabel")}</Button>
+      {submitLabel ? <Button type="submit" loading={saving} disabled={disabled}>{submitLabel}</Button> : null}
+    </>
   );
 }
 
 function EditProfileModal({ client, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [fields, setFields] = useState({
     firstName: client.firstName || "", lastName: client.lastName || "", phone: client.phone || "", email: client.email || "",
     dob: client.dob || "", street: client.street || "", city: client.city || "", zip: client.zip || "", intakeDate: client.intakeDate || ""
@@ -83,228 +103,228 @@ function EditProfileModal({ client, onSave, onCancel }) {
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("editProfileBtn")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <TextField id="edit-first-name" label={t("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-          <TextField id="edit-last-name" label={t("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-          <TextField id="edit-phone" label={t("phone")} value={fields.phone} onChange={(e) => setField("phone", e.target.value)} />
-          <TextField id="edit-email" label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} />
-          <div>
-            <label htmlFor="edit-dob" className="mb-1 block text-xs font-semibold text-card-foreground">{t("dobLabel")}</label>
-            <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
-          </div>
-          <TextField id="edit-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
-          <TextField id="edit-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-          <TextField id="edit-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
-        </div>
-        <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
-          <Button type="button" variant="secondary" onClick={onCancel}>{t("cancelLabel")}</Button>
-          <Button onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
-        </div>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("editProfileBtn")}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); run(() => onSave(fields)); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={t("saveLabel")} />}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label={t("firstName")} htmlFor="edit-first-name">
+          <Input id="edit-first-name" value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} autoComplete="off" data-autofocus />
+        </Field>
+        <Field label={t("lastName")} htmlFor="edit-last-name">
+          <Input id="edit-last-name" value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label={t("phone")} htmlFor="edit-phone">
+          <Input id="edit-phone" type="tel" value={fields.phone} onChange={(e) => setField("phone", e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label={t("email")} htmlFor="edit-email">
+          <Input id="edit-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label={t("dobLabel")} htmlFor="edit-dob">
+          <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
+        </Field>
+        <Field label={t("address")} htmlFor="edit-street">
+          <Input id="edit-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label={t("city")} htmlFor="edit-city">
+          <Input id="edit-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label={t("zip")} htmlFor="edit-zip">
+          <Input id="edit-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} autoComplete="off" />
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function AddToProgramModal({ existingTypes, onEnroll, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const choices = Object.keys(PROGRAM_META).filter((k) => existingTypes.indexOf(k) === -1);
   const [programType, setProgramType] = useState(choices[0] || "");
   const [immigrationStatus, setImmigrationStatus] = useState("");
   const [workPermit, setWorkPermit] = useState("no");
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("addToProgramBtn")}</p>
-        {choices.length === 0 ? (
-          <p className="text-sm text-muted">{t("alreadyEnrolledAllPrograms")}</p>
-        ) : (
-          <>
-            <div className="mb-4">
-              <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("clientTabPrograms")}</label>
-              <select
-                value={programType}
-                onChange={(e) => setProgramType(e.target.value)}
-                className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-              >
-                {choices.map((k) => <option key={k} value={k}>{t(PROGRAM_META[k].labelKey)}</option>)}
-              </select>
-            </div>
-            {programType === "case" && (
-              <div className="mb-4">
-                <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("immigrationStatusLabel")}</label>
-                <select
-                  value={immigrationStatus}
-                  onChange={(e) => setImmigrationStatus(e.target.value)}
-                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-                >
-                  <option value="">{t("pleaseSelect")}</option>
-                  {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key)}</option>)}
-                </select>
-              </div>
-            )}
-            {programType === "job" && (
-              <div className="mb-4">
-                <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("workPermitLabel")}</label>
-                <select
-                  value={workPermit}
-                  onChange={(e) => setWorkPermit(e.target.value)}
-                  className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-                >
-                  <option value="no">{t("noOption")}</option>
-                  <option value="yes">{t("yesOption")}</option>
-                </select>
-              </div>
-            )}
-          </>
-        )}
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          {choices.length > 0 && (
-            <Button onClick={() => onEnroll(programType, { immigrationStatus, workPermit: workPermit === "yes" })}>{t("confirmLabel")}</Button>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("addToProgramBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (choices.length) run(() => onEnroll(programType, { immigrationStatus, workPermit: workPermit === "yes" })); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={choices.length > 0 ? t("confirmLabel") : null} />}
+    >
+      {choices.length === 0 ? (
+        <Alert tone="info">{t("alreadyEnrolledAllPrograms")}</Alert>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <Field label={t("clientTabPrograms")} htmlFor="enroll-program">
+            <Select id="enroll-program" value={programType} onChange={(e) => setProgramType(e.target.value)} data-autofocus>
+              {choices.map((k) => <option key={k} value={k}>{t(PROGRAM_META[k].labelKey)}</option>)}
+            </Select>
+          </Field>
+          {programType === "case" && (
+            <Field label={t("immigrationStatusLabel")} htmlFor="enroll-immigration">
+              <Select id="enroll-immigration" value={immigrationStatus} onChange={(e) => setImmigrationStatus(e.target.value)}>
+                <option value="">{t("pleaseSelect")}</option>
+                {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key)}</option>)}
+              </Select>
+            </Field>
+          )}
+          {programType === "job" && (
+            <Field label={t("workPermitLabel")} htmlFor="enroll-work-permit">
+              <Select id="enroll-work-permit" value={workPermit} onChange={(e) => setWorkPermit(e.target.value)}>
+                <option value="no">{t("noOption")}</option>
+                <option value="yes">{t("yesOption")}</option>
+              </Select>
+            </Field>
           )}
         </div>
-      </div>
-    </div>
+      )}
+    </Dialog>
   );
 }
 
 function AddNoteModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [content, setContent] = useState("");
   const [type, setType] = useState("general");
   const [visibility, setVisibility] = useState("all");
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("addNoteBtn")}</p>
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteContentLabel")}</label>
-          <textarea
-            value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-          />
-        </div>
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteTypeLabel")}</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("addNoteBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (content.trim()) run(() => onSave({ content, type, visibility })); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!content.trim()} submitLabel={t("saveLabel")} />}
+    >
+      <div className="flex flex-col gap-4">
+        <Field label={t("noteContentLabel")} htmlFor="note-content" required>
+          <Textarea id="note-content" value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder={t("phNoteContent")} data-autofocus />
+        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("noteTypeLabel")} htmlFor="note-type">
+            <Select id="note-type" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="general">{t("noteTypeGeneral")}</option>
               <option value="followup">{t("noteTypeFollowUp")}</option>
               <option value="incident">{t("noteTypeIncident")}</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("noteVisibilityLabel")}</label>
-            <select value={visibility} onChange={(e) => setVisibility(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+            </Select>
+          </Field>
+          <Field label={t("noteVisibilityLabel")} htmlFor="note-visibility">
+            <Select id="note-visibility" value={visibility} onChange={(e) => setVisibility(e.target.value)}>
               <option value="all">{t("visibilityAll")}</option>
               <option value="department">{t("visibilityDepartment")}</option>
               <option value="private">{t("visibilityPrivate")}</option>
-            </select>
-          </div>
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!content.trim()} onClick={() => onSave({ content, type, visibility })}>{t("saveLabel")}</Button>
+            </Select>
+          </Field>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function UploadDocumentModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [category, setCategory] = useState("other");
   const [fileName, setFileName] = useState("");
   const fileRef = useRef(null);
 
-  function submit() {
+  function submit(e) {
+    e.preventDefault();
     const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
     if (!file) return;
-    onSave({ category: category, fileName: file.name, file });
+    run(() => onSave({ category: category, fileName: file.name, file }));
   }
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("uploadDocumentBtn")}</p>
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("documentCategoryLabel")}</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("uploadDocumentBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!fileName} submitLabel={t("saveLabel")} />}
+    >
+      <div className="flex flex-col gap-4">
+        <Field label={t("documentCategoryLabel")} htmlFor="document-category">
+          <Select id="document-category" value={category} onChange={(e) => setCategory(e.target.value)} data-autofocus>
             <option value="identification">{t("documentCategoryIdentification")}</option>
             <option value="resume">{t("documentCategoryResume")}</option>
             <option value="immigration">{t("documentCategoryImmigration")}</option>
             <option value="other">{t("documentCategoryOther")}</option>
-          </select>
-        </div>
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("documentFileLabel")}</label>
-          <input
-            ref={fileRef} type="file" onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
-            className="block w-full text-sm text-card-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary"
+          </Select>
+        </Field>
+        <Field label={t("documentFileLabel")} htmlFor="document-file" required>
+          <Input
+            id="document-file" ref={fileRef} type="file"
+            onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
+            className="h-auto py-1.5 file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-primary-tint file:px-3 file:py-1.5 file:text-ui file:font-semibold file:text-primary [@media(pointer:coarse)]:h-auto"
           />
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!fileName} onClick={submit}>{t("saveLabel")}</Button>
-        </div>
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function LogCommunicationModal({ onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const [saving, run] = useSaving();
   const [method, setMethod] = useState("phone");
   const [direction, setDirection] = useState("outbound");
   const [summary, setSummary] = useState("");
   const [followUpRequired, setFollowUpRequired] = useState(false);
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-lg" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{t("logCommunicationBtn")}</p>
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationMethodLabel")}</label>
-            <select value={method} onChange={(e) => setMethod(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("logCommunicationBtn")}
+      size="md"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (summary.trim()) run(() => onSave({ method, direction, summary, followUpRequired })); } }}
+      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!summary.trim()} submitLabel={t("saveLabel")} />}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("communicationMethodLabel")} htmlFor="comm-method">
+            <Select id="comm-method" value={method} onChange={(e) => setMethod(e.target.value)} data-autofocus>
               <option value="phone">{t("methodPhone")}</option>
               <option value="email">{t("methodEmail")}</option>
               <option value="sms">{t("methodSms")}</option>
               <option value="inperson">{t("methodInPerson")}</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationDirectionLabel")}</label>
-            <select value={direction} onChange={(e) => setDirection(e.target.value)} className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
+            </Select>
+          </Field>
+          <Field label={t("communicationDirectionLabel")} htmlFor="comm-direction">
+            <Select id="comm-direction" value={direction} onChange={(e) => setDirection(e.target.value)}>
               <option value="outbound">{t("directionOutbound")}</option>
               <option value="inbound">{t("directionInbound")}</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("communicationSummaryLabel")}</label>
-          <textarea
-            value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={t("phCommunicationSummary")}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-          />
-        </div>
-        <label className="mb-3 flex items-center gap-2 text-sm font-medium text-card-foreground">
-          <input type="checkbox" checked={followUpRequired} onChange={(e) => setFollowUpRequired(e.target.checked)} className="h-4 w-4" />
+        <Field label={t("communicationSummaryLabel")} htmlFor="comm-summary" required>
+          <Textarea id="comm-summary" value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={t("phCommunicationSummary")} />
+        </Field>
+        <label className="m-0 flex cursor-pointer items-center gap-2.5 text-ui font-medium text-card-foreground">
+          <input type="checkbox" checked={followUpRequired} onChange={(e) => setFollowUpRequired(e.target.checked)} className="h-4 w-4 cursor-pointer accent-primary" />
           {t("followUpRequiredLabel")}
         </label>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 8, marginBottom: 0 }}>
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t("cancelLabel")}</button>
-          <Button disabled={!summary.trim()} onClick={() => onSave({ method, direction, summary, followUpRequired })}>{t("saveLabel")}</Button>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -324,24 +344,34 @@ function StorageDownloadLink({ path, fileName, children, className }) {
       document.body.appendChild(a); a.click(); a.remove();
     }
   }
-  return <a href="#" onClick={handleClick} className={className}>{children}</a>;
+  return <a href="#" onClick={handleClick} aria-busy={loading || undefined} className={className}>{children}</a>;
 }
 
-function AppointmentsTab({ appointments, lang }) {
+function AppointmentsTab({ appointments, lang, onSchedule }) {
   const t = useT();
-  if (!appointments.length) return <p className="py-8 text-center text-sm text-muted">{t("noAppointmentsYet")}</p>;
   return (
-    <div className="space-y-2">
-      {appointments.map((a) => (
-        <Card key={a.id}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-          <div>
-            <div className="text-sm font-bold text-card-foreground">{fmtDateLong(a.date)} {a.time ? "· " + a.time : ""}</div>
-            <div className="mt-0.5 text-sm text-muted">{t("apptWithLabel")}: {meetingWithLabel(a.meetingWith, lang)}{a.reason ? " — " + a.reason : ""}</div>
-          </div>
-          <Badge variant={a.status === "cancelled" ? "neutral" : a.status === "completed" ? "success" : "default"}>{apptStatusLabel(a.status, lang)}</Badge>
-        </CardContent></Card>
-      ))}
-    </div>
+    <SectionCard title={t("clientTabAppointments")} flush>
+      {!appointments.length ? (
+        <EmptyState
+          compact icon={CalendarClock}
+          title={t("noAppointmentsYet")}
+          description={t(onSchedule ? "clientAppointmentsEmptyHint" : "scheduleAppointmentDisabledTooltip")}
+          action={onSchedule ? <Button variant="secondary" onClick={onSchedule}>{t("scheduleAppointmentBtn")}</Button> : null}
+        />
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {appointments.map((a) => (
+            <li key={a.id} className={ROW + " flex flex-wrap items-start justify-between gap-3"}>
+              <div className="min-w-0">
+                <div className="text-ui font-semibold text-card-foreground tabular-nums">{fmtDateLong(a.date)}{a.time ? " · " + a.time : ""}</div>
+                <div className="mt-0.5 text-meta text-muted">{t("apptWithLabel")}: {meetingWithLabel(a.meetingWith, lang)}{a.reason ? " — " + a.reason : ""}</div>
+              </div>
+              <StatusBadge domain="appointment" status={a.status}>{apptStatusLabel(a.status, lang)}</StatusBadge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
 
@@ -350,127 +380,167 @@ const DOCUMENT_CATEGORY_KEY = { identification: "documentCategoryIdentification"
 const COMM_METHOD_KEY = { phone: "methodPhone", email: "methodEmail", sms: "methodSms", inperson: "methodInPerson" };
 const COMM_DIRECTION_KEY = { outbound: "directionOutbound", inbound: "directionInbound" };
 
-function NotesTab({ notes }) {
+function NotesTab({ notes, onAdd }) {
   const t = useT();
-  if (!notes.length) return <p className="py-8 text-center text-sm text-muted">{t("noNotesYet")}</p>;
   return (
-    <div className="space-y-2">
-      {notes.map((n) => (
-        <Card key={n.id}><CardContent className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-bold text-card-foreground">{n.staffName || "—"} · {fmtDateLong(n.date)}</span>
-            <Badge variant="neutral">{t(NOTE_TYPE_KEY[n.type] || "noteTypeGeneral")}</Badge>
-          </div>
-          <p className="mt-2 text-sm text-card-foreground">{n.content}</p>
-        </CardContent></Card>
-      ))}
-    </div>
+    <SectionCard title={t("clientTabNotes")} action={<Button size="sm" variant="secondary" onClick={onAdd}>{t("addNoteBtn")}</Button>} flush>
+      {!notes.length ? (
+        <EmptyState compact icon={StickyNote} title={t("noNotesYet")} description={t("clientNotesEmptyHint")} />
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {notes.map((n) => (
+            <li key={n.id} className={ROW}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-ui font-semibold text-card-foreground">
+                  {n.staffName || "—"} · <span className="tabular-nums">{fmtDateLong(n.date)}</span>
+                </span>
+                <Badge variant="neutral">{t(NOTE_TYPE_KEY[n.type] || "noteTypeGeneral")}</Badge>
+              </div>
+              <p className="m-0 mt-2 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{n.content}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
 
-function DocumentsTab({ documents, onDelete }) {
+function DocumentsTab({ documents, onDelete, onUpload }) {
   const t = useT();
-  if (!documents.length) return <p className="py-8 text-center text-sm text-muted">{t("noDocumentsYet")}</p>;
   return (
-    <div className="space-y-2">
-      {documents.map((d) => (
-        <Card key={d.id}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-          <div className="flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-primary" />
-            <div>
-              <div className="text-sm font-bold text-card-foreground">{d.fileName}</div>
-              <div className="text-xs text-muted">{t(DOCUMENT_CATEGORY_KEY[d.category] || "documentCategoryOther")} · {t("uploadedByLabel")}: {d.uploadedBy || "—"} · {fmtDateLong(d.uploadedAt)}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <StorageDownloadLink path={d.storagePath} fileName={d.fileName} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-              <Download className="h-3.5 w-3.5" /> {t("downloadLabel")}
-            </StorageDownloadLink>
-            <button
-              type="button"
-              title={t("deleteLabel")}
-              onClick={() => onDelete(d)}
-              className="flex h-8 w-8 min-h-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted hover:bg-background hover:text-accent"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </CardContent></Card>
-      ))}
-    </div>
+    <SectionCard title={t("clientTabDocuments")} action={<Button size="sm" variant="secondary" onClick={onUpload}>{t("uploadDocumentBtn")}</Button>} flush>
+      {!documents.length ? (
+        <EmptyState compact icon={FileText} title={t("noDocumentsYet")} description={t("clientDocumentsEmptyHint")} />
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {documents.map((d) => (
+            <li key={d.id} className={ROW + " flex flex-wrap items-center justify-between gap-3"}>
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip bg-tone-info-bg text-tone-info-ink">
+                  <Paperclip className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="break-words text-ui font-semibold text-card-foreground">{d.fileName}</div>
+                  <div className="mt-0.5 text-meta text-muted">
+                    {t(DOCUMENT_CATEGORY_KEY[d.category] || "documentCategoryOther")} · {t("uploadedByLabel")}: {d.uploadedBy || "—"} · <span className="tabular-nums">{fmtDateLong(d.uploadedAt)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <StorageDownloadLink
+                  path={d.storagePath} fileName={d.fileName}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-control px-3 text-ui font-semibold text-primary no-underline transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 [@media(pointer:coarse)]:h-11"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" /> {t("downloadLabel")}
+                </StorageDownloadLink>
+                <IconButton label={t("deleteLabel") + " " + d.fileName} variant="danger" onClick={() => onDelete(d)}>
+                  <Trash2 aria-hidden="true" />
+                </IconButton>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
 
 function CommunicationsTab({ communications, onLog }) {
   const t = useT();
   return (
-    <div>
-      <div className="mb-3 flex justify-end">
-        <Button size="sm" onClick={onLog}>{t("logCommunicationBtn")}</Button>
-      </div>
+    <SectionCard title={t("clientTabCommunications")} action={<Button size="sm" variant="secondary" onClick={onLog}>{t("logCommunicationBtn")}</Button>} flush>
       {!communications.length ? (
-        <p className="py-8 text-center text-sm text-muted">{t("noCommunicationsYet")}</p>
+        <EmptyState compact icon={MessageCircle} title={t("noCommunicationsYet")} description={t("clientCommunicationsEmptyHint")} />
       ) : (
-        <div className="space-y-2">
+        <ul className="m-0 list-none p-0">
           {communications.map((c) => (
-            <Card key={c.id}><CardContent className="p-4">
+            <li key={c.id} className={ROW}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-bold text-card-foreground">{t(COMM_METHOD_KEY[c.method] || "methodPhone")} · {fmtDateLong(c.date)}</span>
-                <div className="flex items-center gap-1.5">
+                <span className="text-ui font-semibold text-card-foreground">
+                  {t(COMM_METHOD_KEY[c.method] || "methodPhone")} · <span className="tabular-nums">{fmtDateLong(c.date)}</span>
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Badge variant="neutral">{t("communicationDirectionLabel")}: {t(COMM_DIRECTION_KEY[c.direction] || "directionOutbound")}</Badge>
-                  {c.followUpRequired && <Badge variant="warn">{t("followUpRequiredLabel")}</Badge>}
+                  {c.followUpRequired && <StatusBadge domain="communication" status="followup">{t("followUpRequiredLabel")}</StatusBadge>}
                 </div>
               </div>
-              <p className="mt-2 text-sm text-card-foreground">{c.summary}</p>
-            </CardContent></Card>
+              <p className="m-0 mt-2 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{c.summary}</p>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
-function OverviewTab({ client }) {
+function OverviewTab({ client, onEdit }) {
   const t = useT();
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Card><CardContent className="p-4">
-        <FieldRow label={t("dobLabel")} value={fmtDateLong(client.dob)} />
-        <FieldRow label={t("phone")} value={client.phone} />
-        <FieldRow label={t("email")} value={client.email} />
-        <FieldRow label={t("address")} value={[client.street, client.city, client.zip].filter(Boolean).join(", ")} />
-        <FieldRow label={t("intakeDateLabel")} value={fmtDateLong(client.intakeDate)} />
-      </CardContent></Card>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <SectionCard
+        title={t("personalInformationLabel")}
+        action={<Button size="sm" variant="secondary" onClick={onEdit}>{t("editProfileBtn")}</Button>}
+      >
+        <dl className="m-0">
+          <FieldRow label={t("dobLabel")} value={<span className="tabular-nums">{fmtDateLong(client.dob)}</span>} />
+          <FieldRow label={t("phone")} value={client.phone ? <span className="tabular-nums">{client.phone}</span> : ""} />
+          <FieldRow label={t("email")} value={client.email} />
+          <FieldRow label={t("address")} value={[client.street, client.city, client.zip].filter(Boolean).join(", ")} />
+          <FieldRow label={t("intakeDateLabel")} value={<span className="tabular-nums">{fmtDateLong(client.intakeDate)}</span>} />
+        </dl>
+      </SectionCard>
     </div>
   );
 }
 
-function ProgramsTab({ enrollments, lang }) {
+function enrollmentStatusLabel(status, t) {
+  if (status === "active") return t("statusActive");
+  if (status === "inactive") return t("statusInactive");
+  return status;
+}
+
+function ProgramsTab({ enrollments, lang, onAdd }) {
   const t = useT();
   const navigate = useNavigate();
-  if (!enrollments.length) return <p className="py-8 text-center text-sm text-muted">{t("noProgramsYet")}</p>;
+  if (!enrollments.length) {
+    return (
+      <Card>
+        <EmptyState
+          compact icon={UserPlus}
+          title={t("noProgramsYet")}
+          description={t("clientProgramsEmptyHint")}
+          action={<Button onClick={onAdd}>{t("addToProgramBtn")}</Button>}
+        />
+      </Card>
+    );
+  }
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       {enrollments.map(({ enrollment, programType, record }) => {
         const meta = PROGRAM_META[programType];
         const Icon = meta.icon;
         return (
-          <Card key={enrollment.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-bold text-card-foreground">
-                  <Icon className="h-4 w-4 text-primary" /> {t(meta.labelKey)}
+          <SectionCard
+            key={enrollment.id}
+            title={
+              <span className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-chip bg-tone-info-bg text-tone-info-ink">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <Badge variant={enrollment.status === "active" ? "success" : "neutral"}>{enrollment.status}</Badge>
-              </div>
-              <FieldRow label={t("intakeDateLabel")} value={fmtDateLong(enrollment.enrolledAt)} />
+                {t(meta.labelKey)}
+              </span>
+            }
+            action={<StatusBadge domain="enrollment" status={enrollment.status}>{enrollmentStatusLabel(enrollment.status, t)}</StatusBadge>}
+            footer={<Button size="sm" variant="secondary" onClick={() => navigate(meta.path)}>{t("openProgramRecordBtn")}</Button>}
+          >
+            <dl className="m-0">
+              <FieldRow label={t("intakeDateLabel")} value={<span className="tabular-nums">{fmtDateLong(enrollment.enrolledAt)}</span>} />
               {programType === "case" && <FieldRow label={t("immigrationStatusLabel")} value={immigrationStatusLabel(record.immigrationStatus, lang)} />}
               {programType === "job" && <FieldRow label={t("workPermitLabel")} value={record.workPermit ? t("yesOption") : t("noOption")} />}
-              {programType === "student" && <FieldRow label={t("studentIdLabel")} value={record.studentId} />}
-              {programType === "food" && <FieldRow label={t("householdSizeLabel")} value={record.householdSize} />}
-              <Button size="sm" variant="secondary" className="mt-3" onClick={() => navigate(meta.path)}>{t("openProgramRecordBtn")}</Button>
-            </CardContent>
-          </Card>
+              {programType === "student" && <FieldRow label={t("studentIdLabel")} value={record.studentId ? <span className="tabular-nums">{record.studentId}</span> : ""} />}
+              {programType === "food" && <FieldRow label={t("householdSizeLabel")} value={record.householdSize ? <span className="tabular-nums">{record.householdSize}</span> : ""} />}
+            </dl>
+          </SectionCard>
         );
       })}
     </div>
@@ -479,16 +549,26 @@ function ProgramsTab({ enrollments, lang }) {
 
 function ServicesSection({ title, icon: Icon, children }) {
   return (
-    <div>
-      <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-card-foreground">
-        <Icon className="h-4 w-4 text-primary" /> {title}
-      </h4>
+    <SectionCard
+      title={
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-chip bg-tone-info-bg text-tone-info-ink">
+            <Icon className="h-4 w-4" aria-hidden="true" />
+          </span>
+          {title}
+        </span>
+      }
+    >
       {children}
-    </div>
+    </SectionCard>
   );
 }
 
-function ServicesTab({ enrollments, visits, customServices, lang }) {
+function ServicesEmptyLine({ children }) {
+  return <p className="m-0 text-ui text-muted">{children}</p>;
+}
+
+function ServicesTab({ enrollments, visits, customServices, lang, onAddToProgram }) {
   const t = useT();
   const caseEnrollment = enrollments.find((e) => e.programType === "case");
   const jobEnrollment = enrollments.find((e) => e.programType === "job");
@@ -505,7 +585,16 @@ function ServicesTab({ enrollments, visits, customServices, lang }) {
   }, [foodClientId]);
 
   if (!caseEnrollment && !jobEnrollment && !foodEnrollment && !studentEnrollment) {
-    return <p className="py-8 text-center text-sm text-muted">{t("noServicesYet")}</p>;
+    return (
+      <Card>
+        <EmptyState
+          compact icon={Briefcase}
+          title={t("noServicesYet")}
+          description={t("clientServicesEmptyHint")}
+          action={<Button variant="secondary" onClick={onAddToProgram}>{t("addToProgramBtn")}</Button>}
+        />
+      </Card>
+    );
   }
 
   const studentVisits = studentEnrollment
@@ -513,14 +602,14 @@ function ServicesTab({ enrollments, visits, customServices, lang }) {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
       {caseEnrollment && (
         <ServicesSection title={t(PROGRAM_META.case.labelKey)} icon={Users}>
           {caseEnrollment.record.services && caseEnrollment.record.services.length ? (
             <div className="flex flex-wrap gap-1.5">
               {caseEnrollment.record.services.map((key) => <Badge key={key} variant="neutral">{caseServiceLabel(key, lang)}</Badge>)}
             </div>
-          ) : <p className="text-sm text-muted">{t("noCaseServicesRecorded")}</p>}
+          ) : <ServicesEmptyLine>{t("noCaseServicesRecorded")}</ServicesEmptyLine>}
         </ServicesSection>
       )}
       {jobEnrollment && (
@@ -529,35 +618,35 @@ function ServicesTab({ enrollments, visits, customServices, lang }) {
             <div className="flex flex-wrap gap-1.5">
               {jobEnrollment.record.servicesProvided.map((key) => <Badge key={key} variant="neutral">{jobServiceLabel(key)}</Badge>)}
             </div>
-          ) : <p className="text-sm text-muted">{t("noJobServicesRecorded")}</p>}
+          ) : <ServicesEmptyLine>{t("noJobServicesRecorded")}</ServicesEmptyLine>}
         </ServicesSection>
       )}
       {foodEnrollment && (
         <ServicesSection title={t(PROGRAM_META.food.labelKey)} icon={ShoppingBasket}>
           {distributions.length ? (
-            <div className="space-y-1.5">
+            <ul className="m-0 list-none p-0">
               {distributions.map((d) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 border-b border-border pb-1.5 text-sm last:border-b-0">
-                  <span className="font-semibold text-card-foreground">{fmtDateLong(d.date)}</span>
-                  <span className="text-muted">{d.items}{d.quantity ? " · " + d.quantity : ""}</span>
-                </div>
+                <li key={d.id} className="flex items-start justify-between gap-3 border-b border-line-subtle py-2.5 text-ui last:border-b-0">
+                  <span className="shrink-0 font-semibold text-card-foreground tabular-nums">{fmtDateLong(d.date)}</span>
+                  <span className="min-w-0 text-right text-muted">{d.items}{d.quantity ? " · " + d.quantity : ""}</span>
+                </li>
               ))}
-            </div>
-          ) : <p className="text-sm text-muted">{t("noDistributionsYet")}</p>}
+            </ul>
+          ) : <ServicesEmptyLine>{t("noDistributionsYet")}</ServicesEmptyLine>}
         </ServicesSection>
       )}
       {studentEnrollment && (
         <ServicesSection title={t(PROGRAM_META.student.labelKey)} icon={GraduationCap}>
           {studentVisits.length ? (
-            <div className="space-y-1.5">
+            <ul className="m-0 list-none p-0">
               {studentVisits.map((v) => (
-                <div key={v.id} className="flex items-center justify-between gap-3 border-b border-border pb-1.5 text-sm last:border-b-0">
-                  <span className="font-semibold text-card-foreground">{fmtDateLong(v.date)}</span>
-                  <span className="text-muted">{serviceDisplay(v, customServices, lang)}</span>
-                </div>
+                <li key={v.id} className="flex items-start justify-between gap-3 border-b border-line-subtle py-2.5 text-ui last:border-b-0">
+                  <span className="shrink-0 font-semibold text-card-foreground tabular-nums">{fmtDateLong(v.date)}</span>
+                  <span className="min-w-0 text-right text-muted">{serviceDisplay(v, customServices, lang)}</span>
+                </li>
               ))}
-            </div>
-          ) : <p className="text-sm text-muted">{t("noClassVisitsYet")}</p>}
+            </ul>
+          ) : <ServicesEmptyLine>{t("noClassVisitsYet")}</ServicesEmptyLine>}
         </ServicesSection>
       )}
     </div>
@@ -590,21 +679,27 @@ function ActivityTab({ enrollments, notes, documents, communications, appointmen
     .filter((e) => e.date)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  if (!events.length) return <p className="py-8 text-center text-sm text-muted">{t("noActivityYet")}</p>;
-
   return (
-    <div className="space-y-2">
-      {events.map((e) => {
-        const Icon = e.icon;
-        return (
-          <div key={e.key} className="flex items-center gap-3 border-b border-border py-2 text-sm last:border-b-0">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"><Icon className="h-4 w-4" /></span>
-            <span className="flex-1 font-medium text-card-foreground">{e.label}</span>
-            <span className="shrink-0 text-xs text-muted">{fmtDateLong(e.date)}</span>
-          </div>
-        );
-      })}
-    </div>
+    <SectionCard title={t("clientTabActivity")} flush>
+      {!events.length ? (
+        <EmptyState compact icon={CalendarClock} title={t("noActivityYet")} description={t("clientActivityEmptyHint")} />
+      ) : (
+        <ol className="m-0 list-none p-0">
+          {events.map((e) => {
+            const Icon = e.icon;
+            return (
+              <li key={e.key} className={ROW + " flex items-center gap-3 py-3"}>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-chip bg-tone-info-bg text-tone-info-ink">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 break-words text-ui font-medium text-card-foreground">{e.label}</span>
+                <span className="shrink-0 text-meta text-muted tabular-nums">{fmtDateLong(e.date)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </SectionCard>
   );
 }
 
@@ -641,9 +736,24 @@ export default function ClientProfile() {
     return () => { cancelled = true; };
   }, [clientId]);
 
+  // Back to wherever staff opened the profile from (a program list, the
+  // duplicate warning, search); a direct link with no in-app history goes home.
+  function goBack() {
+    if (window.history.state && window.history.state.idx > 0) navigate(-1);
+    else navigate("/");
+  }
+
   if (!client) {
     return (
-      <Card><CardContent className="p-10 text-center text-sm text-muted">{t("clientNotFoundMessage")}</CardContent></Card>
+      <Card>
+        <EmptyState
+          variant="no-results"
+          icon={UserX}
+          title={t("clientNotFoundTitle")}
+          description={t("clientNotFoundMessage")}
+          action={<Button variant="secondary" onClick={goBack}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("back")}</Button>}
+        />
+      </Card>
     );
   }
 
@@ -652,6 +762,15 @@ export default function ClientProfile() {
   const existingTypes = enrollments.map((e) => e.programType);
   const appointments = resolveAppointmentsForClient(nbId, data);
   const schedulingProgram = enrollments.find((e) => e.programType === "case" || e.programType === "job");
+  const scheduleAppointment = schedulingProgram
+    ? () => navigate(PROGRAM_META[schedulingProgram.programType].path, { state: { openAppointments: true, appointmentClientId: schedulingProgram.record.id } })
+    : undefined;
+
+  const TAB_COUNTS = {
+    programs: enrollments.length, appointments: appointments.length, notes: notes.length,
+    documents: documents.length, communications: communications.length
+  };
+  const tabItems = tabKeys.map((key, i) => ({ value: key, label: t(tabLabels[i]), count: TAB_COUNTS[key] || null }));
 
   async function saveProfile(fields) {
     await updateClientRecord(client.id, fields);
@@ -716,47 +835,38 @@ export default function ClientProfile() {
     <>
       <ClientHeader
         client={client} name={name}
+        onBack={goBack}
         onEditProfile={() => setEditing(true)}
         onAddToProgram={() => setAddingToProgram(true)}
-        onScheduleAppointment={schedulingProgram ? () => navigate(PROGRAM_META[schedulingProgram.programType].path, { state: { openAppointments: true, appointmentClientId: schedulingProgram.record.id } }) : undefined}
+        onScheduleAppointment={scheduleAppointment}
         onAddNote={() => setAddingNote(true)}
         onUploadDocument={() => setUploadingDocument(true)}
         onToggleStatus={toggleStatus}
       />
 
-      <Card className="mt-5">
-        <div className="flex flex-wrap gap-1 overflow-x-auto border-b border-border px-3 pt-2">
-          {tabKeys.map((key, i) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={
-                "shrink-0 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors " +
-                (tab === key ? "border-b-2 border-primary text-primary" : "text-muted hover:text-card-foreground")
-              }
-            >
-              {t(tabLabels[i])}
-            </button>
-          ))}
-        </div>
-        <CardContent className="p-5">
-          {tab === "overview" && <OverviewTab client={client} />}
-          {tab === "programs" && <ProgramsTab enrollments={enrollments} lang={lang} />}
-          {tab === "appointments" && <AppointmentsTab appointments={appointments} lang={lang} />}
-          {tab === "notes" && <NotesTab notes={notes} />}
-          {tab === "documents" && <DocumentsTab documents={documents} onDelete={deleteDocument} />}
-          {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
-          {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
-          {tab === "services" && <ServicesTab enrollments={enrollments} visits={data.visits || []} customServices={data.customServices} lang={lang} />}
-          {tab === "activity" && (
-            <ActivityTab
-              enrollments={enrollments} notes={notes} documents={documents}
-              communications={communications} appointments={appointments} lang={lang}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <Tabs label={t("clientRecordSectionsLabel")} value={tab} onChange={setTab} items={tabItems} idBase={TAB_ID_BASE} className="mb-5" />
+
+      <TabPanel idBase={TAB_ID_BASE} value={tab}>
+        {tab === "overview" && <OverviewTab client={client} onEdit={() => setEditing(true)} />}
+        {tab === "programs" && <ProgramsTab enrollments={enrollments} lang={lang} onAdd={() => setAddingToProgram(true)} />}
+        {tab === "appointments" && <AppointmentsTab appointments={appointments} lang={lang} onSchedule={scheduleAppointment} />}
+        {tab === "notes" && <NotesTab notes={notes} onAdd={() => setAddingNote(true)} />}
+        {tab === "documents" && <DocumentsTab documents={documents} onDelete={deleteDocument} onUpload={() => setUploadingDocument(true)} />}
+        {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
+        {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
+        {tab === "services" && (
+          <ServicesTab
+            enrollments={enrollments} visits={data.visits || []} customServices={data.customServices} lang={lang}
+            onAddToProgram={() => setAddingToProgram(true)}
+          />
+        )}
+        {tab === "activity" && (
+          <ActivityTab
+            enrollments={enrollments} notes={notes} documents={documents}
+            communications={communications} appointments={appointments} lang={lang}
+          />
+        )}
+      </TabPanel>
 
       {editing && <EditProfileModal client={client} onSave={saveProfile} onCancel={() => setEditing(false)} />}
       {addingToProgram && <AddToProgramModal existingTypes={existingTypes} onEnroll={enrollInProgram} onCancel={() => setAddingToProgram(false)} />}

@@ -1,21 +1,23 @@
-// CaseManagement.jsx -- Tailwind/shadcn redesign pass (same idiom as
-// Students.jsx/Search.jsx/Dashboard.jsx), reusing every existing
-// clients.js/appointments.js lib helper and the AppointmentsSection/
-// CaseClientCard/Pagination/DatePicker components as-is. Only the
-// presentation layer changed: the three <details className="card">
-// accordions became collapsible Cards, and legacy .field/.grid form
-// markup became Tailwind form-section layouts matching Students.jsx's
-// EnrollStudentPanel idiom.
-import { useEffect, useRef, useState } from "react";
+// CaseManagement.jsx -- Case Management: add/import clients, the intake
+// form, appointments, and the client list. On the NB4HS Operate design
+// system (plans/ui-design-system.md): PageHeader, KpiCard row, collapsible
+// SectionCards for the forms, and a DataTable (stacked rows below lg) for
+// the client list, with each client's notes in a Drawer.
+//
+// Data and behaviour are unchanged: every clients.js/clientsData.js/
+// appointments.js helper is called exactly as before, the duplicate check,
+// bulk delete and per-row delete still confirm through requestConfirm, and
+// ClientProfile's "Schedule Appointment" still lands on an open, pre-filled
+// appointments form via router state.
+import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  CalendarClock, CalendarPlus, ChevronDown, ChevronUp, Clock3, Download, FileUp, Mail,
-  Phone, Plus, Search as SearchIcon, SlidersHorizontal, Trash2, UploadCloud, UserPlus, Users
+  CalendarClock, ChevronDown, Clock3, Download, FileUp, Plus, Trash2, UserCheck, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CASE_SERVICES, IMMIGRATION_STATUSES } from "../lib/constants.js";
 import { activeCaseManagers } from "../lib/appointments.js";
-import { buildClient, buildImportedCaseClients, caseServiceLabel, clientMatchesSearch, downloadCaseClientTemplate, immigrationStatusLabel } from "../lib/clients.js";
+import { buildClient, buildImportedCaseClients, caseServiceLabel, clientDisplayName, clientMatchesSearch, downloadCaseClientTemplate, immigrationStatusLabel } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { createCaseClient, deleteCaseClient } from "../lib/clientsData.js";
 import { paginateList } from "../lib/pagination.js";
@@ -24,83 +26,66 @@ import { cn } from "../lib/cn.js";
 import { formatPhone, todayStr } from "../lib/utils.js";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
-import CaseClientCard from "../components/CaseClientCard.jsx";
+import CaseClientCard, { CaseClientDrawer, caseClientColumns } from "../components/CaseClientCard.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
-import EmptyState from "../components/EmptyState.jsx";
 import IntakeFormCard from "../components/IntakeFormCard.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.jsx";
+import { Card } from "../components/ui/card.jsx";
+import { DataTable } from "../components/ui/data-table.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { Field, Input, Select } from "../components/ui/field.jsx";
+import { IconButton } from "../components/ui/icon-button.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SearchInput } from "../components/ui/search-input.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", immigrationStatus: "", intakeDate: "", dob: "", street: "", city: "", zip: "" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 
-function KpiStat({ icon: Icon, tint, label, value }) {
+// A SectionCard whose body can be collapsed. The toggle is a real button
+// with aria-expanded in the card's action slot; collapsed, only the header
+// (and any `extra`, e.g. a duplicate-client warning) renders.
+function CollapsibleSection({ title, description, collapsed, onToggle, cardRef, children, extra }) {
+  const t = useT();
+  const bodyId = useId();
   return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-5">
-        <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
-          <Icon className="h-5 w-5" strokeWidth={2} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-semibold text-muted">{label}</div>
-          <div className="mt-1 text-2xl font-extrabold tracking-tight text-card-foreground">{value}</div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Collapsible Card header shared by the Add a Client/Import Contacts cards
-// (AppointmentsSection renders its own header since it also needs the
-// "Schedule an Appointment" sub-heading/side panel inside).
-function SectionCardHeader({ icon: Icon, title, collapsed, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={!collapsed}
-      className="flex min-h-0 w-full items-center gap-3 border-0 bg-transparent p-0 text-left"
-    >
-      {collapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted" />}
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-        <Icon className="h-4.5 w-4.5" />
-      </span>
-      <CardTitle className="m-0">{title}</CardTitle>
-    </button>
-  );
-}
-
-function FormSection({ title, desc, children }) {
-  return (
-    <div className="grid grid-cols-1 gap-4 border-b border-border pb-6 last:border-b-0 last:pb-0 md:grid-cols-[220px_1fr]">
-      <div>
-        <h3 className="m-0 text-sm font-bold text-card-foreground">{title}</h3>
-        <p className="mt-1 text-sm text-muted">{desc}</p>
-      </div>
-      <div className="space-y-3">{children}</div>
+    <div ref={cardRef} className="mb-5 scroll-mt-4">
+      <SectionCard
+        title={title}
+        description={description}
+        flush={collapsed}
+       
+        action={
+          <IconButton
+            variant="secondary"
+            label={collapsed ? t("expandSectionLabel") : t("collapseSectionLabel")}
+            aria-expanded={!collapsed}
+            aria-controls={bodyId}
+            onClick={onToggle}
+          >
+            <ChevronDown className={cn("transition-transform duration-fast", !collapsed && "rotate-180")} aria-hidden="true" />
+          </IconButton>
+        }
+      >
+        {collapsed ? (extra || null) : <><div id={bodyId}>{children}</div>{extra}</>}
+      </SectionCard>
     </div>
   );
 }
 
-function TextField({ id, label, required, invalid, value, onChange, placeholder, type }) {
+// One titled group of the Add a Client form: the title/description beside
+// the fields from lg up (stacked below, where the sidebar leaves ~500px).
+function FormSection({ title, desc, children }) {
   return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
-        {label}{required ? <span className="text-accent"> *</span> : null}
-      </label>
-      <input
-        id={id}
-        type={type || "text"}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={cn(
-          "h-11 min-h-0 w-full rounded-lg border bg-background px-3 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/15",
-          invalid ? "border-accent bg-tint-danger" : "border-border focus:border-primary"
-        )}
-      />
+    <div className="grid grid-cols-1 gap-4 border-b border-line-subtle pb-6 last:border-b-0 last:pb-0 lg:grid-cols-3 lg:gap-6">
+      <div>
+        <h3 className="m-0 text-ui font-semibold text-card-foreground">{title}</h3>
+        <p className="m-0 mt-1 text-meta text-muted">{desc}</p>
+      </div>
+      <div className="space-y-4 lg:col-span-2">{children}</div>
     </div>
   );
 }
@@ -149,69 +134,15 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
     finalizeCreate(client, null);
   }
 
+  const invalid = (name) => errors.indexOf(name) !== -1 || undefined;
+
   return (
-    <Card ref={forwardRef} className="mb-5">
-      <CardHeader className="space-y-0">
-        <SectionCardHeader icon={UserPlus} title={t("addClientTitle")} collapsed={collapsed} onToggle={onToggle} />
-      </CardHeader>
-      {collapsed ? null : (
-        <CardContent className="space-y-6 pt-0">
-          <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField id="new-client-first-name" label={t("firstName")} required invalid={errors.indexOf("firstName") !== -1} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
-              <TextField id="new-client-last-name" label={t("lastName")} required invalid={errors.indexOf("lastName") !== -1} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-              <TextField id="new-client-phone" label={t("phone")} invalid={errors.indexOf("phone") !== -1} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder="(401) 123-4567" />
-              <TextField id="new-client-email" label={t("email")} value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder="name@example.com" />
-              <div>
-                <label htmlFor="new-client-intake-date" className="mb-1 block text-xs font-semibold text-card-foreground">{t("intakeDateLabel")}</label>
-                <DatePicker id="new-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} />
-              </div>
-              <div>
-                <label htmlFor="new-client-dob" className="mb-1 block text-xs font-semibold text-card-foreground">{t("dobLabel")}</label>
-                <DatePicker id="new-client-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
-              </div>
-            </div>
-          </FormSection>
-
-          <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TextField id="new-client-street" label={t("address")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
-              <TextField id="new-client-city" label={t("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
-              <TextField id="new-client-zip" label={t("zip")} value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
-            </div>
-            <p className="text-xs text-muted">{t("stateAlwaysRI")}</p>
-          </FormSection>
-
-          <FormSection title={t("sectionCaseDetails")} desc={t("sectionCaseDetailsDesc")}>
-            <div>
-              <label htmlFor="new-client-immigration-status" className="mb-1 block text-xs font-semibold text-card-foreground">{t("immigrationStatusLabel")}</label>
-              <select
-                id="new-client-immigration-status"
-                value={fields.immigrationStatus}
-                onChange={(e) => setField("immigrationStatus", e.target.value)}
-                className="h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-              >
-                <option value="">{t("pleaseSelect")}</option>
-                {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key, lang)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("clientServicesLabel")}</label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {CASE_SERVICES.map((s) => (
-                  <label key={s.key} className="flex items-center gap-2 text-sm font-medium text-card-foreground">
-                    <input type="checkbox" checked={services.indexOf(s.key) !== -1} onChange={() => toggleService(s.key)} className="h-4 w-4 shrink-0" />
-                    {caseServiceLabel(s.key, lang)}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </FormSection>
-
-          <Button onClick={submit}>{t("addClientBtn")}</Button>
-        </CardContent>
-      )}
-      {dupMatches && (
+    <CollapsibleSection
+      cardRef={forwardRef}
+      title={t("addClientTitle")}
+      collapsed={collapsed}
+      onToggle={onToggle}
+      extra={dupMatches ? (
         <DuplicateClientWarning
           matches={dupMatches}
           onOpenExisting={(nbId) => { setDupMatches(null); setPendingClient(null); navigate("/clients/" + nbId); }}
@@ -219,8 +150,70 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
           onCreateAnyway={() => finalizeCreate(pendingClient, null)}
           onCancel={() => { setDupMatches(null); setPendingClient(null); }}
         />
-      )}
-    </Card>
+      ) : null}
+    >
+      <div className="space-y-6">
+        <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t("firstName")} htmlFor="new-client-first-name" required>
+              <Input id="new-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+            </Field>
+            <Field label={t("lastName")} htmlFor="new-client-last-name" required>
+              <Input id="new-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+            </Field>
+            <Field label={t("phone")} htmlFor="new-client-phone">
+              <Input id="new-client-phone" type="tel" aria-invalid={invalid("phone")} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
+            </Field>
+            <Field label={t("email")} htmlFor="new-client-email">
+              <Input id="new-client-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} />
+            </Field>
+            <Field label={t("intakeDateLabel")} htmlFor="new-client-intake-date">
+              <div className="ds-control"><DatePicker id="new-client-intake-date" value={fields.intakeDate} onChange={(v) => setField("intakeDate", v)} /></div>
+            </Field>
+            <Field label={t("dobLabel")} htmlFor="new-client-dob">
+              <div className="ds-control"><DatePicker id="new-client-dob" value={fields.dob} onChange={(v) => setField("dob", v)} /></div>
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Field label={t("address")} htmlFor="new-client-street" className="sm:col-span-2 xl:col-span-1">
+              <Input id="new-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+            </Field>
+            <Field label={t("city")} htmlFor="new-client-city">
+              <Input id="new-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+            </Field>
+            <Field label={t("zip")} htmlFor="new-client-zip">
+              <Input id="new-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+            </Field>
+          </div>
+          <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>
+        </FormSection>
+
+        <FormSection title={t("sectionCaseDetails")} desc={t("sectionCaseDetailsDesc")}>
+          <Field label={t("immigrationStatusLabel")} htmlFor="new-client-immigration-status">
+            <Select id="new-client-immigration-status" value={fields.immigrationStatus} onChange={(e) => setField("immigrationStatus", e.target.value)}>
+              <option value="">{t("pleaseSelect")}</option>
+              {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key, lang)}</option>)}
+            </Select>
+          </Field>
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="mb-2 p-0 text-meta font-semibold text-card-foreground">{t("clientServicesLabel")}</legend>
+            <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-3">
+              {CASE_SERVICES.map((s) => (
+                <label key={s.key} className="flex min-h-9 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+                  <input type="checkbox" checked={services.indexOf(s.key) !== -1} onChange={() => toggleService(s.key)} className="h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+                  {caseServiceLabel(s.key, lang)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </FormSection>
+
+        <Button onClick={submit}><Plus className="h-4 w-4" aria-hidden="true" />{t("addClientBtn")}</Button>
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -257,33 +250,27 @@ function ImportContactsCard({ collapsed, onToggle, onImported }) {
   }
 
   return (
-    <Card className="mb-5">
-      <CardHeader className="space-y-0">
-        <SectionCardHeader icon={UploadCloud} title={t("importContactsTitle")} collapsed={collapsed} onToggle={onToggle} />
-      </CardHeader>
-      {collapsed ? null : (
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted">{t("importContactsDesc")}</p>
-          <Button variant="secondary" size="sm" className="mt-3 gap-2" onClick={downloadCaseClientTemplate}>
-            <Download className="h-4 w-4" /> {t("downloadClientTemplate")}
-          </Button>
-          <div className="mt-3 flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
-            <label className="flex h-11 min-h-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 text-sm text-muted transition-colors hover:border-primary hover:text-card-foreground">
-              <FileUp className="h-4 w-4 shrink-0" />
-              <span className="truncate">{fileName || t("chooseFileFirst")}</span>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
-              />
-            </label>
-            <Button onClick={handleImportClick} className="sm:w-auto">{t("importBtn")}</Button>
-          </div>
-        </CardContent>
-      )}
-    </Card>
+    <CollapsibleSection title={t("importContactsTitle")} description={collapsed ? null : t("importContactsDesc")} collapsed={collapsed} onToggle={onToggle}>
+      <Button variant="secondary" size="sm" onClick={downloadCaseClientTemplate}>
+        <Download className="h-4 w-4" aria-hidden="true" />{t("downloadClientTemplate")}
+      </Button>
+      <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        {/* The file input stays focusable (sr-only, not display:none) so the
+            picker opens from the keyboard; the label draws the drop zone. */}
+        <label className="flex h-10 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-control border border-dashed border-border bg-card px-3 text-ui text-muted transition-colors duration-fast focus-within:border-primary focus-within:ring-2 hover:border-primary hover:text-card-foreground [@media(pointer:coarse)]:h-11">
+          <FileUp className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">{fileName || t("chooseFileFirst")}</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="sr-only"
+            onChange={(e) => setFileName(e.target.files && e.target.files[0] ? e.target.files[0].name : "")}
+          />
+        </label>
+        <Button onClick={handleImportClick}>{t("importBtn")}</Button>
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -314,11 +301,14 @@ export default function CaseManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const allClients = data.caseClients || [];
   const term = search.trim().toLowerCase();
-  const matched = (data.caseClients || []).filter((c) => clientMatchesSearch("case", c, term, lang));
+  const matched = allClients.filter((c) => clientMatchesSearch("case", c, term, lang));
   const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
   const paged = paginateList(sorted, page, pageSize);
   const allOnPageSelected = paged.items.length > 0 && paged.items.every((c) => selected.has(c.id));
+  // Looked up live so the drawer follows realtime edits to the record.
+  const notesClient = notesOpenId ? allClients.find((c) => c.id === notesOpenId) || null : null;
 
   function toggleSelect(id) {
     setSelected((prev) => {
@@ -356,28 +346,49 @@ export default function CaseManagement() {
     addClientRef.current && addClientRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const totalClients = (data.caseClients || []).length;
-  const activeClients = (data.caseClients || []).filter((c) => c.active !== false).length;
+  function clearSearch() { setSearch(""); setPage(1); }
+
+  const totalClients = allClients.length;
+  const activeClients = allClients.filter((c) => c.active !== false).length;
   const today = todayStr();
   const upcomingAppointments = (data.appointments || []).filter((a) => a.meetingWith === "case_manager" && a.date >= today && a.status !== "cancelled").length;
 
+  const openNotes = (c) => setNotesOpenId(c.id);
+  const columns = caseClientColumns({ t, lang, onOpen: openNotes, onRemove: (c) => removeClient(c.id) });
+
+  const emptyState = totalClients ? (
+    <EmptyState
+      variant="no-results"
+      title={t("caseClientsNoResultsTitle")}
+      description={t("caseClientsNoResultsHint")}
+      action={<Button variant="secondary" onClick={clearSearch}>{t("clearLabel")}</Button>}
+    />
+  ) : (
+    <EmptyState
+      icon={Users}
+      title={t("noClientsYet")}
+      description={t("caseClientsEmptyHint")}
+      action={<Button onClick={scrollToAddClient}><Plus className="h-4 w-4" aria-hidden="true" />{t("addClientShortcutBtn")}</Button>}
+    />
+  );
+
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="mb-1">{t("caseManagementTitle")}</h1>
-          <p className="m-0 text-sm text-muted">{t("caseManagementPageSubtitle")}</p>
-        </div>
-        <Button size="lg" className="gap-2" onClick={scrollToAddClient}>
-          <Plus className="h-4 w-4" /> {t("addClientShortcutBtn")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("caseManagementTitle")}
+        description={t("caseManagementPageSubtitle")}
+        actions={
+          <Button onClick={scrollToAddClient}>
+            <Plus className="h-4 w-4" aria-hidden="true" />{t("addClientShortcutBtn")}
+          </Button>
+        }
+      />
 
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiStat icon={Users} tint="bg-primary-tint text-primary" label={t("totalClientsLabel")} value={totalClients} />
-        <KpiStat icon={CalendarClock} tint="bg-tint-success text-success" label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} />
-        <KpiStat icon={Users} tint="bg-violet-tint text-violet-ink" label={t("statActiveClientsLabel")} value={activeClients} />
-        <KpiStat icon={Clock3} tint="bg-tint-warn text-gold-ink" label={t("statImportedContactsLabel")} value={importedCount} />
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label={t("totalClientsLabel")} value={totalClients} icon={Users} tone="info" />
+        <KpiCard label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} icon={CalendarClock} tone="violet" />
+        <KpiCard label={t("statActiveClientsLabel")} value={activeClients} icon={UserCheck} tone="success" />
+        <KpiCard label={t("statImportedContactsLabel")} value={importedCount} icon={Clock3} tone="neutral" />
       </div>
 
       <AddClientCard forwardRef={addClientRef} collapsed={!opens.addClient} onToggle={() => setOpen("addClient", !opens.addClient)} />
@@ -385,87 +396,65 @@ export default function CaseManagement() {
       {canUseIntakeForm && (
         <IntakeFormCard collapsed={!opens.intakeForm} onToggle={() => setOpen("intakeForm", !opens.intakeForm)} />
       )}
-      <div ref={appointmentsRef}>
+      <div ref={appointmentsRef} className="scroll-mt-4">
         <AppointmentsSection
           open={opens.appointments}
           onToggle={(v) => setOpen("appointments", v)}
           meetingWith="case_manager"
-          clientList={data.caseClients || []}
+          clientList={allClients}
           staffList={activeCaseManagers(data.profiles)}
           staffLabelKey="apptCaseManagerLabel"
           initialClientId={scheduleClientId}
         />
       </div>
 
-      <Card className="mt-5">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex-1">
-              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder={t("clientSearchPlaceholder")}
-                aria-label={t("clientSearchPlaceholder")}
-                className="h-12 min-h-0 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-base text-card-foreground focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15"
-              />
-            </div>
-            <button
-              type="button"
-              aria-label={t("filterLabel")}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted transition-colors hover:border-line-strong hover:text-card-foreground"
-            >
-              <SlidersHorizontal className="h-4.5 w-4.5" />
-            </button>
-          </div>
+      <Card className="p-4 sm:p-5">
+        <SearchInput
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onClear={clearSearch}
+          clearLabel={t("clearLabel")}
+          placeholder={t("clientSearchPlaceholder")}
+          aria-label={t("clientSearchPlaceholder")}
+        />
 
-          <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
-            <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}><Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}</Button>
-          </BulkActionsBar>
+        <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="m-0 text-ui tabular-nums text-muted" aria-live="polite">
+            {t("showingResultsLabel").replace("{shown}", String(paged.items.length)).replace("{total}", String(paged.total))}
+          </p>
+        </div>
 
-          {paged.items.length ? (
-            <div className="mt-4 overflow-auto rounded-xl border border-border">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="bg-card px-3 py-3 shadow-[0_1px_0_var(--border)]">
-                      <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} aria-label={t("selectAllLabel")} />
-                    </th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("nameLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("phoneLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("emailLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("address")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("immigrationStatusLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("intakeDateLabel")}</th>
-                    <th className="bg-card px-3 py-3 text-left text-sm font-semibold text-muted shadow-[0_1px_0_var(--border)]">{t("actionsLabel")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paged.items.map((c) => (
-                    <CaseClientCard
-                      key={c.id}
-                      client={c}
-                      open={notesOpenId === c.id}
-                      onToggle={() => setNotesOpenId((cur) => (cur === c.id ? null : c.id))}
-                      onRemove={() => removeClient(c.id)}
-                      selected={selected.has(c.id)}
-                      onToggleSelect={() => toggleSelect(c.id)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mt-4"><EmptyState icon="users" message={t("noClientsYet")} /></div>
-          )}
+        <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
+          <Button variant="danger" size="sm" onClick={removeSelected}><Trash2 className="h-4 w-4" aria-hidden="true" />{t("deleteSelectedLabel")}</Button>
+        </BulkActionsBar>
+
+        <DataTable
+          caption={t("caseManagementTitle")}
+          columns={columns}
+          rows={paged.items}
+          getRowId={(c) => c.id}
+          selection={{
+            selected,
+            onToggle: toggleSelect,
+            onToggleAll: toggleSelectAll,
+            allLabel: t("selectAllLabel"),
+            rowLabel: (c) => clientDisplayName(c)
+          }}
+          renderCard={(c) => <CaseClientCard client={c} onOpen={() => openNotes(c)} onRemove={() => removeClient(c.id)} />}
+          empty={emptyState}
+        />
+
+        {paged.total ? (
           <Pagination
+            bare
             page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
             onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelClients")}
             onChange={(delta) => setPage(paged.page + delta)}
           />
-        </CardContent>
+        ) : null}
       </Card>
+
+      <CaseClientDrawer client={notesClient} onClose={() => setNotesOpenId(null)} />
     </>
   );
 }
