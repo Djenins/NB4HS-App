@@ -6,7 +6,10 @@ import { fmtTime, fmtDateLong } from "../../lib/utils.js";
 import { statusVariant } from "../../lib/staffReports.js";
 import { Badge } from "../ui/badge.jsx";
 
-export const REPORT_CONTROL = "w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-60";
+// Same fix as SnapField's SNAP_CONTROL: py-0 cancels main.css's 12px top and
+// bottom padding on inputs and selects (it clips text in a 36-40px box), and
+// selects keep room on the right for the chevron. Textareas set their own py.
+export const REPORT_CONTROL = "w-full rounded-lg border border-border bg-background px-3 [&:is(input,select)]:py-0 [&:is(select)]:pr-9 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-60";
 export const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
 export const TD = "px-4 py-3 align-middle";
 
