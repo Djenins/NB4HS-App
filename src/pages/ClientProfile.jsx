@@ -51,6 +51,7 @@ import { IconButton } from "../components/ui/icon-button.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 import { StatusBadge } from "../components/ui/status-badge.jsx";
 import { TabPanel, Tabs } from "../components/ui/tabs.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const TABS = [
   "clientTabOverview", "clientTabPrograms", "clientTabAppointments", "clientTabServices",
@@ -61,7 +62,7 @@ const TAB_ID_BASE = "client-profile";
 const PROGRAM_META = {
   case: { labelKey: "navCaseManagement", icon: Users, path: "/case-management" },
   job: { labelKey: "navJobDeveloper", icon: Briefcase, path: "/workforce/participants" },
-  student: { labelKey: "navStudents", icon: GraduationCap, path: "/students" },
+  student: { labelKey: "navAdultEducation", icon: GraduationCap, path: "/students" },
   food: { labelKey: "navFoodDistribution", icon: ShoppingBasket, path: "/food" }
 };
 
@@ -130,7 +131,7 @@ function EditProfileModal({ client, onSave, onCancel }) {
           <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
         </Field>
         <Field label={t("address")} htmlFor="edit-street">
-          <Input id="edit-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} autoComplete="off" />
+          <AddressInput as={Input} id="edit-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
         </Field>
         <Field label={t("city")} htmlFor="edit-city">
           <Input id="edit-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} autoComplete="off" />

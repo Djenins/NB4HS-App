@@ -52,6 +52,7 @@ import { IconButton } from "../components/ui/icon-button.jsx";
 import { KpiCard } from "../components/ui/kpi-card.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
@@ -202,7 +203,7 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field label={t("address")} htmlFor="new-job-client-street" className="sm:col-span-2 xl:col-span-1">
-              <Input id="new-job-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+              <AddressInput as={Input} id="new-job-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
             </Field>
             <Field label={t("city")} htmlFor="new-job-client-city">
               <Input id="new-job-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />

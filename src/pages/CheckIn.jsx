@@ -3,68 +3,54 @@
 // (Shell.jsx skips its default topbar/footer-note for this route -- see
 // the `isKioskLanding` check there) instead of sitting inside the plain
 // boxed card the rest of the app's screens use.
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, GraduationCap, Headset, LogOut, User } from "lucide-react";
+import { ArrowRight, CalendarCheck, GraduationCap, Headset, Heart, LogOut, User, UserPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_DATA_URI } from "../lib/logo.js";
-import LangSelect from "../components/LangSelect.jsx";
+import KioskTopBar from "../components/kiosk/KioskTopBar.jsx";
 
-function LiveClock({ lang }) {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000 * 30);
-    return () => clearInterval(id);
-  }, []);
-
-  const locale = lang === "ht" ? "fr" : lang;
-  return (
-    <div className="flex items-center gap-4 text-sm font-medium text-white/90">
-      <span>{now.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}</span>
-      <span className="hidden sm:inline">
-        {now.toLocaleDateString(locale, { month: "long", day: "numeric", year: "numeric" })}
-      </span>
-    </div>
-  );
-}
-
+// On a phone each card is a full-width row matching the Request an
+// Appointment card below it: icon beside the title and description, a
+// full-width button underneath. From sm up it becomes the centred kiosk card
+// (2x2 on a tablet, one row of four on a wide kiosk).
 function RoleCard({ icon, iconBg, iconColor, title, services, buttonLabel, buttonClass, onClick, compact }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex w-full max-w-[420px] flex-col items-center rounded-[24px] border border-border bg-card text-center shadow-card transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-card-hover focus-visible:-translate-y-1 focus-visible:scale-[1.02] focus-visible:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
-        compact ? "px-6 py-6" : "px-8 py-6"
+        "group flex w-full flex-wrap items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-4 text-left font-normal shadow-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
+        "sm:max-w-[420px] sm:flex-col sm:flex-nowrap sm:gap-0 sm:rounded-[24px] sm:py-6 sm:text-center sm:hover:-translate-y-1 sm:hover:scale-[1.02]",
+        compact ? "sm:px-6" : "sm:px-8"
       )}
     >
-      <span
-        className={cn("flex items-center justify-center rounded-full", compact ? "h-16 w-16" : "h-16 w-16")}
-        style={{ background: iconBg }}
-      >
-        {icon({ size: compact ? 30 : 32, color: iconColor, strokeWidth: 2 })}
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-16 sm:w-16" style={{ background: iconBg }}>
+        {icon({ color: iconColor, strokeWidth: 2, className: "h-6 w-6 sm:h-8 sm:w-8", "aria-hidden": true })}
       </span>
-      <h2 className={cn("font-extrabold text-navy dark:text-[color:var(--text)]", compact ? "mt-3 text-xl" : "mt-3 text-xl")}>{title}</h2>
-      <p className={cn("text-muted", compact ? "mt-1.5 text-sm leading-snug" : "mt-1.5 min-h-[2.5rem] text-sm leading-snug")}>{services}</p>
+      {/* sm+: flex-1 makes the text absorb the height difference, so every
+          card's button lines up along the bottom of the row. */}
+      <span className="min-w-0 flex-1 sm:mt-3 sm:flex sm:w-full sm:flex-col sm:items-center">
+        <span className="block text-[1.05rem] font-extrabold leading-tight text-navy dark:text-[color:var(--text)] sm:text-xl">{title}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-muted sm:mt-1.5 sm:flex-1 sm:text-sm">{services}</span>
+      </span>
       <span
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-2xl font-bold text-white shadow-md transition-transform duration-150 group-hover:scale-[1.03] group-active:scale-[0.98]",
-          compact ? "mt-4 min-h-[44px] px-4 text-base" : "mt-4 min-h-[44px] px-6 text-base",
+          "flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-bold text-white shadow-md transition-transform duration-150 group-hover:scale-[1.03] group-active:scale-[0.98] sm:mt-4",
+          compact ? "sm:px-4" : "sm:px-6",
           buttonClass
         )}
       >
         {buttonLabel}
-        <ArrowRight size={compact ? 18 : 22} strokeWidth={2.5} />
+        <ArrowRight strokeWidth={2.5} aria-hidden="true" className="h-5 w-5 shrink-0" />
       </span>
     </button>
   );
 }
 
 export default function CheckIn() {
-  const { lang, kiosk } = useApp();
+  const { kiosk } = useApp();
   const t = useT();
   const navigate = useNavigate();
 
@@ -83,44 +69,35 @@ export default function CheckIn() {
           style={{ background: "radial-gradient(closest-side, rgba(37,99,235,0.14), rgba(37,99,235,0))" }}
         />
         <div
-          className="absolute -left-24 -top-24 h-72 w-72 rounded-full opacity-70"
-          style={{ background: "radial-gradient(closest-side, rgba(212,32,39,0.08), rgba(212,32,39,0))" }}
-        />
-        <div
           className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full opacity-70"
           style={{ background: "radial-gradient(closest-side, rgba(212,160,23,0.12), rgba(212,160,23,0))" }}
         />
       </div>
 
-      {kiosk && (
-        <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-border bg-white/90 px-6 py-3 shadow-sm backdrop-blur sm:px-10">
-          <div className="flex items-center gap-3">
-            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
-          </div>
-          <div className="transition-transform duration-150 hover:scale-[1.03]">
-            <LangSelect />
-          </div>
-        </header>
-      )}
+      {/* Same top bar as every other kiosk screen (no Back on the home). */}
+      {kiosk && <div className="relative z-10"><KioskTopBar /></div>}
 
       <main
         id="main-content"
         tabIndex={-1}
         className={cn(
-          "relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center overflow-y-auto px-6",
-          compact ? "pb-8 pt-6" : "py-4"
+          "relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-y-auto px-4 sm:px-6",
+          compact ? "pb-8 pt-6" : "py-5"
         )}
       >
-        <p className={cn("animate-[fadeIn_.5s_ease-out] font-bold uppercase tracking-wide text-accent", compact ? "text-sm" : "text-base")}>
-          {t("landingWelcomeTo")}
-        </p>
-        <h1 className={cn("max-w-3xl text-center font-extrabold leading-tight text-navy dark:text-[color:var(--text)]", compact ? "mt-1 text-2xl sm:text-3xl" : "mt-1 text-3xl sm:text-4xl")}>
-          {ORG.name}
+        {/* m-auto rather than justify-center on <main>: it centres the content
+            when there's room, and lets it start at the top (scrollable) when
+            there isn't -- justify-center pushed the heading and first card
+            above the scroll area on phones and short kiosk screens. */}
+        <div className="my-auto flex w-full flex-col items-center">
+        <h1 className={cn("max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-[1.375rem] sm:text-3xl" : "text-[1.375rem] sm:text-4xl")}>
+          {t("landingWelcomeTo")} {ORG.name}
         </h1>
-        <p className={cn("text-muted", compact ? "mt-1.5 text-base" : "mt-2 text-lg")}>{t("landingHowCanWeHelp")}</p>
-        <span className={cn("rounded-full bg-accent", compact ? "mt-2.5 h-1 w-12" : "mt-3 h-1 w-16")} />
+        <p className={cn("text-center text-base text-muted", compact ? "mt-1.5" : "mt-1.5 sm:mt-2 sm:text-lg")}>{t("landingHowCanWeHelp")}</p>
+        <span aria-hidden="true" className={cn("rounded-full bg-gold", compact ? "mt-3 h-1 w-12" : "mt-4 h-1 w-16")} />
 
-        <div className={cn("flex w-full flex-col items-center md:flex-row md:items-stretch md:justify-center", compact ? "mt-6 gap-4" : "mt-5 gap-6")}>
+        {/* Four role cards: stacked rows on a phone, 2x2 on a tablet, one row on a wide kiosk. */}
+        <div className={cn("grid w-full max-w-[1500px] grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 xl:grid-cols-4", compact ? "mt-6 sm:gap-4" : "mt-5 sm:gap-6")}>
           <RoleCard
             compact={compact}
             icon={(props) => <GraduationCap {...props} />}
@@ -143,6 +120,19 @@ export default function CheckIn() {
             buttonClass="bg-gradient-to-r from-gold to-gold-dark text-gold-foreground hover:brightness-110"
             onClick={() => navigate("/checkin/visitor")}
           />
+          {/* New clients sign themselves up for Case Management
+              (ClientRegister.jsx); staff complete the full intake afterwards. */}
+          <RoleCard
+            compact={compact}
+            icon={(props) => <UserPlus {...props} />}
+            iconBg="var(--tint-success)"
+            iconColor="var(--success)"
+            title={t("registerKioskTitle")}
+            services={t("registerKioskServices")}
+            buttonLabel={t("registerSubmitBtn")}
+            buttonClass="bg-success hover:brightness-110"
+            onClick={() => navigate("/register")}
+          />
           <RoleCard
             compact={compact}
             icon={(props) => <LogOut {...props} />}
@@ -156,26 +146,73 @@ export default function CheckIn() {
           />
         </div>
 
-        <div className={cn("flex flex-col items-center gap-1.5 text-center", compact ? "mt-6" : "mt-5 gap-1.5")}>
+        {/* Appointments live on the kiosk too now that the public landing
+            page is gone ("/" is staff sign-in): request one, or check on one
+            already requested. */}
+        <button
+          type="button"
+          onClick={() => navigate("/appointments/request")}
+          className={cn(
+            // Phone: icon + text on one row, a full-width button beneath.
+            // sm and up: one row with the button on the right.
+            "group flex w-full max-w-[1500px] flex-wrap items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-4 text-left font-normal shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:flex-nowrap sm:gap-4 sm:rounded-[24px]",
+            compact ? "mt-3 sm:mt-4 sm:px-5" : "mt-3 sm:mt-6 sm:px-7 sm:py-5"
+          )}
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-14 sm:w-14" style={{ background: "var(--ev-appt-bg)" }}>
+            <CalendarCheck strokeWidth={2} style={{ color: "var(--ev-appt-fg)" }} aria-hidden="true" className="h-6 w-6 sm:h-7 sm:w-7" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[1.05rem] font-extrabold leading-tight text-navy dark:text-[color:var(--text)] sm:text-xl">{t("requestApptLandingBtn")}</span>
+            <span className="mt-0.5 block text-[13px] leading-snug text-muted sm:text-sm">{t("requestApptCardDesc")}</span>
+          </span>
+          <span className="flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-base font-bold text-white shadow-md transition-transform duration-150 group-hover:scale-[1.03] sm:w-auto" style={{ background: "#6B21A8" }}>
+            {t("continueLabel")} <ArrowRight size={20} strokeWidth={2.5} aria-hidden="true" />
+          </span>
+        </button>
+        <p className={cn("text-center text-sm text-muted", compact ? "mt-3" : "mt-4")}>
+          {t("alreadyRequestedApptLabel")}{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/appointments/lookup")}
+            className="inline-flex min-h-0 items-center gap-1 border-0 bg-transparent p-0 font-bold text-primary transform-none hover:underline"
+          >
+            {t("apptLookupLink")} <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        </p>
+
+        {/* In kiosk mode on a phone this moves into the footer below. */}
+        <div className={cn("flex-col items-center gap-1.5 text-center", compact ? "mt-6 flex" : "mt-5 hidden sm:flex")}>
           <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-10 w-10")}>
             <Headset size={compact ? 16 : 18} strokeWidth={2} />
           </span>
           <h3 className={cn("font-bold text-navy dark:text-[color:var(--text)]", compact ? "text-sm" : "text-base")}>{t("landingNeedHelp")}</h3>
-          <p className={cn("text-muted", compact ? "text-xs" : "text-sm")}>{t("landingAskStaff")}</p>
+          <p className="text-sm text-muted">{t("landingAskStaff")}</p>
+        </div>
         </div>
       </main>
 
       {kiosk && (
-        <footer className="relative z-10 flex shrink-0 flex-col items-center gap-3 bg-navy px-6 py-3 text-white sm:flex-row sm:justify-between sm:px-10">
-          <div className="flex items-center gap-2.5">
+        <footer className="relative z-10 flex shrink-0 items-center justify-between gap-3 bg-navy px-4 py-2.5 text-white sm:px-10 sm:py-3">
+          {/* Phone: the "Need help?" note takes the footer instead of the logo,
+              which the top bar already shows. */}
+          <div className="flex items-center gap-3 sm:hidden">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+              <Headset size={18} strokeWidth={2} aria-hidden="true" />
+            </span>
+            <p className="m-0 text-sm leading-snug">
+              <span className="font-bold">{t("landingNeedHelp")}</span>{" "}
+              <span className="text-white/85">{t("landingAskStaff")}</span>
+            </p>
+          </div>
+          <div className="hidden items-center gap-2.5 sm:flex">
             <img src={LOGO_DATA_URI} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-0.5" />
             <span className="text-sm font-bold">{ORG.shortName}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm font-medium text-white/90">
-            <span aria-hidden="true">❤️</span>
+          <div className="hidden items-center gap-2 text-sm font-medium text-white/90 sm:flex">
+            <Heart size={16} strokeWidth={2.2} aria-hidden="true" className="fill-gold text-gold" />
             <span>{t("landingBuildingFutures")}</span>
           </div>
-          <LiveClock lang={lang} />
         </footer>
       )}
     </div>

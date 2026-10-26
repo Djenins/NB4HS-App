@@ -19,6 +19,7 @@ export var NAV_ICONS = {
   reports: BarChart3,
   fooddistribution: ShoppingBasket,
   calendar: CalendarDays,
+  availability: CalendarClock,
   qrcode: QrCode,
   manage: ListChecks,
   students: GraduationCap,

@@ -9,10 +9,11 @@
 // bulk delete and per-row delete still confirm through requestConfirm, and
 // ClientProfile's "Schedule Appointment" still lands on an open, pre-filled
 // appointments form via router state.
-import { useEffect, useId, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useId, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  CalendarClock, ChevronDown, Clock3, Download, FileUp, Plus, Trash2, UserCheck, Users
+  Building2, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, ClipboardList, Clock3, Download, FileUp, LayoutGrid,
+  Plus, Trash2, UserCheck, UserPlus, Users, UsersRound
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CASE_SERVICES, IMMIGRATION_STATUSES } from "../lib/constants.js";
@@ -24,14 +25,18 @@ import { paginateList } from "../lib/pagination.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
 import { formatPhone, todayStr } from "../lib/utils.js";
+import AddressInput from "../components/AddressInput.jsx";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import CaseClientCard, { CaseClientDrawer, caseClientColumns } from "../components/CaseClientCard.jsx";
+import CaseResources from "../components/CaseResources.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import IntakeFormCard from "../components/IntakeFormCard.jsx";
+import ModuleNav from "../components/ModuleNav.jsx";
 import Pagination from "../components/Pagination.jsx";
-import { Button } from "../components/ui/button.jsx";
+import { Alert } from "../components/ui/alert.jsx";
+import { BUTTON_RESET, Button } from "../components/ui/button.jsx";
 import { Card } from "../components/ui/card.jsx";
 import { DataTable } from "../components/ui/data-table.jsx";
 import { EmptyState } from "../components/ui/empty-state.jsx";
@@ -179,7 +184,7 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field label={t("address")} htmlFor="new-client-street" className="sm:col-span-2 xl:col-span-1">
-              <Input id="new-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+              <AddressInput as={Input} id="new-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
             </Field>
             <Field label={t("city")} htmlFor="new-client-city">
               <Input id="new-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
@@ -217,7 +222,7 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
   );
 }
 
-function ImportContactsCard({ collapsed, onToggle, onImported }) {
+function ImportClientsCard({ collapsed, onToggle, onImported }) {
   const { data, showToast } = useApp();
   const t = useT();
   const fileRef = useRef(null);
@@ -274,36 +279,99 @@ function ImportContactsCard({ collapsed, onToggle, onImported }) {
   );
 }
 
-export default function CaseManagement() {
-  const { data, lang, requestConfirm, session } = useApp();
+// The module's own menu (ModuleNav, same strip as Outreach/Adult Education):
+// Dashboard / Clients / Resources / Intakes / Appointments, one URL per
+// section (/case-management/:section). Intakes only shows for roles that can
+// use the intake form.
+const SECTIONS = [
+  { key: "dashboard", label: "snapSectionDashboard", icon: LayoutGrid },
+  { key: "clients", label: "caseSectionClients", icon: UsersRound },
+  { key: "resources", label: "caseSectionResources", icon: Building2 },
+  { key: "intakes", label: "caseSectionIntakes", icon: ClipboardList },
+  { key: "appointments", label: "caseSectionAppointments", icon: CalendarDays }
+];
+
+function QuickAction({ icon: Icon, title, desc, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        BUTTON_RESET,
+        "flex w-full items-start gap-3 rounded-card border border-border bg-card p-5 text-left shadow-card transition-colors duration-fast hover:border-primary",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      )}
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-ui font-semibold text-card-foreground">{title}</span>
+        <span className="mt-1 block text-meta text-muted">{desc}</span>
+      </span>
+    </button>
+  );
+}
+
+function CaseDashboard({ importedCount, onNavigate, canUseIntakeForm }) {
+  const { data } = useApp();
   const t = useT();
-  const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
-  const [opens, setOpens] = useState({ addClient: true, importContacts: false, intakeForm: false, appointments: false });
+  const navigate = useNavigate();
+  const allClients = data.caseClients || [];
+  const needsIntakeCount = allClients.filter((c) => c.needsIntake).length;
+  const totalClients = allClients.length;
+  const activeClients = allClients.filter((c) => c.active !== false).length;
+  const today = todayStr();
+  const upcomingAppointments = (data.appointments || []).filter((a) => a.meetingWith === "case_manager" && a.date >= today && a.status !== "cancelled").length;
+
+  return (
+    <>
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label={t("totalClientsLabel")} value={totalClients} icon={Users} tone="info" onClick={() => onNavigate("clients")} />
+        <KpiCard label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} icon={CalendarClock} tone="violet" onClick={() => onNavigate("appointments")} />
+        <KpiCard label={t("statActiveClientsLabel")} value={activeClients} icon={UserCheck} tone="success" />
+        <KpiCard label={t("statImportedContactsLabel")} value={importedCount} icon={Clock3} tone="neutral" />
+      </div>
+      {needsIntakeCount > 0 && (
+        <Alert
+          tone="warning"
+          className="mb-6"
+          title={t("needsIntakeCalloutTitle").replace("{n}", String(needsIntakeCount))}
+          action={<Button size="sm" onClick={() => navigate("/case-management/clients", { state: { needsIntake: true } })}>{t("needsIntakeReviewBtn")}</Button>}
+        >
+          {t("needsIntakeCalloutDesc")}
+        </Alert>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <QuickAction icon={UserPlus} title={t("addClientTitle")} desc={t("caseQuickAddDesc")} onClick={() => onNavigate("clients")} />
+        <QuickAction icon={Building2} title={t("caseSectionResources")} desc={t("caseQuickResourcesDesc")} onClick={() => onNavigate("resources")} />
+        {canUseIntakeForm && <QuickAction icon={ClipboardList} title={t("caseSectionIntakes")} desc={t("caseQuickIntakeDesc")} onClick={() => onNavigate("intakes")} />}
+        <QuickAction icon={CalendarPlus} title={t("caseSectionAppointments")} desc={t("caseQuickApptDesc")} onClick={() => onNavigate("appointments")} />
+      </div>
+    </>
+  );
+}
+
+function CaseClients({ onImported }) {
+  const { data, lang, requestConfirm } = useApp();
+  const t = useT();
+  const location = useLocation();
+  // The dashboard's "new registrations" callout opens this tab pre-filtered.
+  const [onlyNeedsIntake, setOnlyNeedsIntake] = useState(() => !!(location.state && location.state.needsIntake));
+  const [opens, setOpens] = useState({ addClient: false, importClients: false });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [notesOpenId, setNotesOpenId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
-  const [importedCount, setImportedCount] = useState(0);
   const addClientRef = useRef(null);
-  const appointmentsRef = useRef(null);
-  const location = useLocation();
-  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
-  // with this state to land directly on a pre-filled, expanded appointments
-  // form instead of a generic client list -- see AppointmentsSection.jsx's
-  // initialClientId prop for the pre-fill half.
-  const scheduleClientId = location.state && location.state.openAppointments ? location.state.appointmentClientId : undefined;
-  useEffect(() => {
-    if (location.state && location.state.openAppointments) {
-      setOpen("appointments", true);
-      appointmentsRef.current && appointmentsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const allClients = data.caseClients || [];
   const term = search.trim().toLowerCase();
-  const matched = allClients.filter((c) => clientMatchesSearch("case", c, term, lang));
+  const needsIntakeCount = allClients.filter((c) => c.needsIntake).length;
+  const matched = allClients
+    .filter((c) => !onlyNeedsIntake || c.needsIntake)
+    .filter((c) => clientMatchesSearch("case", c, term, lang));
   const sorted = sortStudentsList(matched.map((c) => ({ firstName: c.firstName, lastName: c.lastName, __ref: c }))).map((w) => w.__ref);
   const paged = paginateList(sorted, page, pageSize);
   const allOnPageSelected = paged.items.length > 0 && paged.items.every((c) => selected.has(c.id));
@@ -346,17 +414,12 @@ export default function CaseManagement() {
     addClientRef.current && addClientRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function clearSearch() { setSearch(""); setPage(1); }
-
-  const totalClients = allClients.length;
-  const activeClients = allClients.filter((c) => c.active !== false).length;
-  const today = todayStr();
-  const upcomingAppointments = (data.appointments || []).filter((a) => a.meetingWith === "case_manager" && a.date >= today && a.status !== "cancelled").length;
+  function clearSearch() { setSearch(""); setOnlyNeedsIntake(false); setPage(1); }
 
   const openNotes = (c) => setNotesOpenId(c.id);
   const columns = caseClientColumns({ t, lang, onOpen: openNotes, onRemove: (c) => removeClient(c.id) });
 
-  const emptyState = totalClients ? (
+  const emptyState = allClients.length ? (
     <EmptyState
       variant="no-results"
       title={t("caseClientsNoResultsTitle")}
@@ -374,45 +437,19 @@ export default function CaseManagement() {
 
   return (
     <>
-      <PageHeader
-        title={t("caseManagementTitle")}
-        description={t("caseManagementPageSubtitle")}
-        actions={
-          <Button onClick={scrollToAddClient}>
-            <Plus className="h-4 w-4" aria-hidden="true" />{t("addClientShortcutBtn")}
-          </Button>
-        }
-      />
-
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label={t("totalClientsLabel")} value={totalClients} icon={Users} tone="info" />
-        <KpiCard label={t("statUpcomingAppointmentsLabel")} value={upcomingAppointments} icon={CalendarClock} tone="violet" />
-        <KpiCard label={t("statActiveClientsLabel")} value={activeClients} icon={UserCheck} tone="success" />
-        <KpiCard label={t("statImportedContactsLabel")} value={importedCount} icon={Clock3} tone="neutral" />
+      <div className="mb-4 flex justify-end">
+        <Button onClick={scrollToAddClient}>
+          <Plus className="h-4 w-4" aria-hidden="true" />{t("addClientShortcutBtn")}
+        </Button>
       </div>
-
       <AddClientCard forwardRef={addClientRef} collapsed={!opens.addClient} onToggle={() => setOpen("addClient", !opens.addClient)} />
-      <ImportContactsCard collapsed={!opens.importContacts} onToggle={() => setOpen("importContacts", !opens.importContacts)} onImported={(n) => setImportedCount((c) => c + n)} />
-      {canUseIntakeForm && (
-        <IntakeFormCard collapsed={!opens.intakeForm} onToggle={() => setOpen("intakeForm", !opens.intakeForm)} />
-      )}
-      <div ref={appointmentsRef} className="scroll-mt-4">
-        <AppointmentsSection
-          open={opens.appointments}
-          onToggle={(v) => setOpen("appointments", v)}
-          meetingWith="case_manager"
-          clientList={allClients}
-          staffList={activeCaseManagers(data.profiles)}
-          staffLabelKey="apptCaseManagerLabel"
-          initialClientId={scheduleClientId}
-        />
-      </div>
+      <ImportClientsCard collapsed={!opens.importClients} onToggle={() => setOpen("importClients", !opens.importClients)} onImported={onImported} />
 
       <Card className="p-4 sm:p-5">
         <SearchInput
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          onClear={clearSearch}
+          onClear={() => { setSearch(""); setPage(1); }}
           clearLabel={t("clearLabel")}
           placeholder={t("clientSearchPlaceholder")}
           aria-label={t("clientSearchPlaceholder")}
@@ -422,6 +459,20 @@ export default function CaseManagement() {
           <p className="m-0 text-ui tabular-nums text-muted" aria-live="polite">
             {t("showingResultsLabel").replace("{shown}", String(paged.items.length)).replace("{total}", String(paged.total))}
           </p>
+          {(needsIntakeCount > 0 || onlyNeedsIntake) && (
+            <button
+              type="button"
+              aria-pressed={onlyNeedsIntake}
+              onClick={() => { setOnlyNeedsIntake((v) => !v); setPage(1); }}
+              className={cn(
+                BUTTON_RESET,
+                "rounded-full border px-3.5 py-1.5 text-ui font-semibold transition-colors duration-fast",
+                onlyNeedsIntake ? "border-tone-warning-ink bg-tone-warning-chip text-tone-warning-ink" : "border-border bg-card text-card-foreground hover:border-tone-warning-ink"
+              )}
+            >
+              {t("needsIntakeFilter").replace("{n}", String(needsIntakeCount))}
+            </button>
+          )}
         </div>
 
         <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
@@ -455,6 +506,53 @@ export default function CaseManagement() {
       </Card>
 
       <CaseClientDrawer client={notesClient} onClose={() => setNotesOpenId(null)} />
+    </>
+  );
+}
+
+export default function CaseManagement() {
+  const { data, session } = useApp();
+  const t = useT();
+  const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
+  const [importedCount, setImportedCount] = useState(0);
+
+  const visible = SECTIONS.filter((s) => s.key !== "intakes" || canUseIntakeForm);
+  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
+  // with this state to land directly on a pre-filled appointments form --
+  // see AppointmentsSection.jsx's initialClientId prop for the pre-fill half.
+  const openAppointments = !!(location.state && location.state.openAppointments);
+  const scheduleClientId = openAppointments ? location.state.appointmentClientId : undefined;
+  const fallback = openAppointments ? "appointments" : "dashboard";
+  const section = visible.some((s) => s.key === params.section) ? params.section : fallback;
+  const go = (key) => navigate("/case-management/" + key);
+
+  return (
+    <>
+      <ModuleNav
+        label={t("navCaseManagement")}
+        items={visible.map((s) => ({ key: s.key, label: t(s.label), icon: s.icon }))}
+        value={section}
+        onChange={go}
+      />
+      <PageHeader title={t("caseManagementTitle")} description={t("caseManagementPageSubtitle")} />
+      {section === "dashboard" && <CaseDashboard importedCount={importedCount} onNavigate={go} canUseIntakeForm={canUseIntakeForm} />}
+      {section === "clients" && <CaseClients onImported={(n) => setImportedCount((c) => c + n)} />}
+      {section === "resources" && <CaseResources />}
+      {section === "intakes" && <IntakeFormCard collapsed={false} onToggle={() => {}} />}
+      {section === "appointments" && (
+        <AppointmentsSection
+          open
+          onToggle={() => {}}
+          meetingWith="case_manager"
+          clientList={data.caseClients || []}
+          staffList={activeCaseManagers(data.profiles)}
+          staffLabelKey="apptCaseManagerLabel"
+          initialClientId={scheduleClientId}
+        />
+      )}
     </>
   );
 }

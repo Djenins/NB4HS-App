@@ -3,7 +3,10 @@
 export var ORG = { name: "New Bridges for Haitian Success", shortName: "NB4HS" };
 export var STORE_KEY = "nb4hs_checkin_data_v1";
 export var CFG_KEY = "nb4hs_checkin_config_v1";
-export var DEFAULT_CHECKIN_URL = "https://checkin.nb4hs.org";
+// The kiosk link (QR code page). Its own path, so it never opens the staff
+// home page at "/".
+export var DEFAULT_CHECKIN_URL = "https://checkin.nb4hs.org/kiosk";
+export var OLD_DEFAULT_CHECKIN_URL = "https://checkin.nb4hs.org";
 export var LANGS = [
   { code: "en", label: "English" },
   { code: "ht", label: "Kreyòl Ayisyen" },
@@ -124,7 +127,7 @@ export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core",
 // showDividerBefore() (a leftover from the old flat tab-bar layout).
 export var NAV_SECTION = {
   dashboard: "overview", mycaseload: "overview", myreports: "overview", staffreports: "overview",
-  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps",
+  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps", availability: "dailyOps",
   students: "programs", assessments: "programs", casemanagement: "programs", fooddistribution: "programs", outreach: "programs",
   // jobdeveloper (the older participant/job-seeker tracking page) lives in
   // the same "Workforce" submenu as the newer Employer & Job Opportunity

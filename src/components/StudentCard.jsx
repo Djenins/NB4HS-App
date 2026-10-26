@@ -22,6 +22,7 @@ import { IconButton } from "./ui/icon-button.jsx";
 import { StatusBadge } from "./ui/status-badge.jsx";
 import { cn } from "../lib/cn.js";
 import { avatarColorFor } from "../lib/avatarTone.js";
+import AddressInput from "./AddressInput.jsx";
 
 // Re-exported for the cards that already import it from here.
 export { avatarColorFor };
@@ -60,7 +61,7 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
           <Input id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
         </Field>
         <Field label={t("address")} htmlFor={fid("street")}>
-          <Input id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+          <AddressInput as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
         </Field>
         <Field label={t("city")} htmlFor={fid("city")}>
           <Input id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />

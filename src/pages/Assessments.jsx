@@ -1,4 +1,4 @@
-// Assessments.jsx -- page listing every enrolled student's pretest/posttest
+// Assessments.jsx -- the Assessments section of Adult Education (AdultEdNav), listing every enrolled student's pretest/posttest
 // NRS level (CASAS Reading STEPS, see assessments.js), gain/no-gain/flag
 // status, and Outcome. Pretest/posttest scores are still entered via each
 // student's edit form on the Students board (per the client's "Both" answer
@@ -43,6 +43,7 @@ import { KpiCard } from "../components/ui/kpi-card.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SearchInput } from "../components/ui/search-input.jsx";
 import { StatusBadge } from "../components/ui/status-badge.jsx";
+import AdultEdNav from "../components/AdultEdNav.jsx";
 
 const QUICK_FILTERS = ["all", "noPretest", "flagged", "completed", "gain", "noGain"];
 
@@ -337,19 +338,20 @@ export default function Assessments() {
       icon={Users}
       title={t("assessmentsEmptyTitle")}
       description={t("assessmentsEmptyHint")}
-      action={<Button asChild><Link to="/students" className="no-underline">{t("assessmentsGoToStudents")}</Link></Button>}
+      action={<Button asChild><Link to="/students/students" className="no-underline">{t("assessmentsGoToStudents")}</Link></Button>}
     />
   );
 
   return (
     <>
+      <AdultEdNav value="assessments" />
       <PageHeader
         title={t("assessmentsTitle")}
         description={t("assessmentsDesc")}
         actions={
           <>
             <Button variant="secondary" onClick={() => exportCsv(sorted)}><Download className="h-4 w-4" aria-hidden="true" />{t("exportLabel")}</Button>
-            <Button asChild><Link to="/students" className="no-underline"><Pencil className="h-4 w-4" aria-hidden="true" />{t("addAssessmentLabel")}</Link></Button>
+            <Button asChild><Link to="/students/classrooms" className="no-underline"><Pencil className="h-4 w-4" aria-hidden="true" />{t("addAssessmentLabel")}</Link></Button>
           </>
         }
       />

@@ -2,7 +2,7 @@
 // functions (no global singleton, no HTML-string building -- the theme
 // toggle button is now a real component, see components/ThemeToggle.jsx).
 // AppContext calls these; nothing else needs to touch localStorage directly.
-import { CFG_KEY, DEFAULT_CHECKIN_URL, STORE_KEY } from "./constants.js";
+import { CFG_KEY, DEFAULT_CHECKIN_URL, OLD_DEFAULT_CHECKIN_URL, STORE_KEY } from "./constants.js";
 
 export function saveData(data) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { console.warn("save failed", e); }
@@ -22,7 +22,13 @@ export function getConfig() {
   };
   try {
     var raw = localStorage.getItem(CFG_KEY);
-    if (raw) return Object.assign({}, defaults, JSON.parse(raw));
+    if (raw) {
+      var cfg = Object.assign({}, defaults, JSON.parse(raw));
+      // The old default kiosk link was the bare site address, which is now
+      // the staff home page -- move saved copies of it to the kiosk link.
+      if ((cfg.checkInUrl || "").replace(/\/+$/, "") === OLD_DEFAULT_CHECKIN_URL) cfg.checkInUrl = DEFAULT_CHECKIN_URL;
+      return cfg;
+    }
   } catch (e) {}
   return defaults;
 }

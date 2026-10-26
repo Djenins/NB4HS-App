@@ -22,7 +22,7 @@ export var AUTH_MODEL = (import.meta.env && import.meta.env.VITE_AUTH_MODEL) ===
 export var WORKSPACES = [
   { key: "home", label: "wsHome", icon: House,
     items: ["dashboard", "mycaseload", "checkin", "checkout", "search", "myreports", "staffreports", "reports", "qrcode", "manage"] },
-  { key: "students", label: "navStudents", icon: GraduationCap, items: ["students", "assessments"] },
+  { key: "students", label: "navAdultEducation", icon: GraduationCap, items: ["students", "assessments"] },
   { key: "workforce", label: "navSectionWorkforceDevelopment", icon: Briefcase,
     items: ["workforcedashboard", "jobdeveloper", "jobopenings", "employers", "candidatematching", "referrals", "placements", "workforcereports"] },
   { key: "case_management", label: "navCaseManagement", icon: FolderKanban, items: ["casemanagement"] },
@@ -32,7 +32,7 @@ export var WORKSPACES = [
 ];
 
 // Reachable from every workspace, below its own pages.
-export var SHARED_ITEMS = ["calendar"];
+export var SHARED_ITEMS = ["calendar", "availability"];
 
 // Every nav key belongs to exactly one place (a workspace or the shared links).
 export function workspaceOfItem(item) {

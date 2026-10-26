@@ -57,6 +57,9 @@ export function sidebarSections(items, opts) {
     if (s.key === "workforceDevelopment") return;
     var entries = [];
     s.items.forEach(function (v) {
+      // Assessments is a section of Adult Education (AdultEdNav), not a
+      // program of its own; its page keeps the Adult Education entry lit.
+      if (v === "assessments") return;
       if (v === "outreach") entries = entries.concat(outreachEntries(o.programs, o.role, o.programRoles, lang));
       else entries.push(entryFor(v, lang));
     });

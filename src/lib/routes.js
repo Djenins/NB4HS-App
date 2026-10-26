@@ -32,6 +32,7 @@ export function pathForNavKey(key) {
 export var LEGACY_REDIRECTS = [
   { from: "/assessments", to: "/students/assessments" },
   { from: "/casemanagement", to: "/case-management" },
+  { from: "/casemanagement/:section", to: "/case-management/:section" },
   { from: "/workforcedashboard", to: "/workforce" },
   { from: "/jobdeveloper", to: "/workforce/participants" },
   { from: "/jobdeveloper/:clientId", to: "/workforce/participants/:clientId" },
@@ -44,6 +45,7 @@ export var LEGACY_REDIRECTS = [
   { from: "/placements/:placementId", to: "/workforce/placements/:placementId" },
   { from: "/workforcereports", to: "/workforce/reports" },
   { from: "/fooddistribution", to: "/food" },
+  { from: "/fooddistribution/:section", to: "/food/:section" },
   // Outreach is the engine behind SNAP; each Outreach program is its own
   // workspace now (decision D3 reversed the old /snap -> /outreach/snap).
   { from: "/outreach", to: "/snap" },

@@ -53,6 +53,7 @@ import DatePicker from "../components/DatePicker.jsx";
 import EmployerPipelineTracker from "../components/EmployerPipelineTracker.jsx";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const TAB_KEYS = ["overview", "jobOpenings", "candidates", "placements", "documents", "activity", "notes"];
 const TAB_LABEL = {
@@ -143,10 +144,13 @@ function EditCompanyInfoModal({ record, industries, onSave, onCancel }) {
   });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
   function text(name, labelKey, phKey, extra) {
+    // The street field suggests addresses and fills city/zip from the pick.
+    const addr = name === "street" ? { as: Input, onAddressSelect: (a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip })) } : null;
+    const Control = addr ? AddressInput : Input;
     const id = "employer-" + name;
     return (
       <Field label={t(labelKey)} htmlFor={id}>
-        <Input id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
+        <Control {...addr} id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
       </Field>
     );
   }

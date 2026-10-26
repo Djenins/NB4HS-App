@@ -47,7 +47,7 @@ describe("activeEntryKey", () => {
 
   it("keeps the parent program active on its nested pages", () => {
     expect(activeEntryKey(sections, "/workforce/employers/42")).toBe("workforce");
-    expect(activeEntryKey(sections, "/students/assessments")).toBe("assessments");
+    expect(activeEntryKey(sections, "/students/assessments")).toBe("students");
     expect(activeEntryKey(sections, "/students/42")).toBe("students");
     expect(activeEntryKey(sections, "/snap/cases")).toBe("outreach:snap");
     expect(activeEntryKey(sections, "/checkin/visitor")).toBe("checkin");

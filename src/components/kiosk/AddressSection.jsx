@@ -6,10 +6,23 @@ import KioskSection from "./KioskSection.jsx";
 import KioskSelectField from "./KioskSelectField.jsx";
 import { US_STATES } from "../../lib/constants.js";
 
+// The form is uncontrolled (read through FormData at submit), so a picked
+// address is written straight into the City / State / ZIP controls.
+function fillFromAddress(a) {
+  const setValue = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+  setValue("checkin-field-city", a.city);
+  setValue("checkin-field-zip", a.zip);
+  const state = document.getElementById("checkin-field-state");
+  if (state && a.state && US_STATES.indexOf(a.state) !== -1) state.value = a.state;
+}
+
 export default function AddressSection({ id, sectionRef, t, errors }) {
   return (
     <KioskSection id={id} sectionRef={sectionRef} icon={MapPin} tone="soft" title={t("sectionAddress")}>
-      <KioskField name="address" label={t("address")} required placeholder={t("phAddress")} error={errors.address} />
+      <KioskField
+        name="address" label={t("address")} required placeholder={t("phAddress")} error={errors.address}
+        onAddressSelect={fillFromAddress}
+      />
       <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 xl:grid-cols-[1.4fr_0.7fr_0.9fr]">
         <KioskField
           name="city" label={t("city")} required placeholder={t("phCity")}

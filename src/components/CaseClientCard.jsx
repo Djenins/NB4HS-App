@@ -9,9 +9,13 @@
 // the client's services and notes (now in a Drawer, which works at phone
 // width where an expanding table row couldn't), the NB-ID badge goes to the
 // Client Profile, and delete calls the page's confirming onRemove.
-import { NotebookPen, Trash2, UserRound } from "lucide-react";
+// Self-registered clients (ClientRegister.jsx) carry Self-registered / Needs
+// intake badges until a case manager marks the full intake done.
+import { CheckCircle2, NotebookPen, Trash2, UserRound } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { caseServiceLabel, clientDisplayName, immigrationStatusLabel } from "../lib/clients.js";
+import { updateCaseClient } from "../lib/clientsData.js";
+import { LANGS } from "../lib/constants.js";
 import { avatarColorFor } from "../lib/avatarTone.js";
 import { cn } from "../lib/cn.js";
 import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
@@ -29,8 +33,14 @@ function ImmigrationBadge({ status, lang }) {
   return status ? <Badge variant="neutral">{immigrationStatusLabel(status, lang)}</Badge> : <span className="text-muted">—</span>;
 }
 
+function preferredLanguage(client) {
+  const l = LANGS.find((x) => x.code === client.preferredLanguage);
+  return l ? l.label : "";
+}
+
 function NameButton({ client, onOpen, t, large }) {
   const name = clientDisplayName(client);
+  const language = preferredLanguage(client);
   return (
     <div className="flex min-w-0 items-center gap-3">
       <Avatar className={large ? "h-10 w-10" : "h-9 w-9"}><AvatarFallback className={avatarColorFor(name)}>{initialsOf(client)}</AvatarFallback></Avatar>
@@ -43,15 +53,35 @@ function NameButton({ client, onOpen, t, large }) {
         >
           {name}
         </button>
-        {client.nbId ? <div className="mt-1"><NbIdBadge nbId={client.nbId} /></div> : null}
+        {client.nbId || client.needsIntake || client.source === "self" || language ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {client.nbId ? <NbIdBadge nbId={client.nbId} /> : null}
+            {client.source === "self" ? <Badge variant="neutral">{t("selfRegisteredBadge")}</Badge> : null}
+            {client.needsIntake ? <Badge variant="warning">{t("needsIntakeBadge")}</Badge> : null}
+            {language ? <Badge variant="info" title={t("preferredLanguageLabel")}>{language}</Badge> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function RowActions({ onOpen, onRemove, t }) {
+function RowActions({ client, onOpen, onRemove, t }) {
+  const { showToast } = useApp();
+  async function markIntakeDone() {
+    try {
+      await updateCaseClient(client.id, { needsIntake: false });
+      showToast(t("intakeMarkedDone"));
+    } catch (err) {
+      console.warn("markIntakeDone failed", err);
+      showToast(t("manageToggleError"));
+    }
+  }
   return (
     <div className="flex items-center justify-end gap-0.5">
+      {client.needsIntake ? (
+        <IconButton size="sm" label={t("markIntakeDoneLabel") + " " + clientDisplayName(client)} onClick={markIntakeDone}><CheckCircle2 aria-hidden="true" /></IconButton>
+      ) : null}
       <IconButton size="sm" label={t("viewNotesLabel")} onClick={onOpen}><NotebookPen aria-hidden="true" /></IconButton>
       <IconButton size="sm" variant="danger" label={t("deleteLabel")} onClick={onRemove}><Trash2 aria-hidden="true" /></IconButton>
     </div>
@@ -68,7 +98,7 @@ export function caseClientColumns({ t, lang, onOpen, onRemove }) {
     { key: "intake", header: t("intakeDateLabel"), className: "whitespace-nowrap", cell: (c) => fmtDateLong(c.intakeDate) || "—" },
     {
       key: "actions", header: <span className="sr-only">{t("actionsLabel")}</span>, className: "w-px",
-      cell: (c) => <RowActions onOpen={() => onOpen(c)} onRemove={() => onRemove(c)} t={t} />
+      cell: (c) => <RowActions client={c} onOpen={() => onOpen(c)} onRemove={() => onRemove(c)} t={t} />
     }
   ];
 }
@@ -88,7 +118,7 @@ export default function CaseClientCard({ client, onOpen, onRemove }) {
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
         <ImmigrationBadge status={client.immigrationStatus} lang={lang} />
-        <RowActions onOpen={onOpen} onRemove={onRemove} t={t} />
+        <RowActions client={client} onOpen={onOpen} onRemove={onRemove} t={t} />
       </div>
     </div>
   );
@@ -114,6 +144,7 @@ export function CaseClientDrawer({ client, onClose }) {
             <DetailRow label={t("address")}>{formatAddress(client) || "—"}</DetailRow>
             <DetailRow label={t("immigrationStatusLabel")}>{client.immigrationStatus ? immigrationStatusLabel(client.immigrationStatus, lang) : "—"}</DetailRow>
             <DetailRow label={t("intakeDateLabel")}>{fmtDateLong(client.intakeDate) || "—"}</DetailRow>
+            {preferredLanguage(client) ? <DetailRow label={t("preferredLanguageLabel")}>{preferredLanguage(client)}</DetailRow> : null}
           </dl>
           {(client.services || []).length ? (
             <div className="mt-4">

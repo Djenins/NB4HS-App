@@ -43,6 +43,7 @@ import { Field, Input, Select, Textarea } from "../components/ui/field.jsx";
 import { IconButton } from "../components/ui/icon-button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const EMPTY_NEW_EMPLOYER = {
   businessName: "", industry: "", website: "", street: "", city: "", zip: "",
@@ -104,9 +105,12 @@ function AddEmployerCard({ collapsed, onToggle, forwardRef }) {
 
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
   function text(id, name, label, extra) {
+    // The street field suggests addresses and fills city/zip from the pick.
+    const addr = name === "street" ? { as: Input, onAddressSelect: (a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip })) } : null;
+    const Control = addr ? AddressInput : Input;
     return (
       <Field label={label} htmlFor={id} required={extra && extra.required}>
-        <Input
+        <Control {...addr}
           id={id} type={(extra && extra.type) || "text"} value={fields[name]} onChange={(e) => setField(name, e.target.value)}
           placeholder={extra && extra.placeholder} aria-invalid={errors.indexOf(name) !== -1 ? true : undefined}
         />

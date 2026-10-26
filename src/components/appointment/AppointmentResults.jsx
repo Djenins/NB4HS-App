@@ -75,7 +75,7 @@ function LookupState({ tone, icon: StateIcon, title, description, actionLabel, o
       >
         <StateIcon size={28} strokeWidth={2} aria-hidden="true" />
       </span>
-      <h3 className="mt-3 text-[1.2rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.35rem]">{title}</h3>
+      <h3 className="mt-3 text-[1.125rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.35rem]">{title}</h3>
       <p className="mx-auto mt-1.5 max-w-[46ch] text-[0.98rem] leading-snug text-muted">{description}</p>
       {actionLabel && (
         <button
@@ -122,7 +122,7 @@ export default function AppointmentResults({ state, results, lang, t, onRetry })
 
   return (
     <section className="mt-7" aria-live="polite">
-      <h2 className="text-[1.25rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.4rem]">
+      <h2 className="text-[1.125rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.4rem]">
         {t("apptLookupResultsTitle")}
       </h2>
       <ul className="m-0 mt-3 flex list-none flex-col gap-3 p-0">

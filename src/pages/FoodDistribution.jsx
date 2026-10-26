@@ -7,10 +7,11 @@
 // answer: show history, no automatic restriction). Import (new households
 // only) and export (household roster + a date-ranged distribution log)
 // were added after the fact, mirroring Case Management's import and
-// Reports' CSV/Excel export + date-range picker respectively.
+// Reports' CSV/Excel export + date-range picker respectively. Now split
+// into its own module menu (see SECTIONS below).
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Download, Home, LayoutGrid, ShoppingBasket, Trash2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
@@ -21,16 +22,18 @@ import { createFoodClient, deleteFoodClient, fetchAllDistributions, subscribeCli
 import { paginateList } from "../lib/pagination.js";
 import { inRange, rangeForPreset } from "../lib/reports_data.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
-import { formatPhone, todayStr } from "../lib/utils.js";
+import { fmtDateLong, formatPhone, todayStr } from "../lib/utils.js";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FoodClientCard from "../components/FoodClientCard.jsx";
 import Icon from "../components/Icon.jsx";
+import ModuleNav from "../components/ModuleNav.jsx";
 import Pagination from "../components/Pagination.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { Button } from "../components/ui/button.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const HOUSEHOLD_SIZES = ["1", "2", "3", "4", "5", "6+"];
 
@@ -154,7 +157,7 @@ function AddHouseholdDetails({ open, onToggle }) {
                 <label htmlFor="new-food-client-street">{t("address")}</label>
                 <div className="field-icon-wrap">
                   <Icon name="mappin" />
-                  <input type="text" id="new-food-client-street" placeholder={t("streetAddressPlaceholder")} value={fields.street} onChange={(e) => setField("street", e.target.value)} />
+                  <AddressInput type="text" id="new-food-client-street" placeholder={t("streetAddressPlaceholder")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => { setField("street", a.street); if (a.city) setField("city", a.city); if (a.zip) setField("zip", a.zip); }} />
                 </div>
               </div>
               <div className="field">
@@ -293,10 +296,130 @@ function ExportDataDetails({ open, onToggle }) {
   );
 }
 
-export default function FoodDistribution() {
-  const { data, requestConfirm } = useApp();
+// The module's own menu (ModuleNav, same strip as Outreach/Workforce and
+// Case Management): Dashboard / Households / Distributions / Export, one URL
+// per section (/food/:section).
+const SECTIONS = [
+  { key: "dashboard", label: "snapSectionDashboard", icon: LayoutGrid },
+  { key: "households", label: "foodSectionHouseholds", icon: Home },
+  { key: "distributions", label: "foodSectionDistributions", icon: ShoppingBasket },
+  { key: "export", label: "exportDataTitle", icon: Download }
+];
+const LOG_PRESETS = ["week", "month", "quarter", "year"];
+
+function FoodDashboard({ foodClients, onNavigate }) {
+  const { lang } = useApp();
   const t = useT();
-  const [opens, setOpens] = useState({ addHousehold: true, importHouseholds: false, exportData: false });
+  const monthRange = rangeForPreset("month");
+  const dists = allDistributions(foodClients);
+  const pickupsThisMonth = dists.filter((d) => inRange(d, monthRange.from, monthRange.to)).length;
+  const avgHouseholdSize = foodClients.length
+    ? (foodClients.reduce((sum, c) => sum + (parseFloat(c.householdSize) || 0), 0) / foodClients.length).toFixed(1)
+    : 0;
+  const recent = dists.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 5);
+  const byId = {};
+  foodClients.forEach((c) => { byId[c.id] = c; });
+
+  return (
+    <>
+      <div className="grid grid-4" style={{ marginBottom: 20 }}>
+        <StatCard icon="users" variant="violet" num={foodClients.length} label={t("totalHouseholdsLabel")} />
+        <StatCard icon="cart" variant="success" num={pickupsThisMonth} label={t("pickupsThisMonthLabel")} />
+        <StatCard icon="reports" num={dists.length} label={t("totalPickupsLabel")} />
+        <StatCard icon="calendar" variant="warn" num={avgHouseholdSize} label={t("avgHouseholdSizeLabel")} />
+      </div>
+      <div className="card">
+        <div className="flex-between">
+          <h3 style={{ margin: 0 }}>{t("foodRecentPickupsTitle")}</h3>
+          <button className="btn-secondary btn-sm" onClick={() => onNavigate("distributions")}>{t("foodViewAllPickups")}</button>
+        </div>
+        {recent.length ? (
+          <div className="table-wrap" style={{ marginTop: 12 }}>
+            <table>
+              <thead><tr><th>{t("date")}</th><th>{t("nameLabel")}</th><th>{t("itemsLabel")}</th><th>{t("quantityLabel")}</th></tr></thead>
+              <tbody>
+                {recent.map((d) => {
+                  const c = byId[d.clientId];
+                  return (
+                    <tr key={d.id}>
+                      <td>{fmtDateLong(d.date, lang)}</td>
+                      <td>{c ? c.firstName + " " + c.lastName : "—"}</td>
+                      <td>{d.items || "—"}</td>
+                      <td>{d.quantity || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState icon="fooddistribution" message={t("foodNoPickupsYet")} />
+        )}
+      </div>
+    </>
+  );
+}
+
+function DistributionLog({ foodClients }) {
+  const { lang } = useApp();
+  const t = useT();
+  const [preset, setPreset] = useState("month");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const range = rangeForPreset(preset);
+  const byId = {};
+  foodClients.forEach((c) => { byId[c.id] = c; });
+  const rows = allDistributions(foodClients)
+    .filter((d) => inRange(d, range.from, range.to))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const paged = paginateList(rows, page, pageSize);
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>{t("exportDistributionLogTitle")}</h3>
+      <div className="pill-row">
+        {LOG_PRESETS.map((p) => (
+          <button key={p} className={"pill" + (preset === p ? " active" : "")} onClick={() => { setPreset(p); setPage(1); }}>
+            {t(EXPORT_PRESET_LABEL_KEY[p])}
+          </button>
+        ))}
+      </div>
+      {paged.items.length ? (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>{t("date")}</th><th>{t("nameLabel")}</th><th>{t("householdSizeLabel")}</th><th>{t("itemsLabel")}</th><th>{t("quantityLabel")}</th></tr></thead>
+            <tbody>
+              {paged.items.map((d) => {
+                const c = byId[d.clientId];
+                return (
+                  <tr key={d.id}>
+                    <td>{fmtDateLong(d.date, lang)}</td>
+                    <td>{c ? c.firstName + " " + c.lastName : "—"}</td>
+                    <td>{c && c.householdSize ? c.householdSize : "—"}</td>
+                    <td>{d.items || "—"}</td>
+                    <td>{d.quantity || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState icon="fooddistribution" message={t("foodNoPickupsInRange")} />
+      )}
+      <Pagination
+        page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+        onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelPickups")}
+        onChange={(delta) => setPage(paged.page + delta)}
+      />
+    </div>
+  );
+}
+
+function FoodHouseholds({ foodClients }) {
+  const { requestConfirm } = useApp();
+  const t = useT();
+  const [opens, setOpens] = useState({ addHousehold: false, importHouseholds: false });
   const [search, setSearch] = useState("");
   const [sizeFilter, setSizeFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -304,23 +427,7 @@ export default function FoodDistribution() {
   const [pageSize, setPageSize] = useState(10);
   const [openId, setOpenId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
-  // Distributions are their own table now (food_distributions), fetched
-  // separately and re-attached here as `.distributions` on each household
-  // so the existing lastDistributionDate()/allDistributions()/export
-  // helpers (lib/clients.js) keep working unchanged -- see clientsData.js.
-  const [allDists, setAllDists] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    fetchAllDistributions().then((rows) => { if (!cancelled) setAllDists(rows); });
-    const unsub = subscribeClientsTable("food_distributions", () => {
-      fetchAllDistributions().then((rows) => { if (!cancelled) setAllDists(rows); });
-    });
-    return () => { cancelled = true; unsub(); };
-  }, []);
 
-  const foodClients = (data.foodClients || []).map((c) => Object.assign({}, c, {
-    distributions: allDists.filter((d) => d.foodClientId === c.id)
-  }));
   const term = search.trim().toLowerCase();
   let matched = foodClients.filter((c) => clientMatchesSearch("food", c, term));
   if (sizeFilter) matched = matched.filter((c) => (c.householdSize || "") === sizeFilter);
@@ -344,13 +451,6 @@ export default function FoodDistribution() {
     });
   }
 
-  const monthRange = rangeForPreset("month");
-  const dists = allDistributions(foodClients);
-  const pickupsThisMonth = dists.filter((d) => inRange(d, monthRange.from, monthRange.to)).length;
-  const avgHouseholdSize = foodClients.length
-    ? (foodClients.reduce((sum, c) => sum + (parseFloat(c.householdSize) || 0), 0) / foodClients.length).toFixed(1)
-    : 0;
-
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeFoodClientConfirm"), { danger: true });
     if (!ok) return;
@@ -368,24 +468,8 @@ export default function FoodDistribution() {
 
   return (
     <>
-      <div className="page-header">
-        <div className="icon-badge"><Icon name="fooddistribution" className="icon-lg" /></div>
-        <div>
-          <h1>{t("foodDistributionTitle")}</h1>
-          <p className="muted">{t("foodDistributionDesc")}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <StatCard icon="users" variant="violet" num={foodClients.length} label={t("totalHouseholdsLabel")} />
-        <StatCard icon="cart" variant="success" num={pickupsThisMonth} label={t("pickupsThisMonthLabel")} />
-        <StatCard icon="reports" num={dists.length} label={t("totalPickupsLabel")} />
-        <StatCard icon="calendar" variant="warn" num={avgHouseholdSize} label={t("avgHouseholdSizeLabel")} />
-      </div>
-
       <AddHouseholdDetails open={opens.addHousehold} onToggle={(v) => setOpen("addHousehold", v)} />
       <ImportHouseholdsDetails open={opens.importHouseholds} onToggle={(v) => setOpen("importHouseholds", v)} />
-      <ExportDataDetails open={opens.exportData} onToggle={(v) => setOpen("exportData", v)} />
 
       <div className="card">
         <div className="student-search-bar" style={{ position: "relative" }}>
@@ -464,6 +548,55 @@ export default function FoodDistribution() {
           onChange={(delta) => setPage(paged.page + delta)}
         />
       </div>
+    </>
+  );
+}
+
+export default function FoodDistribution() {
+  const { data } = useApp();
+  const t = useT();
+  const params = useParams();
+  const navigate = useNavigate();
+  // Distributions are their own table now (food_distributions), fetched
+  // separately and re-attached here as `.distributions` on each household
+  // so the existing lastDistributionDate()/allDistributions()/export
+  // helpers (lib/clients.js) keep working unchanged -- see clientsData.js.
+  const [allDists, setAllDists] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllDistributions().then((rows) => { if (!cancelled) setAllDists(rows); });
+    const unsub = subscribeClientsTable("food_distributions", () => {
+      fetchAllDistributions().then((rows) => { if (!cancelled) setAllDists(rows); });
+    });
+    return () => { cancelled = true; unsub(); };
+  }, []);
+
+  const foodClients = (data.foodClients || []).map((c) => Object.assign({}, c, {
+    distributions: allDists.filter((d) => d.foodClientId === c.id)
+  }));
+  const section = SECTIONS.some((s) => s.key === params.section) ? params.section : "dashboard";
+  const go = (key) => navigate("/food/" + key);
+
+  return (
+    <>
+      <ModuleNav
+        label={t("navFoodDistribution")}
+        items={SECTIONS.map((s) => ({ key: s.key, label: t(s.label), icon: s.icon }))}
+        value={section}
+        onChange={go}
+      />
+      <div className="page-header">
+        <div className="icon-badge"><Icon name="fooddistribution" className="icon-lg" /></div>
+        <div>
+          <h1>{t("foodDistributionTitle")}</h1>
+          <p className="muted">{t("foodDistributionDesc")}</p>
+        </div>
+      </div>
+
+      {section === "dashboard" && <FoodDashboard foodClients={foodClients} onNavigate={go} />}
+      {section === "households" && <FoodHouseholds foodClients={foodClients} />}
+      {section === "distributions" && <DistributionLog foodClients={foodClients} />}
+      {section === "export" && <ExportDataDetails open onToggle={() => {}} />}
     </>
   );
 }

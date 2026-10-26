@@ -51,6 +51,7 @@ import { IconButton } from "../components/ui/icon-button.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 import { StatusBadge } from "../components/ui/status-badge.jsx";
 import { TabPanel, Tabs } from "../components/ui/tabs.jsx";
+import AddressInput from "../components/AddressInput.jsx";
 
 const TAB_KEYS = ["overview", "applications", "interviews", "services", "documents", "notes", "history"];
 const TAB_LABEL = {
@@ -155,10 +156,13 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
   });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
   function text(name, labelKey, phKey, extra) {
+    // The street field suggests addresses and fills city/zip from the pick.
+    const addr = name === "street" ? { as: Input, onAddressSelect: (a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip })) } : null;
+    const Control = addr ? AddressInput : Input;
     const id = "job-personal-" + name;
     return (
       <Field label={t(labelKey)} htmlFor={id}>
-        <Input id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
+        <Control {...addr} id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
       </Field>
     );
   }

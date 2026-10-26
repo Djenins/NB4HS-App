@@ -1,5 +1,7 @@
-// Students.jsx -- the Administrator/Case Manager/Job Developer Students
-// page: search + drag-and-drop Kanban roster board (waiting list + each
+// Students.jsx -- the Adult Education module (formerly the Students page),
+// with its own section menu (components/AdultEdNav.jsx): Dashboard /
+// Students / Classrooms / Waiting List / Assessments / Sessions, at
+// /students/:section. Search + drag-and-drop Kanban roster board (waiting list + each
 // active classroom), student enrollment, CSV/Excel roster upload, and
 // session history (including past-session roster import). Every data
 // computation still comes from lib/students.js / lib/assessments.js and
@@ -14,10 +16,10 @@
 // old per-column accent colours. Drag-and-drop handlers, data attributes and
 // event wiring are unchanged.
 import { useEffect, useId, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   CalendarPlus, CalendarRange, Check, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, FileUp, GraduationCap,
-  LogOut, Pencil, Phone, Trash2, TrendingUp, UserRound, Users, X
+  LogOut, Pencil, Phone, Plus, Trash2, TrendingUp, UserRound, Users, X
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CLASS_CAPACITY } from "../lib/constants.js";
@@ -25,8 +27,10 @@ import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { statusTone } from "../lib/statusTone.js";
-import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, todayStr } from "../lib/utils.js";
-import { createStudentWithClient, deleteStudent, updateStudent } from "../lib/checkinData.js";
+import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, slugify, todayStr } from "../lib/utils.js";
+import {
+  createCourse, createStudentWithClient, deleteCourse, deleteStudent, fetchCourses, subscribeTable, updateClass, updateStudent
+} from "../lib/checkinData.js";
 import {
   createPastSession, createPastSessionStudents, deleteSession as deleteSessionRow, startNewSession as startNewSessionRpc
 } from "../lib/sessionsData.js";
@@ -36,6 +40,8 @@ import {
   sortStudentsList, studentMatchesSearch, studentMissingContact, studentsForClass, totalEnrolledCount,
   waitingListStudents, waitlistForClass
 } from "../lib/students.js";
+import AddressInput from "../components/AddressInput.jsx";
+import AdultEdNav, { ADULT_ED_SECTIONS } from "../components/AdultEdNav.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
@@ -359,7 +365,7 @@ function StudentDetailDrawer({ student, classes, onClose, onEditStart, onDropout
   );
 }
 
-function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
+function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick, courseFilter }) {
   const { data } = useApp();
   const t = useT();
   const [editingId, setEditingId] = useState(null);
@@ -370,7 +376,9 @@ function StudentsBoard({ term, sortMode, filterMode, onAddStudentClick }) {
   const [collapsed, setCollapsed] = useState(false);
   const { moveStudent, removeStudent, markDropout, setOutcome, saveEdit } = useStudentRosterActions();
 
-  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
+  // courseFilter: "" shows every classroom, NO_COURSE the ones not yet
+  // assigned to a class, otherwise one course's classrooms.
+  const activeClasses = (data.classes || []).filter((c) => c.active !== false && classMatchesCourse(c, courseFilter));
   const columns = activeClasses.map((c) => {
     const students = studentsForClass(data.students, c.key);
     const searched = students.filter((s) => studentMatchesSearch(s, term));
@@ -527,7 +535,7 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
           <Field label={t("lastName")} htmlFor={fid("lastName")}><Input id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} /></Field>
           <Field label={t("phone")} htmlFor={fid("phone")}><Input id={fid("phone")} type="tel" value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} /></Field>
           <Field label={t("email")} htmlFor={fid("email")}><Input id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} /></Field>
-          <Field label={t("address")} htmlFor={fid("street")}><Input id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} /></Field>
+          <Field label={t("address")} htmlFor={fid("street")}><AddressInput as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} /></Field>
           <Field label={t("city")} htmlFor={fid("city")}><Input id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} /></Field>
           <Field label={t("zip")} htmlFor={fid("zip")}><Input id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></Field>
           <div className="grid grid-cols-2 gap-3">
@@ -808,7 +816,7 @@ function EnrollStudentPanel() {
           <Input id="enroll-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} />
         </Field>
         <Field label={t("address")} htmlFor="enroll-street" className="sm:col-span-2">
-          <Input id="enroll-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} placeholder={t("streetAddressPlaceholder")} />
+          <AddressInput as={Input} id="enroll-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} placeholder={t("streetAddressPlaceholder")} />
         </Field>
         <Field label={t("city")} htmlFor="enroll-city">
           <Input id="enroll-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
@@ -1038,34 +1046,306 @@ function PastSessionsPanel() {
   );
 }
 
-export default function Students() {
-  const { data, lang, requestConfirm, showToast } = useApp();
-  const t = useT();
-  const location = useLocation();
-  // Sidebar's "search a student" shortcut (Shell.jsx) hands its query here
-  // via router state instead of a second results view -- this board already
-  // knows how to render a filtered roster.
-  const [search, setSearch] = useState(() => (location.state && location.state.presetSearch) || "");
-  const [sortMode, setSortMode] = useState("name");
-  const [filterMode, setFilterMode] = useState("all");
-  const [selected, setSelected] = useState(() => new Set());
-  const enrollSectionRef = useRef(null);
+// ---------- Adult Education module ----------
+// The sections reuse the panels above unchanged; Assessments is its own
+// page (pages/Assessments.jsx, /students/assessments) under the same menu.
 
-  function toggleSelect(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+// Classes (courses) are the subjects a classroom teaches -- Computer
+// Literacy, ESL, and whatever staff add. A classroom with no course is
+// listed under "Unassigned" (NO_COURSE) so nothing drops off the board.
+const NO_COURSE = "__none";
+const SECTION_KEYS = ADULT_ED_SECTIONS.map((s) => s.key).filter((k) => k !== "assessments");
+
+function classMatchesCourse(c, courseFilter) {
+  if (!courseFilter) return true;
+  if (courseFilter === NO_COURSE) return !c.courseKey;
+  return c.courseKey === courseFilter;
+}
+
+function useCourses() {
+  const [courses, setCourses] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => fetchCourses().then((rows) => { if (!cancelled) setCourses(rows); });
+    load();
+    const unsub = subscribeTable("courses", load);
+    return () => { cancelled = true; unsub(); };
+  }, []);
+  return courses;
+}
+
+function courseName(courses, key) {
+  const c = (courses || []).find((x) => x.key === key);
+  return c ? c.name : "";
+}
+
+// Search + filter + sort, shared by the Students, Classrooms and Waiting
+// List sections. The values live in the module so they carry across tabs.
+function RosterFilterBar({ search, onSearch, filterMode, onFilterMode, sortMode, onSortMode, onClear }) {
+  const t = useT();
+  const activeFilterCount = filterMode !== "all" ? 1 : 0;
+  return (
+    <FilterBar
+      className="no-print"
+      search={
+        <SearchInput
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          onClear={() => onSearch("")}
+          clearLabel={t("clearAllLabel")}
+          placeholder={t("studentSearchPlaceholder")}
+          aria-label={t("studentSearchPlaceholder")}
+        />
+      }
+      activeCount={activeFilterCount}
+      canClear={activeFilterCount > 0 || !!search}
+      onClear={onClear}
+      clearLabel={t("clearFilters")}
+      filtersLabel={t("filtersLabel")}
+      gridClassName="sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <FilterField label={t("filterLabel")} htmlFor="students-filter-mode">
+        <Select id="students-filter-mode" value={filterMode} onChange={(e) => onFilterMode(e.target.value)}>
+          <option value="all">{t("filterAllLabel")}</option>
+          <option value="missingContact">{t("filterMissingContactLabel")}</option>
+        </Select>
+      </FilterField>
+      <FilterField label={t("sortByLabel")} htmlFor="students-sort-mode">
+        <Select id="students-sort-mode" value={sortMode} onChange={(e) => onSortMode(e.target.value)}>
+          <option value="name">{t("sortByNameLabel")}</option>
+          <option value="id">{t("sortByIdLabel")}</option>
+          <option value="recent">{t("sortByRecentLabel")}</option>
+        </Select>
+      </FilterField>
+    </FilterBar>
+  );
+}
+
+function AdultEdDashboard({ courses, onNavigate }) {
+  const { data } = useApp();
+  const t = useT();
+  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
+  const totalEnrolled = totalEnrolledCount(data.students);
+  const seatsAvailable = Math.max(0, activeClasses.length * CLASS_CAPACITY - totalEnrolled);
+  const waitingCount = waitingListStudents(data.students).length;
+  const assessed = (data.students || []).filter((s) => s.active !== false).map(studentAssessmentStatus).filter((a) => a.status !== "noPretest");
+  const completedCount = assessed.filter((a) => a.outcome === "completed").length;
+  const completionRate = assessed.length ? Math.round((completedCount / assessed.length) * 100) : 0;
+
+  const rows = courses.map((c) => ({ key: c.key, name: c.name }));
+  if (activeClasses.some((c) => !c.courseKey)) rows.push({ key: NO_COURSE, name: t("courseUnassigned") });
+  const summary = rows.map((r) => {
+    const rooms = activeClasses.filter((c) => classMatchesCourse(c, r.key));
+    const enrolled = rooms.reduce((sum, c) => sum + studentsForClass(data.students, c.key).length, 0);
+    return Object.assign({}, r, { rooms: rooms.length, enrolled, seats: rooms.length * CLASS_CAPACITY });
+  });
+
+  return (
+    <>
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label={t("statTotalEnrolledLabel")} value={totalEnrolled} icon={Users} tone="info" hint={t("statAcrossClassroomsLabel")} />
+        <KpiCard label={t("statSeatsAvailableLabel")} value={seatsAvailable} icon={CheckCircle2} tone="success" hint={t("statAcrossClassroomsLabel")} />
+        <KpiCard label={t("waitingList")} value={waitingCount} icon={Clock3} tone="warning" onClick={() => onNavigate("waitinglist")} />
+        <KpiCard label={t("statCompletionRateLabel")} value={completionRate + "%"} icon={TrendingUp} tone="violet" hint={t("statThisSessionLabel")} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+        <SectionCard title={t("coursesTitle")} description={t("coursesDashboardDesc")}>
+          {summary.length ? (
+            <ul className="m-0 list-none divide-y divide-border rounded-control border border-border p-0">
+              {summary.map((r) => (
+                <li key={r.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"><GraduationCap className="h-4 w-4" aria-hidden="true" /></span>
+                    <div>
+                      <div className="text-ui font-semibold text-card-foreground">{r.name}</div>
+                      <div className="text-meta text-muted">{t("courseClassroomCount").replace("{n}", String(r.rooms))}</div>
+                    </div>
+                  </div>
+                  <div className="text-ui font-semibold tabular-nums text-card-foreground">{r.enrolled}/{r.seats} <span className="font-normal text-muted">{t("courseSeatsFilled")}</span></div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={GraduationCap} title={t("noCoursesYet")} compact />
+          )}
+        </SectionCard>
+        <SectionCard title={t("waitingList")} description={t("adultEdWaitingDesc").replace("{n}", String(waitingCount))} className="self-start">
+          <div className="flex flex-col gap-2">
+            <Button variant="secondary" onClick={() => onNavigate("waitinglist")}>{t("adultEdOpenWaitingList")}</Button>
+            <Button variant="secondary" onClick={() => onNavigate("students")}>{t("enrollStudentTitle")}</Button>
+          </div>
+        </SectionCard>
+      </div>
+    </>
+  );
+}
+
+function StudentsTable({ term, sortMode, filterMode, courses }) {
+  const { data } = useApp();
+  const t = useT();
+  const classes = data.classes || [];
+  const active = (data.students || []).filter((s) => s.active !== false);
+  const searched = active.filter((s) => studentMatchesSearch(s, term));
+  const withFilter = filterMode === "missingContact" ? searched.filter(studentMissingContact) : searched;
+  const rows = sortStudentsList(withFilter, sortMode);
+  const roomOf = (s) => (s.classKey ? classes.find((c) => c.key === s.classKey) : null);
+  const nameCell = (s) => (
+    <>
+      {s.nbId
+        ? <Link to={"/clients/" + s.nbId} className="font-semibold text-primary">{s.firstName} {s.lastName}</Link>
+        : <span className="font-semibold text-card-foreground">{s.firstName} {s.lastName}</span>}
+      {s.studentId && <div className="text-meta text-muted">{s.studentId}</div>}
+    </>
+  );
+  const roomCell = (s) => {
+    const room = roomOf(s);
+    return room ? room.name : <StatusBadge domain="enrollment" status="waitlisted">{t("waitingList")}</StatusBadge>;
+  };
+  const courseCell = (s) => {
+    const room = roomOf(s);
+    return room && room.courseKey ? courseName(courses, room.courseKey) : "—";
+  };
+
+  return (
+    <SectionCard
+      className="mb-6"
+      title={t("navStudents") + " · " + rows.length + ((term || filterMode === "missingContact") ? "/" + active.length : "")}
+    >
+      <DataTable
+        caption={t("navStudents")}
+        rows={rows}
+        getRowId={(s) => s.id}
+        columns={[
+          { key: "name", header: t("nameLabel"), cell: nameCell },
+          { key: "phone", header: t("phoneLabel"), cell: (s) => formatPhone(s.phone) || "—" },
+          { key: "email", header: t("emailLabel"), cell: (s) => s.email || "—" },
+          { key: "room", header: t("classroomColumn"), cell: roomCell },
+          { key: "course", header: t("courseColumn"), cell: courseCell }
+        ]}
+        renderCard={(s) => (
+          <div>
+            {nameCell(s)}
+            <div className="mt-1 text-meta text-muted">{formatPhone(s.phone) || "—"}{s.email ? " · " + s.email : ""}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-ui">{roomCell(s)}<span className="text-muted">{courseCell(s)}</span></div>
+          </div>
+        )}
+        empty={<EmptyState icon={Users} title={term || filterMode === "missingContact" ? t("noSearchResults") : t("noStudentsEnrolled")} compact />}
+      />
+    </SectionCard>
+  );
+}
+
+// Add / remove classes (courses) and say which class each classroom teaches.
+function CoursesCard({ courses }) {
+  const { data, requestConfirm, showToast } = useApp();
+  const t = useT();
+  const [name, setName] = useState("");
+  const classes = (data.classes || []).filter((c) => c.active !== false);
+
+  async function addCourse() {
+    const label = name.trim();
+    if (!label) return;
+    if (courses.some((c) => c.name.toLowerCase() === label.toLowerCase())) { showToast(t("courseExists")); return; }
+    const existingKeys = courses.map((c) => c.key);
+    let key = slugify(label);
+    let suffix = 1;
+    while (existingKeys.indexOf(key) !== -1) { key = slugify(label) + "_" + suffix; suffix++; }
+    try {
+      await createCourse({ key, name: label });
+      setName("");
+      showToast(t("courseAdded"));
+    } catch (err) {
+      console.warn("createCourse failed", err);
+      showToast(t("courseSaveError"));
+    }
   }
 
-  useEffect(() => {
-    if (location.state && typeof location.state.presetSearch === "string") {
-      setSearch(location.state.presetSearch);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  async function removeCourse(c) {
+    const ok = await requestConfirm(t("removeCourseConfirm").replace("{name}", c.name), { danger: true });
+    if (!ok) return;
+    try { await deleteCourse(c.key); } catch (err) { console.warn("deleteCourse failed", err); showToast(t("courseSaveError")); }
+  }
 
+  async function assign(classKey, courseKey) {
+    try { await updateClass(classKey, { courseKey: courseKey || null }); } catch (err) { console.warn("updateClass failed", err); showToast(t("courseSaveError")); }
+  }
+
+  return (
+    <SectionCard className="mb-6" title={t("coursesTitle")} description={t("coursesDesc")}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            {courses.map((c) => (
+              <span key={c.key} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-sunken py-1 pl-3 pr-1 text-ui font-semibold text-card-foreground">
+                {c.name}
+                <IconButton size="sm" label={t("removeCourseLabel").replace("{name}", c.name)} onClick={() => removeCourse(c)}>
+                  <X className="h-3.5 w-3.5" />
+                </IconButton>
+              </span>
+            ))}
+            {!courses.length && <span className="text-ui text-muted">{t("noCoursesYet")}</span>}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Input
+              value={name}
+              maxLength={60}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addCourse(); }}
+              placeholder={t("newCoursePlaceholder")}
+              aria-label={t("newCoursePlaceholder")}
+            />
+            <Button onClick={addCourse} className="shrink-0"><Plus className="h-4 w-4" aria-hidden="true" />{t("addCourseBtn")}</Button>
+          </div>
+        </div>
+        <div>
+          <div className="mb-2 text-meta font-semibold text-muted">{t("courseAssignHeading")}</div>
+          <div className="divide-y divide-border rounded-control border border-border">
+            {classes.map((c) => (
+              <div key={c.key} className="flex items-center justify-between gap-3 px-3 py-2">
+                <label htmlFor={"course-for-" + c.key} className="truncate text-ui font-semibold text-card-foreground">{c.name}</label>
+                <Select id={"course-for-" + c.key} value={c.courseKey || ""} onChange={(e) => assign(c.key, e.target.value)} className="!w-48">
+                  <option value="">{t("courseUnassigned")}</option>
+                  {courses.map((co) => <option key={co.key} value={co.key}>{co.name}</option>)}
+                </Select>
+              </div>
+            ))}
+          </div>
+          <Button asChild variant="ghost" size="sm" className="mt-2 font-semibold text-primary no-underline"><Link to="/manage">{t("addClassroomShortcutBtn")}</Link></Button>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function CourseFilterChips({ courses, value, onChange, showUnassigned }) {
+  const t = useT();
+  const options = [{ key: "", name: t("allCoursesLabel") }].concat(courses);
+  if (showUnassigned) options.push({ key: NO_COURSE, name: t("courseUnassigned") });
+  return (
+    <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={t("coursesTitle")}>
+      {options.map((o) => (
+        <button
+          key={o.key || "all"}
+          type="button"
+          aria-pressed={value === o.key}
+          onClick={() => onChange(o.key)}
+          className={cn(
+            BUTTON_RESET,
+            "rounded-full border px-3.5 py-1.5 text-ui font-semibold transition-colors duration-fast",
+            value === o.key ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-card-foreground hover:border-primary"
+          )}
+        >
+          {o.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SessionsSection() {
+  const { data, lang, requestConfirm, showToast } = useApp();
+  const t = useT();
   const session = data.currentSession || {};
 
   async function startNewSession() {
@@ -1078,8 +1358,43 @@ export default function Students() {
     showToast(t("newSessionStarted"));
   }
 
-  function scrollToEnroll() {
-    enrollSectionRef.current && enrollSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_2fr]">
+      <SectionCard className="self-start" title={t("currentSession")} description={fmtDateLong(session.startDate, lang) + " – " + fmtDateLong(session.endDate, lang)}>
+        <Button className="w-full" onClick={startNewSession}><CalendarPlus className="h-4 w-4" aria-hidden="true" />{t("startNewSession")}</Button>
+      </SectionCard>
+      <PastSessionsPanel />
+    </div>
+  );
+}
+
+export default function Students() {
+  const { data, lang } = useApp();
+  const t = useT();
+  const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const courses = useCourses();
+  // Sidebar's "search a student" shortcut and Assessments hand a query here
+  // via router state -- it opens the Students section filtered.
+  const presetSearch = location.state && typeof location.state.presetSearch === "string" ? location.state.presetSearch : null;
+  const [search, setSearch] = useState(() => presetSearch || "");
+  const [sortMode, setSortMode] = useState("name");
+  const [filterMode, setFilterMode] = useState("all");
+  const [courseFilter, setCourseFilter] = useState("");
+  const [selected, setSelected] = useState(() => new Set());
+
+  useEffect(() => {
+    if (presetSearch !== null) setSearch(presetSearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+  function toggleSelect(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   }
 
   function clearFilters() {
@@ -1087,21 +1402,25 @@ export default function Students() {
     setFilterMode("all");
   }
 
-  const activeClasses = (data.classes || []).filter((c) => c.active !== false);
-  const totalEnrolled = totalEnrolledCount(data.students);
-  const seatsAvailable = Math.max(0, activeClasses.length * CLASS_CAPACITY - totalEnrolled);
-  const waitingCount = waitingListStudents(data.students).length;
-  const assessed = (data.students || []).filter((s) => s.active !== false).map(studentAssessmentStatus).filter((a) => a.status !== "noPretest");
-  const completedCount = assessed.filter((a) => a.outcome === "completed").length;
-  const completionRate = assessed.length ? Math.round((completedCount / assessed.length) * 100) : 0;
-  const activeFilterCount = filterMode !== "all" ? 1 : 0;
+  const fallback = presetSearch !== null ? "students" : "dashboard";
+  const section = SECTION_KEYS.indexOf(params.section) !== -1 ? params.section : fallback;
+  const go = (key) => navigate("/students/" + key);
   const term = search.trim().toLowerCase();
+  const session = data.currentSession || {};
+  const filterBar = (
+    <RosterFilterBar
+      search={search} onSearch={setSearch} filterMode={filterMode} onFilterMode={setFilterMode}
+      sortMode={sortMode} onSortMode={setSortMode} onClear={clearFilters}
+    />
+  );
+  const hasUnassigned = (data.classes || []).some((c) => c.active !== false && !c.courseKey);
 
   return (
     <>
+      <AdultEdNav value={section} />
       <PageHeader
-        title={t("studentsPageTitle")}
-        description={t("studentsPageSubtitle")}
+        title={t("navAdultEducation")}
+        description={t("adultEdPageSubtitle")}
         meta={
           <span className="inline-flex items-center gap-1.5 text-meta text-muted">
             <CalendarRange className="h-4 w-4" aria-hidden="true" />
@@ -1109,69 +1428,41 @@ export default function Students() {
             <span className="font-semibold tabular-nums text-card-foreground">{fmtDateLong(session.startDate, lang)} – {fmtDateLong(session.endDate, lang)}</span>
           </span>
         }
-        actions={
-          <>
-            <Button asChild variant="secondary" className="no-underline"><Link to="/manage">{t("addClassroomShortcutBtn")}</Link></Button>
-            <Button onClick={startNewSession}><CalendarPlus className="h-4 w-4" aria-hidden="true" />{t("startNewSession")}</Button>
-          </>
-        }
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label={t("statTotalEnrolledLabel")} value={totalEnrolled} icon={Users} tone="info" hint={t("statAcrossClassroomsLabel")} />
-        <KpiCard label={t("statSeatsAvailableLabel")} value={seatsAvailable} icon={CheckCircle2} tone="success" hint={t("statAcrossClassroomsLabel")} />
-        <KpiCard label={t("waitingList")} value={waitingCount} icon={Clock3} tone="warning" />
-        <KpiCard label={t("statCompletionRateLabel")} value={completionRate + "%"} icon={TrendingUp} tone="violet" hint={t("statThisSessionLabel")} />
-      </div>
+      {section === "dashboard" && <AdultEdDashboard courses={courses} onNavigate={go} />}
 
-      <FilterBar
-        className="no-print"
-        search={
-          <SearchInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onClear={() => setSearch("")}
-            clearLabel={t("clearAllLabel")}
-            placeholder={t("studentSearchPlaceholder")}
-            aria-label={t("studentSearchPlaceholder")}
+      {section === "students" && (
+        <>
+          {filterBar}
+          <StudentsTable term={term} sortMode={sortMode} filterMode={filterMode} courses={courses} />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <EnrollStudentPanel />
+            <UploadStudentsPanel />
+          </div>
+        </>
+      )}
+
+      {section === "classrooms" && (
+        <>
+          <CoursesCard courses={courses} />
+          {filterBar}
+          <CourseFilterChips courses={courses} value={courseFilter} onChange={setCourseFilter} showUnassigned={hasUnassigned} />
+          <StudentsBoard term={term} sortMode={sortMode} filterMode={filterMode} courseFilter={courseFilter} onAddStudentClick={() => go("students")} />
+        </>
+      )}
+
+      {section === "waitinglist" && (
+        <>
+          {filterBar}
+          <WaitingListPanel
+            term={term} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={() => go("students")} onClearFilters={clearFilters}
+            selected={selected} onToggleSelect={toggleSelect} onClearSelected={() => setSelected(new Set())}
           />
-        }
-        activeCount={activeFilterCount}
-        canClear={activeFilterCount > 0 || !!search}
-        onClear={clearFilters}
-        clearLabel={t("clearFilters")}
-        filtersLabel={t("filtersLabel")}
-        gridClassName="sm:grid-cols-2 lg:grid-cols-3"
-      >
-        <FilterField label={t("filterLabel")} htmlFor="students-filter-mode">
-          <Select id="students-filter-mode" value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
-            <option value="all">{t("filterAllLabel")}</option>
-            <option value="missingContact">{t("filterMissingContactLabel")}</option>
-          </Select>
-        </FilterField>
-        <FilterField label={t("sortByLabel")} htmlFor="students-sort-mode">
-          <Select id="students-sort-mode" value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
-            <option value="name">{t("sortByNameLabel")}</option>
-            <option value="id">{t("sortByIdLabel")}</option>
-            <option value="recent">{t("sortByRecentLabel")}</option>
-          </Select>
-        </FilterField>
-      </FilterBar>
+        </>
+      )}
 
-      <WaitingListPanel
-        term={term} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} onClearFilters={clearFilters}
-        selected={selected} onToggleSelect={toggleSelect} onClearSelected={() => setSelected(new Set())}
-      />
-
-      <StudentsBoard term={term} sortMode={sortMode} filterMode={filterMode} onAddStudentClick={scrollToEnroll} />
-
-      <div ref={enrollSectionRef} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <EnrollStudentPanel />
-        <div className="flex min-w-0 flex-col gap-6">
-          <UploadStudentsPanel />
-          <PastSessionsPanel />
-        </div>
-      </div>
+      {section === "sessions" && <SessionsSection />}
     </>
   );
 }

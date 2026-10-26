@@ -19,6 +19,8 @@ export var NAV_REQUIREMENTS = {
   checkout: ["front_desk.checkout"],
   search: ["front_desk.visits.search"],
   calendar: ["calendar.view"],
+  // My Availability: anyone who can open the calendar sets their own hours.
+  availability: ["calendar.view"],
   students: ["students.view"],
   assessments: ["students.assessments.view"],
   casemanagement: ["case_management.view"],
@@ -43,7 +45,7 @@ export var NAV_REQUIREMENTS = {
 // Canonical sidebar order: the administrator's order from nav.js (every other
 // role's list is a subsequence of it).
 export var NAV_ORDER = [
-  "dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar",
+  "dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "availability",
   "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper",
   "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports",
   "users", "settings", "outreach", "myreports", "staffreports"

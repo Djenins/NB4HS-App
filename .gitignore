@@ -6,6 +6,7 @@ dist/
 
 .vercel
 .env*
+.DS_Store
 
 # Supabase CLI local state
 supabase/.temp/

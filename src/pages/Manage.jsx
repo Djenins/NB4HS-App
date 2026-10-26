@@ -108,7 +108,7 @@ function ClassManageCard({ c }) {
 
       <p className="muted" style={{ marginTop: 12, marginBottom: 4 }}>{t("rosterTitle")}: {roster.length}</p>
       <p className="muted" style={{ fontSize: ".85rem" }}>{t("manageRosterHere")}</p>
-      <button className="btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => navigate("/students")}>
+      <button className="btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => navigate("/students/classrooms")}>
         <Users className="icon" style={{ marginRight: 6 }} /> {t("viewStudentsLabel")}
       </button>
     </div>

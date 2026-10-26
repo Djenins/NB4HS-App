@@ -25,11 +25,11 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
       )}
     >
       <div className="mb-3 flex items-center gap-3">
-        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", BADGE_TONES[tone])}>
-          <SectionIcon size={21} strokeWidth={2} aria-hidden="true" />
+        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-10 sm:w-10", BADGE_TONES[tone])}>
+          <SectionIcon strokeWidth={2} aria-hidden="true" className="h-[19px] w-[19px] sm:h-[21px] sm:w-[21px]" />
         </span>
         <div className="min-w-0">
-          <h2 id={id + "-title"} className="m-0 text-[1.35rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+          <h2 id={id + "-title"} className="m-0 text-[1.125rem] font-extrabold leading-tight tracking-tight sm:text-[1.35rem] text-navy dark:text-[color:var(--text)]">{title}</h2>
           {subtitle && <p className="m-0 mt-0.5 text-[0.92rem] leading-snug text-muted">{subtitle}</p>}
         </div>
       </div>

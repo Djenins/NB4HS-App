@@ -82,7 +82,7 @@ describe("nav items source", () => {
   const base = { role: "staff", workforceRoleAccess: [], programRoles: {} };
   it("uses permissions once they've loaded", () => {
     const r = resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissions: [{ permissionKey: "calendar.view", programKey: "" }] }));
-    expect(r).toEqual({ items: ["calendar"], source: "permissions" });
+    expect(r).toEqual({ items: ["calendar", "availability"], source: "permissions" });
   });
   it("falls back to the account type while loading, if the call failed, or under the legacy switch", () => {
     expect(resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: false, permissions: [] })).source).toBe("legacy-loading");

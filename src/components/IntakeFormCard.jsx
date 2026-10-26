@@ -23,6 +23,7 @@ import { Field, Input } from "./ui/field.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
 import { cn } from "../lib/cn.js";
 import { fetchClientIntake, saveClientIntake, updateClientRecord } from "../lib/clientsData.js";
+import AddressInput from "./AddressInput.jsx";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
 
@@ -134,11 +135,14 @@ function optionLabel(t, opt) {
 // Local wrappers over the ui Field/Input so the ~60 form questions below
 // stay one line each. Ids come from useId: the visible label is wired to its
 // control, and the print/PDF export clones the DOM as-is.
-function IntakeField({ label, value, onChange, type, placeholder, className, inputMode }) {
+function IntakeField({ label, value, onChange, type, placeholder, className, inputMode, onAddressSelect }) {
   const id = useId();
+  // The street field passes onAddressSelect and gets address suggestions.
+  const Control = onAddressSelect ? AddressInput : Input;
+  const addressProps = onAddressSelect ? { as: Input, onAddressSelect } : {};
   return (
     <Field label={label} htmlFor={id} className={className}>
-      <Input id={id} type={type || "text"} inputMode={inputMode} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      <Control {...addressProps} id={id} type={type || "text"} inputMode={inputMode} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
     </Field>
   );
 }
@@ -466,7 +470,8 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 </div>
                 <RadioGroup label={t("intakeQGender")} name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)} />
+                  <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)}
+                    onAddressSelect={(a) => { set("address", a.street); if (a.city) set("city", a.city); if (a.state) set("state", a.state); if (a.zip) set("zip", a.zip); }} />
                   <IntakeField label={t("intakeQCity")} placeholder={t("intakeEgPrefix") + " Providence"} value={f.city} onChange={(v) => set("city", v)} />
                   <IntakeField label={t("intakeQState")} placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
                 </div>

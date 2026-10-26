@@ -7,13 +7,13 @@ import { Mail, Phone, UserRound } from "lucide-react";
 import ApptRequestCard from "./ApptRequestCard.jsx";
 import { ApptField } from "./ApptRequestField.jsx";
 
-export default function YourInformationSection({ t, errors, open, onToggle }) {
+export default function YourInformationSection({ t, errors, open, onToggle, description }) {
   return (
     <ApptRequestCard
       id="appt-req-your-info"
       icon={UserRound}
       title={t("sectionApptYourInfo")}
-      description={t("sectionApptYourInfoDesc")}
+      description={description || t("sectionApptYourInfoDesc")}
       open={open}
       onToggle={onToggle}
     >

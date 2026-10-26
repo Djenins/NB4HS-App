@@ -16,7 +16,6 @@ import { useApp } from "./context/AppContext.jsx";
 import { LEGACY_REDIRECTS } from "./lib/routes.js";
 import LegacyRedirect from "./components/LegacyRedirect.jsx";
 import Shell from "./components/Shell.jsx";
-import Login from "./pages/Login.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import RequireRoute from "./components/RequireRoute.jsx";
@@ -29,6 +28,11 @@ import CheckOutScanSuccess from "./pages/CheckOutScanSuccess.jsx";
 import ApptRequest from "./pages/ApptRequest.jsx";
 import ApptRequestSuccess from "./pages/ApptRequestSuccess.jsx";
 import AppointmentLookup from "./pages/AppointmentLookup.jsx";
+import ClientRegister from "./pages/ClientRegister.jsx";
+import ClientRegisterSuccess from "./pages/ClientRegisterSuccess.jsx";
+import { navPath } from "./lib/nav.js";
+import { useNavItems } from "./lib/useNavItems.js";
+import { landingItem } from "./lib/workspaces.js";
 
 // Code-split by route. The public kiosk/appointment pages above load eagerly
 // -- they're the first thing a client's device sees and should never wait on
@@ -65,6 +69,35 @@ const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
+const Availability = lazy(() => import("./pages/Availability.jsx"));
+
+// "/" is for staff only: the sign-in page, or straight to their landing page
+// once signed in. Clients never land here -- they get the kiosk link (/kiosk).
+function StaffHome() {
+  const { session, authLoading } = useApp();
+  const { items } = useNavItems();
+  if (authLoading) return null;
+  if (session) {
+    const landing = landingItem(items, session.primaryWorkspace);
+    if (landing) return <Navigate to={navPath(landing)} replace />;
+  }
+  return <StaffLogin />;
+}
+
+// The kiosk's own link (what the QR code page hands out, e.g.
+// https://checkin.nb4hs.org/kiosk): switches this device into kiosk mode and
+// opens the client check-in screen. Kept separate from "/" so clients never
+// see the staff home page.
+function KioskEntry() {
+  const { setKiosk } = useApp();
+  const navigate = useNavigate();
+  useEffect(() => {
+    setKiosk(true);
+    navigate("/checkin", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
 
 function BootstrapEntry() {
   const { setKiosk } = useApp();
@@ -91,13 +124,15 @@ export default function App() {
     <>
       <BootstrapEntry />
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/staff-login" element={<StaffLogin />} />
+        <Route path="/" element={<StaffHome />} />
+        <Route path="/staff-login" element={<StaffHome />} />
+        <Route path="/kiosk" element={<KioskEntry />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<Shell />}>
           <Route path="/dashboard" element={<RequireRoute routeKey="dashboard"><Dashboard /></RequireRoute>} />
           <Route path="/mycaseload" element={<RequireRoute routeKey="mycaseload"><MyCaseload /></RequireRoute>} />
+          <Route path="/availability" element={<RequireRoute routeKey="availability"><Availability /></RequireRoute>} />
           <Route path="/checkin" element={<RequireRoute routeKey="checkin" kiosk><CheckIn /></RequireRoute>} />
           <Route path="/checkin/student" element={<RequireRoute routeKey="checkin" kiosk><CheckInStudent /></RequireRoute>} />
           <Route path="/checkin/visitor" element={<RequireRoute routeKey={["checkin", "search"]} kiosk><CheckInVisitor /></RequireRoute>} />
@@ -107,15 +142,17 @@ export default function App() {
           <Route path="/appointments/request" element={<ApptRequest />} />
           <Route path="/appointments/request/success" element={<ApptRequestSuccess />} />
           <Route path="/appointments/lookup" element={<AppointmentLookup />} />
+          <Route path="/register" element={<ClientRegister />} />
+          <Route path="/register/success" element={<ClientRegisterSuccess />} />
           <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
           <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
-          <Route path="/food" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
+          <Route path="/food/:section?" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
           <Route path="/calendar" element={<RequireRoute routeKey="calendar"><CalendarPage /></RequireRoute>} />
           <Route path="/qrcode" element={<RequireRoute routeKey="qrcode"><QRCode /></RequireRoute>} />
           <Route path="/manage" element={<RequireRoute routeKey="manage"><Manage /></RequireRoute>} />
-          <Route path="/students" element={<RequireRoute routeKey="students"><Students /></RequireRoute>} />
+          <Route path="/students/:section?" element={<RequireRoute routeKey="students"><Students /></RequireRoute>} />
           <Route path="/students/assessments" element={<RequireRoute routeKey="assessments"><Assessments /></RequireRoute>} />
-          <Route path="/case-management" element={<RequireRoute routeKey="casemanagement"><CaseManagement /></RequireRoute>} />
+          <Route path="/case-management/:section?" element={<RequireRoute routeKey="casemanagement"><CaseManagement /></RequireRoute>} />
           <Route path="/myreports" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
           <Route path="/myreports/:reportId" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
           <Route path="/staffreports" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />

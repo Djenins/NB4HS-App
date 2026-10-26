@@ -6,6 +6,7 @@
 // message the kiosk shows underneath instead of only a toast.
 import { cn } from "../../lib/cn.js";
 import { formatPhone } from "../../lib/utils.js";
+import AddressInput from "../AddressInput.jsx";
 
 // Shared control sizing for every kiosk input/select/textarea. main.css's
 // bare input/select/textarea rules already supply the fill, border, radius
@@ -33,8 +34,11 @@ export function KioskFieldError({ id, children }) {
 
 export default function KioskField({
   name, label, type = "text", required = false, error = "", icon: LeadingIcon,
-  placeholder, value, disabled = false, readOnly = false, className
+  placeholder, value, disabled = false, readOnly = false, className, onAddressSelect
 }) {
+  // The street field passes onAddressSelect and gets address suggestions.
+  const InputEl = onAddressSelect ? AddressInput : "input";
+  const addressProps = onAddressSelect ? { onAddressSelect } : {};
   const id = "checkin-field-" + name;
   const errorId = error ? id + "-error" : undefined;
   return (
@@ -54,7 +58,8 @@ export default function KioskField({
             )}
           />
         )}
-        <input
+        <InputEl
+          {...addressProps}
           type={type}
           name={name}
           id={id}

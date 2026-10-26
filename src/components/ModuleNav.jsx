@@ -1,8 +1,20 @@
-// ModuleNav.jsx -- the standard secondary navigation for switching between
-// the sections *inside* one module (e.g. Workforce Development's Job
-// Seekers / Dashboard / Employers / ... strip). Stacked icon + label, with
-// a blue underline marking the active section, on its own white card, and
-// it stays put at the top of the content column while the page scrolls.
+// ModuleNav.jsx -- the standard program submenu: the horizontal strip that
+// switches between the sections *inside* one module (Case Management's
+// Dashboard / Clients / Resources / Intakes / Appointments, Workforce,
+// Outreach/SNAP, Adult Education, Food Distribution). One white card with
+// the items spread evenly across it; each item is a softly tinted rounded
+// icon tile with its label underneath. The active item sits on a pale-blue
+// background with a blue icon and label -- that is the only active marker.
+//
+// Each module passes its own `items` ({ key, label, icon, tone?, badge?,
+// disabled? }) and `value` (derive it from the route). Permission-based
+// visibility stays with the module: it only passes the items the signed-in
+// user may see, and the server still enforces access on its own.
+//
+// Tiles take the TONES palette in order unless an item pins its own `tone`.
+// On a phone the strip scrolls sideways (scrollbar hidden) and keeps the
+// active item in view; it stays put at the top of the content column while
+// the page scrolls.
 //
 // Scope, deliberately: this is NOT the app's primary navigation. The left
 // sidebar, the header and everything else in components/Shell.jsx are the
@@ -20,9 +32,9 @@
 //     button here has to cancel that itself via BTN_RESET, the same way
 //     Shell.jsx does, or the items inflate to 52px pills.
 //   * `:where(button:hover){transform:translateY(-1px)}` in main.css would
-//     bounce each item away from its underline on hover, hence
-//     `transform-none`.
-import { useEffect, useState } from "react";
+//     nudge each item up on hover -- a visible jump the brief rules out --
+//     hence `transform-none`.
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../lib/cn.js";
 
 const BTN_RESET = "min-h-0 rounded-none border-0 bg-transparent font-normal transform-none";
@@ -53,8 +65,36 @@ function useTopbarOffset() {
   return offset;
 }
 
+// Tile colours, in the order sections get them: blue, slate, green, amber,
+// violet, pink, teal, sky. All theme-aware tokens (light + dark in main.css).
+// The active item's tile: a stronger blue than the pale-blue item behind it.
+const ACTIVE_TONE = "bg-[color:var(--border-primary-soft)] text-primary";
+const TONES = [
+  "bg-primary-tint text-primary",
+  "bg-tint-neutral text-navy dark:text-[color:var(--text)]",
+  "bg-tint-success text-success",
+  "bg-tint-warn text-gold-ink",
+  "bg-violet-tint text-violet-ink",
+  "bg-pink-tint text-pink-ink",
+  "bg-teal-tint text-teal-ink",
+  "bg-sky-tint text-sky-ink"
+];
+
 export default function ModuleNav({ items, value, onChange, label, className }) {
   const top = useTopbarOffset();
+  const scrollRef = useRef(null);
+
+  // Keep the active item visible when the strip scrolls (phones): nudge only
+  // the strip's own horizontal scroll, never the page.
+  useEffect(() => {
+    const strip = scrollRef.current;
+    const el = strip && strip.querySelector('[aria-current="page"]');
+    if (!el) return;
+    const left = el.offsetLeft - 8;
+    const right = el.offsetLeft + el.offsetWidth + 8;
+    if (left < strip.scrollLeft) strip.scrollLeft = left;
+    else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right - strip.clientWidth;
+  }, [value]);
 
   return (
     // The sticky element is this wrapper, not the card, so it can paint a
@@ -67,41 +107,54 @@ export default function ModuleNav({ items, value, onChange, label, className }) 
     <div className="sticky z-10 -mx-4 -mt-4 mb-5 bg-background px-4 pb-4 pt-4" style={{ top }}>
       <nav
         aria-label={label}
-        className={cn("overflow-x-auto rounded-xl border border-border bg-card shadow-card", className)}
+        ref={scrollRef}
+        className={cn("no-scrollbar overflow-x-auto rounded-[22px] border border-border bg-card p-1.5 shadow-card lg:p-2.5", className)}
       >
-        <div className="flex min-w-max items-stretch px-2 sm:px-3">
-          {items.map((item) => {
+        <ul className="m-0 flex min-w-max list-none gap-0.5 p-0 sm:min-w-0 lg:gap-1.5">
+          {items.map((item, i) => {
             const active = item.key === value;
+            const disabled = !!item.disabled;
             const Icon = item.icon;
+            const tone = active ? ACTIVE_TONE : (item.tone || TONES[i % TONES.length]);
             return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onChange(item.key)}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  BTN_RESET,
-                  "relative flex shrink-0 flex-col items-center gap-2.5 px-4 pb-[18px] pt-5 text-[13px] font-semibold leading-none transition-colors sm:px-5",
-                  active ? "text-primary" : "text-muted hover:text-card-foreground"
-                )}
-              >
-                <Icon className="h-6 w-6 shrink-0" strokeWidth={1.9} aria-hidden="true" />
-                <span className="whitespace-nowrap">{item.label}</span>
-                {/* Active underline: pinned to the card's bottom edge rather
-                    than drawn as the button's own border-bottom, so it keeps
-                    a constant width/position while the label above it changes
-                    colour. */}
-                <span
-                  aria-hidden="true"
+              <li key={item.key} className="flex min-w-[84px] flex-1 lg:min-w-[104px]">
+                <button
+                  type="button"
+                  onClick={() => { if (!disabled) onChange(item.key); }}
+                  aria-current={active ? "page" : undefined}
+                  aria-disabled={disabled || undefined}
+                  // With a badge, name it explicitly ("Intakes (3)") -- the
+                  // visible number is aria-hidden so it isn't read twice.
+                  aria-label={item.badge ? item.label + " (" + item.badge + ")" : undefined}
                   className={cn(
-                    "absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-primary transition-opacity sm:inset-x-4",
-                    active ? "opacity-100" : "opacity-0"
+                    BTN_RESET,
+                    "group flex min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 transition-colors lg:px-3 duration-150 motion-reduce:transition-none",
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                    active ? "bg-primary-tint" : "hover:bg-background",
+                    disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
                   )}
-                />
-              </button>
+                >
+                  <span className={cn("relative flex h-12 w-12 items-center justify-center rounded-[15px] sm:h-[52px] sm:w-[52px]", tone)}>
+                    <Icon className="h-6 w-6 shrink-0 sm:h-[26px] sm:w-[26px]" strokeWidth={2} aria-hidden="true" />
+                    {item.badge ? (
+                      <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-primary px-1.5 text-center text-[11px] font-bold leading-5 text-primary-foreground shadow-sm">
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "whitespace-nowrap text-[13px] leading-tight sm:text-sm",
+                      active ? "font-semibold text-primary" : "font-medium text-[color:var(--ev-ink-soft)] group-hover:text-navy dark:group-hover:text-[color:var(--text)]"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </nav>
     </div>
   );
