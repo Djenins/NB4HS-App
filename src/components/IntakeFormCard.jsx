@@ -10,7 +10,7 @@
 // Every visible string goes through t() (en/ht/fr); option values stay the
 // org's English wording (see OPTION_KEYS). The print window and the PDF are
 // copies of the form as rendered, so they come out in the UI language.
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
   AlertTriangle, Briefcase, Camera, Check, ChevronDown, FileText,
@@ -22,7 +22,7 @@ import { BUTTON_RESET, Button } from "./ui/button.jsx";
 import { Field, Input } from "./ui/field.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
 import { cn } from "../lib/cn.js";
-import { updateClientRecord } from "../lib/clientsData.js";
+import { fetchClientIntake, saveClientIntake, updateClientRecord } from "../lib/clientsData.js";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
 
@@ -241,8 +241,11 @@ function SectionCardHeader({ title, collapsed, onToggle }) {
   );
 }
 
-function initialIntake(client) {
+// `saved` is the stored form (client_intakes, or the client record before
+// p3c); without one the form starts from the client's contact details.
+function initialIntake(client, saved) {
   if (!client) return EMPTY_INTAKE;
+  if (saved) return Object.assign({}, EMPTY_INTAKE, saved);
   if (client.intakeForm) return Object.assign({}, EMPTY_INTAKE, client.intakeForm);
   return Object.assign({}, EMPTY_INTAKE, {
     fullName: [client.firstName, client.lastName].filter(Boolean).join(" "),
@@ -269,13 +272,33 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [stored, setStored] = useState(null);
   const printRef = useRef(null);
+  const edited = useRef(false);
+
+  // The saved form lives in client_intakes (case managers only); load it
+  // unless the person has already started typing.
+  const clientId = client ? client.id : null;
+  useEffect(() => {
+    if (!clientId) return undefined;
+    let cancelled = false;
+    fetchClientIntake(clientId).then((res) => {
+      if (cancelled || !res || res.useClientRecord || edited.current) return;
+      setStored(res.form);
+      setF(initialIntake(client, res.form));
+      setSavedAt(res.savedAt);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   function set(name, value) {
+    edited.current = true;
     setF((prev) => Object.assign({}, prev, { [name]: value }));
     setSavedAt(null);
   }
   function toggleIn(name, opt) {
+    edited.current = true;
     setF((prev) => {
       const cur = prev[name];
       const next = cur.indexOf(opt) !== -1 ? cur.filter((v) => v !== opt) : cur.concat([opt]);
@@ -283,6 +306,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     });
   }
   function setChild(i, key, value) {
+    edited.current = true;
     setF((prev) => {
       const children = prev.children.slice();
       children[i] = Object.assign({}, children[i], { [key]: value });
@@ -290,6 +314,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     });
   }
   function addChild() {
+    edited.current = true;
     setF((prev) => Object.assign({}, prev, { children: prev.children.concat([Object.assign({}, EMPTY_CHILD)]) }));
   }
 
@@ -382,7 +407,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   }
 
   function clearForm() {
-    setF(initialIntake(client));
+    setF(initialIntake(client, stored));
     setSavedAt(null);
     setSaveError("");
   }
@@ -392,12 +417,14 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     setSaving(true);
     setSaveError("");
     try {
-      const updated = await updateClientRecord(client.id, {
-        intakeForm: f, intakeFormSavedAt: new Date().toISOString(),
+      const when = await saveClientIntake(client.id, f);
+      // The demographic answers also live on the client record, for reports.
+      await updateClientRecord(client.id, {
         raceEthnicity: f.raceEthnicity, gender: f.gender,
         householdIncomeBracket: f.householdIncomeBracket, householdSize: f.householdSize,
       });
-      setSavedAt(updated.intakeFormSavedAt);
+      setStored(f);
+      setSavedAt(when);
     } catch (err) {
       console.warn("saveForm failed", err);
       setSaveError(t("intakeSaveError"));
