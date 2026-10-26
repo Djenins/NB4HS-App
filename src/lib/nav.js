@@ -22,6 +22,10 @@ var WORKFORCE_KEYS = ["workforcedashboard", "employers", "jobopenings", "candida
 // holding a role in any outreach program, and for administrators -- who
 // manage program staff but only see the sections outreachSectionsFor()
 // (outreachPrograms.js) gives them.
+// Staff Reports follows the same rule with the `staff_reports` program:
+// reviewers read reports, administrators only configure the schedule.
+// Every staff member gets My Reports; the page itself says when they have
+// nothing to report.
 export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   var base;
   if (role === "administrator") base = ["dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper", "users", "settings"];
@@ -32,6 +36,8 @@ export function navItemsForRole(role, workforceAllowedRoles, programRoles) {
   else return [];
 
   if (hasOutreachAccess(role, programRoles)) base = base.concat(["outreach"]);
+  base = base.concat(["myreports"]);
+  if (role === "administrator" || (programRoles && programRoles.staff_reports)) base = base.concat(["staffreports"]);
 
   var hasWorkforceAccess = role === "administrator" || (workforceAllowedRoles || []).indexOf(role) !== -1;
   if (!hasWorkforceAccess) return base;
@@ -56,6 +62,8 @@ export function navLabel(v, lang) {
     checkout: t("navCheckOut", lang),
     dashboard: t("navDashboard", lang),
     mycaseload: t("navMyCaseload", lang),
+    myreports: t("navMyReports", lang),
+    staffreports: t("navStaffReports", lang),
     search: t("navSearch", lang),
     reports: t("navReports", lang),
     fooddistribution: t("navFoodDistribution", lang),

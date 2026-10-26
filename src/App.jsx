@@ -59,6 +59,8 @@ const Placements = lazy(() => import("./pages/Placements.jsx"));
 const PlacementDetail = lazy(() => import("./pages/PlacementDetail.jsx"));
 const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
 const Outreach = lazy(() => import("./pages/Outreach.jsx"));
+const MyReports = lazy(() => import("./pages/MyReports.jsx"));
+const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
 const Users = lazy(() => import("./pages/Users.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 
@@ -112,6 +114,10 @@ export default function App() {
           <Route path="/students" element={<Students />} />
           <Route path="/assessments" element={<Assessments />} />
           <Route path="/casemanagement" element={<CaseManagement />} />
+          <Route path="/myreports" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
+          <Route path="/myreports/:reportId" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
+          <Route path="/staffreports" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
+          <Route path="/staffreports/:reportId" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
           <Route path="/outreach/:program?/:section?" element={<RequireRoute routeKey="outreach"><Outreach /></RequireRoute>} />
           {/* SNAP Outreach became a program inside Outreach (O1); keep old links working. */}
           <Route path="/snap/*" element={<Navigate to="/outreach/snap" replace />} />

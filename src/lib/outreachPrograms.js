@@ -32,8 +32,14 @@ export function outreachSectionsFor(systemRole, programRole, features) {
 
 // Whether the sidebar shows Outreach at all: administrators (they manage
 // program staff) and anyone holding a role in any program.
+// program_staff also carries roles for programs outside Outreach (Staff
+// Reports' reviewers); those don't open the Outreach module.
+export var NON_OUTREACH_PROGRAMS = ["staff_reports"];
+
 export function hasOutreachAccess(systemRole, programRoles) {
-  return systemRole === "administrator" || Object.keys(programRoles || {}).some(function (k) { return !!programRoles[k]; });
+  return systemRole === "administrator" || Object.keys(programRoles || {}).some(function (k) {
+    return !!programRoles[k] && NON_OUTREACH_PROGRAMS.indexOf(k) === -1;
+  });
 }
 
 // The active programs this person can open: all of them for administrators,
