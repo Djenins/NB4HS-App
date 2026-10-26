@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import {
-  ASSISTANCE_TYPES, CLOSURE_REASONS, NOTE_MAX, addCaseNote, casePermissions, closureProblem, fetchCaseNotes,
-  fetchStageHistory, stageLabel, updateCase
+  NOTE_MAX, addCaseNote, casePermissions, closureProblem, fetchCaseNotes, fetchStageHistory, milestoneStage, stageLabel, updateCase
 } from "../../lib/assistanceCases.js";
+import { optionLabel, optionsFor, programScopeNote } from "../../lib/outreachPrograms.js";
 import { fetchTasks } from "../../lib/snapTasks.js";
 import { fmtDateLong, fmtTime } from "../../lib/utils.js";
 import NbIdBadge from "../NbIdBadge.jsx";
@@ -22,15 +23,17 @@ import { SnapTaskForm, SnapTaskRows } from "./SnapTaskList.jsx";
 const H3 = "m-0 mb-3 text-sm font-bold text-card-foreground";
 const REVIEW_VARIANT = { not_requested: "neutral", requested: "warn", approved: "success", changes_requested: "accent" };
 
-function CheckGroup({ legend, values, onToggle, disabled, t }) {
+function CheckGroup({ legend, values, onToggle, disabled }) {
+  const { lang } = useApp();
+  const { options } = useOutreachProgram();
   return (
     <fieldset className="m-0 min-w-0 border-0 p-0">
       <legend className="mb-1.5 text-xs font-semibold text-muted">{legend}</legend>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {ASSISTANCE_TYPES.map((code) => (
-          <label key={code} className="flex items-center gap-1.5 text-sm text-card-foreground">
-            <input type="checkbox" checked={values.indexOf(code) !== -1} disabled={disabled} onChange={() => onToggle(code)} />
-            {t("snapAssist_" + code)}
+        {optionsFor(options, "assistance_type", values).map((o) => (
+          <label key={o.key} className="flex items-center gap-1.5 text-sm text-card-foreground">
+            <input type="checkbox" checked={values.indexOf(o.key) !== -1} disabled={disabled} onChange={() => onToggle(o.key)} />
+            {o.labels[lang] || o.labels.en}
           </label>
         ))}
       </div>
@@ -42,7 +45,11 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
   const { data, lang, session, showToast } = useApp();
   const t = useT();
   const userId = session ? session.id : null;
-  const perms = casePermissions(caseRow, (data.programRoles || {}).snap || null, userId);
+  const { program, programRole, options, info } = useOutreachProgram();
+  const scopeNote = programScopeNote(info, lang);
+  const perms = casePermissions(caseRow, programRole, userId);
+  const assisted = milestoneStage(stages, "application_assisted");
+  const referred = milestoneStage(stages, "referred_external");
   const nameOf = (id) => { const p = (data.profiles || []).find((x) => x.id === id); return p ? (p.name || p.email) : "—"; };
 
   const [stageDraft, setStageDraft] = useState(caseRow.stageKey);
@@ -59,7 +66,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
   function loadExtras() {
     fetchCaseNotes(caseRow.id).then(setNotes).catch(() => {});
     fetchStageHistory(caseRow.id).then(setHistory).catch(() => {});
-    fetchTasks({ caseId: caseRow.id }).then(setTasks).catch(() => {});
+    fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {});
   }
   useEffect(loadExtras, [caseRow.id]);
 
@@ -114,7 +121,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
             <div className="flex flex-wrap items-center gap-2">
               <h2 id="snap-case-title" className="m-0 text-lg font-bold text-card-foreground">{caseRow.caseNumber}</h2>
               <Badge>{stageLabel(stages, caseRow.stageKey, lang)}</Badge>
-              {caseRow.closedAt && <Badge variant="neutral">{t("snapClose_" + caseRow.closureReason)}</Badge>}
+              {caseRow.closedAt && <Badge variant="neutral">{optionLabel(options, "closure_reason", caseRow.closureReason, lang)}</Badge>}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-card-foreground">
               {(caseRow.firstName + " " + caseRow.lastName).trim()} <NbIdBadge nbId={caseRow.nbId} />
@@ -128,7 +135,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
           </button>
         </div>
 
-        <div className="info-callout mb-4"><p className="!m-0 !text-xs">{t("snapOverviewScope")}</p></div>
+        {scopeNote && <div className="info-callout mb-4"><p className="!m-0 !text-xs">{scopeNote}</p></div>}
         {!perms.canEdit && <p className="!mb-3 !text-xs text-muted">{t("snapCaseReadOnly")}</p>}
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -139,7 +146,10 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
             </select>
           </div>
           {draftStage && draftStage.isTerminal && (
-            <SnapSelect id="case-closure" t={t} label={t("snapClosureReason")} value={reasonDraft} options={CLOSURE_REASONS} labelPrefix="snapClose_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={setReasonDraft} />
+            <SnapSelect id="case-closure" t={t} label={t("snapClosureReason")} value={reasonDraft}
+              options={optionsFor(options, "closure_reason", [caseRow.closureReason]).map((o) => o.key)}
+              labelFor={(key) => optionLabel(options, "closure_reason", key, lang)}
+              emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={setReasonDraft} />
           )}
           <div className="flex items-end">
             {perms.canEdit && stageDirty && (
@@ -162,15 +172,15 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
             </div>
           ) : <div />}
           <div className="grid content-start gap-1 text-xs text-muted">
-            <span>{t("snapApplicationAssisted")}: <strong className="text-card-foreground">{caseRow.applicationAssistedAt ? fmtDateLong(caseRow.applicationAssistedAt, lang) : "—"}</strong></span>
-            <span>{t("snapReferredToDhs")}: <strong className="text-card-foreground">{caseRow.referredToDhsAt ? fmtDateLong(caseRow.referredToDhsAt, lang) : "—"}</strong></span>
+            {assisted && <span>{stageLabel(stages, assisted.key, lang)}: <strong className="text-card-foreground">{caseRow.applicationAssistedAt ? fmtDateLong(caseRow.applicationAssistedAt, lang) : "—"}</strong></span>}
+            {referred && <span>{stageLabel(stages, referred.key, lang)}: <strong className="text-card-foreground">{caseRow.referredToDhsAt ? fmtDateLong(caseRow.referredToDhsAt, lang) : "—"}</strong></span>}
           </div>
         </div>
 
         <div className="mt-5 grid gap-4">
-          <CheckGroup legend={t("snapAssistanceRequested")} values={caseRow.assistanceRequested} disabled={!perms.canEdit || busy} t={t}
+          <CheckGroup legend={t("snapAssistanceRequested")} values={caseRow.assistanceRequested} disabled={!perms.canEdit || busy}
             onToggle={(code) => patch({ assistanceRequested: toggle(caseRow.assistanceRequested, code) })} />
-          <CheckGroup legend={t("snapAssistanceProvided")} values={caseRow.assistanceProvided} disabled={!perms.canEdit || busy} t={t}
+          <CheckGroup legend={t("snapAssistanceProvided")} values={caseRow.assistanceProvided} disabled={!perms.canEdit || busy}
             onToggle={(code) => patch({ assistanceProvided: toggle(caseRow.assistanceProvided, code) })} />
         </div>
 
@@ -198,9 +208,9 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
           </div>
           {addingTask && (
             <SnapTaskForm context={{ caseId: caseRow.id, clientId: caseRow.clientId }} onCancel={() => setAddingTask(false)}
-              onSaved={() => { setAddingTask(false); fetchTasks({ caseId: caseRow.id }).then(setTasks).catch(() => {}); }} />
+              onSaved={() => { setAddingTask(false); fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {}); }} />
           )}
-          <SnapTaskRows tasks={tasks} onChanged={() => fetchTasks({ caseId: caseRow.id }).then(setTasks).catch(() => {})} />
+          <SnapTaskRows tasks={tasks} onChanged={() => fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {})} />
         </section>
 
         <section className="mt-6" aria-labelledby="case-notes">

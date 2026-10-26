@@ -116,21 +116,21 @@ export function contactPermissions(contact, programRole, userId) {
 export async function fetchOutreachContacts(program) {
   const { data, error } = await supabase.from("outreach_contacts")
     .select("*, clients(nb_id, first_name, last_name, phone, email)")
-    .eq("program", program || "snap").order("created_at", { ascending: false });
+    .eq("program", program).order("created_at", { ascending: false });
   if (error) throw error;
   return data.map(contactFromRow);
 }
 
 // Links `matchedClientId` if given, otherwise creates a minimal clients
 // record from masterFields ({ firstName, lastName, phone, email }).
-export async function createOutreachContact(masterFields, contactFields, matchedClientId) {
+export async function createOutreachContact(program, masterFields, contactFields, matchedClientId) {
   const { data, error } = await supabase.rpc("create_outreach_contact", {
     master_fields: {
       first_name: masterFields.firstName || "", last_name: masterFields.lastName || "",
       phone: masterFields.phone || "", email: masterFields.email || ""
     },
     contact_fields: {
-      program: "snap", preferred_language: contactFields.preferredLanguage || "",
+      program, preferred_language: contactFields.preferredLanguage || "",
       preferred_contact_method: contactFields.preferredContactMethod || "",
       outreach_source: contactFields.outreachSource || ""
     },
@@ -169,9 +169,9 @@ export async function fetchInteractions(clientId) {
   return data.map(interactionFromRow);
 }
 
-export async function logInteraction(clientId, fields) {
+export async function logInteraction(program, clientId, fields) {
   const { error } = await supabase.from("outreach_interactions").insert({
-    program: "snap", client_id: clientId, type: fields.type, direction: fields.direction || null,
+    program, client_id: clientId, type: fields.type, direction: fields.direction || null,
     outcome: fields.outcome || null, summary: (fields.summary || "").trim().slice(0, SUMMARY_MAX) || null
   });
   if (error) throw error;

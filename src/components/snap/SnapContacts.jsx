@@ -1,4 +1,4 @@
-// SnapContacts.jsx -- the SNAP Outreach "Contacts" section: every SNAP
+// SnapContacts.jsx -- an outreach program's "Contacts" section: every
 // contact (any member can read all of them, by decision), filterable by
 // search and "assigned to me", with the find-first add flow and the
 // contact detail view. Fetched on demand rather than held in AppContext:
@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { fetchOutreachContacts, filterContacts } from "../../lib/outreachContacts.js";
 import { formatPhone } from "../../lib/utils.js";
 import EmptyState from "../EmptyState.jsx";
@@ -23,6 +24,7 @@ const FOLLOW_VARIANT = { none: "neutral", needed: "warn", scheduled: "default", 
 export default function SnapContacts({ intent }) {
   const { data, session } = useApp();
   const t = useT();
+  const { program } = useOutreachProgram();
   const userId = session ? session.id : null;
   const [contacts, setContacts] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -32,7 +34,7 @@ export default function SnapContacts({ intent }) {
   const [openId, setOpenId] = useState(null);
 
   function load() {
-    return fetchOutreachContacts("snap")
+    return fetchOutreachContacts(program)
       .then((rows) => { setContacts(rows); setLoadError(false); return rows; })
       .catch((err) => { console.warn("fetchOutreachContacts failed", err); setLoadError(true); return []; });
   }

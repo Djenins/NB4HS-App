@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { TASK_PRIORITIES, TASK_TEXT_MAX, createTask, taskPermissions, taskTitle, updateTask } from "../../lib/snapTasks.js";
 import { fmtDateLong, todayStr } from "../../lib/utils.js";
 import { Badge } from "../ui/badge.jsx";
@@ -16,7 +17,8 @@ const PRIORITY_VARIANT = { low: "neutral", normal: "default", high: "accent" };
 function TaskRow({ task, onChanged, showClient }) {
   const { data, lang, session, showToast } = useApp();
   const t = useT();
-  const perms = taskPermissions(task, (data.programRoles || {}).snap || null, session ? session.id : null);
+  const { programRole } = useOutreachProgram();
+  const perms = taskPermissions(task, programRole, session ? session.id : null);
   const [completing, setCompleting] = useState(false);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -96,8 +98,9 @@ export function SnapTaskRows({ tasks, onChanged, showClient, emptyMessage }) {
 export function SnapTaskForm({ context, onSaved, onCancel }) {
   const { data, session, showToast } = useApp();
   const t = useT();
+  const { program, programRole } = useOutreachProgram();
   const userId = session ? session.id : null;
-  const lead = ["supervisor", "program_admin"].indexOf((data.programRoles || {}).snap) !== -1;
+  const lead = programRole === "supervisor" || programRole === "program_admin";
   const [fields, setFields] = useState({ title: "", dueDate: "", priority: "normal", assignedTo: userId });
   const [busy, setBusy] = useState(false);
   const set = (k) => (v) => setFields((f) => Object.assign({}, f, { [k]: v }));
@@ -107,7 +110,7 @@ export function SnapTaskForm({ context, onSaved, onCancel }) {
     if (!fields.title.trim()) return;
     setBusy(true);
     try {
-      await createTask(Object.assign({}, fields, context || {}), userId);
+      await createTask(Object.assign({ program }, fields, context || {}), userId);
       showToast(t("snapTaskSaved"));
       onSaved();
     } catch (err) {

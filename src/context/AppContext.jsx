@@ -249,9 +249,9 @@ export function AppProvider({ children }) {
   }, [session]);
 
   // The signed-in user's own program roles ({ snap: "worker" }) -- drives
-  // whether the SNAP Outreach sidebar entry and its sections show (see
-  // nav.js / programStaff.js). Refetched by the SNAP staff settings after a
-  // role change, since that can change the current user's own access.
+  // whether the Outreach sidebar entry, its programs and sections show (see
+  // nav.js / outreachPrograms.js). Refetched by Staff & Access after a role
+  // change, since that can change the current user's own access.
   const [programRoles, setProgramRoles] = useState({});
   const refetchProgramRoles = useCallback(
     () => fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),

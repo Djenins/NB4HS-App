@@ -1,16 +1,20 @@
-// SnapDashboard.jsx -- the SNAP Outreach landing section. Every number comes
-// from snap_dashboard() (SECURITY INVOKER, so RLS scopes it: a worker's case
-// and follow-up figures are their own; contacts and activity are
-// program-wide) -- no sample statistics. Appointments, events and partner
-// referrals arrive in Stage 3 and are named as not-yet-built, not faked.
+// SnapDashboard.jsx -- an outreach program's landing section. Every number
+// comes from outreach_dashboard() (SECURITY INVOKER, so RLS scopes it: a
+// worker's case and follow-up figures are their own; contacts and activity
+// are program-wide) -- no sample statistics. Milestone tiles are labelled by
+// the stage configured for that milestone and hidden when there is none.
+// Appointments, events and partner referrals arrive in later phases and are
+// named as not-yet-built, not faked.
 import { useEffect, useState } from "react";
 import {
   AlarmClock, ArrowRight, CalendarCheck, ClipboardCheck, FolderOpen, ListPlus, MessageSquarePlus, Send, UserPlus, Users
 } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
-import { casesNeedingAttention, fetchCaseStages, fetchCases, stageLabel } from "../../lib/assistanceCases.js";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
+import { casesNeedingAttention, fetchCaseStages, fetchCases, milestoneStage, stageLabel } from "../../lib/assistanceCases.js";
 import { cn } from "../../lib/cn.js";
-import { addDays, completionRate, fetchRecentActivity, fetchSnapDashboard, fetchTasks, taskBuckets } from "../../lib/snapTasks.js";
+import { programName, programScopeNote } from "../../lib/outreachPrograms.js";
+import { addDays, completionRate, fetchOutreachDashboard, fetchRecentActivity, fetchTasks, taskBuckets } from "../../lib/snapTasks.js";
 import { fmtDateLong, fmtTime, todayStr } from "../../lib/utils.js";
 import BarList from "../BarList.jsx";
 import { SectionCard, SectionEmpty } from "../SectionCard.jsx";
@@ -44,7 +48,7 @@ export default function SnapDashboard({ onNavigate }) {
   const { data, lang, session } = useApp();
   const t = useT();
   const userId = session ? session.id : null;
-  const programRole = (data.programRoles || {}).snap || null;
+  const { program, programRole, info } = useOutreachProgram();
   const [days, setDays] = useState(30);
   const [metrics, setMetrics] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -56,29 +60,31 @@ export default function SnapDashboard({ onNavigate }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchSnapDashboard(addDays(today, -(days - 1)), today)
+    fetchOutreachDashboard(program, addDays(today, -(days - 1)), today)
       .then((m) => { if (!cancelled) { setMetrics(m); setLoadError(false); } })
-      .catch((err) => { console.warn("snap_dashboard failed", err); if (!cancelled) setLoadError(true); });
+      .catch((err) => { console.warn("outreach_dashboard failed", err); if (!cancelled) setLoadError(true); });
     return () => { cancelled = true; };
-  }, [days, today]);
+  }, [program, days, today]);
 
   function loadLists() {
-    fetchCaseStages("snap").then(setStages).catch(() => {});
-    fetchTasks({ assignedTo: userId }).then((rows) => { const b = taskBuckets(rows, today); setMyTasks(b.overdue.concat(b.dueSoon).slice(0, 6)); }).catch(() => {});
-    fetchCases("snap").then((rows) => setAttention(casesNeedingAttention(rows, today).slice(0, 6))).catch(() => {});
-    fetchRecentActivity(8).then(setRecent).catch(() => {});
+    fetchCaseStages(program).then(setStages).catch(() => {});
+    fetchTasks({ program, assignedTo: userId }).then((rows) => { const b = taskBuckets(rows, today); setMyTasks(b.overdue.concat(b.dueSoon).slice(0, 6)); }).catch(() => {});
+    fetchCases(program).then((rows) => setAttention(casesNeedingAttention(rows, today).slice(0, 6))).catch(() => {});
+    fetchRecentActivity(program, 8).then(setRecent).catch(() => {});
   }
-  useEffect(loadLists, [userId, today]);
+  useEffect(loadLists, [program, userId, today]);
 
   const nameOf = (id) => { const p = (data.profiles || []).find((x) => x.id === id); return p ? (p.name || p.email) : "—"; };
   const m = metrics || {};
   const rate = completionRate(Number(m.tasks_due_in_range || 0), Number(m.tasks_done_in_range || 0));
   const bars = (rows, labelFor) => (rows || []).map((r) => ({ label: labelFor(r), count: Number(r.count) }));
+  const assisted = milestoneStage(stages, "application_assisted");
+  const referred = milestoneStage(stages, "referred_external");
 
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0">{t("navSnapOutreach")}</h1>
+        <h1 className="m-0">{programName(info, lang)}</h1>
         <div className="flex items-center gap-2">
           <label htmlFor="snap-range" className="text-sm text-muted">{t("snapRangeLabel")}</label>
           <select id="snap-range" className={SNAP_CONTROL + " !w-auto"} value={days} onChange={(e) => setDays(Number(e.target.value))}>
@@ -102,8 +108,8 @@ export default function SnapDashboard({ onNavigate }) {
           <Kpi icon={Users} tint="bg-primary-tint text-primary" label={t("snapKpiIndividuals")} value={metrics ? m.individuals_contacted : "…"} onDrill={() => onNavigate("contacts")} />
           <Kpi icon={UserPlus} tint="bg-primary-tint text-primary" label={t("snapKpiNewContacts")} value={metrics ? m.new_contacts : "…"} onDrill={() => onNavigate("contacts")} />
           <Kpi icon={FolderOpen} tint="bg-tint-success text-success" label={t("snapKpiCasesOpened")} value={metrics ? m.cases_opened : "…"} onDrill={() => onNavigate("cases")} />
-          <Kpi icon={ClipboardCheck} tint="bg-tint-success text-success" label={t("snapKpiApplications")} value={metrics ? m.applications_assisted : "…"} onDrill={() => onNavigate("cases")} />
-          <Kpi icon={Send} tint="bg-tint-neutral text-muted" label={t("snapKpiReferred")} value={metrics ? m.referred_to_dhs : "…"} onDrill={() => onNavigate("cases")} />
+          {assisted && <Kpi icon={ClipboardCheck} tint="bg-tint-success text-success" label={t("snapKpiApplications")} value={metrics ? m.applications_assisted : "…"} onDrill={() => onNavigate("cases")} />}
+          {referred && <Kpi icon={Send} tint="bg-tint-neutral text-muted" label={stageLabel(stages, referred.key, lang)} value={metrics ? m.referred_external : "…"} onDrill={() => onNavigate("cases")} />}
           <Kpi icon={CalendarCheck} tint="bg-tint-warn text-gold-ink" label={t("snapKpiFollowUpsDue")} value={metrics ? m.follow_ups_due : "…"} onDrill={() => onNavigate("tasks")} />
           <Kpi icon={AlarmClock} tint="bg-accent-tint text-accent" label={t("snapKpiOverdue")} value={metrics ? m.overdue_tasks : "…"} onDrill={() => onNavigate("tasks")} />
           <Kpi icon={ClipboardCheck} tint="bg-tint-neutral text-muted" label={t("snapKpiCompletion")} value={metrics ? (rate === null ? "—" : rate + "%") : "…"} />
@@ -157,7 +163,7 @@ export default function SnapDashboard({ onNavigate }) {
       </div>
 
       <div className="info-callout !mb-0">
-        <p className="!m-0 !text-sm">{t("snapComingNext")} {t("snapOverviewScope")}</p>
+        <p className="!m-0 !text-sm">{t("snapComingNext")} {programScopeNote(info, lang)}</p>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 // programStaff.js -- program-scoped staff roles (the `program_staff` table,
 // stage1_program_staff_and_audit migration) plus the pure access rules the
-// SNAP Outreach module's UI reads. RLS is the real control; these helpers
+// Outreach module's UI reads (section rules: outreachPrograms.js). RLS is the real control; these helpers
 // only decide what to *show*, and mirror has_program_role()/
 // can_manage_program() so the two can't drift apart in intent.
 //
@@ -12,34 +12,13 @@ import { supabase } from "./supabase.js";
 
 export var PROGRAM_ROLES = ["worker", "supervisor", "program_admin"];
 
-// Module sections, in display order. `members` = shown to anyone holding a
-// program role; `managers` = shown to whoever can grant roles. Later stages
-// add sections here (contacts, cases, ...) as they're built -- nothing is
-// listed before it exists.
-export var SNAP_SECTIONS = [
-  { key: "dashboard", members: true, managers: false },
-  { key: "contacts", members: true, managers: false },
-  { key: "cases", members: true, managers: false },
-  { key: "tasks", members: true, managers: false },
-  { key: "staff", members: false, managers: true }
-];
-
 export function canManageProgram(systemRole, programRole) {
   return systemRole === "administrator" || programRole === "program_admin";
 }
 
-// Which SNAP sections this person sees. Empty means no access to the module.
-export function snapSectionsFor(systemRole, programRole) {
-  var member = PROGRAM_ROLES.indexOf(programRole) !== -1;
-  var manager = canManageProgram(systemRole, programRole);
-  return SNAP_SECTIONS
-    .filter(function (s) { return (s.members && member) || (s.managers && manager); })
-    .map(function (s) { return s.key; });
-}
-
 // ---------- data ----------
 
-// The signed-in user's own active program roles, as { snap: "worker" }.
+// The signed-in user's own active program roles, keyed by program: { snap: "worker" }.
 export async function fetchMyProgramRoles(userId) {
   if (!userId) return {};
   const { data, error } = await supabase.from("program_staff").select("program, program_role")

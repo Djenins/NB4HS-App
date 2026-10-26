@@ -1,20 +1,21 @@
 // SnapCases.test.jsx -- the case detail view enforces closure rules before
 // the server would, offers review actions by role, and the dashboard shows
 // the server's numbers and routes its quick actions.
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t as translate } from "../../lib/i18n.js";
+import { withProgram } from "../../test/outreachProgram.jsx";
 
 let app;
 vi.mock("../../context/AppContext.jsx", () => ({ useApp: () => app, useT: () => (key) => translate(key, "en") }));
 const api = vi.hoisted(() => ({
   updateCase: vi.fn(), fetchCaseNotes: vi.fn(), fetchStageHistory: vi.fn(), addCaseNote: vi.fn(),
-  fetchTasks: vi.fn(), fetchSnapDashboard: vi.fn(), fetchRecentActivity: vi.fn(), fetchCaseStages: vi.fn(), fetchCases: vi.fn()
+  fetchTasks: vi.fn(), fetchOutreachDashboard: vi.fn(), fetchRecentActivity: vi.fn(), fetchCaseStages: vi.fn(), fetchCases: vi.fn()
 }));
 function wrap(names) { const o = {}; names.forEach((k) => { o[k] = (...a) => api[k](...a); }); return o; }
 vi.mock("../../lib/assistanceCases.js", async (orig) => ({ ...(await orig()), ...wrap(["updateCase", "fetchCaseNotes", "fetchStageHistory", "addCaseNote", "fetchCaseStages", "fetchCases"]) }));
-vi.mock("../../lib/snapTasks.js", async (orig) => ({ ...(await orig()), ...wrap(["fetchTasks", "fetchSnapDashboard", "fetchRecentActivity"]) }));
+vi.mock("../../lib/snapTasks.js", async (orig) => ({ ...(await orig()), ...wrap(["fetchTasks", "fetchOutreachDashboard", "fetchRecentActivity"]) }));
 
 import SnapCaseDetail from "./SnapCaseDetail.jsx";
 import SnapDashboard from "./SnapDashboard.jsx";
@@ -24,14 +25,17 @@ const stages = [
   { key: "new_inquiry", labels: { en: "New inquiry" }, sortOrder: 10, isTerminal: false, requiresReview: false, active: true },
   { key: "closed", labels: { en: "Closed" }, sortOrder: 100, isTerminal: true, requiresReview: true, active: true }
 ];
+const referredStage = { key: "referred_to_dhs", labels: { en: "Referred to Rhode Island DHS" }, sortOrder: 70, isTerminal: false, requiresReview: false, milestone: "referred_external", active: true };
 const baseCase = {
   id: "case1", caseNumber: "SNAP-2026-00001", clientId: "c1", nbId: "NB-00001", firstName: "Marie", lastName: "Joseph",
   assignedTo: "w1", openedAt: "2026-10-20", stageKey: "new_inquiry", assistanceRequested: ["application_help"], assistanceProvided: [],
   applicationAssistedAt: "", referredToDhsAt: "", followUpDate: "", closureReason: "", closedAt: null, reviewStatus: "not_requested"
 };
 
-function setApp(programRole, userId) {
-  app = { data: { programRoles: { snap: programRole }, profiles: [{ id: "w1", name: "Wendy Worker", active: true }] }, lang: "en", session: { id: userId }, showToast: vi.fn() };
+let programRole = null;
+function setApp(role, userId) {
+  programRole = role;
+  app = { data: { programRoles: { snap: role }, profiles: [{ id: "w1", name: "Wendy Worker", active: true }] }, lang: "en", session: { id: userId }, showToast: vi.fn() };
 }
 
 beforeEach(() => {
@@ -43,7 +47,7 @@ beforeEach(() => {
 });
 
 function renderCase(caseRow) {
-  return render(<MemoryRouter><SnapCaseDetail caseRow={caseRow || baseCase} stages={stages} onChanged={vi.fn()} onClose={vi.fn()} /></MemoryRouter>);
+  return render(<MemoryRouter>{withProgram(<SnapCaseDetail caseRow={caseRow || baseCase} stages={stages} onChanged={vi.fn()} onClose={vi.fn()} />, { programRole })}</MemoryRouter>);
 }
 
 describe("SnapCaseDetail", () => {
@@ -91,11 +95,39 @@ describe("SnapCaseDetail", () => {
   });
 });
 
+describe("SnapCaseDetail option lists", () => {
+  it("lists the program's assistance types, keeping a retired one only where the case uses it", () => {
+    setApp("worker", "w1");
+    renderCase();
+    expect(screen.getAllByLabelText("SNAP application help")).toHaveLength(2);
+    expect(screen.getAllByLabelText("SNAP application help")[0]).toBeChecked();
+    expect(screen.queryByLabelText("EBT card help (never ask for the PIN)")).not.toBeInTheDocument();
+    cleanup();
+    renderCase(Object.assign({}, baseCase, { assistanceProvided: ["ebt_card_help"] }));
+    expect(screen.getAllByLabelText("EBT card help (never ask for the PIN)")).toHaveLength(1);
+  });
+
+  it("offers the program's closure reasons and shows its scope note", () => {
+    setApp("worker", "w1");
+    renderCase();
+    fireEvent.change(screen.getByLabelText(en("snapCaseStage")), { target: { value: "closed" } });
+    const reasons = Array.from(screen.getByLabelText(en("snapClosureReason")).options).map((o) => o.textContent);
+    expect(reasons).toEqual([en("snapNotSet"), "Assistance completed", "Participant declined"]);
+    expect(screen.getByText("Eligibility decisions are made only by Rhode Island DHS.")).toBeInTheDocument();
+  });
+
+  it("names milestones after the stage configured for them", () => {
+    setApp("worker", "w1");
+    render(<MemoryRouter>{withProgram(<SnapCaseDetail caseRow={baseCase} stages={stages.concat([referredStage])} onChanged={vi.fn()} onClose={vi.fn()} />, { programRole })}</MemoryRouter>);
+    expect(screen.getByText(/Referred to Rhode Island DHS:/)).toBeInTheDocument();
+  });
+});
+
 describe("SnapDashboard", () => {
   it("shows the server's numbers and routes quick actions", async () => {
     setApp("supervisor", "s1");
-    api.fetchSnapDashboard.mockResolvedValue({
-      individuals_contacted: 12, new_contacts: 5, cases_opened: 3, applications_assisted: 2, referred_to_dhs: 1,
+    api.fetchOutreachDashboard.mockResolvedValue({
+      individuals_contacted: 12, new_contacts: 5, cases_opened: 3, applications_assisted: 2, referred_external: 1,
       follow_ups_due: 4, overdue_tasks: 1, tasks_due_in_range: 4, tasks_done_in_range: 3,
       activity_by_week: [], activity_by_type: [{ key: "call", count: 7 }], contacts_by_source: [], cases_by_stage: []
     });
@@ -103,11 +135,25 @@ describe("SnapDashboard", () => {
     api.fetchCaseStages.mockResolvedValue(stages);
     api.fetchCases.mockResolvedValue([]);
     const onNavigate = vi.fn();
-    render(<MemoryRouter><SnapDashboard onNavigate={onNavigate} /></MemoryRouter>);
+    render(<MemoryRouter>{withProgram(<SnapDashboard onNavigate={onNavigate} />, { programRole })}</MemoryRouter>);
     expect(await screen.findByText("75%")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText(en("snapType_call"))).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: en("snapOpenCase") }));
     expect(onNavigate).toHaveBeenCalledWith("cases", "new");
+    expect(api.fetchOutreachDashboard.mock.calls[0][0]).toBe("snap");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("SNAP");
+    // no stage carries a milestone in these fixtures, so neither milestone tile shows
+    expect(screen.queryByText(en("snapKpiApplications"))).not.toBeInTheDocument();
+  });
+
+  it("labels the referral tile with the program's referral stage", async () => {
+    setApp("supervisor", "s1");
+    api.fetchOutreachDashboard.mockResolvedValue({ referred_external: 6, activity_by_week: [], activity_by_type: [], contacts_by_source: [], cases_by_stage: [] });
+    api.fetchRecentActivity.mockResolvedValue([]);
+    api.fetchCaseStages.mockResolvedValue(stages.concat([referredStage]));
+    api.fetchCases.mockResolvedValue([]);
+    render(<MemoryRouter>{withProgram(<SnapDashboard onNavigate={vi.fn()} />, { programRole })}</MemoryRouter>);
+    expect(await screen.findByRole("button", { name: /Referred to Rhode Island DHS/ })).toHaveTextContent("6");
   });
 });

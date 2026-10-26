@@ -1,12 +1,14 @@
-// SnapStaffSettings.jsx -- grant, change or revoke SNAP roles. Shown to
-// system administrators and SNAP program admins (snapSectionsFor() in
-// lib/programStaff.js); the program_staff RLS policies enforce the same rule
+// SnapStaffSettings.jsx -- grant, change or revoke roles in the current
+// outreach program. Shown to system administrators and that program's
+// program admins (outreachSectionsFor() in lib/outreachPrograms.js); the
+// program_staff RLS policies enforce the same rule
 // server-side. Lists active staff profiles only -- an inactive account
 // can't use a role anyway (has_program_role() requires an active profile).
 // Every change lands in audit_events via the table's trigger.
 import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { PROGRAM_ROLES, fetchProgramStaff, setProgramRole } from "../../lib/programStaff.js";
 import { roleLabel } from "../../lib/utils.js";
 import { avatarColorFor } from "../StudentCard.jsx";
@@ -16,7 +18,6 @@ import { Avatar, AvatarFallback } from "../ui/avatar.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { snapRoleLabelKey } from "./snapRoleLabel.js";
 
-const PROGRAM = "snap";
 const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
 const SELECT = "h-9 min-h-0 rounded-lg border border-border bg-background px-2.5 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50";
 
@@ -28,12 +29,13 @@ function initials(name, email) {
 export default function SnapStaffSettings() {
   const { data, lang, session, showToast, refetchProgramRoles } = useApp();
   const t = useT();
+  const { program } = useOutreachProgram();
   const [members, setMembers] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const [savingId, setSavingId] = useState(null);
 
   function load() {
-    return fetchProgramStaff(PROGRAM)
+    return fetchProgramStaff(program)
       .then((rows) => { setMembers(rows); setLoadError(false); })
       .catch(() => setLoadError(true));
   }
@@ -42,7 +44,7 @@ export default function SnapStaffSettings() {
   async function changeRole(profile, value) {
     setSavingId(profile.id);
     try {
-      await setProgramRole(profile.id, PROGRAM, value || null, session && session.id);
+      await setProgramRole(profile.id, program, value || null, session && session.id);
       await load();
       if (session && profile.id === session.id) await refetchProgramRoles();
       showToast(t("snapRoleSaved"));

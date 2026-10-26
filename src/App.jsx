@@ -51,7 +51,7 @@ import Referrals from "./pages/Referrals.jsx";
 import Placements from "./pages/Placements.jsx";
 import PlacementDetail from "./pages/PlacementDetail.jsx";
 import WorkforceReports from "./pages/WorkforceReports.jsx";
-import SnapOutreach from "./pages/SnapOutreach.jsx";
+import Outreach from "./pages/Outreach.jsx";
 import Users from "./pages/Users.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -105,7 +105,9 @@ export default function App() {
           <Route path="/students" element={<Students />} />
           <Route path="/assessments" element={<Assessments />} />
           <Route path="/casemanagement" element={<CaseManagement />} />
-          <Route path="/snap" element={<RequireRoute routeKey="snap"><SnapOutreach /></RequireRoute>} />
+          <Route path="/outreach/:program?/:section?" element={<RequireRoute routeKey="outreach"><Outreach /></RequireRoute>} />
+          {/* SNAP Outreach became a program inside Outreach (O1); keep old links working. */}
+          <Route path="/snap/*" element={<Navigate to="/outreach/snap" replace />} />
           <Route path="/workforce" element={<Workforce />} />
           <Route path="/jobdeveloper" element={<JobDeveloper />} />
           <Route path="/jobdeveloper/:clientId" element={<JobClientProfile />} />

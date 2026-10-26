@@ -1,4 +1,4 @@
-// SnapContactDetail.jsx -- one SNAP contact: outreach details (editable by
+// SnapContactDetail.jsx -- one outreach contact: outreach details (editable by
 // the assigned worker or a supervisor -- contactPermissions() mirrors the
 // RLS update policy), communication consent (append-only history, newest
 // answer per channel/purpose shown), and the activity log.
@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
+import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import {
   CONSENT_CHANNELS, CONSENT_METHODS, CONSENT_PURPOSES, CONTACT_LANGUAGES, CONTACT_METHODS, FOLLOW_UP_STATUSES,
   INTERACTION_DIRECTIONS, INTERACTION_OUTCOMES, INTERACTION_TYPES, OUTREACH_SOURCES, SUMMARY_MAX,
@@ -28,7 +29,7 @@ function fmtWhen(iso) {
 export default function SnapContactDetail({ contact, onChanged, onClose }) {
   const { data, session, showToast } = useApp();
   const t = useT();
-  const programRole = (data.programRoles || {}).snap || null;
+  const { program, programRole } = useOutreachProgram();
   const userId = session ? session.id : null;
   const perms = contactPermissions(contact, programRole, userId);
   const staff = (data.profiles || []).filter((p) => p.active !== false);
@@ -85,7 +86,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
     e.preventDefault();
     setBusy(true);
     try {
-      await logInteraction(contact.clientId, entry);
+      await logInteraction(program, contact.clientId, entry);
       setActivity(await fetchInteractions(contact.clientId));
       setEntry({ type: entry.type, direction: entry.direction, outcome: "", summary: "" });
       showToast(t("snapActivityLogged"));

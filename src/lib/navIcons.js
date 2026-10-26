@@ -22,7 +22,7 @@ export var NAV_ICONS = {
   students: GraduationCap,
   assessments: ClipboardCheck,
   casemanagement: FolderKanban,
-  snap: HeartHandshake,
+  outreach: HeartHandshake,
   jobdeveloper: Briefcase,
   // Single flat "Workforce" sidebar link (Shell.jsx/Workforce.jsx) -- not
   // one of the individual Employer & Job Opportunity Management pages
