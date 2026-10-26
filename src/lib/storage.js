@@ -26,6 +26,13 @@ export function getConfig() {
   } catch (e) {}
   return defaults;
 }
+// The auto check-out closing time: the organization's (app_settings, saved
+// from System Settings) when there is one, else this browser's own.
+export function effectiveClosingTime(orgSettings, cfg) {
+  var org = orgSettings && orgSettings.closing_time;
+  if (typeof org === "string" && /^\d{2}:\d{2}$/.test(org)) return org;
+  return (cfg && cfg.closingTime) || "17:00";
+}
 export function setConfig(cfg) {
   try { localStorage.setItem(CFG_KEY, JSON.stringify(Object.assign({}, getConfig(), cfg))); } catch (e) {}
 }

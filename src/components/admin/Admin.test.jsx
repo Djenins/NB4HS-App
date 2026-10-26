@@ -9,7 +9,7 @@ import { t as translate } from "../../lib/i18n.js";
 const tr = (k) => translate(k, "en");
 let session = { id: "me", role: "administrator" };
 let held = ["admin.users.view", "admin.users.invite", "admin.users.edit", "admin.users.deactivate", "admin.users.revoke_sessions",
-  "admin.roles.view", "admin.roles.manage", "admin.permissions.assign", "admin.positions.manage"];
+  "admin.roles.view", "admin.roles.manage", "admin.permissions.assign", "admin.positions.manage", "admin.programs.manage", "admin.audit.view"];
 const showToast = vi.fn();
 
 vi.mock("../../context/AppContext.jsx", async () => {
@@ -42,8 +42,10 @@ const CATALOG = {
     { id: "r-old", key: "old", name: "Old Role", description: "", kind: "custom", archivedAt: "2026-01-01", permissionCount: 0, peopleCount: 0 }
   ],
   rolePermissions: [{ roleId: "r-c", permissionKey: "students.view", scope: "program" }, { roleId: "r-legacy", permissionKey: "students.view", scope: "assigned" }],
-  permissions: [{ key: "students.view", moduleKey: "students", label: "Open Students", sortOrder: 1 }],
+  permissions: [{ key: "students.view", moduleKey: "students", label: "Open Students", sortOrder: 1, sensitivity: "normal", scoped: true },
+    { key: "students.assessments.grade", moduleKey: "students.assessments", label: "Grade assessments", sortOrder: 1, sensitivity: "sensitive", scoped: true }],
   modules: [{ key: "students", kind: "program", name: "Students", active: true, implemented: true },
+    { key: "students.assessments", parentKey: "students", kind: "submodule", name: "Assessments", active: true, implemented: true },
     { key: "workforce", kind: "program", name: "Workforce", active: true, implemented: true }],
   members: [{ role_id: "r-c", user_id: "u1" }]
 };
@@ -68,11 +70,37 @@ vi.mock("../../lib/adminAccounts.js", async (importOriginal) => {
   return Object.assign({}, real, lib);
 });
 
+const perm = vi.hoisted(() => ({}));
+vi.mock("../../lib/permissionAdmin.js", async (importOriginal) => {
+  const real = await importOriginal();
+  Object.assign(perm, {
+    fetchUserAccess: vi.fn(() => Promise.resolve({
+      effective: [{ permissionKey: "students.view", programKey: "students", scope: "program", sources: [{ type: "role", name: "Program Lead" }] }],
+      overrides: []
+    })),
+    previewUserChanges: vi.fn(() => Promise.resolve([
+      { permission_key: "students.assessments.grade", program_key: "students", before_scope: null, after_scope: "assigned", change: "added" }
+    ])),
+    applyUserChanges: vi.fn(() => Promise.resolve()),
+    previewRolePermissions: vi.fn(() => Promise.resolve([{ user_id: "u1", permission_key: "students.assessments.grade", program_key: "students", change: "added" }])),
+    saveRolePermissions: vi.fn(() => Promise.resolve(1)),
+    setModuleActive: vi.fn(() => Promise.resolve()),
+    fetchProgramMemberCounts: vi.fn(() => Promise.resolve({ students: 3 })),
+    fetchAuditEvents: vi.fn(() => Promise.resolve([
+      { id: 9, occurredAt: "2026-10-26T10:00:00Z", actorId: "me", action: "update", tableName: "role_permissions", recordId: "r-c",
+        subjectUserId: null, changedFields: ["scope"], oldValues: { scope: "own" }, newValues: { scope: "program" }, reason: "Wider reach" }
+    ]))
+  });
+  return Object.assign({}, real, perm);
+});
+
 import AdminUsers from "./AdminUsers.jsx";
 import AdminUserProfile from "./AdminUserProfile.jsx";
 import AdminRoles from "./AdminRoles.jsx";
 import AdminRoleDetail from "./AdminRoleDetail.jsx";
 import AdminPositions from "./AdminPositions.jsx";
+import AdminPrograms from "./AdminPrograms.jsx";
+import AdminAudit from "./AdminAudit.jsx";
 
 function renderIn(node) {
   return render(<MemoryRouter>{node}</MemoryRouter>);
@@ -215,5 +243,102 @@ describe("Positions", () => {
     fireEvent.change(within(dialog).getByLabelText(/Position name/), { target: { value: "Data Analyst" } });
     fireEvent.click(within(dialog).getByRole("button", { name: tr("adminNewPosition") }));
     await waitFor(() => expect(lib.createPosition).toHaveBeenCalledWith("Data Analyst", ""));
+  });
+});
+
+describe("Detailed permissions", () => {
+  it("shows where each permission comes from", async () => {
+    renderIn(<AdminUserProfile userId="u1" />);
+    fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
+    await screen.findByText("Grade assessments");
+    expect(screen.getByText("Program Lead")).toBeTruthy();
+    expect(screen.getAllByText(tr("adminOriginNone")).length).toBeGreaterThan(0);
+  });
+
+  it("stages a sensitive grant, previews it, and needs the typed confirmation and a reason", async () => {
+    renderIn(<AdminUserProfile userId="u1" />);
+    fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
+    const trigger = await screen.findByRole("button", { name: tr("adminPermissionActions").replace("{permission}", "Grade assessments") });
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: tr("adminGrantIndividually") }));
+    const stageDialog = await screen.findByRole("dialog");
+    fireEvent.click(within(stageDialog).getByRole("button", { name: tr("adminStageChange") }));
+    expect(await screen.findByText(tr("adminOneStaged"))).toBeTruthy();
+    expect(perm.applyUserChanges).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: tr("adminReviewAndSave") }));
+    const review = await screen.findByRole("dialog");
+    await within(review).findByText(tr("adminGains"));
+    expect(perm.previewUserChanges).toHaveBeenCalledWith("u1", [expect.objectContaining({ type: "add", permissionKey: "students.assessments.grade", effect: "grant", scope: "assigned", programKey: "students" })]);
+    const save = within(review).getByRole("button", { name: tr("adminSaveChanges") });
+    expect(save.disabled).toBe(true); // high-risk: type the name first
+    fireEvent.change(within(review).getByLabelText(tr("adminTypeToConfirm").replace("{phrase}", "Ann Active")), { target: { value: "ann active" } });
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(await within(review).findByText(tr("adminReasonRequired"))).toBeTruthy();
+    fireEvent.change(within(review).getByLabelText(/Reason/), { target: { value: "Covering grading this term" } });
+    fireEvent.click(save);
+    await waitFor(() => expect(perm.applyUserChanges).toHaveBeenCalledWith("u1", expect.any(Array), "Covering grading this term"));
+  });
+
+  it("offers no changes on your own account", async () => {
+    renderIn(<AdminUserProfile userId="me" />);
+    fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
+    await screen.findByText("Grade assessments");
+    expect(screen.queryByRole("button", { name: /^Change / })).toBeNull();
+  });
+});
+
+describe("Role permission editor", () => {
+  it("is not offered on legacy or protected roles", async () => {
+    const { unmount } = renderIn(<AdminRoleDetail roleId="r-legacy" />);
+    await screen.findByText(tr("adminLegacyRoleTitle"));
+    expect(screen.queryByRole("button", { name: tr("adminEditPermissions") })).toBeNull();
+    unmount();
+    renderIn(<AdminRoleDetail roleId="r-sys" />);
+    await screen.findByText(tr("adminBuiltinRoleBody"));
+    expect(screen.queryByRole("button", { name: tr("adminEditPermissions") })).toBeNull();
+  });
+
+  it("previews who is affected before saving the new list", async () => {
+    renderIn(<AdminRoleDetail roleId="r-c" />);
+    fireEvent.click(await screen.findByRole("button", { name: tr("adminEditPermissions") }));
+    fireEvent.click(await screen.findByLabelText(/Grade assessments/));
+    fireEvent.click(screen.getByRole("button", { name: tr("adminReviewAndSave") }));
+    const review = await screen.findByRole("dialog");
+    await within(review).findByText(tr("adminAffectsOne"));
+    expect(within(review).getByText("Ann Active")).toBeTruthy();
+    expect(perm.previewRolePermissions).toHaveBeenCalledWith("r-c", { "students.view": "program", "students.assessments.grade": "assigned" });
+    fireEvent.change(within(review).getByLabelText(tr("adminTypeToConfirm").replace("{phrase}", "Program Lead")), { target: { value: "Program Lead" } });
+    fireEvent.change(within(review).getByLabelText(/Reason/), { target: { value: "Leads grade now" } });
+    fireEvent.click(within(review).getByRole("button", { name: tr("adminSaveChanges") }));
+    await waitFor(() => expect(perm.saveRolePermissions).toHaveBeenCalledWith("r-c", { "students.view": "program", "students.assessments.grade": "assigned" }, "Leads grade now"));
+  });
+});
+
+describe("Programs & Modules", () => {
+  it("turns a module off only with a reason", async () => {
+    renderIn(<AdminPrograms />);
+    await screen.findByText(tr("adminProgramPeople").replace("{n}", 3));
+    fireEvent.click(screen.getAllByRole("button", { name: tr("adminTurnOff") })[1]);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: tr("adminTurnOff") }));
+    expect(perm.setModuleActive).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByLabelText(/Reason/), { target: { value: "Pausing assessments" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: tr("adminTurnOff") }));
+    await waitFor(() => expect(perm.setModuleActive).toHaveBeenCalledWith("students.assessments", false, "Pausing assessments"));
+  });
+});
+
+describe("Access audit log", () => {
+  it("lists changes with their reason, shows the diff and filters on the server", async () => {
+    renderIn(<AdminAudit />);
+    const row = (await screen.findByText(/Wider reach/)).closest("button");
+    expect(row.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(row);
+    expect(await screen.findByText("own")).toBeTruthy();
+    expect(screen.getByText("program")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(tr("adminAuditWho")), { target: { value: "u1" } });
+    await waitFor(() => expect(perm.fetchAuditEvents).toHaveBeenLastCalledWith(expect.objectContaining({ actor: "u1" })));
   });
 });

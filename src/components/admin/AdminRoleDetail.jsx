@@ -1,13 +1,16 @@
 // AdminRoleDetail.jsx -- one role (/admin/roles/:id): what it allows,
 // grouped by module, and who holds it. Custom roles can be renamed,
 // described and archived; any role can be duplicated into a new custom one.
-// Editing which permissions a role bundles is the permission editor's job
-// (Phase 5), so the list here is read-only.
+// Custom and unprotected built-in roles can have their permissions edited
+// (RolePermissionEditor.jsx, Phase 5); legacy roles follow the account type
+// and protected ones are fixed, so those stay read-only.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Archive, ArchiveRestore, Copy, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, ListChecks, Pencil } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { adminErrorKey, fetchAccessCatalog, groupRolePermissions, updateRole } from "../../lib/adminAccounts.js";
+import { roleDraft, roleEditable } from "../../lib/permissionAdmin.js";
+import RolePermissionEditor from "./RolePermissionEditor.jsx";
 import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
@@ -19,9 +22,7 @@ import { PageHeader } from "../ui/page-header.jsx";
 import { Skeleton } from "../ui/skeleton.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
 import { NewRoleDialog, ROLE_KIND_LABEL } from "./AdminRoles.jsx";
-import { PersonCell, countLabel } from "./adminShared.jsx";
-
-const SCOPE_LABEL = { own: "adminScopeOwn", assigned: "adminScopeAssigned", team: "adminScopeTeam", program: "adminScopeProgram", org: "adminScopeOrg" };
+import { PersonCell, SCOPE_LABEL, SensitivityBadge, countLabel } from "./adminShared.jsx";
 
 function EditRoleDialog({ open, onClose, role, onSaved }) {
   const { showToast } = useApp();
@@ -69,6 +70,7 @@ export default function AdminRoleDetail({ roleId }) {
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [editingPerms, setEditingPerms] = useState(false);
 
   const load = useCallback(() => fetchAccessCatalog().then(setCatalog).catch(() => setFailed(true)), []);
   useEffect(() => { load(); }, [load]);
@@ -96,6 +98,7 @@ export default function AdminRoleDetail({ roleId }) {
 
   const manage = can("admin.roles.manage");
   const editable = manage && role.kind === "custom";
+  const permsEditable = manage && roleEditable(role);
 
   async function toggleArchive() {
     if (!role.archivedAt && !(await requestConfirm(t("adminArchiveConfirm").replace("{name}", role.name).replace("{n}", role.peopleCount)))) return;
@@ -117,6 +120,7 @@ export default function AdminRoleDetail({ roleId }) {
         }
         actions={manage ? (
           <>
+            {permsEditable && !editingPerms ? <Button variant="secondary" onClick={() => setEditingPerms(true)}><ListChecks className="h-4 w-4" aria-hidden="true" />{t("adminEditPermissions")}</Button> : null}
             {editable ? <Button variant="secondary" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" aria-hidden="true" />{t("editLabel")}</Button> : null}
             <Button variant="secondary" onClick={() => setDuplicating(true)}><Copy className="h-4 w-4" aria-hidden="true" />{t("adminDuplicate")}</Button>
             {editable ? (
@@ -129,11 +133,19 @@ export default function AdminRoleDetail({ roleId }) {
         ) : null}
       />
 
-      <Alert tone="info" className="mb-6" title={role.kind === "legacy" ? t("adminLegacyRoleTitle") : t("adminRoleReadOnlyTitle")}>
-        {role.kind === "legacy" ? t("adminLegacyRoleBody") : role.kind === "builtin" ? t("adminBuiltinRoleBody") : t("adminRoleReadOnlyBody")}
-      </Alert>
+      {role.kind === "legacy" || role.protected ? (
+        <Alert tone="info" className="mb-6" title={role.kind === "legacy" ? t("adminLegacyRoleTitle") : t("adminRoleReadOnlyTitle")}>
+          {role.kind === "legacy" ? t("adminLegacyRoleBody") : t("adminBuiltinRoleBody")}
+        </Alert>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        {editingPerms ? (
+          <div className="min-w-0">
+            <RolePermissionEditor role={role} catalog={catalog} initial={roleDraft(catalog.rolePermissions, role.id)}
+              onCancel={() => setEditingPerms(false)} onSaved={() => { setEditingPerms(false); load(); }} />
+          </div>
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle>{t("adminWhatRoleAllows")}</CardTitle>
@@ -148,7 +160,7 @@ export default function AdminRoleDetail({ roleId }) {
                     <ul className="m-0 list-none divide-y divide-line-subtle rounded-control border border-border p-0">
                       {g.permissions.map((p) => (
                         <li key={p.key} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-ui">
-                          <span className="text-card-foreground">{p.label}</span>
+                          <span className="flex flex-wrap items-center gap-2 text-card-foreground">{p.label}<SensitivityBadge sensitivity={p.sensitivity} /></span>
                           {p.scope ? <Badge variant="neutral">{t(SCOPE_LABEL[p.scope])}</Badge> : null}
                         </li>
                       ))}
@@ -161,6 +173,7 @@ export default function AdminRoleDetail({ roleId }) {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader>

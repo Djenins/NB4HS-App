@@ -6,11 +6,14 @@
 //   Positions       job titles -- describe the work, grant nothing
 //   Program Access  the programs whose permissions count for them
 //   Roles           permission sets under the new access model
+//   Permissions     every permission with where it comes from; individual
+//                   grants and denies (Phase 5, PermissionsTab.jsx)
 //
 // Nobody acts on their own account here: the database refuses it too.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, LogOut, Mail, Plus, Star, Trash2, UserCheck, UserX } from "lucide-react";
+import PermissionsTab from "./PermissionsTab.jsx";
 import ProgramAccessTab from "./ProgramAccessTab.jsx";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
@@ -434,7 +437,8 @@ export default function AdminUserProfile({ userId }) {
           { value: "profile", label: t("adminTabProfile") },
           { value: "positions", label: t("adminSectionPositions"), count: account.positions.length },
           { value: "programs", label: t("adminTabPrograms") },
-          { value: "roles", label: t("adminSectionRoles"), count: account.roles.filter((r) => r.source === "admin").length }
+          { value: "roles", label: t("adminSectionRoles"), count: account.roles.filter((r) => r.source === "admin").length },
+          { value: "permissions", label: t("adminTabPermissions") }
         ]}
       />
       <TabPanel idBase="account" value={tab} className="pt-6">
@@ -442,6 +446,7 @@ export default function AdminUserProfile({ userId }) {
         {tab === "positions" ? <PositionsTab account={account} positions={positions} onChanged={reload} /> : null}
         {tab === "programs" ? <ProgramAccessTab account={account} isSelf={isSelf} catalog={catalog} /> : null}
         {tab === "roles" ? <RolesTab account={account} isSelf={isSelf} catalog={catalog} onChanged={reload} /> : null}
+        {tab === "permissions" ? <PermissionsTab account={account} isSelf={isSelf} catalog={catalog} /> : null}
       </TabPanel>
 
       <ReasonDialog
