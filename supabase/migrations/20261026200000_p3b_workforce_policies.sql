@@ -1,7 +1,11 @@
 -- Phase 3, part B -- the Workforce program's tables move from account-type
 -- checks to permissions, and that fixes audit finding S7
 -- (plans/unified-access-architecture.md §1.2, §2.1, §13 Phase 3).
--- NOT YET APPLIED.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026200000), after
+-- rolled-back dry runs (parity up and down, p3b_s7_check). Afterwards on
+-- live: reverse parity (rollback inside a transaction) matched the old rules
+-- with today's Workforce settings, differing only by the 780 intended S7
+-- answers at all off / all on; the p1, p2 and p3a checks passed.
 --
 -- S7: the "Workforce Development Access" setting in Settings decides who
 -- sees the seven Workforce pages, but the database was hard-coded to
