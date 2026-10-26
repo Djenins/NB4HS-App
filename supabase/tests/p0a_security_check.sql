@@ -1,4 +1,4 @@
--- Regression checks for 20261026130000_p0a_security_hotfixes.sql.
+-- Regression checks for 20261026084229_p0a_security_hotfixes.sql.
 -- Run AFTER the migration, inside the same transaction. It always ends by
 -- raising 'P0A_CHECKS_PASSED', so nothing it (or the migration) wrote is ever
 -- committed; any failed check raises its own message first.

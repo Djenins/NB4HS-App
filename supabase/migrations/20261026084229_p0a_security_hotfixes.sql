@@ -1,8 +1,10 @@
 -- Phase 0, part A of 2 -- security hotfixes that break nothing the current
 -- app does (plans/unified-access-architecture.md §2.1, §5).
--- NOT YET APPLIED. Safe to apply before the matching frontend is deployed:
--- every path the live app uses keeps working. Part B (p0b) removes the old
--- anonymous paths once the new appointment-request page is live.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-26 (version 20261026084229), after
+-- a rolled-back dry run of supabase/tests/p0a_security_check.sql passed; the
+-- same checks passed again against the live database afterwards. Every path
+-- the live app uses keeps working. Part B (p0b) removes the old anonymous
+-- paths once the new appointment-request page is live.
 --
 -- S1  create_* RPCs: SECURITY DEFINER with no role check, so any signed-in
 --     account (receptionist, an inactive self-signup's JWT) could create
