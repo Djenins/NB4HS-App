@@ -1,9 +1,10 @@
 // MyReports.jsx -- every staff member's biweekly reports to the Executive
 // Director (sidebar "My Reports"; plans/staff-reporting-architecture.md §3).
-// /myreports leads with the current period: its deadline and one row per
-// department the person reports for, each with the one action that fits
-// (create, continue, revise, view). Below that: reports sent back for
-// revision, drafts, anything still owed from earlier periods, and history.
+// /myreports leads with the current period: its deadline and the person's
+// one report for it (across every program they worked on), with the one
+// action that fits (create, continue, revise, view). Below that: reports
+// sent back for revision, drafts, anything still owed from earlier periods,
+// and history.
 // /myreports/:id opens one report -- the form while it is editable, the
 // read-only report and its review trail once it is not.
 import { useEffect, useState } from "react";
@@ -11,14 +12,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, ClipboardPen, FilePlus2, PenLine } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
-  createDraft, currentPeriodGroup, daysUntilDue, fetchDepartments, fetchMyExpectations, fetchReportHistory, fetchReports,
+  createDraft, currentPeriodGroup, daysUntilDue, fetchMyExpectations, fetchReportHistory, fetchReports,
   fetchSchedules, fmtDueAt, fmtPeriod, localDateIn, reportPermissions
 } from "../lib/staffReports.js";
 import EmptyState from "../components/EmptyState.jsx";
 import { SectionCard } from "../components/SectionCard.jsx";
 import { Button } from "../components/ui/button.jsx";
 import ReportForm from "../components/reports/ReportForm.jsx";
-import { ReportContent, ReportHistory, ReportStatusBadge, TD, TH, fmtStamp } from "../components/reports/ReportParts.jsx";
+import { ReportContent, ReportHistory, ReportStatusBadge, TD, TH, fmtStamp, useProgramLabels } from "../components/reports/ReportParts.jsx";
 
 const DEFAULT_TZ = "America/New_York";
 
@@ -40,14 +41,14 @@ function ActionFor({ row, onCreate, onOpen, busy, t }) {
   return <Button size="sm" variant="secondary" onClick={() => onOpen(row.reportId)}>{t("srView")}</Button>;
 }
 
-function Submitted({ report, periodLabel, departmentName, onBack }) {
+function Submitted({ report, periodLabel, programsText, onBack }) {
   const { lang } = useApp();
   const t = useT();
   return (
     <div className="mx-auto grid max-w-xl gap-4 rounded-xl border border-border bg-card p-6 text-center shadow-card" role="status">
       <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden="true" />
       <h1 className="m-0 text-xl font-bold text-card-foreground">{t("srSubmittedTitle")}</h1>
-      <p className="!m-0 !text-sm text-card-foreground">{departmentName} · {periodLabel}</p>
+      <p className="!m-0 !text-sm text-card-foreground">{periodLabel} · {programsText}</p>
       <p className="!m-0 !text-sm text-muted">{t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
       <p className="!m-0 !text-sm text-muted">{t("srSubmittedNotified")}</p>
       <Button className="justify-self-center" onClick={onBack}>{t("srBackToMyReports")}</Button>
@@ -55,7 +56,7 @@ function Submitted({ report, periodLabel, departmentName, onBack }) {
   );
 }
 
-function ReportReadOnly({ report, history, periodLabel, departmentName, onBack }) {
+function ReportReadOnly({ report, history, periodLabel, programsText, onBack }) {
   const { lang } = useApp();
   const t = useT();
   return (
@@ -63,10 +64,10 @@ function ReportReadOnly({ report, history, periodLabel, departmentName, onBack }
       <Button variant="ghost" className="justify-self-start gap-1.5 px-2 text-muted" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("srBackToMyReports")}</Button>
       <div className="rounded-xl border border-border bg-card p-5 shadow-card sm:p-6">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="m-0 text-xl font-bold text-card-foreground">{departmentName}</h1>
+          <h1 className="m-0 text-xl font-bold text-card-foreground">{periodLabel}</h1>
           <ReportStatusBadge status={report.status} />
         </div>
-        <p className="!mb-0 !mt-1 !text-sm text-muted">{periodLabel} · {t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
+        <p className="!mb-0 !mt-1 !text-sm text-muted">{programsText} · {t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
         <div className="mt-5"><ReportContent content={report} /></div>
       </div>
       <SectionCard title={t("srHistory")}><ReportHistory history={history} /></SectionCard>
@@ -82,7 +83,6 @@ export default function MyReports() {
   const userId = session ? session.id : null;
   const [expectations, setExpectations] = useState(null);
   const [reports, setReports] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loadError, setLoadError] = useState(false);
   const [history, setHistory] = useState(null);
@@ -90,8 +90,8 @@ export default function MyReports() {
   const [busy, setBusy] = useState(false);
 
   function load() {
-    return Promise.all([fetchMyExpectations(), fetchReports({ staffId: userId }), fetchDepartments(), fetchSchedules()])
-      .then(([exp, reps, depts, scheds]) => { setExpectations(exp); setReports(reps); setDepartments(depts); setSchedules(scheds); setLoadError(false); })
+    return Promise.all([fetchMyExpectations(), fetchReports({ staffId: userId }), fetchSchedules()])
+      .then(([exp, reps, scheds]) => { setExpectations(exp); setReports(reps); setSchedules(scheds); setLoadError(false); })
       .catch((err) => { console.warn("My Reports load failed", err); setLoadError(true); });
   }
   useEffect(() => { if (userId) load(); }, [userId]);
@@ -102,14 +102,14 @@ export default function MyReports() {
   }, [reportId]);
 
   const tz = (schedules.find((s) => s.active) || {}).timeZone || DEFAULT_TZ;
-  const deptName = (id) => (departments.find((d) => d.id === id) || {}).name || "—";
+  const { label: programsText } = useProgramLabels();
   const open = (id) => { setJustSubmitted(null); navigate("/myreports/" + id); };
   const back = () => { setJustSubmitted(null); navigate("/myreports"); load(); };
 
   async function create(row) {
     setBusy(true);
     try {
-      const draft = await createDraft(row.periodId, row.departmentId, userId);
+      const draft = await createDraft(row.periodId, userId);
       setReports((prev) => [draft].concat(prev.filter((r) => r.id !== draft.id)));
       navigate("/myreports/" + draft.id);
     } catch (err) {
@@ -135,7 +135,7 @@ export default function MyReports() {
     }
     const periodLabel = fmtPeriod(report.periodStart, report.periodEnd, lang);
     if (justSubmitted && justSubmitted.id === report.id) {
-      return <Submitted report={justSubmitted} periodLabel={periodLabel} departmentName={deptName(report.departmentId)} onBack={back} />;
+      return <Submitted report={justSubmitted} periodLabel={periodLabel} programsText={programsText(justSubmitted.programs)} onBack={back} />;
     }
     if (reportPermissions(report, userId, false).canEdit) {
       if (history === null) return null;
@@ -146,7 +146,6 @@ export default function MyReports() {
           report={report}
           periodLabel={periodLabel}
           dueLabel={fmtDueAt(report.dueAt, tz, lang)}
-          departmentName={deptName(report.departmentId)}
           revisionComment={report.status === "revision_requested" && lastRevision ? lastRevision.comment : ""}
           onSaved={(saved) => setReports((prev) => prev.map((r) => (r.id === saved.id ? saved : r)))}
           onSubmitted={(submitted) => {
@@ -159,7 +158,7 @@ export default function MyReports() {
         />
       );
     }
-    return <ReportReadOnly report={report} history={history} periodLabel={periodLabel} departmentName={deptName(report.departmentId)} onBack={back} />;
+    return <ReportReadOnly report={report} history={history} periodLabel={periodLabel} programsText={programsText(report.programs)} onBack={back} />;
   }
 
   // ---------- overview ----------
@@ -174,8 +173,8 @@ export default function MyReports() {
   const reportRow = (r, actionLabel) => (
     <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
       <div className="min-w-0">
-        <div className="font-semibold text-card-foreground">{deptName(r.departmentId)}</div>
-        <div className="text-xs text-muted">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
+        <div className="font-semibold text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
+        <div className="text-xs text-muted">{r.programs.length ? programsText(r.programs) : t("srNoProgramsYet")}</div>
       </div>
       <Button size="sm" className="gap-1.5" onClick={() => open(r.id)}><PenLine className="h-4 w-4" aria-hidden="true" /> {actionLabel}</Button>
     </li>
@@ -217,10 +216,10 @@ export default function MyReports() {
               {group.rows.map((row) => {
                 const hint = dueHint(row.dueAt, tz, row.overdue, t);
                 return (
-                  <li key={row.departmentId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+                  <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-card-foreground">{deptName(row.departmentId)}</span>
+                        <span className="font-semibold text-card-foreground">{row.programs.length ? programsText(row.programs) : t("srYourReport")}</span>
                         <ReportStatusBadge status={row.status} overdue={row.overdue} />
                       </div>
                       <div className={"mt-0.5 text-xs " + (row.submittedAt ? "text-muted" : hint.tone)}>
@@ -246,10 +245,10 @@ export default function MyReports() {
         <SectionCard title={t("srOwedEarlier")}>
           <ul className="m-0 grid list-none gap-2 p-0">
             {owedEarlier.map((row) => (
-              <li key={row.periodId + row.departmentId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
+              <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-card-foreground">{deptName(row.departmentId)}</span><ReportStatusBadge status={row.status} overdue /></div>
-                  <div className="text-xs text-muted">{fmtPeriod(row.periodStart, row.periodEnd, lang)} · {t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
+                  <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-card-foreground">{fmtPeriod(row.periodStart, row.periodEnd, lang)}</span><ReportStatusBadge status={row.status} overdue /></div>
+                  <div className="text-xs text-muted">{t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
                 </div>
                 <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} />
               </li>
@@ -269,13 +268,13 @@ export default function MyReports() {
           <div className="overflow-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr><th className={TH}>{t("srReportingPeriod")}</th><th className={TH}>{t("srDepartment")}</th><th className={TH}>{t("srSubmitted")}</th><th className={TH}>{t("srStatus")}</th><th className={TH}><span className="sr-only">{t("srView")}</span></th></tr>
+                <tr><th className={TH}>{t("srReportingPeriod")}</th><th className={TH}>{t("srPrograms")}</th><th className={TH}>{t("srSubmitted")}</th><th className={TH}>{t("srStatus")}</th><th className={TH}><span className="sr-only">{t("srView")}</span></th></tr>
               </thead>
               <tbody>
                 {submitted.map((r) => (
                   <tr key={r.id} className="border-t border-border">
                     <td className={TD + " whitespace-nowrap"}>{fmtPeriod(r.periodStart, r.periodEnd, lang)}</td>
-                    <td className={TD}>{deptName(r.departmentId)}</td>
+                    <td className={TD}>{programsText(r.programs)}</td>
                     <td className={TD + " whitespace-nowrap text-muted"}>{fmtStamp(r.submittedAt, lang)}</td>
                     <td className={TD}><ReportStatusBadge status={r.status} /></td>
                     <td className={TD + " text-right"}><Button size="sm" variant="secondary" onClick={() => open(r.id)}>{t("srView")}</Button></td>

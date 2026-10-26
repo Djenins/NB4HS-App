@@ -1,7 +1,8 @@
-// staffReports.js -- biweekly staff reports to the Executive Director (the
-// staff_reports_r1_core migration). Staff write their own reports, one per
-// department per reporting period; reviewers (program_staff program
-// 'staff_reports', role 'reviewer') read, acknowledge or send them back.
+// staffReports.js -- biweekly staff reports to the Executive Director
+// (staff_reports_r1_core, reshaped by p6a_staff_reports_r1b). Each person who
+// holds staff_reports.submit writes one report per reporting period, naming
+// the programs they worked on; holders of staff_reports.review read,
+// acknowledge or send them back (staff_reports.view_all reads only).
 //
 // The database is the real control: RLS, the staff_report_client_rules
 // trigger and the submit/review RPCs. The pure helpers here mirror those
@@ -12,7 +13,9 @@ import { supabase } from "./supabase.js";
 
 export var REPORT_STATUSES = ["draft", "submitted", "under_review", "revision_requested", "acknowledged"];
 export var TEXT_FIELDS = ["activities", "accomplishments", "challenges", "assistanceNeeded", "nextGoals", "comments"];
-export var REQUIRED_FIELDS = ["activities", "accomplishments", "challenges", "assistanceNeeded", "nextGoals"];
+export var REQUIRED_FIELDS = ["programs", "activities", "accomplishments", "challenges", "assistanceNeeded", "nextGoals"];
+// Organization-wide or administration work, alongside the program keys.
+export var ORGANIZATION = "organization";
 export var REPORT_TEXT_MAX = 8000;
 export var OUTCOMES_MAX = 30;
 export var REVIEWER_ROLES = ["reviewer", "program_admin"];
@@ -25,7 +28,7 @@ var COLUMN = {
 function reportFromRow(row) {
   var p = row.reporting_periods || {};
   return {
-    id: row.id, periodId: row.period_id, staffId: row.staff_id, departmentId: row.department_id, status: row.status,
+    id: row.id, periodId: row.period_id, staffId: row.staff_id, programs: row.programs || [], status: row.status,
     activities: row.activities || "", accomplishments: row.accomplishments || "", challenges: row.challenges || "",
     assistanceNeeded: row.assistance_needed || "", noAssistanceNeeded: !!row.no_assistance_needed,
     nextGoals: row.next_goals || "", comments: row.comments || "", outcomes: normalizeOutcomes(row.outcomes),
@@ -39,7 +42,7 @@ function reportFromRow(row) {
 function expectationFromRow(row) {
   return {
     periodId: row.period_id, periodStart: row.period_start || null, periodEnd: row.period_end || null,
-    staffId: row.staff_id, departmentId: row.department_id, dueAt: row.due_at, overdue: !!row.overdue,
+    staffId: row.staff_id, programs: row.programs || [], dueAt: row.due_at, overdue: !!row.overdue,
     reportId: row.report_id || null, status: row.status, submittedAt: row.submitted_at || null, version: row.version || 0
   };
 }
@@ -49,8 +52,7 @@ function scheduleFromRow(row) {
     id: row.id, name: row.name, firstPeriodStart: row.first_period_start, periodDays: row.period_days,
     deadlineDaysAfterEnd: row.deadline_days_after_end, deadlineTime: (row.deadline_time || "17:00").slice(0, 5),
     timeZone: row.time_zone, graceHours: row.grace_hours, reminderOffsets: row.reminder_offsets || [],
-    appliesToAll: !!row.applies_to_all, active: !!row.active,
-    departmentIds: (row.reporting_schedule_departments || []).map(function (d) { return d.department_id; })
+    active: !!row.active
   };
 }
 
@@ -166,9 +168,16 @@ export function cleanOutcomes(outcomes) {
 // Required fields still empty -- the same rule submit_staff_report() applies.
 export function missingFields(report) {
   return REQUIRED_FIELDS.filter(function (f) {
+    if (f === "programs") return !(report.programs && report.programs.length);
     if (f === "assistanceNeeded" && report.noAssistanceNeeded) return false;
     return !String(report[f] || "").trim();
   });
+}
+
+// "Students, Workforce" from program keys; `names` maps key -> name and
+// `orgLabel` names the organization-wide option.
+export function programsLabel(keys, names, orgLabel) {
+  return (keys || []).map(function (k) { return k === ORGANIZATION ? orgLabel : names[k] || k; }).join(", ");
 }
 
 // Mirrors the RLS policies, the client-rules trigger and the review RPCs.
@@ -210,7 +219,7 @@ export function summarizeExpectations(rows) {
 }
 
 // What "My Reports" leads with: the period containing local today, or else
-// the next one to come, each with this person's per-department rows.
+// the next one to come, with this person's row for it.
 export function currentPeriodGroup(expectations, today) {
   var byPeriod = {};
   (expectations || []).forEach(function (e) { (byPeriod[e.periodId] = byPeriod[e.periodId] || []).push(e); });
@@ -223,16 +232,16 @@ export function currentPeriodGroup(expectations, today) {
 }
 
 // Search/filter for the reviewer's tables. `names` maps staff id -> name and
-// department id -> name, so search matches what the reviewer sees.
+// program key -> name, so search matches what the reviewer sees.
 export function filterReportRows(rows, filters, names) {
   var q = String((filters && filters.q) || "").trim().toLowerCase();
   return (rows || []).filter(function (r) {
-    if (filters.departmentId && r.departmentId !== filters.departmentId) return false;
+    if (filters.program && (r.programs || []).indexOf(filters.program) === -1) return false;
     if (filters.staffId && r.staffId !== filters.staffId) return false;
     if (filters.status === "overdue" && !r.overdue) return false;
     if (filters.status && filters.status !== "overdue" && r.status !== filters.status) return false;
     if (!q) return true;
-    var hay = [names.staff[r.staffId], names.departments[r.departmentId]].join(" ").toLowerCase();
+    var hay = [names.staff[r.staffId]].concat((r.programs || []).map(function (k) { return names.programs[k] || k; })).join(" ").toLowerCase();
     return hay.indexOf(q) !== -1;
   });
 }
@@ -249,27 +258,25 @@ export function toCsv(header, rows) {
 
 // ---------- data ----------
 
-export async function fetchDepartments() {
-  const { data, error } = await supabase.from("departments").select("*").order("sort_order").order("name");
+// Program names by key, for labels: { students: "Students", ... }.
+export async function fetchProgramNames() {
+  const { data, error } = await supabase.from("app_modules").select("key, name_en").eq("kind", "program").order("sort_order");
   if (error) throw error;
-  return data.map(function (d) { return { id: d.id, key: d.key, name: d.name, active: !!d.active, sortOrder: d.sort_order }; });
+  const out = {};
+  data.forEach(function (m) { out[m.key] = m.name_en; });
+  return out;
 }
 
-export async function saveDepartment(dept) {
-  const row = { name: dept.name.trim(), active: dept.active !== false };
-  if (dept.id) {
-    const { error } = await supabase.from("departments").update(row).eq("id", dept.id);
-    if (error) throw error;
-    return;
-  }
-  const key = dept.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "dept";
-  const { error } = await supabase.from("departments").insert(Object.assign(row, { key: key, sort_order: dept.sortOrder || 100 }));
+// What the signed-in person can report on: 'organization' first, then the
+// programs they can open (my_report_program_options).
+export async function fetchMyProgramOptions() {
+  const { data, error } = await supabase.rpc("my_report_program_options");
   if (error) throw error;
+  return data || [ORGANIZATION];
 }
 
 export async function fetchSchedules() {
-  const { data, error } = await supabase.from("reporting_schedules").select("*, reporting_schedule_departments(department_id)")
-    .order("created_at");
+  const { data, error } = await supabase.from("reporting_schedules").select("*").order("created_at");
   if (error) throw error;
   return data.map(scheduleFromRow);
 }
@@ -279,35 +286,8 @@ export async function updateSchedule(schedule) {
     name: schedule.name, first_period_start: schedule.firstPeriodStart, period_days: schedule.periodDays,
     deadline_days_after_end: schedule.deadlineDaysAfterEnd, deadline_time: schedule.deadlineTime,
     time_zone: schedule.timeZone, grace_hours: schedule.graceHours, reminder_offsets: schedule.reminderOffsets,
-    applies_to_all: schedule.appliesToAll, active: schedule.active
+    active: schedule.active
   }).eq("id", schedule.id);
-  if (error) throw error;
-  const current = (await fetchSchedules()).find(function (s) { return s.id === schedule.id; });
-  const want = schedule.appliesToAll ? [] : schedule.departmentIds;
-  const add = want.filter(function (id) { return current.departmentIds.indexOf(id) === -1; });
-  const drop = current.departmentIds.filter(function (id) { return want.indexOf(id) === -1; });
-  if (add.length) {
-    const res = await supabase.from("reporting_schedule_departments")
-      .insert(add.map(function (id) { return { schedule_id: schedule.id, department_id: id }; }));
-    if (res.error) throw res.error;
-  }
-  if (drop.length) {
-    const res = await supabase.from("reporting_schedule_departments").delete().eq("schedule_id", schedule.id).in("department_id", drop);
-    if (res.error) throw res.error;
-  }
-}
-
-// Every assignment row the caller may see: their own, or everyone's for
-// reviewers and reporting admins. Shape: [{ userId, departmentId, active }].
-export async function fetchStaffDepartments() {
-  const { data, error } = await supabase.from("staff_departments").select("user_id, department_id, active");
-  if (error) throw error;
-  return data.map(function (r) { return { userId: r.user_id, departmentId: r.department_id, active: !!r.active }; });
-}
-
-export async function setStaffDepartment(userId, departmentId, active) {
-  const { error } = await supabase.from("staff_departments")
-    .upsert({ user_id: userId, department_id: departmentId, active: active }, { onConflict: "user_id,department_id" });
   if (error) throw error;
 }
 
@@ -341,14 +321,14 @@ export async function fetchReport(id) {
   return data ? reportFromRow(data) : null;
 }
 
-// Starts the caller's draft for a period and department. A unique-violation
-// means one already exists (another tab, a double click) -- open that one.
-export async function createDraft(periodId, departmentId, staffId) {
+// Starts the caller's draft for a period. A unique-violation means one
+// already exists (another tab, a double click) -- open that one.
+export async function createDraft(periodId, staffId) {
   const { data, error } = await supabase.from("staff_reports")
-    .insert({ period_id: periodId, department_id: departmentId }).select(REPORT_SELECT).single();
+    .insert({ period_id: periodId }).select(REPORT_SELECT).single();
   if (error && error.code === "23505") {
     const existing = await supabase.from("staff_reports").select(REPORT_SELECT)
-      .eq("period_id", periodId).eq("department_id", departmentId).eq("staff_id", staffId).maybeSingle();
+      .eq("period_id", periodId).eq("staff_id", staffId).maybeSingle();
     if (existing.error) throw existing.error;
     return reportFromRow(existing.data);
   }
@@ -357,7 +337,7 @@ export async function createDraft(periodId, departmentId, staffId) {
 }
 
 export async function saveDraft(id, fields) {
-  const row = { no_assistance_needed: !!fields.noAssistanceNeeded, outcomes: cleanOutcomes(fields.outcomes) };
+  const row = { no_assistance_needed: !!fields.noAssistanceNeeded, outcomes: cleanOutcomes(fields.outcomes), programs: fields.programs || [] };
   TEXT_FIELDS.forEach(function (f) { row[COLUMN[f]] = String(fields[f] || "").slice(0, REPORT_TEXT_MAX); });
   const { data, error } = await supabase.from("staff_reports").update(row).eq("id", id).select(REPORT_SELECT).single();
   if (error) throw error;
@@ -395,7 +375,8 @@ export async function fetchReportHistory(id) {
         content: {
           activities: c.activities || "", accomplishments: c.accomplishments || "", challenges: c.challenges || "",
           assistanceNeeded: c.assistance_needed || "", noAssistanceNeeded: !!c.no_assistance_needed,
-          nextGoals: c.next_goals || "", comments: c.comments || "", outcomes: normalizeOutcomes(c.outcomes)
+          nextGoals: c.next_goals || "", comments: c.comments || "", outcomes: normalizeOutcomes(c.outcomes),
+          programs: c.programs || [], positions: c.positions || []
         }
       };
     }),
