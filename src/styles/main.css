@@ -142,9 +142,9 @@
 
     /* Type scale (staff UI). Running text never goes below 13px; 12px is for
        uppercase overlines and badges only. The kiosk keeps its own touch scale. */
-    --fs-title:clamp(1.375rem, 1.1rem + 0.8vw, 1.75rem);
+    --fs-title:1.5rem;
     --fs-heading:1.25rem; --fs-section:1rem; --fs-body:0.9375rem;
-    --fs-ui:0.875rem; --fs-meta:0.8125rem; --fs-caption:0.75rem; --fs-kpi:1.875rem;
+    --fs-ui:0.875rem; --fs-meta:0.8125rem; --fs-caption:0.75rem; --fs-kpi:1.5rem;
 
     /* Motion */
     --duration-fast:150ms; --duration-base:200ms; --ease-out:cubic-bezier(.2,.8,.2,1);
@@ -203,6 +203,9 @@
       --shadow-overlay:0 16px 40px rgba(0,0,0,.55);
     }
   }
+  /* Page titles and KPI values step up once at tablet width rather than
+     scaling fluidly. */
+  @media (min-width:768px){ :root{ --fs-title:1.75rem; --fs-kpi:1.875rem; } }
   *{box-sizing:border-box;}
   /* Tailwind's preflight is deliberately off (see tailwind.config.js), and
      preflight is what normally gives every element `border-width:0;
@@ -843,6 +846,18 @@
   }
   .date-picker-trigger:hover{background:var(--card); border-color:var(--border-strong);}
   .date-picker.field-invalid .date-picker-trigger{border-color:var(--accent); background:var(--tint-danger);}
+  /* Design-system control size for the date picker (40px, 10px radius, UI
+     type), opted into by a wrapper -- e.g. FilterField on Visitor Search --
+     until the picker itself moves onto the shared Input. */
+  .ds-control .date-picker-trigger{
+    min-height:0; height:40px; padding:0 12px; gap:8px; border-radius:var(--radius-control);
+    background:var(--card); font-size:var(--fs-ui); transform:none;
+  }
+  .ds-control .date-picker-trigger:hover{border-color:var(--border-strong);}
+  .ds-control .date-picker-trigger:focus-visible{outline:none; border-color:var(--primary); box-shadow:0 0 0 2px var(--focus-ring);}
+  .ds-control .date-picker-trigger span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ds-control .date-picker-trigger .icon{width:16px; height:16px; vertical-align:0; color:var(--muted);}
+  @media (pointer: coarse){ .ds-control .date-picker-trigger{height:44px;} }
   .date-picker-panel{
     position:absolute; top:calc(100% + 8px); left:0; z-index:60; width:320px; max-width:90vw;
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg);
