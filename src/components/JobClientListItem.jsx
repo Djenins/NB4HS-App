@@ -58,7 +58,7 @@ export default function JobClientListItem({ client, lang, onRemove, selected, on
   const navigate = useNavigate();
   const name = clientDisplayName(client);
   const address = formatAddress(client);
-  const openProfile = function () { navigate("/jobdeveloper/" + client.id); };
+  const openProfile = function () { navigate("/workforce/participants/" + client.id); };
 
   return (
     <Card interactive className="p-4 sm:p-5">

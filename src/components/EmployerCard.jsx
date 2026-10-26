@@ -49,7 +49,7 @@ export default function EmployerCard({ employer, industryLabel, openPositions, p
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"
-          onClick={function () { navigate("/employers/" + employer.id); }}
+          onClick={function () { navigate("/workforce/employers/" + employer.id); }}
           className={BUTTON_RESET + " group flex min-w-0 items-center gap-3 rounded-control text-left focus-visible:outline-none focus-visible:ring-2"}
         >
           <Avatar className="h-10 w-10 shrink-0">

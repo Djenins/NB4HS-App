@@ -90,7 +90,7 @@ export function CandidateActions({ jobClient, alreadyReferred, referring, onRefe
   const navigate = useNavigate();
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <Button variant="ghost" className="text-primary hover:bg-primary-tint" onClick={function () { navigate("/jobdeveloper/" + jobClient.id); }}>
+      <Button variant="ghost" className="text-primary hover:bg-primary-tint" onClick={function () { navigate("/workforce/participants/" + jobClient.id); }}>
         {t("viewLabel")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Button>
       {alreadyReferred ? (

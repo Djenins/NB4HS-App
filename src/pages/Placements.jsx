@@ -184,7 +184,7 @@ export default function Placements() {
     showToast(t("placementAdded"));
   }
   function openPlacement(p) {
-    navigate("/placements/" + p.id);
+    navigate("/workforce/placements/" + p.id);
   }
 
   function renderResults() {

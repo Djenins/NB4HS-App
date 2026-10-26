@@ -3,8 +3,8 @@
 // (mirroring the database rules), dashboard counts and CSV export.
 import { describe, expect, it } from "vitest";
 import {
-  cleanOutcomes, currentPeriodGroup, daysUntilDue, dueAtFor, filterReportRows, isOverdue, localDateIn, missingFields,
-  periodForDate, periodForIndex, reportPermissions, summarizeExpectations, toCsv, zonedTimeToUtc
+  ATTACHMENT_MAX_BYTES, ORGANIZATION, attachmentProblem, attachmentRemovable, cleanOutcomes, fmtBytes, safeFileName, currentPeriodGroup, daysUntilDue, dueAtFor, filterReportRows, isOverdue, localDateIn, missingFields,
+  periodForDate, periodForIndex, programsLabel, reportPermissions, summarizeExpectations, toCsv, zonedTimeToUtc
 } from "./staffReports.js";
 
 const schedule = {
@@ -75,8 +75,12 @@ describe("isOverdue", () => {
 });
 
 describe("missingFields", () => {
-  const complete = { activities: "a", accomplishments: "b", challenges: "c", assistanceNeeded: "d", nextGoals: "e" };
+  const complete = { programs: ["students"], activities: "a", accomplishments: "b", challenges: "c", assistanceNeeded: "d", nextGoals: "e" };
   it("passes a complete report", () => { expect(missingFields(complete)).toEqual([]); });
+  it("needs at least one program", () => {
+    expect(missingFields(Object.assign({}, complete, { programs: [] }))).toEqual(["programs"]);
+    expect(missingFields(Object.assign({}, complete, { programs: undefined }))).toEqual(["programs"]);
+  });
   it("treats whitespace as empty", () => {
     expect(missingFields(Object.assign({}, complete, { activities: "   " }))).toEqual(["activities"]);
   });
@@ -134,14 +138,13 @@ describe("summarizeExpectations", () => {
 
 describe("currentPeriodGroup", () => {
   const rows = [
-    { periodId: "p1", periodStart: "2026-11-02", periodEnd: "2026-11-15", departmentId: "cm" },
-    { periodId: "p1", periodStart: "2026-11-02", periodEnd: "2026-11-15", departmentId: "wf" },
-    { periodId: "p2", periodStart: "2026-11-16", periodEnd: "2026-11-29", departmentId: "cm" }
+    { periodId: "p1", periodStart: "2026-11-02", periodEnd: "2026-11-15", staffId: "me" },
+    { periodId: "p2", periodStart: "2026-11-16", periodEnd: "2026-11-29", staffId: "me" }
   ];
-  it("picks the period containing today, grouping every department", () => {
+  it("picks the period containing today", () => {
     const g = currentPeriodGroup(rows, "2026-11-15");
     expect(g.periodId).toBe("p1");
-    expect(g.rows.map((r) => r.departmentId)).toEqual(["cm", "wf"]);
+    expect(g.rows).toHaveLength(1);
   });
   it("falls forward to the next period before the first one starts", () => {
     expect(currentPeriodGroup(rows, "2026-10-26").periodId).toBe("p1");
@@ -150,24 +153,59 @@ describe("currentPeriodGroup", () => {
 });
 
 describe("filterReportRows", () => {
-  const names = { staff: { a: "Jane Pierre", b: "Marc Louis" }, departments: { cm: "Case Management", wf: "Workforce" } };
+  const names = { staff: { a: "Jane Pierre", b: "Marc Louis", c: "Ann Ray" }, programs: { case_management: "Case Management", workforce: "Workforce" } };
   const rows = [
-    { staffId: "a", departmentId: "cm", status: "submitted", overdue: false },
-    { staffId: "a", departmentId: "wf", status: "not_started", overdue: true },
-    { staffId: "b", departmentId: "cm", status: "acknowledged", overdue: false }
+    { staffId: "a", programs: ["case_management"], status: "submitted", overdue: false },
+    { staffId: "c", programs: ["workforce", ORGANIZATION], status: "not_started", overdue: true },
+    { staffId: "b", programs: ["case_management", "workforce"], status: "acknowledged", overdue: false }
   ];
-  it("filters by department, staff, status and overdue, and searches names", () => {
-    expect(filterReportRows(rows, { departmentId: "cm" }, names)).toHaveLength(2);
-    expect(filterReportRows(rows, { staffId: "a" }, names)).toHaveLength(2);
+  it("filters by program, staff, status and overdue, and searches names", () => {
+    expect(filterReportRows(rows, { program: "case_management" }, names)).toHaveLength(2);
+    expect(filterReportRows(rows, { program: ORGANIZATION }, names)).toHaveLength(1);
+    expect(filterReportRows(rows, { staffId: "a" }, names)).toHaveLength(1);
     expect(filterReportRows(rows, { status: "overdue" }, names)).toHaveLength(1);
     expect(filterReportRows(rows, { status: "acknowledged" }, names)[0].staffId).toBe("b");
     expect(filterReportRows(rows, { q: "marc" }, names)).toHaveLength(1);
-    expect(filterReportRows(rows, { q: "workforce" }, names)).toHaveLength(1);
+    expect(filterReportRows(rows, { q: "workforce" }, names)).toHaveLength(2);
+  });
+});
+
+describe("programsLabel", () => {
+  it("names programs, with the organization-wide label", () => {
+    expect(programsLabel([ORGANIZATION, "students", "unknown"], { students: "Students" }, "Organization-wide")).toBe("Organization-wide, Students, unknown");
+    expect(programsLabel([], {}, "Org")).toBe("");
   });
 });
 
 describe("toCsv", () => {
   it("quotes cells and neutralizes spreadsheet formulas", () => {
     expect(toCsv(["Name", "Note"], [["Jane \"JP\" Pierre", "=SUM(A1)"]])).toBe('"Name","Note"\r\n"Jane ""JP"" Pierre","\'=SUM(A1)"');
+  });
+});
+
+describe("attachments", () => {
+  const pdf = { name: "Sign-in.pdf", type: "application/pdf", size: 2000 };
+  it("accepts the allowed types up to 10 MB and 5 files", () => {
+    expect(attachmentProblem(pdf, 0)).toBe(null);
+    expect(attachmentProblem({ name: "a.exe", type: "application/x-msdownload", size: 10 }, 0)).toBe("type");
+    expect(attachmentProblem({ name: "big.pdf", type: "application/pdf", size: ATTACHMENT_MAX_BYTES + 1 }, 0)).toBe("size");
+    expect(attachmentProblem({ name: "empty.pdf", type: "application/pdf", size: 0 }, 0)).toBe("size");
+    expect(attachmentProblem(pdf, 5)).toBe("count");
+  });
+  it("makes storage-safe names that still read like the original", () => {
+    expect(safeFileName("../../etc/passwd")).toBe("passwd");
+    expect(safeFileName("C:\\Users\\me\\Rapò Oktòb #3.PDF")).toBe("Rapo Oktob -3.pdf");
+    expect(safeFileName(".pdf")).toBe(".pdf");
+    expect(safeFileName("x".repeat(300) + ".docx").length).toBe(100);
+  });
+  it("lets files added since the last submission be removed, only while editable", () => {
+    const att = { createdAt: "2026-11-20T10:00:00Z" };
+    expect(attachmentRemovable(att, { status: "draft", submittedAt: null })).toBe(true);
+    expect(attachmentRemovable(att, { status: "revision_requested", submittedAt: "2026-11-16T10:00:00Z" })).toBe(true);
+    expect(attachmentRemovable(att, { status: "revision_requested", submittedAt: "2026-11-21T10:00:00Z" })).toBe(false);
+    expect(attachmentRemovable(att, { status: "submitted", submittedAt: null })).toBe(false);
+  });
+  it("formats sizes", () => {
+    expect([fmtBytes(500), fmtBytes(2048), fmtBytes(3 * 1024 * 1024)]).toEqual(["500 B", "2 KB", "3.0 MB"]);
   });
 });

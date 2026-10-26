@@ -415,7 +415,7 @@ export default function JobClientProfile() {
           icon={UserX}
           title={t("clientNotFoundTitle")}
           description={t("jobClientNotFoundMessage")}
-          action={<Button variant="secondary" onClick={() => navigate("/jobdeveloper")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("navJobDeveloper")}</Button>}
+          action={<Button variant="secondary" onClick={() => navigate("/workforce/participants")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("navJobDeveloper")}</Button>}
         />
       </Card>
     );
@@ -556,7 +556,7 @@ export default function JobClientProfile() {
     <>
       <JobClientHeader
         record={record} name={name}
-        onBack={() => navigate("/jobdeveloper")}
+        onBack={() => navigate("/workforce/participants")}
         onAddApplication={() => setAddingApplication(true)}
         onEditPersonal={() => setEditingPersonal(true)}
         onAddNote={() => setAddingNote(true)}

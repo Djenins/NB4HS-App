@@ -1,12 +1,13 @@
-// Shell.test.jsx -- the sidebar's collapse rule. It has two independent
+// Shell.test.jsx -- the sidebar's layout rule. It has two independent
 // inputs: the user's stored `config.sidebarCollapsed` preference, and the
-// viewport. Below 768px the rail is forced on regardless of the preference,
-// because a 264px sidebar swallows most of a phone screen.
+// viewport. Desktop (>= 1280px) follows the preference; a tablet starts on
+// the collapsed rail; a phone gets no rail at all, only a menu button that
+// opens the sidebar as a drawer.
 //
-// The preference must survive that: a phone visit (or a narrow window)
+// The preference must survive the smaller layouts: a tablet or phone visit
 // should never rewrite what the user chose on a wide screen, so these tests
 // assert updateConfig is left alone as well as what renders.
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t as translate } from "../lib/i18n.js";
@@ -23,10 +24,11 @@ vi.mock("../context/AppContext.jsx", async () => {
   return {
   useApp: () => ({
     session: { role: "administrator", currentUserName: "Ada Lovelace" },
-    data: { students: [], classes: [], appointments: [], workforceRoleAccess: [] },
+    data: { students: [], classes: [], appointments: [], workforceRoleAccess: [], caseClients: [], profiles: [], programRoles: {} },
     authLoading,
     config,
     updateConfig,
+    can: () => true,
     kiosk: false,
     lang: "en",
     setLang: vi.fn(),
@@ -42,13 +44,19 @@ vi.mock("../context/AppContext.jsx", async () => {
   };
 });
 
+// The SNAP entry's program list comes from Supabase; keep tests offline.
+vi.mock("../lib/outreachPrograms.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, fetchOutreachPrograms: () => new Promise(() => {}) };
+});
+
 import Shell from "./Shell.jsx";
 
 // jsdom ships no matchMedia at all, so every test states the viewport it is
 // describing rather than inheriting an ambient one.
-function setViewport(isMobile) {
+function setViewport(size) {
   window.matchMedia = vi.fn().mockImplementation((query) => ({
-    matches: query === "(max-width: 767px)" ? isMobile : false,
+    matches: query === "(max-width: 767px)" ? size === "mobile" : query === "(min-width: 1280px)" ? size === "desktop" : false,
     media: query,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
@@ -60,8 +68,10 @@ function setViewport(isMobile) {
 
 const renderShell = () => render(<MemoryRouter initialEntries={["/dashboard"]}><Shell /></MemoryRouter>);
 // The Dashboard nav item: a text node when expanded, an aria-label when
-// collapsed to the icon rail.
-const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).length > 0;
+// collapsed to the icon rail. The topbar breadcrumb names the page too, so
+// only the sidebar's copy counts.
+const inBreadcrumb = (el) => !!el.closest('[aria-label="' + translate("breadcrumbLabel", "en") + '"]');
+const navLabelVisible = () => screen.queryAllByText(translate("navDashboard", "en")).some((el) => !inBreadcrumb(el));
 const iconOnlyLink = () => screen.queryByRole("link", { name: translate("navDashboard", "en") });
 
 describe("Shell sidebar", () => {
@@ -70,51 +80,85 @@ describe("Shell sidebar", () => {
     config = { theme: "light", sidebarCollapsed: false };
   });
 
-  it("shows full-width nav labels on a wide viewport", () => {
-    setViewport(false);
+  it("shows a workspace › page breadcrumb in the topbar", () => {
+    setViewport("desktop");
+    renderShell();
+    const crumb = screen.getByRole("navigation", { name: translate("breadcrumbLabel", "en") });
+    expect(crumb.textContent).toContain(translate("wsHome", "en"));
+    expect(crumb.textContent).toContain(translate("navDashboard", "en"));
+  });
+
+  it("offers Your profile in the account menu", async () => {
+    setViewport("desktop");
+    renderShell();
+    const trigger = screen.getByRole("button", { name: new RegExp(translate("sidebarAccountMenu", "en")) });
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+    expect(await screen.findByRole("menuitem", { name: translate("profileMenuItem", "en") })).toBeInTheDocument();
+  });
+
+  it("shows full-width nav labels on a desktop viewport", () => {
+    setViewport("desktop");
     renderShell();
     expect(navLabelVisible()).toBe(true);
   });
 
-  it("collapses to an icon rail below 768px even though the stored preference is expanded", () => {
-    setViewport(true);
+  it("keeps the expand control on a desktop viewport collapsed by preference", () => {
+    setViewport("desktop");
+    config = { theme: "light", sidebarCollapsed: true };
     renderShell();
-    expect(config.sidebarCollapsed).toBe(false);
+    expect(navLabelVisible()).toBe(false);
+    expect(iconOnlyLink()).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: translate("expandSidebarLabel", "en") }).length).toBeGreaterThan(0);
+  });
+
+  it("starts a tablet on the icon rail even though the stored preference is expanded", () => {
+    setViewport("tablet");
+    renderShell();
     expect(navLabelVisible()).toBe(false);
     expect(iconOnlyLink()).toBeInTheDocument();
   });
 
-  it("leaves the stored preference untouched when the viewport forces the rail", () => {
-    setViewport(true);
+  it("expands on a tablet without rewriting the stored preference", () => {
+    setViewport("tablet");
     renderShell();
+    fireEvent.click(screen.getByRole("button", { name: translate("expandSidebarLabel", "en") }));
+    expect(navLabelVisible()).toBe(true);
     expect(updateConfig).not.toHaveBeenCalled();
   });
 
-  // Not just visually hidden: on mobile the rail isn't a preference, so a
-  // toggle would be a focusable control that does nothing when activated.
-  it("renders no collapse/expand control at all on mobile", () => {
-    setViewport(true);
+  it("renders no rail on a phone, only a menu button that opens the drawer", () => {
+    setViewport("mobile");
     renderShell();
-    expect(screen.queryAllByRole("button", { name: translate("expandSidebarLabel", "en") })).toHaveLength(0);
+    expect(screen.queryByRole("navigation", { name: translate("sidebarMainNav", "en") })).not.toBeInTheDocument();
     expect(screen.queryAllByRole("button", { name: translate("collapseSidebarLabel", "en") })).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: translate("sidebarOpenMenu", "en") }));
+    expect(screen.getByRole("dialog", { name: translate("sidebarMainNav", "en") })).toBeInTheDocument();
+    expect(navLabelVisible()).toBe(true);
+    expect(updateConfig).not.toHaveBeenCalled();
   });
 
-  it("keeps the expand control on a wide viewport collapsed by preference", () => {
-    setViewport(false);
-    config = { theme: "light", sidebarCollapsed: true };
+  it("marks the current page and offers search for an administrator", () => {
+    setViewport("desktop");
     renderShell();
-    expect(navLabelVisible()).toBe(false);
-    expect(screen.queryAllByRole("button", { name: translate("expandSidebarLabel", "en") }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: translate("navDashboard", "en") })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: translate("cmdkPlaceholderAll", "en") })).toBeInTheDocument();
+  });
+
+  it("opens the search palette with Ctrl+K", () => {
+    setViewport("desktop");
+    renderShell();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(screen.getByRole("combobox", { name: translate("cmdkPlaceholderAll", "en") })).toBeInTheDocument();
   });
 });
 
 // Regression: Shell returns null while the Supabase session is still being
-// restored. A hook called below that early return (useIsMobile used to be)
+// restored. A hook called below that early return (the viewport hook used to be)
 // made the second render -- once authLoading flips false -- call more hooks
 // than the first, and React crashed the whole tree on any full page load.
 describe("Shell auth gate", () => {
   it("survives authLoading flipping from true to false", () => {
-    setViewport(false);
+    setViewport("desktop");
     config = { theme: "light", sidebarCollapsed: false };
     authLoading = true;
     const { container, rerender } = renderShell();

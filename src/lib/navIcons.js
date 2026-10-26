@@ -4,12 +4,12 @@
 // SVG set) -- this file doesn't replace that, it's scoped to the sidebar.
 import {
   BarChart3, Briefcase, ClipboardList, ClipboardPen, Building2, CalendarDays, CalendarClock, CheckCircle2, ClipboardCheck, FileText,
-  FolderKanban, GraduationCap, HeartHandshake, KanbanSquare, LayoutDashboard, ListChecks, LogIn, LogOut, QrCode, Search,
+  FolderKanban, GraduationCap, HeartHandshake, House, KanbanSquare, LayoutDashboard, ListChecks, LogIn, LogOut, QrCode, Search,
   Settings, ShoppingBasket, UserSearch, Users
 } from "lucide-react";
 
 export var NAV_ICONS = {
-  dashboard: LayoutDashboard,
+  dashboard: House,
   mycaseload: CalendarClock,
   myreports: ClipboardPen,
   staffreports: ClipboardList,
@@ -25,6 +25,9 @@ export var NAV_ICONS = {
   assessments: ClipboardCheck,
   casemanagement: FolderKanban,
   outreach: HeartHandshake,
+  // Outreach programs get their own sidebar entry (components/sidebar/
+  // sidebarNav.js), keyed by program key; unknown programs use `outreach`.
+  snap: FileText,
   jobdeveloper: Briefcase,
   // Single flat "Workforce" sidebar link (Shell.jsx/Workforce.jsx) -- not
   // one of the individual Employer & Job Opportunity Management pages

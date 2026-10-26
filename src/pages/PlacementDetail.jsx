@@ -120,7 +120,7 @@ export default function PlacementDetail() {
     .filter((c) => c.placementId === placementId)
     .sort((a, b) => CHECKIN_TYPES.findIndex((c) => c.key === a.checkinType) - CHECKIN_TYPES.findIndex((c) => c.key === b.checkinType));
 
-  function goBack() { navigate("/placements"); }
+  function goBack() { navigate("/workforce/placements"); }
 
   if (!record) {
     return (

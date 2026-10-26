@@ -6,7 +6,7 @@
 // same idiom as Search.jsx/Students.jsx -- the filtering/checkout logic
 // below is unchanged, only the presentation layer changed.
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar, CheckCircle2, Clock, GraduationCap, HelpCircle, History, Info, LogOut, Phone, Search as SearchIcon, X
 } from "lucide-react";
@@ -16,6 +16,7 @@ import { fmtDateLong, fmtDuration, fmtTime, formatPhone, initialsOf, minutesBetw
 import { checkOutVisit } from "../lib/checkinData.js";
 import { avatarColorFor } from "../components/StudentCard.jsx";
 import EmptyState from "../components/EmptyState.jsx";
+import GuardedLink from "../components/GuardedLink.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
@@ -232,7 +233,7 @@ export default function CheckOut() {
             <History className="h-4 w-4 text-muted" />
             <CardTitle className="m-0">{t("recentCheckOutsTitle")}</CardTitle>
           </div>
-          <Link to="/search" className="text-sm font-semibold text-primary hover:underline">{t("viewAllLabel")}</Link>
+          <GuardedLink to="/search" routeKey="search" className="text-sm font-semibold text-primary hover:underline">{t("viewAllLabel")}</GuardedLink>
         </CardHeader>
         <CardContent className="pt-0">
           {recentCheckouts.length ? (

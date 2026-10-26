@@ -471,7 +471,7 @@ export default function EmployerProfile() {
           icon={Building2}
           title={t("employerNotFoundTitle")}
           description={t("employerNotFoundMessage")}
-          action={<Button variant="secondary" onClick={() => navigate("/employers")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("navEmployers")}</Button>}
+          action={<Button variant="secondary" onClick={() => navigate("/workforce/employers")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("navEmployers")}</Button>}
         />
       </Card>
     );
@@ -537,7 +537,7 @@ export default function EmployerProfile() {
     <>
       <EmployerHeader
         record={record} industryName={industryName}
-        onBack={() => navigate("/employers")}
+        onBack={() => navigate("/workforce/employers")}
         onAddJob={() => setAddingJobOpening(true)}
         onEditCompany={() => setEditingCompany(true)}
         onEditPartnership={() => setEditingPartnership(true)}
@@ -711,7 +711,7 @@ export default function EmployerProfile() {
               <ul className="m-0 list-none p-0">
                 {employerPlacements.map((p) => (
                   <li key={p.id} className={ROW_ITEM}>
-                    <button type="button" onClick={() => navigate("/placements/" + p.id)} className={ROW_BUTTON}>
+                    <button type="button" onClick={() => navigate("/workforce/placements/" + p.id)} className={ROW_BUTTON}>
                       <div className="min-w-0">
                         <div className="break-words text-ui font-semibold text-primary">{p.participantName}</div>
                         <div className="mt-0.5 text-meta text-muted">

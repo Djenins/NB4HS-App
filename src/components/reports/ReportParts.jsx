@@ -1,9 +1,10 @@
 // ReportParts.jsx -- pieces shared by the staff side (My Reports) and the
-// reviewer side (Staff Reports): the status badge, the read-only report
-// body, and the submission/review history.
+// reviewer side (Staff Reports): the status badge, program names, the
+// read-only report body, and the submission/review history.
+import { useCallback, useEffect, useState } from "react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { fmtTime, fmtDateLong } from "../../lib/utils.js";
-import { statusVariant } from "../../lib/staffReports.js";
+import { fetchProgramNames, programsLabel, statusVariant } from "../../lib/staffReports.js";
 import { Badge } from "../ui/badge.jsx";
 
 // Same fix as SnapField's SNAP_CONTROL: py-0 cancels main.css's 12px top and
@@ -16,6 +17,16 @@ export const TD = "px-4 py-3 align-middle";
 export function ReportStatusBadge({ status, overdue }) {
   const t = useT();
   return <Badge variant={statusVariant(status, overdue)}>{t(overdue ? "srStatus_overdue" : "srStatus_" + status)}</Badge>;
+}
+
+// Program names by key, loaded once per screen, and a labeller for a
+// report's program list ("Organization-wide, Students").
+export function useProgramLabels() {
+  const t = useT();
+  const [names, setNames] = useState({});
+  useEffect(() => { fetchProgramNames().then(setNames).catch(() => setNames({})); }, []);
+  const label = useCallback((keys) => programsLabel(keys, names, t("srOrganizationWide")) || "—", [names, t]);
+  return { names, label };
 }
 
 export function fmtStamp(iso, lang) {

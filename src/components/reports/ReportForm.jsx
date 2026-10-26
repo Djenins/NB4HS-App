@@ -2,17 +2,20 @@
 // has been sent back for revision. Saves on its own a few seconds after
 // typing stops (and on "Save draft"), checks required fields the same way
 // submit_staff_report() does, and asks for confirmation before submitting.
+// "Programs worked on" offers the programs the author can open plus
+// organization-wide work (my_report_program_options); at least one is needed.
 // The submit button stays disabled while a request is in flight, and the
 // database refuses a second submission anyway.
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Plus, Send, Trash2 } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
-  OUTCOMES_MAX, REPORT_TEXT_MAX, discardDraft, missingFields, reportPermissions, saveDraft, submitReport
+  ORGANIZATION, OUTCOMES_MAX, REPORT_TEXT_MAX, discardDraft, fetchMyProgramOptions, missingFields, reportPermissions, saveDraft, submitReport
 } from "../../lib/staffReports.js";
 import { fmtTime } from "../../lib/utils.js";
 import { Button } from "../ui/button.jsx";
-import { REPORT_CONTROL } from "./ReportParts.jsx";
+import { REPORT_CONTROL, useProgramLabels } from "./ReportParts.jsx";
+import ReportAttachments from "./ReportAttachments.jsx";
 
 const AUTOSAVE_MS = 3000;
 const FIELDS = [
@@ -24,8 +27,11 @@ const FIELDS = [
   { key: "comments", label: "srFieldComments", help: null, required: false }
 ];
 
+const PROGRAMS_FIELD = { key: "programs", label: "srFieldPrograms" };
+
 function pickFields(report) {
   return {
+    programs: report.programs || [],
     activities: report.activities, accomplishments: report.accomplishments, challenges: report.challenges,
     assistanceNeeded: report.assistanceNeeded, noAssistanceNeeded: report.noAssistanceNeeded,
     nextGoals: report.nextGoals, comments: report.comments, outcomes: report.outcomes.length ? report.outcomes : []
@@ -48,7 +54,32 @@ function TextArea({ field, value, onChange, invalid, disabled, t }) {
   );
 }
 
-export default function ReportForm({ report, periodLabel, dueLabel, departmentName, revisionComment, onSaved, onSubmitted, onDiscarded, onBack }) {
+// The programs the author picked earlier but can no longer open stay listed,
+// so unticking them is possible; the database refuses adding new ones.
+function ProgramsField({ value, options, invalid, disabled, onChange }) {
+  const t = useT();
+  const { label } = useProgramLabels();
+  const shown = options.concat(value.filter((k) => options.indexOf(k) === -1));
+  return (
+    <fieldset id="report-programs" tabIndex={-1} className="m-0 grid min-w-0 gap-2 border-0 p-0" aria-invalid={invalid || undefined}>
+      <legend className="required mb-1 text-sm font-semibold text-card-foreground">{t("srFieldPrograms")}</legend>
+      <p className="!m-0 !text-xs text-muted">{t("srHelpPrograms")}</p>
+      <div className={"flex flex-wrap gap-2 rounded-lg" + (invalid ? " field-invalid p-2" : "")}>
+        {shown.map((k) => {
+          const on = value.indexOf(k) !== -1;
+          return (
+            <label key={k} className={"flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm " + (on ? "border-primary bg-primary-tint text-card-foreground" : "border-border text-card-foreground")}>
+              <input type="checkbox" checked={on} disabled={disabled} onChange={() => onChange(on ? value.filter((x) => x !== k) : value.concat([k]))} />
+              {k === ORGANIZATION ? t("srOrganizationWide") : label([k])}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+export default function ReportForm({ report, periodLabel, dueLabel, revisionComment, onSaved, onSubmitted, onDiscarded, onBack }) {
   const { session, requestConfirm, showToast } = useApp();
   const t = useT();
   const perms = reportPermissions(report, session ? session.id : null, false);
@@ -58,6 +89,8 @@ export default function ReportForm({ report, periodLabel, dueLabel, departmentNa
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const pending = useRef(null);
+  const [programOptions, setProgramOptions] = useState([ORGANIZATION]);
+  useEffect(() => { fetchMyProgramOptions().then(setProgramOptions).catch(() => {}); }, []);
 
   const missing = missingFields(fields);
 
@@ -111,7 +144,7 @@ export default function ReportForm({ report, periodLabel, dueLabel, departmentNa
       if (first) first.focus();
       return;
     }
-    const ok = await requestConfirm(t("srSubmitConfirm").replace("{dept}", departmentName).replace("{period}", periodLabel));
+    const ok = await requestConfirm(t("srSubmitConfirmPeriod").replace("{period}", periodLabel));
     if (!ok) return;
     clearTimeout(pending.current);
     setBusy(true);
@@ -150,7 +183,6 @@ export default function ReportForm({ report, periodLabel, dueLabel, departmentNa
         <h1 className="m-0 text-xl font-bold text-card-foreground">{t(report.status === "revision_requested" ? "srReviseTitle" : "srReportTitle")}</h1>
         <dl className="m-0 mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div className="flex gap-2"><dt className="text-muted">{t("srStaffMember")}:</dt><dd className="m-0 font-semibold text-card-foreground">{session ? session.currentUserName || session.currentUserEmail : ""}</dd></div>
-          <div className="flex gap-2"><dt className="text-muted">{t("srDepartment")}:</dt><dd className="m-0 font-semibold text-card-foreground">{departmentName}</dd></div>
           <div className="flex gap-2"><dt className="text-muted">{t("srReportingPeriod")}:</dt><dd className="m-0 font-semibold text-card-foreground">{periodLabel}</dd></div>
           <div className="flex gap-2"><dt className="text-muted">{t("srDue")}:</dt><dd className="m-0 font-semibold text-card-foreground">{dueLabel}</dd></div>
         </dl>
@@ -166,11 +198,13 @@ export default function ReportForm({ report, periodLabel, dueLabel, departmentNa
 
         {showErrors && missing.length > 0 && (
           <div role="alert" className="mt-4 rounded-lg border border-accent-soft bg-accent-tint px-4 py-3 text-sm text-card-foreground">
-            <strong className="text-accent">{t("srMissingFields")}</strong> {missing.map((f) => t(FIELDS.find((x) => x.key === f).label)).join(", ")}
+            <strong className="text-accent">{t("srMissingFields")}</strong> {missing.map((f) => t(FIELDS.concat([PROGRAMS_FIELD]).find((x) => x.key === f).label)).join(", ")}
           </div>
         )}
 
         <form className="mt-5 grid gap-5" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+          <ProgramsField value={fields.programs} options={programOptions} disabled={busy}
+            invalid={showErrors && missing.indexOf("programs") !== -1} onChange={(v) => set("programs", v)} />
           {FIELDS.slice(0, 2).map((f) => (
             <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={!perms.canEdit || busy}
               invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
@@ -229,6 +263,11 @@ export default function ReportForm({ report, periodLabel, dueLabel, departmentNa
             <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={busy}
               invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
           ))}
+
+          <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
+            <legend className="mb-1 text-sm font-semibold text-card-foreground">{t("srAttachments")}</legend>
+            <ReportAttachments report={report} editable={!busy} />
+          </fieldset>
 
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

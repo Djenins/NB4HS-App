@@ -219,7 +219,7 @@ export default function Referrals() {
   function handOffToPlacement() {
     const r = editing;
     setEditing(null);
-    navigate("/placements", {
+    navigate("/workforce/placements", {
       state: { prefill: { jobClientId: r.jobClientId, employerId: r.employerId, jobOpeningId: r.jobOpeningId, referralId: r.id, positionTitle: r.positionTitle } }
     });
   }

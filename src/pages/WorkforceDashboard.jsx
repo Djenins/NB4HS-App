@@ -114,18 +114,18 @@ export default function WorkforceDashboard() {
         <KpiCard icon={Building2} tone="info" label={t("statActiveEmployersLabel")} value={activeEmployers} />
         <KpiCard
           icon={Briefcase} tone="success" label={t("statActiveJobOpeningsLabel")} value={activeJobOpenings}
-          onClick={drill("/jobopenings", { status: "active" })} hint={drillHint}
+          onClick={drill("/workforce/jobs", { status: "active" })} hint={drillHint}
         />
         <KpiCard icon={Users} tone="warning" label={t("statCandidatesAwaitingReferralLabel")} value={candidatesAwaitingReferral} />
         <KpiCard
           icon={CalendarClock} tone="violet" label={t("statInterviewsScheduledLabel")} value={interviewsScheduled}
-          onClick={drill("/referrals", { stage: "interview" })} hint={drillHint}
+          onClick={drill("/workforce/referrals", { stage: "interview" })} hint={drillHint}
         />
         <KpiCard icon={CheckCircle2} tone="success" label={t("statPlacementsThisMonthLabel")} value={placementsThisMonth} />
         <KpiCard icon={Percent} tone="neutral" label={t("retentionRateLabel")} value={retentionRate === null ? "—" : retentionRate + "%"} />
         <KpiCard
           icon={AlertCircle} tone="warning" label={t("statEmployerFollowUpsDueLabel")} value={followUpsDue}
-          onClick={drill("/employers", { followUp: "due" })} hint={drillHint}
+          onClick={drill("/workforce/employers", { followUp: "due" })} hint={drillHint}
           className="col-span-2 xl:col-span-1"
         />
       </div>
@@ -138,7 +138,7 @@ export default function WorkforceDashboard() {
                 <Button
                   key={s.key}
                   variant="outline"
-                  onClick={drill("/employers", { stage: s.key })}
+                  onClick={drill("/workforce/employers", { stage: s.key })}
                   className="h-auto min-h-[72px] flex-col gap-1 whitespace-normal px-3 py-3 text-center leading-tight [@media(pointer:coarse)]:h-auto"
                 >
                   <span className="block text-heading font-bold tabular-nums text-card-foreground">{s.count}</span>
@@ -153,7 +153,7 @@ export default function WorkforceDashboard() {
           title={t("recentJobOpportunitiesLabel")}
           className="lg:col-span-7"
           action={
-            <Button variant="secondary" size="sm" onClick={function () { navigate("/jobopenings"); }}>
+            <Button variant="secondary" size="sm" onClick={function () { navigate("/workforce/jobs"); }}>
               {t("viewAllBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           }
@@ -163,7 +163,7 @@ export default function WorkforceDashboard() {
               compact
               title={t("noJobOpeningsYet")}
               description={t("wfDashNoOpeningsHint")}
-              action={<Button variant="secondary" onClick={function () { navigate("/jobopenings"); }}>{t("jobOpeningsTitle")}</Button>}
+              action={<Button variant="secondary" onClick={function () { navigate("/workforce/jobs"); }}>{t("jobOpeningsTitle")}</Button>}
             />
           ) : (
             <div className="divide-y divide-line-subtle">

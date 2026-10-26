@@ -420,6 +420,40 @@ export async function updateClientRecord(id, patch) {
   return masterFromRow(data);
 }
 
+// ---------- intake forms (case management only) ----------
+// Since p3c_case_management_policies the intake form has its own table,
+// readable and saveable only with case_management.intake.view / .edit (audit
+// finding S8: it used to sit on clients, which every staff account reads).
+// Until that migration is applied the table doesn't exist, so these fall
+// back to the old columns on clients -- the app works on either side of it.
+function intakeTableMissing(error) {
+  return !!error && (error.code === "42P01" || error.code === "PGRST205"
+    || (/client_intakes/.test(error.message || "") && /does not exist|schema cache/i.test(error.message || "")));
+}
+
+// { form, savedAt } for a client's intake, null if none (or not allowed),
+// or { useClientRecord: true } before the table exists.
+export async function fetchClientIntake(clientId) {
+  const { data, error } = await supabase.from("client_intakes").select("form, saved_at").eq("client_id", clientId).maybeSingle();
+  if (error) {
+    if (intakeTableMissing(error)) return { useClientRecord: true };
+    console.warn("fetchClientIntake failed", error);
+    return null;
+  }
+  return data ? { form: data.form, savedAt: data.saved_at } : null;
+}
+
+// Saves the form; returns when it was saved.
+export async function saveClientIntake(clientId, form) {
+  const savedAt = new Date().toISOString();
+  const { data, error } = await supabase.from("client_intakes")
+    .upsert({ client_id: clientId, form, saved_at: savedAt }).select("saved_at").single();
+  if (!error) return data.saved_at;
+  if (!intakeTableMissing(error)) throw error;
+  const updated = await updateClientRecord(clientId, { intakeForm: form, intakeFormSavedAt: savedAt });
+  return updated.intakeFormSavedAt;
+}
+
 // ---------- case clients + notes (privacy-restricted) ----------
 
 export async function fetchCaseClients() {

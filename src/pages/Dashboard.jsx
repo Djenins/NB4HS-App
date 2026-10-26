@@ -15,7 +15,7 @@ import { CalendarDays, Clock3, DoorOpen, GraduationCap, LogIn, ShoppingBasket, U
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { allDistributions } from "../lib/clients.js";
-import { navItemsForRole } from "../lib/nav.js";
+import { useNavItems } from "../lib/useNavItems.js";
 import { computeDailyTrend, computeStats, fmtHour, inRange, rangeForPreset } from "../lib/reports_data.js";
 import { classesMeetingToday, studentsForClass } from "../lib/students.js";
 import { dateStrFromDate, fmtDuration, fmtTime, fullServiceList, labelFor, todayStr } from "../lib/utils.js";
@@ -24,6 +24,7 @@ import DashChart from "../components/DashChart.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { EmptyState } from "../components/ui/empty-state.jsx";
 import { KpiCard } from "../components/ui/kpi-card.jsx";
+import ForYouPanel from "../components/home/ForYouPanel.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 
@@ -161,8 +162,8 @@ export default function Dashboard() {
   // Food Distribution has its own nav item (Administrator + Staff only) --
   // only show its dashboard numbers to roles that actually have access to
   // that section, same gate as the nav itself.
-  const role = session ? session.role : null;
-  const showFoodStats = navItemsForRole(role).indexOf("fooddistribution") !== -1;
+  const { items: navItems } = useNavItems();
+  const showFoodStats = navItems.indexOf("fooddistribution") !== -1;
   const distributions = allDistributions(data.foodClients);
   const distWeekRange = rangeForPreset("week");
   const distMonthRange = rangeForPreset("month");
@@ -186,6 +187,8 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader className="mb-0" title={t("dashboardTitle")} description={t("dashboardWelcomeSubtitle")} />
+
+      <ForYouPanel />
 
       <Section id="dash-now" title={t("dashSectionToday")}>
         <div className="flex flex-col gap-4">
