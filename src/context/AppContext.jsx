@@ -29,6 +29,7 @@ import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } fr
 import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
 import { fetchMyProgramRoles } from "../lib/programStaff.js";
+import { can as canPermission, fetchMyPermissions } from "../lib/permissions.js";
 
 const AppContext = createContext(null);
 
@@ -252,17 +253,28 @@ export function AppProvider({ children }) {
   // whether the Outreach sidebar entry, its programs and sections show (see
   // nav.js / outreachPrograms.js). Refetched by Staff & Access after a role
   // change, since that can change the current user's own access.
+  //
+  // `permissions` is the same person's effective access under the new model
+  // (my_permissions(), plans/unified-access-architecture.md). Phase 1 loads
+  // it but nothing renders from it yet; the old role rules above still decide
+  // what shows. Refetched with the program roles, since a role change moves both.
   const [programRoles, setProgramRoles] = useState({});
+  const [permissions, setPermissions] = useState([]);
   const refetchProgramRoles = useCallback(
-    () => fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
+    () => Promise.all([
+      fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
+      fetchMyPermissions().then((rows) => setPermissions(rows))
+    ]),
     [session]
   );
   useEffect(() => {
-    if (!session || !session.id) { setProgramRoles({}); return undefined; }
+    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); return undefined; }
     let cancelled = false;
     fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
+    fetchMyPermissions().then((rows) => { if (!cancelled) setPermissions(rows); });
     return () => { cancelled = true; };
   }, [session]);
+  const can = useCallback((key, program) => canPermission(permissions, key, program), [permissions]);
 
   const markNotifRead = useCallback((id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
@@ -455,11 +467,12 @@ export function AppProvider({ children }) {
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
-    refetchStudents, refetchVisits, refetchProgramRoles
+    refetchStudents, refetchVisits, refetchProgramRoles,
+    permissions, can
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits, refetchProgramRoles
+    refetchVisits, refetchProgramRoles, permissions, can
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
