@@ -148,12 +148,6 @@
 
     /* Motion */
     --duration-fast:150ms; --duration-base:200ms; --ease-out:cubic-bezier(.2,.8,.2,1);
-
-    /* Sidebar chrome stays brand navy in both themes, so these never swap.
-       Stored as RGB channels so Tailwind opacity modifiers work on them
-       (text-sidebar-text/70), which a hex var() cannot do. */
-    --sidebar-bg:31 42 109; --sidebar-bg-active:37 99 235; --sidebar-border:44 56 104;
-    --sidebar-text:199 205 227; --sidebar-text-active:255 255 255;
   }
   /* Dark theme: same brand hues, re-tuned for a dark surface. Primary/accent/
      gold are lightened so they stay readable on a dark background -- solid
@@ -612,9 +606,35 @@
      defined above) -- no new hues introduced for this layout.
   ========================================================= */
   .app-shell{display:flex; flex:1; min-height:0;}
-  /* The sidebar itself (<aside>) is now built with Tailwind utility classes
-     directly in Shell.jsx (see that file's header comment) -- no .sidebar*
-     classes live here anymore. .theme-pill/.theme-pill-option below are
+  /* Scrolls without showing a scrollbar (the sidebar's nav list). */
+  .no-scrollbar{scrollbar-width:none; -ms-overflow-style:none;}
+  .no-scrollbar::-webkit-scrollbar{display:none;}
+  /* Floating sidebar tokens (components/sidebar/). The sidebar follows the
+     Light/Dark theme like the rest of the app: a translucent off-white panel
+     in light mode, deep navy (never pure black) in dark. Tailwind exposes
+     these as the `sb-*` colours (tailwind.config.js). `rail-active` is the
+     collapsed rail's solid blue square, the one place the sidebar uses a
+     filled brand colour. */
+  :root{
+    --sb-bg:rgba(255,255,255,.88); --sb-border:rgba(148,163,184,.22); --sb-divider:rgba(148,163,184,.24);
+    --sb-text:#172554; --sb-muted:#64748B; --sb-icon:#334155;
+    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:#2563EB;
+    --sb-field:rgba(241,245,249,.95); --sb-field-border:rgba(148,163,184,.28); --sb-kbd:#ffffff;
+    --sb-seg:rgba(241,245,249,.95); --sb-seg-on:#ffffff; --sb-seg-on-text:#155EEF;
+    --sb-tooltip:#0F172A; --sb-tooltip-text:#ffffff;
+    --sb-shadow:0 1px 2px rgba(15,23,42,.04), 0 16px 40px -12px rgba(15,23,42,.16);
+  }
+  html[data-theme="dark"]{
+    --sb-bg:rgba(13,24,43,.94); --sb-border:rgba(148,163,184,.14); --sb-divider:rgba(148,163,184,.14);
+    --sb-text:#F1F5F9; --sb-muted:#9FB0C8; --sb-icon:#CBD5E1;
+    --sb-hover:rgba(255,255,255,.05); --sb-active:#173B82; --sb-active-text:#ffffff; --sb-rail-active:#2563EB;
+    --sb-field:rgba(255,255,255,.05); --sb-field-border:rgba(148,163,184,.16); --sb-kbd:rgba(255,255,255,.08);
+    --sb-seg:rgba(255,255,255,.05); --sb-seg-on:#1D4ED8; --sb-seg-on-text:#ffffff;
+    --sb-tooltip:#E2E8F0; --sb-tooltip-text:#0F172A;
+    --sb-shadow:0 1px 2px rgba(0,0,0,.3), 0 20px 48px -12px rgba(0,0,0,.55);
+  }
+  /* The sidebar itself is built with Tailwind utility classes in
+     components/sidebar/ -- no .sidebar* classes live here. .theme-pill/.theme-pill-option below are
      kept: components/ThemeToggle.jsx (still used by AuthShell.jsx's login
      screens) renders them independently of the sidebar. */
   .theme-pill{display:flex; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px;}
