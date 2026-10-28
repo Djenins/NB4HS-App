@@ -1,7 +1,8 @@
 -- t5 -- staff may only mark their own notifications read or unread (owner
 -- decision, 2026-10-28; launch-audit-2026-10-28.md, live security check 4).
--- NOT APPLIED to the hosted project yet. Tested on the local stack with
--- supabase/tests/t5_notifications_check.sql. Undo with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-28 (version 20261028050000) after a
+-- rolled-back dry run on live; supabase/tests/t5_notifications_check.sql passed
+-- against live afterwards. Undo with
 -- supabase/rollback/t5_notifications_read_only_down.sql.
 --
 -- notifications_update_own already limits updates to your own rows; the
