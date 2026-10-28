@@ -325,15 +325,27 @@ export function AppProvider({ children }) {
   const orgSettingsRef = useRef(orgSettings);
   useEffect(() => { orgSettingsRef.current = orgSettings; }, [orgSettings]);
 
-  const markNotifRead = useCallback((id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
-    return markNotificationRead(id);
+  // Optimistic; a failed write puts the unread state back so the badge
+  // doesn't claim something the database never recorded.
+  const setNotifsRead = useCallback((ids, read) => {
+    setNotifications((prev) => prev.map((n) => (ids.indexOf(n.id) !== -1 ? Object.assign({}, n, { read: read }) : n)));
   }, []);
+  const markNotifRead = useCallback((id) => {
+    setNotifsRead([id], true);
+    return markNotificationRead(id).catch((e) => {
+      console.warn("markNotificationRead failed", e);
+      setNotifsRead([id], false);
+    });
+  }, [setNotifsRead]);
   const markAllNotifsRead = useCallback(() => {
     if (!session || !session.id) return Promise.resolve();
-    setNotifications((prev) => prev.map((n) => Object.assign({}, n, { read: true })));
-    return markAllNotificationsRead(session.id);
-  }, [session]);
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    setNotifsRead(unreadIds, true);
+    return markAllNotificationsRead(session.id).catch((e) => {
+      console.warn("markAllNotificationsRead failed", e);
+      setNotifsRead(unreadIds, false);
+    });
+  }, [session, notifications, setNotifsRead]);
 
   useEffect(() => {
     // These tables are authenticated-only (no anon RLS policy) -- fetching
