@@ -134,6 +134,49 @@ Demo accounts (same as always -- see the security caveat in the prototype's
 own README): `admin@nb4hs.org` / `admin123`, `casemanager@nb4hs.org` /
 `casemgr123`, `jobdeveloper@nb4hs.org` / `jobdev123`.
 
+## Local Supabase stack
+
+A full copy of the database runs in Docker, built from `supabase/migrations/`
+and seeded with fake staff accounts (`supabase/seed.sql`). Use it to try
+migrations and run the `supabase/tests` probes before anything goes near the
+hosted project. Docker here is Colima; the ports are 5532x (`supabase/config.toml`)
+so they don't clash with other local Supabase projects on 5432x.
+
+```bash
+colima start
+supabase start                # first run pulls the images
+supabase db reset --local     # replay every migration + seed.sql; wipes local data
+npm run dev:local             # the app on :5174 against the local stack
+supabase stop
+```
+
+`npm run dev:local` reads `.env.localdb.local` (git-ignored). Create it from
+`supabase status -o env`: `VITE_SUPABASE_URL` = `API_URL`,
+`VITE_SUPABASE_ANON_KEY` = `ANON_KEY`. Plain `npm run dev` still uses `.env.local`.
+
+Seeded accounts all use the password `local-dev-only`: `admin1@` and `admin2@`
+(administrator), `staff@` (SNAP worker), `frontdesk@` (receptionist),
+`casemgr@` (case manager, SNAP supervisor), `jobdev@` (job developer) and
+`inactive@` (deactivated), all on `example.test`. Mail goes to Mailpit at
+http://127.0.0.1:55324.
+
+Running a probe (each ends with a deliberate `*_PASSED` error, which rolls it back):
+
+```bash
+psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -X --single-transaction -f supabase/tests/p1_access_check.sql
+```
+
+The role matrix signs in as every seeded account and checks each one's pages
+through the app's own route guard (skipped in `npm test` and CI):
+
+```bash
+NB4HS_LOCAL_DB=1 NB4HS_LOCAL_ANON_KEY=<ANON_KEY> npx vitest run src/test/roleMatrix.local.test.jsx
+```
+
+The repo is also linked to the hosted project (`supabase/.temp`), so never run
+`supabase db push`, `supabase link` or any command without `--local` from here
+unless you mean to change production.
+
 ## Suggested test pass
 
 1. Landing page → Staff Login → sign in as admin → Dashboard renders with

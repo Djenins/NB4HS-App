@@ -43,7 +43,9 @@ function RescheduleForm({ appt, onDone }) {
 // Server-written notifications store English text; show known types' titles
 // in the reader's language.
 export const TYPE_TITLE = {
+  appointment_assigned: "apptNotifAssigned",
   snap_task_due: "snapNotifTaskDue",
+  task_overdue: "taskNotifOverdue",
   staff_report_submitted: "srNotifSubmitted",
   staff_report_revision_requested: "srNotifRevision",
   staff_report_acknowledged: "srNotifAcknowledged",
@@ -107,7 +109,7 @@ function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
 // `className` restyles the trigger for its host (the sidebar footer passes
 // theme-aware colours); `side` places the panel.
 export default function NotificationBell({ className, side = "bottom" }) {
-  const { data, notifications, markNotifRead, markAllNotifsRead, requestConfirm, showToast } = useApp();
+  const { data, notifications, markAllNotifsRead, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -122,7 +124,9 @@ export default function NotificationBell({ className, side = "bottom" }) {
   }
 
   return (
-    <DropdownMenuPrimitive.Root onOpenChange={(open) => { if (open) notifications.filter((n) => !n.read).forEach((n) => markNotifRead(n.id)); }}>
+    // Unread items stay highlighted (and "Mark all read" stays usable) while
+    // the panel is open; closing it marks them read, in one request.
+    <DropdownMenuPrimitive.Root onOpenChange={(open) => { if (!open && unreadCount > 0) markAllNotifsRead(); }}>
       <DropdownMenuPrimitive.Trigger asChild>
         <button
           type="button"

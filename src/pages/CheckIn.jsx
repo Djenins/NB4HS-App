@@ -175,7 +175,7 @@ export default function CheckIn() {
           <button
             type="button"
             onClick={() => navigate("/appointments/lookup")}
-            className="inline-flex min-h-0 items-center gap-1 border-0 bg-transparent p-0 font-bold text-primary transform-none hover:underline"
+            className="-my-3 inline-flex min-h-0 items-center gap-1 border-0 bg-transparent px-0 py-3 font-bold text-primary transform-none hover:underline"
           >
             {t("apptLookupLink")} <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
           </button>

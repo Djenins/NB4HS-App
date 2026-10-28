@@ -287,7 +287,9 @@ export var STR = {
   snapNothingHere: { en: "Nothing here right now.", ht: "Pa gen anyen la a kounye a.", fr: "Rien pour le moment." },
   snapComingNext: { en: "Today's appointments, outreach events and partner referrals will appear here once those parts are built.", ht: "Randevou jodi a, evènman sansibilizasyon ak referans patnè yo ap parèt isit la lè pati sa yo fini.", fr: "Les rendez-vous du jour, les événements et les orientations vers les partenaires apparaîtront ici une fois ces parties réalisées." },
   snapSource_unknown: { en: "Not recorded", ht: "Pa anrejistre", fr: "Non renseigné" },
+  apptNotifAssigned: { en: "New appointment", ht: "New appointment", fr: "New appointment" },
   snapNotifTaskDue: { en: "Follow-up due", ht: "Swivi pou fè", fr: "Suivi à faire" },
+  taskNotifOverdue: { en: "Follow-up overdue", ht: "Follow-up overdue", fr: "Follow-up overdue" },
   // Staff Reporting (biweekly reports to the Executive Director). {placeholders}
   // are filled in by the component with .replace().
   srMyReportsIntro: { en: "Every two weeks, send the Executive Director one report on your work across the programs you worked on.", ht: "Every two weeks, send the Executive Director one report on your work across the programs you worked on.", fr: "Every two weeks, send the Executive Director one report on your work across the programs you worked on." },
@@ -454,6 +456,7 @@ export var STR = {
   srScheduleChangeNote: { en: "Changing the dates rebuilds future periods. Periods that already have reports keep their dates.", ht: "Si ou chanje dat yo, peryòd ki poko rive yo ap refèt. Peryòd ki deja gen rapò kenbe dat yo.", fr: "Modifier les dates recalcule les périodes futures. Les périodes qui ont déjà des rapports conservent leurs dates." },
   srSaveSchedule: { en: "Save schedule", ht: "Sove orè a", fr: "Enregistrer le calendrier" },
   srScheduleSaved: { en: "Schedule saved", ht: "Orè a sove", fr: "Calendrier enregistré" },
+  srScheduleLocked: { en: "This schedule already has reports, so its length and start date can't change. Other settings still can.", ht: "This schedule already has reports, so its length and start date can't change. Other settings still can.", fr: "This schedule already has reports, so its length and start date can't change. Other settings still can." },
   srScheduleSaveError: { en: "Couldn't save the schedule.", ht: "Nou pa t ka sove orè a.", fr: "Impossible d'enregistrer le calendrier." },
   srDepartmentsTitle: { en: "Departments", ht: "Depatman yo", fr: "Départements" },
   srNewDepartment: { en: "New department name", ht: "Non nouvo depatman", fr: "Nom du nouveau département" },

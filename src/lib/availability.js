@@ -1,6 +1,6 @@
 // availability.js -- staff availability (weekly hours + time off) and client
 // self-booking against it. Tables and functions come from
-// supabase/migrations/20261026160000_staff_availability_booking.sql.
+// supabase/migrations/20261026192423_staff_availability_booking.sql.
 //
 // The weekly calendar on My Availability edits a set of 30-minute cells
 // ("1-09:30" = Monday 9:30); it's stored as merged time ranges per weekday.

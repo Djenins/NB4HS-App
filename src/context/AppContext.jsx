@@ -91,6 +91,11 @@ export function AppProvider({ children }) {
   const [clientLang, setLang] = useState("en");
   const location = useLocation();
   const lang = isClientFacingPath(location.pathname) ? clientLang : "en";
+  // Screen readers pick their voice from <html lang>; keep it on the
+  // language the page is actually showing.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [kiosk, setKioskState] = useState(initialKiosk);
   const setKiosk = useCallback((on) => {
     try {
@@ -170,7 +175,12 @@ export function AppProvider({ children }) {
   // than subscribing (realtime only delivers rows the caller can SELECT).
   const signedIn = !!session;
   const loadVisits = useCallback(() => (signedIn ? fetchVisits() : fetchKioskVisits(todayStr())), [signedIn]);
-  const loadStudents = useCallback(() => (signedIn ? fetchStudents() : fetchKioskRoster()), [signedIn]);
+  // Staff who can't read the students table (receptionists, since t3) get
+  // the kiosk's roster for check-in instead. It's only empty when there are
+  // no students at all, so it never hides rows from someone who can read them.
+  const loadStudents = useCallback(() => (signedIn
+    ? fetchStudents().then((rows) => (rows.length ? rows : fetchKioskRoster()))
+    : fetchKioskRoster()), [signedIn]);
 
   useEffect(() => {
     if (authLoading) return undefined;
@@ -283,21 +293,34 @@ export function AppProvider({ children }) {
   // False until this session's first my_permissions() answer is in, so
   // permission-gated pages (Administration) wait instead of redirecting.
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  // True when the last my_permissions() call failed (fetchMyPermissions gave
+  // null). Only then does the sidebar fall back to the account-type pages; an
+  // empty answer means the account holds nothing (useNavItems.js).
+  const [permissionsFailed, setPermissionsFailed] = useState(false);
+  // Keyed on the user, not the session object: a token refresh hands back a
+  // new object for the same person, and re-entering the loading state then
+  // would blank every guarded page (RequireRoute waits on it) once an hour.
+  const sessionUserId = session ? session.id : null;
+  const applyPermissions = useCallback((rows) => {
+    setPermissions(rows || []);
+    setPermissionsFailed(rows === null);
+    setPermissionsLoaded(true);
+  }, []);
   const refetchProgramRoles = useCallback(
     () => Promise.all([
-      fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
-      fetchMyPermissions().then((rows) => setPermissions(rows))
+      fetchMyProgramRoles(sessionUserId).then((roles) => setProgramRoles(roles)),
+      fetchMyPermissions().then(applyPermissions)
     ]),
-    [session]
+    [sessionUserId, applyPermissions]
   );
   useEffect(() => {
-    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); setPermissionsLoaded(false); return undefined; }
+    if (!sessionUserId) { setProgramRoles({}); setPermissions([]); setPermissionsFailed(false); setPermissionsLoaded(false); return undefined; }
     let cancelled = false;
     setPermissionsLoaded(false);
-    fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
-    fetchMyPermissions().then((rows) => { if (!cancelled) { setPermissions(rows); setPermissionsLoaded(true); } });
+    fetchMyProgramRoles(sessionUserId).then((roles) => { if (!cancelled) setProgramRoles(roles); });
+    fetchMyPermissions().then((rows) => { if (!cancelled) applyPermissions(rows); });
     return () => { cancelled = true; };
-  }, [session]);
+  }, [sessionUserId, applyPermissions]);
   const can = useCallback((key, program) => canPermission(permissions, key, program), [permissions]);
 
   // Organization settings (app_settings, Phase 5) -- today the auto check-out
@@ -312,15 +335,27 @@ export function AppProvider({ children }) {
   const orgSettingsRef = useRef(orgSettings);
   useEffect(() => { orgSettingsRef.current = orgSettings; }, [orgSettings]);
 
-  const markNotifRead = useCallback((id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? Object.assign({}, n, { read: true }) : n)));
-    return markNotificationRead(id);
+  // Optimistic; a failed write puts the unread state back so the badge
+  // doesn't claim something the database never recorded.
+  const setNotifsRead = useCallback((ids, read) => {
+    setNotifications((prev) => prev.map((n) => (ids.indexOf(n.id) !== -1 ? Object.assign({}, n, { read: read }) : n)));
   }, []);
+  const markNotifRead = useCallback((id) => {
+    setNotifsRead([id], true);
+    return markNotificationRead(id).catch((e) => {
+      console.warn("markNotificationRead failed", e);
+      setNotifsRead([id], false);
+    });
+  }, [setNotifsRead]);
   const markAllNotifsRead = useCallback(() => {
     if (!session || !session.id) return Promise.resolve();
-    setNotifications((prev) => prev.map((n) => Object.assign({}, n, { read: true })));
-    return markAllNotificationsRead(session.id);
-  }, [session]);
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    setNotifsRead(unreadIds, true);
+    return markAllNotificationsRead(session.id).catch((e) => {
+      console.warn("markAllNotificationsRead failed", e);
+      setNotifsRead(unreadIds, false);
+    });
+  }, [session, notifications, setNotifsRead]);
 
   useEffect(() => {
     // These tables are authenticated-only (no anon RLS policy) -- fetching
@@ -503,12 +538,12 @@ export function AppProvider({ children }) {
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
     refetchStudents, refetchVisits, refetchProgramRoles,
-    permissions, permissionsLoaded, can,
+    permissions, permissionsLoaded, permissionsFailed, can,
     orgSettings, refetchOrgSettings
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, can, orgSettings, refetchOrgSettings
+    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, permissionsFailed, can, orgSettings, refetchOrgSettings
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

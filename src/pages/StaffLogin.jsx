@@ -99,7 +99,7 @@ export default function StaffLogin() {
     const permissions = AUTH_MODEL === "permissions" ? await fetchMyPermissions() : [];
     const { items } = resolveNavItems({
       model: AUTH_MODEL, role: profile.role, workforceRoleAccess: data.workforceRoleAccess, programRoles: {},
-      permissions, permissionsLoaded: true
+      permissions: permissions || [], permissionsLoaded: true, permissionsFailed: permissions === null
     });
     let pending = 0;
     if (profile.role === "case_manager" || profile.role === "administrator") pending += pendingApptCount(data.appointments, "case_manager");

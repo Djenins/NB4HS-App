@@ -1208,6 +1208,14 @@ security definer
 set search_path = public
 as $$
 begin
+  -- A brand-new database has no administrator to protect: no active account
+  -- and none that was ever made an administrator. Without this the later
+  -- migrations can't be replayed from scratch, and the first sign-up on a new
+  -- project fails. A deactivated administrator still counts, so switching
+  -- off the last active one stays refused.
+  if not exists (select 1 from public.profiles where active or role = 'administrator') then
+    return null;
+  end if;
   if not exists (
     select 1 from public.user_effective_permissions e
     join public.profiles p on p.id = e.user_id and p.active

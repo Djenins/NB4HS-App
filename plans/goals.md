@@ -29,3 +29,8 @@ Rules for every goal:
 ## Order
 
 Goals 1–3 can run alongside the design batches. The design goals 4–7 can go in any order, but goal 8 comes after all of them. Goal 9 needs goals 2 and 8 done. Goal 10 needs goal 9 and your sign-off. Goal 11 comes last.
+
+## Audit log
+
+- 2026-10-28: P0 and P1 audit against the launch checklist — see [launch-audit-2026-10-28.md](launch-audit-2026-10-28.md). The permission-loading fallback is fixed and tested (feeds goals 2 and 10). The RLS assumptions that need a live check are listed for goal 2. The P1 findings for tasks, staff reports, calendar and notifications are recorded but not yet scheduled as goals.
+- 2026-10-28 (later): P1 cross-program tasks migration `t1` written and tested locally (not on live). P2 low-risk fixes, the client-screen accessibility/bilingual audit, and the goal 11 prep docs ([deploy-and-operations.md](deploy-and-operations.md), [nb4hs-accounts-checklist.md](nb4hs-accounts-checklist.md), [launch-budget.md](launch-budget.md)) are done. Details and what's still open: [launch-audit-2026-10-28.md](launch-audit-2026-10-28.md).

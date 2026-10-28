@@ -61,14 +61,14 @@ export default function MonthView({ dayBlocks, monthAnchor, todayStr, holidaysBy
                   >
                     {date.getDate()}
                   </button>
-                  <button
+                  {onAddEvent && <button
                     type="button"
                     onClick={() => onAddEvent(dateStr)}
                     aria-label={t("calendarNewEvent")}
                     className={cn(BTN_RESET, "rounded-md p-1 text-muted opacity-0 transition-opacity hover:bg-primary-tint hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover/cell:opacity-100")}
                   >
                     <Plus className="h-3.5 w-3.5" />
-                  </button>
+                  </button>}
                 </div>
 
                 {holiday && (

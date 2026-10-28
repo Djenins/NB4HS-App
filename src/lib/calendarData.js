@@ -58,9 +58,12 @@ export async function createCalendarEvent(fields) {
   return calendarEventFromRow(data);
 }
 
+// RLS turns a refused delete into "0 rows", not an error; say so instead
+// of letting the event vanish until the next reload.
 export async function deleteCalendarEvent(id) {
-  const { error } = await supabase.from("calendar_events").delete().eq("id", id);
+  const { error, count } = await supabase.from("calendar_events").delete({ count: "exact" }).eq("id", id);
   if (error) throw error;
+  if (count === 0) throw new Error("You can't delete this event.");
 }
 
 export async function updateCalendarEvent(id, fields) {
@@ -75,6 +78,8 @@ export async function updateCalendarEvent(id, fields) {
     availability: fields.type === "appointment" ? (fields.availability || "busy") : null
   };
   const { data, error } = await supabase.from("calendar_events").update(row).eq("id", id).select().single();
+  // No row back: RLS refused the update.
+  if (error && error.code === "PGRST116") throw new Error("You can't change this event.");
   if (error) throw error;
   return calendarEventFromRow(data);
 }

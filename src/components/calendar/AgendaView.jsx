@@ -48,13 +48,13 @@ export default function AgendaView({ dayBlocks, todayStr, holidaysByDate, t, onO
             {blocks.length === 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
                 <p className="m-0 text-sm text-muted">{t("calendarNoEvents")}</p>
-                <button
+                {onAddEvent && <button
                   type="button"
                   onClick={() => onAddEvent(dateStr)}
                   className={cn(BTN_RESET, "flex items-center gap-1.5 rounded-lg border border-dashed border-secondary-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary")}
                 >
                   <Plus className="h-3.5 w-3.5" />{t("calendarNewEvent")}
-                </button>
+                </button>}
               </div>
             ) : (
               <ul className="m-0 flex list-none flex-col p-0">

@@ -40,7 +40,7 @@ function plural(t, n, one, many) {
 
 function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, className }) {
   const navigate = useNavigate();
-  const editable = !!block.event;
+  const rights = block.rights || {};
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -62,14 +62,18 @@ function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, classNa
             <Users className="h-4 w-4 text-muted" />{t("calendarViewStudents")}
           </DropdownMenuItem>
         )}
-        {editable && (
+        {rights.edit && (
+          <DropdownMenuItem onSelect={() => onEdit(block)}>
+            <Pencil className="h-4 w-4 text-muted" />{t("calendarEdit")}
+          </DropdownMenuItem>
+        )}
+        {rights.duplicate && (
+          <DropdownMenuItem onSelect={() => onDuplicate(block)}>
+            <Copy className="h-4 w-4 text-muted" />{t("calendarDuplicate")}
+          </DropdownMenuItem>
+        )}
+        {rights.remove && (
           <>
-            <DropdownMenuItem onSelect={() => onEdit(block)}>
-              <Pencil className="h-4 w-4 text-muted" />{t("calendarEdit")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onDuplicate(block)}>
-              <Copy className="h-4 w-4 text-muted" />{t("calendarDuplicate")}
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => onDelete(block)} className="text-accent">
               <Trash2 className="h-4 w-4" />{t("calendarDelete")}

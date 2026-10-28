@@ -23,7 +23,16 @@ begin
     raise exception 'need an active administrator, staff member and case manager to run these checks';
   end if;
   perform public.ensure_reporting_periods();
-  select id, due_at into v_period, v_due from public.reporting_periods order by period_start limit 1;
+  -- Reports can only start in a period that has begun (t4): use the latest
+  -- such period, or add one for this rolled-back run.
+  select id, due_at into v_period, v_due from public.reporting_periods
+  where period_start <= current_date order by period_start desc limit 1;
+  if v_period is null then
+    insert into public.reporting_periods (schedule_id, period_start, period_end, due_at)
+    select s.id, current_date - 7, current_date + 6, ((current_date + 7) + s.deadline_time) at time zone s.time_zone
+    from public.reporting_schedules s where s.active order by s.created_at limit 1
+    returning id, due_at into v_period, v_due;
+  end if;
   select upa.program_key into v_prog from public.user_program_access upa
   where upa.user_id = staff and upa.revoked_at is null order by upa.program_key limit 1;
 

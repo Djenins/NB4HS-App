@@ -126,6 +126,9 @@ describe("My Reports", () => {
   });
 
   it("offers one report for the period, and creates a draft", async () => {
+    // Inside the period: reports can't be started before it begins (t4).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-05T15:00:00Z"));
     setup("staff");
     api.fetchMyExpectations = vi.fn().mockResolvedValue([
       Object.assign({}, PERIOD, { staffId: "u-jane", programs: [], status: "not_started", overdue: false, reportId: null })
@@ -138,6 +141,21 @@ describe("My Reports", () => {
     fireEvent.click(buttons[0]);
     await waitFor(() => expect(api.createDraft).toHaveBeenCalledWith("p1", "u-jane"));
     expect(await screen.findByLabelText(en("srFieldActivities"))).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it("offers no report before the period begins", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-28T15:00:00Z"));
+    setup("staff");
+    api.fetchMyExpectations = vi.fn().mockResolvedValue([
+      Object.assign({}, PERIOD, { staffId: "u-jane", programs: [], status: "not_started", overdue: false, reportId: null })
+    ]);
+    api.fetchReports = vi.fn().mockResolvedValue([]);
+    renderAt("/myreports");
+    expect(await screen.findByText(en("srFirstPeriodStarts").replace("{date}", "Nov 2 – Nov 15, 2026"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: en("srCreateReport") })).toBeNull();
+    vi.useRealTimers();
   });
 
   it("blocks submitting with required fields empty, then submits once complete", async () => {

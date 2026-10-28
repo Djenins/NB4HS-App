@@ -9,15 +9,17 @@
 //   students     -> "students" (Adult Education)
 //   case clients -> "casemanagement"
 //   staff        -> the admin.users.view permission (Administration's own gate)
+// A student or client result opens their profile (/clients/:nbId) only for
+// someone the route guard lets in there; anyone else lands on the module page.
 // Pages are the sidebar's own entries, which are already filtered.
 import { studentMatchesSearch } from "./students.js";
 import { roleLabel } from "./utils.js";
 
 export var RESULT_LIMIT = 5;
 
-export function searchScopes(items, canViewStaff) {
+export function searchScopes(items, canViewStaff, canOpenProfiles) {
   var has = function (v) { return (items || []).indexOf(v) !== -1; };
-  return { students: has("students"), clients: has("casemanagement"), staff: !!canViewStaff };
+  return { students: has("students"), clients: has("casemanagement"), staff: !!canViewStaff, profiles: canOpenProfiles !== false };
 }
 
 // The placeholder names only what this person can actually find.
@@ -66,7 +68,7 @@ export function buildResults(opts) {
         return {
           id: "student:" + s.id, kind: "student", title: fullName(s),
           subtitle: [s.studentId, c ? c.name : ""].filter(Boolean).join(" · "),
-          to: s.nbId ? "/clients/" + s.nbId : "/students"
+          to: s.nbId && scopes.profiles !== false ? "/clients/" + s.nbId : "/students"
         };
       }) });
     }
@@ -76,7 +78,7 @@ export function buildResults(opts) {
         return {
           id: "client:" + c.id, kind: "client", title: fullName(c),
           subtitle: [c.nbId, c.phone].filter(Boolean).join(" · "),
-          to: c.nbId ? "/clients/" + c.nbId : "/case-management"
+          to: c.nbId && scopes.profiles !== false ? "/clients/" + c.nbId : "/case-management"
         };
       }) });
     }

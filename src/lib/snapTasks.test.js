@@ -1,7 +1,7 @@
 // Follow-up grouping, the automation-title translation, edit rights
 // (mirroring the tasks RLS policy) and the completion-rate metric.
 import { describe, expect, it } from "vitest";
-import { addDays, completionRate, taskBuckets, taskPermissions, taskTitle } from "./snapTasks.js";
+import { addDays, assigneeOptions, completionRate, taskBuckets, taskPermissions, taskTitle } from "./snapTasks.js";
 
 describe("taskBuckets", () => {
   const tasks = [
@@ -50,5 +50,23 @@ describe("taskPermissions / completionRate", () => {
   it("is null when nothing was due, otherwise a whole percent", () => {
     expect(completionRate(0, 0)).toBeNull();
     expect(completionRate(3, 2)).toBe(67);
+  });
+});
+
+describe("assigneeOptions", () => {
+  const profiles = [
+    { id: "lead", name: "Lead" }, { id: "w", name: "Worker" }, { id: "gone", name: "Former member" },
+    { id: "other", name: "No SNAP role" }, { id: "off", name: "Deactivated", active: false }
+  ];
+  const members = { lead: { active: true }, w: { active: true }, gone: { active: false }, off: { active: true } };
+
+  it("offers the program's active members and the lead", () => {
+    expect(assigneeOptions(profiles, members, "lead").map((p) => p.id)).toEqual(["lead", "w"]);
+  });
+  it("keeps the lead even without a membership row (an administrator)", () => {
+    expect(assigneeOptions(profiles, { w: { active: true } }, "lead").map((p) => p.id)).toEqual(["lead", "w"]);
+  });
+  it("falls back to every active profile while members aren't loaded", () => {
+    expect(assigneeOptions(profiles, null, "lead").map((p) => p.id)).toEqual(["lead", "w", "gone", "other"]);
   });
 });
