@@ -285,14 +285,54 @@ Also in `t4`:
 
 **Gap:** there is no "new schedule" screen. Changing a used schedule's length means an administrator creates a new schedule in SQL and switches the old one off.
 
+## Live dry runs (2026-10-28, approved)
+
+Against the hosted project `vkbzarlkqzvhsfdmxyyq` through the Supabase Management API (`supabase db query --project-ref … -f`).
+
+**How:** every run was one file, `begin; <migration(s)>; <check>; rollback;`. Every check ends by raising an exception, so nothing could commit. Before any migration ran, two probes proved this on the hosted project:
+- the whole file ran in one transaction (same transaction id)
+- an error rolled back a table created earlier in the same file
+
+That second proof was done once with the MCP tool and once with the CLI.
+
+**Live preconditions (counts only):**
+- active accounts: 3 administrators, 1 case manager, 1 staff
+- SNAP roles: 1 worker, 1 program admin
+- records: 0 staff reports, 0 tasks, 0 started report periods
+- no HTTP triggers; the only `auth.users` trigger creates the profile
+
+The `t1`, `t3` and `t4` checks were made portable first (`97fd15f`): they create throwaway accounts and test periods inside the rolled-back transaction.
+
+**Each migration alone:**
+
+| Migration | Checks | Result |
+|---|---|---|
+| `t1` | p3d SNAP parity before → after | **Pass:** 2,880 answers, 32 personas, no changes |
+| `t1` | `t1_tasks_check.sql` | **Pass** |
+| `t1` | `t1_rollback_*`: rollback, then re-apply | **Pass** |
+| `t1` | SNAP parity across the rollback | **Pass:** 2,880 answers, no changes |
+| `t2` | `t2_time_label_check.sql`; `p6b_outbound_check.sql` | **Pass**; **Pass** |
+| `t3` | `t3_receptionist_check.sql`; `p1_access_check.sql` | **Pass**; **Pass:** parity for 5 accounts |
+| `t4` | `t4_staff_report_rules_check.sql`; `p6a`, `p6b` and `p6c` | **Pass**; all **Pass** |
+
+**All four stacked in apply order,** followed in separate runs by `p1`, `p2`, `p5`, `p6a`, `t1_tasks_check`, `t3_receptionist_check` and `t4_staff_report_rules_check`: all **Pass**.
+
+Five earlier stacked runs left the migrations out by mistake, because of shell word splitting. They tested live as it is: the `t1` and `t4` checks failed as expected, and `p1`, `p2` and `p5` passed. They are not counted above.
+
+**Afterwards, read-only, live was unchanged:**
+- 63 migrations recorded, the newest p6c
+- none of the new columns, functions, tables or triggers exist
+- the task reminder job is still `0 11 * * *`
+- receptionists still hold both participant grants
+- the email time label still has no zone
+- no throwaway accounts or marker tables remain
+- staff reports 0, tasks 0, clients 3, students 10
+- no notifications in the last hour
+
 ## Still open
 
 **REQUIRES OWNER APPROVAL:**
-- **Live `begin … rollback` dry runs, then applying, for each migration:**
-  - **`t1`:** the SNAP parity run and `t1_tasks_check.sql`.
-  - **`t2`:** `t2_time_label_check.sql`.
-  - **`t3`:** `t3_receptionist_check.sql` and `p1_access_check.sql`.
-  - **`t4`:** `t4_staff_report_rules_check.sql` and `p6a/b/c`.
+- **Applying `t1`–`t4` to the hosted project.** The dry runs passed (above). Follow the steps in `deploy-and-operations.md`.
 - **The live RLS checks** (items 1–6).
 - **Marking PR #64 ready, merging and deploying.**
 - **NB4HS accounts and plans:** ownership transfers and any paid plan.

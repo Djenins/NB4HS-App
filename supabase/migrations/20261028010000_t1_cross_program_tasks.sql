@@ -1,7 +1,8 @@
 -- t1 -- tasks (follow-ups) stop being SNAP-only, and the reminder job is
 -- fixed (plans/launch-audit-2026-10-28.md, "P1 -- SNAP tasks" and
 -- "Proposal: cross-program tasks").
--- NOT APPLIED to the hosted project. Tested on the local stack only:
+-- NOT APPLIED to the hosted project. Live dry run 2026-10-28 (begin ... rollback, nothing
+-- committed): SNAP parity both ways, t1_tasks_check, t1_rollback_* passed. Local:
 -- SNAP policy parity (p3_policy_parity_before/after with p3d_probes, tables
 -- 'tasks') and supabase/tests/t1_tasks_check.sql. Undo with
 -- supabase/rollback/t1_cross_program_tasks_down.sql.

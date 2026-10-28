@@ -1,6 +1,7 @@
 -- t3 -- receptionists keep check-in and check-out, and lose participant
 -- records (owner decision, 2026-10-28; launch-audit-2026-10-28.md).
--- NOT APPLIED to the hosted project. Tested on the local stack with
+-- NOT APPLIED to the hosted project. Live dry run 2026-10-28 (rolled back): t3 check
+-- and p1 passed. Tested on the local stack with
 -- supabase/tests/t3_receptionist_check.sql. Undo with
 -- supabase/rollback/t3_receptionist_check_in_only_down.sql.
 --

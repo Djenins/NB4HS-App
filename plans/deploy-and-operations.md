@@ -66,10 +66,18 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…20261028030000_t3_receptionist_check_in_only` | **Not on live.** Receptionists lose participant records and keep check-in. Deploy the app change (kiosk-roster fallback) at the same time or before |
 | `…20261028040000_t4_staff_report_rules` | **Not on live.** It adds the report period, revision, schedule-lock, attachment and DST rules. Deploy the app change (reviewer reads via `staff_reports_in_revision()`) at the same time or before, or reviewers won't see reports in revision |
 
-**Which files are on live:**
-- 26 migration headers say "APPLIED to vkbzarlkqzvhsfdmxyyq".
-- The 38 older files have no marker, but the later applied ones build on them.
-- Before any push, confirm what is applied with the read-only `supabase migration list` against the linked project, and compare it with this folder.
+**Which files are on live (checked 2026-10-28, read-only):**
+- All 63 versions recorded on the hosted project match a file here.
+- Only `t1`–`t4` (`20261028010000` … `20261028040000`) are pending.
+- **Version fix (`230bfcd`).** Four files carried different version numbers from live: `adult_education_courses`, `case_resources`, `case_client_self_registration` and `staff_availability_booking`. Their SQL matched what live recorded, so they were renamed to live's versions. Before that, `supabase db push` would have run them a second time.
+- **Before any push,** repeat the comparison: list `supabase_migrations.schema_migrations.version` on the project and compare it with this folder's filenames.
+
+**Applying `t1`–`t4` (REQUIRES OWNER APPROVAL)**
+1. **Deploy the app first.** This branch works both before and after the migrations.
+2. **Repeat the dry runs** described in `launch-audit-2026-10-28.md` ("Live dry runs") if anything changed since 2026-10-28.
+3. **Apply in order:** `t1`, `t2`, `t3`, `t4`. Each file is one transaction.
+4. **Re-run each check against live afterwards.** Each check still ends by raising, so it writes nothing.
+5. **Rollback scripts** are in `supabase/rollback/`. Run them newest first, if needed.
 
 **Building a new project from scratch:**
 1. `supabase link --project-ref <new-ref>`, then `supabase db push`. This replays every migration in order, each in its own transaction.
