@@ -108,7 +108,7 @@ Items marked *(t1)* are fixed by the `t1` migration below, tested locally only.
 - *(t1)* **Reassigned or reopened tasks are never re-reminded.** The dedupe key is `(task, due_date)` and does not include the assignee.
 - **People get reminders for tasks they cannot open.**
   - *(t1)* The reminder checks only `profiles.active`, not `snap.tasks.view`.
-  - The assignee picker lists every active profile, not just program staff (`SnapTaskList.jsx:163`).
+  - **Fixed (tested in the browser).** The assignee picker listed every active profile, not just program staff (`SnapTaskList.jsx:163`). It now lists the program's active members plus the lead.
 - **Closing or reassigning a case leaves its open tasks unchanged.**
 - **Deleting a client hard-deletes their tasks and cases** (`on delete cascade`).
 - *(t1, link only)* **Reminder notifications have no `link`**, so they can't be clicked. (They are not English-only: the bell translates `snap_task_due` by type. That was a wrong lead.)
@@ -168,9 +168,9 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 2. **Changing a schedule's length or start can create overlapping periods.** Only `(schedule_id, period_start)` is unique. Rebuilt periods get new ids, so reminders may go out again.
 3. **Reviewers can see live revisions.** See RLS item 5.
 4. **The 5-file limit can race,** and the client supplies `size_bytes` and `mime_type`. The bucket still enforces the 10 MB limit and the allowed types.
-5. **The email time label probably shows no time zone.** It applies `to_char(…, 'TZ')` to a timestamp without a zone. Suspected.
+5. **Fixed in migration `t2` (`162421d`, tested locally, not on live).** **The email time label shows no time zone.** Confirmed: it rendered "Mon, Nov 2, 2026 at 5:00 PM ". It now shows EST or EDT, or a UTC offset for any other zone.
 6. **Reminder offsets are computed in the session's time zone,** so they may land an hour off across DST. Suspected.
-7. **A report can be started for any period,** including future ones and up to 60 periods back.
+7. **A report can be started for any period,** including future ones and up to 60 periods back. Confirmed: the insert policy only checks the author, and a draft for a future period was accepted locally. **Owner decision:** whether late reports for past periods are wanted. Not changed.
 
 ## P1 — Calendar, notifications, search (read (subagent) unless marked)
 
@@ -179,9 +179,9 @@ The database enforces the state machine, blocks self-review and blocks edits aft
    - Failed requests aren't rolled back.
 2. **Fixed (`21b6228`, tested).** **The calendar shows actions the database refuses.** Edit, Duplicate and Delete appear for events the user doesn't own. A refused delete removes 0 rows and looks like it worked.
 3. **The calendar doesn't show** rows from the real `appointments` table, tasks, report due dates or time off.
-4. **The `appointment_assigned` type has no translated title.** Its test leaves the type out, so it can't catch this.
-5. **⌘K search covers only** pages, students, case clients and staff. Student results link to `/clients/:nbId`, which needs `participants.view`.
-6. **`fetchNotifications` has no limit,** and every realtime event fetches the whole list again.
+4. **Fixed (`343a3fa`).** **The `appointment_assigned` type has no translated title.** Its test leaves the type out, so it can't catch this.
+5. **Fixed (`12c7372`, tested).** **⌘K search: student results linked to `/clients/:nbId` for people the route guard refuses.** Confirmed for Executive Oversight, which has `students.view` without `participants.view`. Search now asks `routeAllowed("clients")`. Search still covers only pages, students, case clients and staff.
+6. **Fixed (`2b38afd`, tested).** **`fetchNotifications` has no limit,** and every realtime event fetches the whole list again. It is now capped at the newest 50.
 
 ## P2 — Low-risk fixes (done)
 
@@ -232,19 +232,55 @@ After these fixes: 585 unit tests and the build pass. All 10 SQL checks pass aft
 - dark mode
 - contrast beyond the landing page
 
+## PR #64 acceptance pass (2026-10-28, later)
+
+Everything below ran on the local stack after `supabase db reset --local` replayed all 65 migrations.
+
+**New checks**
+- **`src/test/roleMatrix.local.test.jsx` (7 tests).** It signs in as every seeded account through the real API and runs their profile, program roles and `my_permissions()` through the app's own `routeAllowed` and `adminSectionsFor`. For every account, the permission model's pages equal the account-type pages; forbidden pages stay shut; the administrator reaches all five Admin sections; and the deactivated account is not a session and holds nothing. It is skipped in `npm test` and CI.
+- **`supabase/tests/t1_rollback_*.sql`.**
+  - SNAP tasks in every state survive the rollback and the re-apply. Every column is compared, plus the reminders sent and the audit count, with no `updated_at` bump.
+  - The rollback refuses to run while a task outside Outreach exists.
+  - A deliberately broken `t1` (no trigger guard on the backfill) fails it.
+- **SNAP parity across the `t1` rollback,** on the fresh database: 2,880 answers, no changes.
+- **`t2_time_label_check.sql`,** plus a rollback check.
+
+**Fixes in this pass**
+- **⌘K search links,** the **SNAP assignee picker,** and the **notification limit** (above).
+- **A test bug: `p5_admin_check.sql` failed about half the time on a fresh database.** It used `array_agg(... order by 1)`, which sorts by the constant 1, not a column. The aggregates now order by their own expression, and 18 runs in a row pass. The app was never at fault.
+
+**End to end in the browser (local stack)**
+- **Notifications, as the receptionist:**
+  - the badge updates live
+  - items stay unread while the panel is open
+  - "Mark all read" sets `read = true` in the database
+  - closing the panel marks new items read
+- **Calendar, as the receptionist:** create, duplicate, edit and delete all work, confirmed in the database after each step.
+  - A refused delete or edit can't be reached from the UI any more. `calendarDataRefusal.test.js` covers that data-layer path.
+- **SNAP supervisor:** the follow-up assignee picker lists only SNAP members.
+
+**Observations, not changed**
+- **Receptionists can open client profile pages.** p3a gave them `participants.view` so they can see the check-in roster, matching the old rules. Whether that should include full client profiles is an owner decision.
+- **`taskPermissions()` in the SNAP UI mirrors the legacy program roles,** not the permission keys. Custom roles or overrides could see a button the database then refuses. `updateTask` already reports "not permitted" when that happens.
+- **Staff report items 2, 3, 4 and 6** need schema changes and product decisions. Not changed.
+- **The calendar doesn't show** appointments, tasks or time off. That is a feature, not a fix.
+- **Event drawer edit fields have visible labels with no `for`/`id` link.** It's a staff-only screen and not changed.
+
 ## Still open (needs your OK or a decision)
 
-- **Hosted database:**
-  - **Live dry run of `t1`:** `begin … rollback` with the parity run and `t1_tasks_check.sql`, then apply it only with your approval.
-  - **RLS items 1–6:** they need checks against live, also with your approval.
-- **Push the branch and open a PR.** Nothing is pushed.
-- **NB4HS decisions:** the plans and accounts in `launch-budget.md` and `nb4hs-accounts-checklist.md`.
-- **Leads not acted on:**
-  - the staff report items 2–7
-  - the calendar not showing appointments, tasks or time off
-  - search reaching `/clients/:nbId` without `participants.view`
-  - `fetchNotifications` having no limit
-  - the task items listed under `t1`'s "Not done here"
+**REQUIRES OWNER APPROVAL:**
+- **Live dry runs, then applying migrations to the hosted project:**
+  - **`t1`:** `begin … rollback` with the SNAP parity run and `t1_tasks_check.sql`.
+  - **`t2`:** `begin … rollback` with `t2_time_label_check.sql`.
+  - **RLS items 1–6:** live checks, also with your approval.
+- **Marking PR #64 ready, merging and deploying.**
+- **NB4HS accounts and plans** (`nb4hs-accounts-checklist.md`, `launch-budget.md`): ownership transfers and any paid plan.
 
-  These came from the audit and none was changed.
+**Owner decisions:**
+- receptionists and client profiles
+- whether a report can be started for future or past periods (staff reports item 7)
+- staff report items 2, 3, 4 and 6
 
+**Leads not acted on:**
+- the calendar not showing appointments, tasks or time off
+- the task items under `t1`'s "Not done here"
