@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 import { STR } from "../lib/i18n.js";
 import { TYPE_TITLE } from "./NotificationBell.jsx";
 
-// Types written by DB code: snap_send_task_reminders(), the staff report
+// Types written by DB code: send_task_reminders() (t1), the staff report
 // RPCs (R1) and staff_reports_tick() (R2).
 const SERVER_TYPES = [
-  "snap_task_due",
+  "snap_task_due", "task_overdue",
   "staff_report_submitted", "staff_report_revision_requested", "staff_report_acknowledged",
   "staff_report_due", "staff_report_overdue", "staff_report_overdue_digest"
 ];

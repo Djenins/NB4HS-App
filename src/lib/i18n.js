@@ -288,6 +288,7 @@ export var STR = {
   snapComingNext: { en: "Today's appointments, outreach events and partner referrals will appear here once those parts are built.", ht: "Randevou jodi a, evènman sansibilizasyon ak referans patnè yo ap parèt isit la lè pati sa yo fini.", fr: "Les rendez-vous du jour, les événements et les orientations vers les partenaires apparaîtront ici une fois ces parties réalisées." },
   snapSource_unknown: { en: "Not recorded", ht: "Pa anrejistre", fr: "Non renseigné" },
   snapNotifTaskDue: { en: "Follow-up due", ht: "Swivi pou fè", fr: "Suivi à faire" },
+  taskNotifOverdue: { en: "Follow-up overdue", ht: "Follow-up overdue", fr: "Follow-up overdue" },
   // Staff Reporting (biweekly reports to the Executive Director). {placeholders}
   // are filled in by the component with .replace().
   srMyReportsIntro: { en: "Every two weeks, send the Executive Director one report on your work across the programs you worked on.", ht: "Every two weeks, send the Executive Director one report on your work across the programs you worked on.", fr: "Every two weeks, send the Executive Director one report on your work across the programs you worked on." },

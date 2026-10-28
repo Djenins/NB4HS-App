@@ -20,7 +20,7 @@ Work queue: `NB4HS_Claude_Goal_Kit/TODAY_CHECKLIST.md`. This document adds to `g
 ## Local stack (set up 2026-10-28)
 
 - `supabase/config.toml` (ports 5532x), `supabase/seed.sql` (7 fake accounts), `npm run dev:local`. How to use it is in `README-Dev.md`.
-- **All 63 migrations replay from an empty database (tested)**, after one fix. Before the fix, the p1b guard "this would leave no active System Administrator" stopped `p3d_snap_policies` on any database that has no accounts yet. That means a brand-new NB4HS-owned Supabase project could not have been built from the migrations either. The fix adds an early return to `assert_system_admin_remains()` when no active profile exists. On live there are active administrators, so it never takes this branch and live behavior doesn't change. **This edits an already-applied migration file**, so it is in its own commit and needs your OK.
+- **All migrations replay from an empty database (tested)**, after one fix (63 at the time; 64 with `t1`). Before the fix, the p1b guard "this would leave no active System Administrator" stopped `p3d_snap_policies` on any database that has no accounts yet. That means a brand-new NB4HS-owned Supabase project could not have been built from the migrations either. The fix adds an early return to `assert_system_admin_remains()` when no active profile exists. On live there are active administrators, so it never takes this branch and live behavior doesn't change. **This edits an already-applied migration file**, so it is in its own commit and needs your OK.
 - **Probes run locally (tested):**
   - `p0b`, `p1`, `p2`, `p3a`, `p5`, `p6a`, `p6b` and `p6c` all pass. `p1` reports legacy parity OK for the 6 active seeded accounts.
   - `p0a` fails on purpose. It asserts the old anonymous appointments insert still works, which was only true between p0a and p0b.
@@ -37,7 +37,7 @@ Work queue: `NB4HS_Claude_Goal_Kit/TODAY_CHECKLIST.md`. This document adds to `g
 |---|---|---|
 | Permission loading / legacy fallback | Goals 2 and 10 | Fixed and **tested** (below) |
 | RLS inspection | Goal 2 | **Read**; assumptions listed below |
-| SNAP tasks / cross-program tasks | New. Not in `goals.md` yet | Design only (below) |
+| SNAP tasks / cross-program tasks | New. Not in `goals.md` yet | Migration `t1` written and **tested locally**; not applied to live (below) |
 | Staff reports | Goal 7 covers the UI only | Findings below |
 | Calendar / notifications / search | Goal 6 covers the UI only | Findings below |
 | Deploy variables, NB4HS-owned accounts, budget | Goal 11 | Not started |
@@ -96,35 +96,62 @@ What still needs a live check against the hosted database. Each one needs your O
 
 ## P1 — SNAP tasks and reminders (read (subagent) unless marked)
 
-- **Some tasks are never reminded.** The reminder cron runs once a day at 11:00 UTC. A task that is created after the run and due the same day is never reminded, and overdue tasks never get a second reminder.
-- **Reassigned or reopened tasks are never re-reminded.** The dedupe key is `(task, due_date)` and does not include the assignee.
+Items marked *(t1)* are fixed by the `t1` migration below, tested locally only.
+
+- *(t1)* **Some tasks are never reminded.** The reminder cron runs once a day at 11:00 UTC. A task that is created after the run and due the same day is never reminded, and overdue tasks never get a second reminder.
+- *(t1)* **Reassigned or reopened tasks are never re-reminded.** The dedupe key is `(task, due_date)` and does not include the assignee.
 - **People get reminders for tasks they cannot open.**
-  - The reminder checks only `profiles.active`, not `snap.tasks.view`.
+  - *(t1)* The reminder checks only `profiles.active`, not `snap.tasks.view`.
   - The assignee picker lists every active profile, not just program staff (`SnapTaskList.jsx:163`).
 - **Closing or reassigning a case leaves its open tasks unchanged.**
 - **Deleting a client hard-deletes their tasks and cases** (`on delete cascade`).
-- **Reminder notifications are English-only and have no `link`**, so they can't be clicked.
+- *(t1, link only)* **Reminder notifications have no `link`**, so they can't be clicked. (They are not English-only: the bell translates `snap_task_due` by type. That was a wrong lead.)
 - **`taskPermissions()` in the UI copies the old role rules, not the current RLS.**
 
-## P1 — Proposal: cross-program tasks (design only)
+## P1 — Cross-program tasks: migration `t1` (written, tested locally, not applied)
 
-The goal is to generalize `public.tasks` without changing what SNAP sees. The migration is **not written yet**, because it can't be tested without a local stack (see next steps).
+Files: `supabase/migrations/20261028010000_t1_cross_program_tasks.sql`, `supabase/rollback/t1_cross_program_tasks_down.sql`, `supabase/tests/t1_tasks_check.sql`.
 
-1. **Additive columns on `tasks`:**
-   - `module text` (default `'outreach'`)
-   - `subject_type text` and `subject_id uuid`, nullable (placement, employer, student…)
-   - `due_at timestamptz`, nullable, alongside `due_date`
+**What it does**
+- **New columns on `tasks`:** `module` (required; for SNAP it is filled from the program) and an optional `subject_type` + `subject_id` pair for the record a task is about. `program` may now be empty, for tasks outside Outreach. Existing rows get `module = 'snap'` without an `updated_at` bump or audit rows.
+- **Access:**
+  - SNAP tasks keep exactly today's rule.
+  - Tasks in other modules check `<module>.tasks.view` / `.manage`. Those permissions don't exist yet, so those tasks stay closed to everyone. Turning tasks on for Case Management or Workforce is a later decision: add the two keys and grant them.
+  - A task can't move to another module.
+- **Reminders:**
+  - Run hourly from 7:00 to 19:59 New York time, instead of once at 11:00 UTC.
+  - One "due" reminder per task, assignee and due date, so reassigned or re-dated tasks are reminded again.
+  - One "overdue" nudge the day after the due date.
+  - Only to assignees who can open the task.
+  - Linked to `/snap/tasks`.
+  - Reminders already sent are carried over, so nobody is reminded twice when it goes live.
+- **Realtime:** `tasks` is added to `supabase_realtime`.
+- **App:** the bell shows a title for the new `task_overdue` type. It is staff-only, so the `ht`/`fr` text is English.
 
-   Backfill `module = 'outreach'`.
-2. **Permissions per module.** Replace the hardcoded `'snap.tasks.view'` and `'snap.tasks.manage'` with a helper, `task_permission(module, program, action)`. For outreach it returns the current keys, so SNAP behaves the same. Keep `can_on_record` scopes.
-3. **Reminders:**
-   - Move dedupe to a `notice_key` that includes the assignee and due date, the same pattern as staff reports.
-   - Run hourly with the `snap_today()` date rules, and add one overdue nudge.
-   - Skip assignees who cannot see the task.
-   - Set `link`.
-4. **Keep as they are:** the `automation_key` uniqueness and its `case_opened:` prefix, the status values, the `completed_at` trigger, the audit trigger, the `snap_task_due` type, and the dashboard counts.
-5. **Realtime and calendar:** add `tasks` to `supabase_realtime`, then add a `task` kind to the calendar.
-6. **Rollback:** a script in `supabase/rollback/`, plus probes in `supabase/tests/` that match the p3d ones.
+**Tested on the local stack**
+- **SNAP parity:** `p3d_probes` with `p3_policy_parity_before/after` on table `tasks` found 2,880 answers for 32 simulated people, with no changes:
+  - before → after the migration
+  - after → after the rollback
+
+  The test does catch a real change: a deliberately broken owner rule produced 30 differences.
+- **`t1_tasks_check.sql` passes:**
+  - the module rules
+  - Case Management tasks closed by default and opened by an `assigned`-scope grant
+  - reminder count, link, quiet hours, overdue nudge, no repeats, reassignment, re-dating, and finished tasks
+- **Carry-over:** a re-apply over a reminder that had already been sent did not send it again.
+- **Full replay:** `supabase db reset --local` with all 64 migrations, then every probe except the stale `p0a` passes.
+- **API:** through the API as the seeded SNAP worker, a SNAP task insert and read work as before, and a Case Management insert is refused.
+- **App:** 573 unit tests and the build pass.
+
+**Not done here:**
+- the assignee picker that lists every active profile
+- what happens to open tasks when a case closes or is reassigned
+- `on delete cascade` from clients
+- `taskPermissions()` in the UI
+- a calendar `task` kind
+- `due_at` (a time of day)
+
+**Before it goes to live:** a `begin … rollback` dry run of the parity run and `t1_tasks_check.sql` against the hosted project, then your approval, per `goals.md`.
 
 ## P1 — Staff reports (read (subagent) unless marked)
 
@@ -152,7 +179,7 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 
 ## Next steps (proposed, need your OK)
 
-- **Set up a local Supabase stack** (`supabase init`, Docker), so the task migration and the RLS probes can run locally before any `begin … rollback` against live.
+- **Live dry run of `t1`** (`begin … rollback`), then apply it, only with your approval.
 - **Low-risk fixes for the P2 slot:**
   - mark-all-read
   - orphaned attachments on discard

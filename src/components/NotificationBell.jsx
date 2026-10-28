@@ -44,6 +44,7 @@ function RescheduleForm({ appt, onDone }) {
 // in the reader's language.
 export const TYPE_TITLE = {
   snap_task_due: "snapNotifTaskDue",
+  task_overdue: "taskNotifOverdue",
   staff_report_submitted: "srNotifSubmitted",
   staff_report_revision_requested: "srNotifRevision",
   staff_report_acknowledged: "srNotifAcknowledged",
