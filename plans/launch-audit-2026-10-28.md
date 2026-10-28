@@ -20,7 +20,12 @@ Work queue: `NB4HS_Claude_Goal_Kit/TODAY_CHECKLIST.md`. This document adds to `g
 ## Local stack (set up 2026-10-28)
 
 - `supabase/config.toml` (ports 5532x), `supabase/seed.sql` (7 fake accounts), `npm run dev:local`. How to use it is in `README-Dev.md`.
-- **All migrations replay from an empty database (tested)**, after one fix (63 at the time; 64 with `t1`). Before the fix, the p1b guard "this would leave no active System Administrator" stopped `p3d_snap_policies` on any database that has no accounts yet. That means a brand-new NB4HS-owned Supabase project could not have been built from the migrations either. The fix adds an early return to `assert_system_admin_remains()` when no active profile exists. On live there are active administrators, so it never takes this branch and live behavior doesn't change. **This edits an already-applied migration file**, so it is in its own commit and needs your OK.
+- **All migrations replay from an empty database (tested)**, after one fix (63 at the time; 64 with `t1`). Before the fix, the p1b guard "this would leave no active System Administrator" stopped `p3d_snap_policies` on any database that has no accounts yet. That means a brand-new NB4HS-owned Supabase project could not have been built from the migrations either. The fix adds an early return to `assert_system_admin_remains()` for a database where no account is active and none was ever an administrator. On live there are active administrators, so it never takes this branch and live behavior doesn't change. **This edits an already-applied migration file.** You approved keeping it.
+
+Later the same day I narrowed it (`2f29e90`). My first version, "no active account", would have let the last administrator be deactivated when they were the only active account. `supabase/tests/p1b_bootstrap_check.sql` covers three cases:
+- that one, which is now refused
+- a new project's first sign-up, which goes through
+- the documented first-administrator bootstrap, which works
 - **Probes run locally (tested):**
   - `p0b`, `p1`, `p2`, `p3a`, `p5`, `p6a`, `p6b` and `p6c` all pass. `p1` reports legacy parity OK for the 6 active seeded accounts.
   - `p0a` fails on purpose. It asserts the old anonymous appointments insert still works, which was only true between p0a and p0b.
@@ -40,7 +45,8 @@ Work queue: `NB4HS_Claude_Goal_Kit/TODAY_CHECKLIST.md`. This document adds to `g
 | SNAP tasks / cross-program tasks | New. Not in `goals.md` yet | Migration `t1` written and **tested locally**; not applied to live (below) |
 | Staff reports | Goal 7 covers the UI only | Findings below |
 | Calendar / notifications / search | Goal 6 covers the UI only | Findings below |
-| Deploy variables, NB4HS-owned accounts, budget | Goal 11 | Not started |
+| Deploy variables, NB4HS-owned accounts, budget | Goal 11 | Written: [deploy-and-operations.md](deploy-and-operations.md), [nb4hs-accounts-checklist.md](nb4hs-accounts-checklist.md), [launch-budget.md](launch-budget.md) |
+| Accessibility, responsive, bilingual (client screens) | Goals 4–8 | Audited in the browser; two fixes (below) |
 
 ## P0 — Permission loading and the legacy fallback (fixed)
 
@@ -177,12 +183,6 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 5. **⌘K search covers only** pages, students, case clients and staff. Student results link to `/clients/:nbId`, which needs `participants.view`.
 6. **`fetchNotifications` has no limit,** and every realtime event fetches the whole list again.
 
-## Next steps (proposed, need your OK)
-
-- **Live dry run of `t1`** (`begin … rollback`), then apply it, only with your approval.
-- **Reminder link:** done in `t1`. There's still no translated title for `appointment_assigned`.
-- **Still to do:** deploy variables and migration order, the NB4HS-owned accounts checklist, and the budget (required vs optional, no invented prices).
-
 ## P2 — Low-risk fixes (done)
 
 Each fix is its own commit on `Djenins/launch-goals`. None is pushed.
@@ -193,5 +193,58 @@ Each fix is its own commit on `Djenins/launch-goals`. None is pushed.
 | `6b666e4` | **Discard draft.** The draft's uploaded files are removed before the report row is deleted. If storage fails, the draft is kept. | Unit test `staffReportsDiscard.test.js` (3 cases). On the local stack, as the seeded staff account: the old order left the file in the bucket, and the new order removes it |
 | `21b6228` | **Calendar actions.** Edit and Delete only on your own events, or with `calendar.events.manage_all`. Duplicate and adding need `calendar.events.create`, which Executive Oversight doesn't have. A refused delete or update now shows an error. | Unit test `calendarRights.test.js` (6 cases). In the browser as the seeded receptionist: another person's event offers only View and Duplicate, their own offers all four. The API confirms a refused delete returns 204 with 0 rows |
 
-After these fixes: 585 unit tests and the build pass.
+| `343a3fa` | **`appointment_assigned` notifications** get a title key like every other server type. They're staff-only, so the `ht`/`fr` text is English. | The type is now in `NotificationBell.test.jsx` |
+| `a19b351` | **Page language for screen readers.** `<html lang>` follows the language the page shows. Before, it stayed `en` on Kreyòl and French pages. The kiosk's "Check its status" link gets a 44px tap area with no visual change | In the browser at phone width: `lang` goes `en` → `fr`, back to `en` on a staff page and `fr` again on a client page. The paragraph keeps its 41px height and the text doesn't move |
+
+After these fixes: 585 unit tests and the build pass. All 10 SQL checks pass after a full replay of the 64 migrations (`p0a` is stale by design).
+
+## P2 — Client screens: accessibility, responsive, bilingual
+
+**Screens checked:**
+- check-in landing
+- student check-in
+- visitor check-in
+- check-out
+- appointment request
+- appointment lookup
+- new-client registration
+
+**How:**
+- **Bilingual:** a script compared every `t("…")` key on these pages and their components with `i18n.js`, and looked for hardcoded English. It found no missing keys and no hardcoded text. The only `ht`/`fr` values equal to English are a phone placeholder and French "Date", both correct.
+- **In the browser,** on the local stack at 375 px, a script checked each screen for:
+  - unlabeled fields and nameless buttons
+  - images without `alt`
+  - targets under 24 px
+  - horizontal overflow
+  - heading order and a `main` landmark
+- **Contrast:** computed for text on the kiosk landing.
+
+**Results:**
+- **Clean:** every screen had labels, headings, `main` and no overflow, and none of the 20 text styles checked failed contrast.
+- **Registration errors:** submitting the empty form moves focus to the first problem field. Each field gets `aria-invalid` and `aria-describedby` pointing at its message, and a polite status sums it up.
+- **Fixed:** `<html lang>` and the small kiosk link (above).
+- **Deliberate, unchanged:** the client's language choice isn't saved, so a shared kiosk starts the next person in English.
+
+**Not covered:**
+- a real screen reader
+- keyboard-only walkthroughs of every flow
+- the kiosk QR scan and camera path
+- dark mode
+- contrast beyond the landing page
+
+## Still open (needs your OK or a decision)
+
+- **Hosted database:**
+  - **Live dry run of `t1`:** `begin … rollback` with the parity run and `t1_tasks_check.sql`, then apply it only with your approval.
+  - **RLS items 1–6:** they need checks against live, also with your approval.
+- **Push the branch and open a PR.** Nothing is pushed.
+- **NB4HS decisions:** the plans and accounts in `launch-budget.md` and `nb4hs-accounts-checklist.md`.
+- **Leads not acted on:**
+  - the staff report items 2–7
+  - the calendar not showing appointments, tasks or time off
+  - search reaching `/clients/:nbId` without `participants.view`
+  - `fetchNotifications` having no limit
+  - the task items listed under `t1`'s "Not done here"
+
+  These came from the audit and none was changed.
 
