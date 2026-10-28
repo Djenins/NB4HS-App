@@ -1,12 +1,33 @@
 -- Checks for t4_staff_report_rules. Run AFTER the migration; ends by raising
--- 'T4_CHECKS_PASSED', so nothing is committed. Needs supabase/seed.sql's
--- administrator, staff member (reports) and case manager (made a reviewer
--- here, as p6a does).
+-- 'T4_CHECKS_PASSED', so nothing is committed. Uses throwaway accounts (an
+-- administrator, a staff member who reports, a case manager made a reviewer
+-- as p6a does) and test periods on the active schedule, so it runs the same
+-- on the local stack and in a live dry run.
+create or replace function pg_temp.dryrun_account(p_role text) returns uuid language plpgsql as $f$
+declare uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email, raw_user_meta_data) values (uid, 'dryrun-' || uid || '@example.invalid', '{}');
+  update public.profiles set role = p_role, active = true, name = 'Dry run ' || p_role where id = uid;
+  return uid;
+end $f$;
+
+-- A period on the schedule, created for this run unless it exists.
+create or replace function pg_temp.dryrun_period(p_schedule uuid, p_start date, p_end date, p_due timestamptz) returns uuid language plpgsql as $f$
+declare pid uuid;
+begin
+  select id into pid from public.reporting_periods where schedule_id = p_schedule and period_start = p_start;
+  if pid is null then
+    insert into public.reporting_periods (schedule_id, period_start, period_end, due_at)
+    values (p_schedule, p_start, p_end, p_due) returning id into pid;
+  end if;
+  return pid;
+end $f$;
+
 do $$
 declare
-  admin uuid := '00000000-0000-4000-a000-000000000001';
-  author uuid := '00000000-0000-4000-a000-000000000003';
-  reviewer uuid := '00000000-0000-4000-a000-000000000005';
+  admin uuid := pg_temp.dryrun_account('administrator');
+  author uuid := pg_temp.dryrun_account('staff');
+  reviewer uuid := pg_temp.dryrun_account('case_manager');
   v_schedule uuid := (select id from public.reporting_schedules where active order by created_at limit 1);
   v_current uuid;
   v_past uuid;
@@ -18,20 +39,15 @@ declare
   n int;
   msg text;
 begin
-  -- A schedule whose current period is Oct 19 - Nov 1 2026, due Mon Nov 2
-  -- 17:00 EST, the day after daylight saving ends. (No reports yet, so the
-  -- start date may still move.)
-  update public.reporting_schedules set first_period_start = date '2026-09-21', period_days = 14,
-         deadline_days_after_end = 1, deadline_time = '17:00', reminder_offsets = '{-3,-1,0,1}', grace_hours = 0,
-         time_zone = 'America/New_York'
+  -- Reminder settings for this run (length and start stay as they are).
+  -- The current period is Oct 19 - Nov 1 2026, due Mon Nov 2 17:00 EST, the
+  -- day after daylight saving ends.
+  update public.reporting_schedules set reminder_offsets = '{-3,-1,0,1}', grace_hours = 0, time_zone = 'America/New_York'
   where id = v_schedule;
-  perform public.ensure_reporting_periods();
-  select id into v_current from public.reporting_periods where schedule_id = v_schedule and period_start = date '2026-10-19';
-  select id into v_past from public.reporting_periods where schedule_id = v_schedule and period_start = date '2026-10-05';
-  insert into public.reporting_periods (schedule_id, period_start, period_end, due_at)
-  values (v_schedule, date '2027-01-11', date '2027-01-24', timestamptz '2027-01-25 17:00 America/New_York')
-  returning id into v_future;
-  if v_current is null or v_past is null then raise exception 'setup: periods missing'; end if;
+  v_current := pg_temp.dryrun_period(v_schedule, date '2026-10-19', date '2026-11-01', timestamptz '2026-11-02 17:00 America/New_York');
+  v_past := pg_temp.dryrun_period(v_schedule, date '2026-10-05', date '2026-10-18', timestamptz '2026-10-19 17:00 America/New_York');
+  v_future := pg_temp.dryrun_period(v_schedule, date '2027-01-11', date '2027-01-24', timestamptz '2027-01-25 17:00 America/New_York');
+  if v_schedule is null then raise exception 'setup: no active reporting schedule'; end if;
   insert into public.program_staff (user_id, program, program_role, active) values (reviewer, 'staff_reports', 'reviewer', true)
   on conflict (user_id, program) do update set program_role = 'reviewer', active = true;
 

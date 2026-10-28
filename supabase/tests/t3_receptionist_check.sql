@@ -1,10 +1,20 @@
 -- Checks for t3_receptionist_check_in_only. Run AFTER the migration; ends by
--- raising 'T3_CHECKS_PASSED', so nothing is committed. Needs an active
--- receptionist with no other role (supabase/seed.sql has one).
+-- raising 'T3_CHECKS_PASSED', so nothing is committed. Uses a throwaway
+-- receptionist with no other role.
+-- A throwaway active account with this account type, rolled back with
+-- everything else, so the check runs the same on the local stack and on a
+-- live dry run (which may have no account of the right kind).
+create or replace function pg_temp.dryrun_account(p_role text) returns uuid language plpgsql as $f$
+declare uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email, raw_user_meta_data) values (uid, 'dryrun-' || uid || '@example.invalid', '{}');
+  update public.profiles set role = p_role, active = true, name = 'Dry run ' || p_role where id = uid;
+  return uid;
+end $f$;
+
 do $$
 declare
-  rec uuid := (select p.id from public.profiles p where p.active and p.role = 'receptionist'
-               and not exists (select 1 from public.program_staff ps where ps.user_id = p.id and ps.active) limit 1);
+  rec uuid := pg_temp.dryrun_account('receptionist');
   v_class text;
   v_student uuid;
   v_visit public.visits;

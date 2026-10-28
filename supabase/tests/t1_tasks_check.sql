@@ -2,18 +2,26 @@
 -- raising 'T1_CHECKS_PASSED', so nothing it writes is committed; any failed
 -- check raises its own message first.
 --
--- Needs a SNAP worker, a SNAP supervisor who is also a case manager, and an
--- account with no SNAP access (supabase/seed.sql has all three). SNAP task
--- access itself is covered by the policy parity run (p3d_probes, tables
--- 'tasks'); this covers what t1 adds.
+-- Uses throwaway accounts: a SNAP worker, a SNAP supervisor who is also a
+-- case manager, and a receptionist with no SNAP access. SNAP task access
+-- itself is covered by the policy parity run (p3d_probes, tables 'tasks');
+-- this covers what t1 adds.
+-- A throwaway active account with this account type, rolled back with
+-- everything else, so the check runs the same on the local stack and on a
+-- live dry run (which may have no account of the right kind).
+create or replace function pg_temp.dryrun_account(p_role text) returns uuid language plpgsql as $f$
+declare uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email, raw_user_meta_data) values (uid, 'dryrun-' || uid || '@example.invalid', '{}');
+  update public.profiles set role = p_role, active = true, name = 'Dry run ' || p_role where id = uid;
+  return uid;
+end $f$;
+
 do $$
 declare
-  worker uuid := (select ps.user_id from public.program_staff ps join public.profiles p on p.id = ps.user_id and p.active
-                  where ps.program = 'snap' and ps.program_role = 'worker' and ps.active order by p.created_at limit 1);
-  lead uuid := (select ps.user_id from public.program_staff ps join public.profiles p on p.id = ps.user_id and p.active and p.role = 'case_manager'
-                where ps.program = 'snap' and ps.program_role = 'supervisor' and ps.active order by p.created_at limit 1);
-  outsider uuid := (select p.id from public.profiles p where p.active and p.role = 'receptionist'
-                    and not exists (select 1 from public.program_staff ps where ps.user_id = p.id) order by p.created_at limit 1);
+  worker uuid := pg_temp.dryrun_account('staff');
+  lead uuid := pg_temp.dryrun_account('case_manager');
+  outsider uuid := pg_temp.dryrun_account('receptionist');
   -- Mon Nov 2 2026, 15:00 in New York.
   v_now timestamptz := timestamptz '2026-11-02 15:00 America/New_York';
   v_today date := date '2026-11-02';
@@ -28,9 +36,8 @@ declare
   n int;
   msg text;
 begin
-  if worker is null or lead is null or outsider is null then
-    raise exception 'need a SNAP worker, a SNAP supervisor who is a case manager, and a receptionist with no program role';
-  end if;
+  insert into public.program_staff (user_id, program, program_role, active) values
+    (worker, 'snap', 'worker', true), (lead, 'snap', 'supervisor', true);
   insert into public.clients (first_name, last_name) values ('T1', 'Probe') returning id into v_client;
 
   -- ---------------- shape ----------------
