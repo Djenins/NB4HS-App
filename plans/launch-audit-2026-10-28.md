@@ -352,7 +352,7 @@ Five earlier stacked runs left the migrations out by mistake, because of shell w
 ## Still open
 
 **REQUIRES OWNER APPROVAL:**
-- **Deploy this branch's app before Nov 2, 2026.** The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
+- **Deploy this branch's app before Nov 2, 2026.** The steps, post-deploy checks and rollback are in [deploy-runbook-pr64.md](deploy-runbook-pr64.md). The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
 - **The live RLS checks** (items 1–6).
 - **Marking PR #64 ready and merging.**
 - **NB4HS accounts and plans:** ownership transfers and any paid plan.
