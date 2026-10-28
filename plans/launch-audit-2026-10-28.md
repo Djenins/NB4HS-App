@@ -165,12 +165,12 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 
 **Problems:**
 1. **Fixed (`6b666e4`, tested).** **Discarding a draft leaves its attachments in storage.** **Read** and confirmed: `discardDraft` deletes only the row (`staffReports.js:431`). After that, the storage delete policy can no longer match.
-2. **Changing a schedule's length or start can create overlapping periods.** Only `(schedule_id, period_start)` is unique. Rebuilt periods get new ids, so reminders may go out again.
-3. **Reviewers can see live revisions.** See RLS item 5.
-4. **The 5-file limit can race,** and the client supplies `size_bytes` and `mime_type`. The bucket still enforces the 10 MB limit and the allowed types.
+2. **Decided and done in `t4`: used schedules are locked.** **Changing a schedule's length or start can create overlapping periods.** Only `(schedule_id, period_start)` is unique. Rebuilt periods get new ids, so reminders may go out again.
+3. **Decided and done in `t4`: hidden until resubmitted.** **Reviewers can see live revisions.** See RLS item 5.
+4. **Fixed in `t4`.** **The 5-file limit can race,** and the client supplies `size_bytes` and `mime_type`. The bucket still enforces the 10 MB limit and the allowed types.
 5. **Fixed in migration `t2` (`162421d`, tested locally, not on live).** **The email time label shows no time zone.** Confirmed: it rendered "Mon, Nov 2, 2026 at 5:00 PM ". It now shows EST or EDT, or a UTC offset for any other zone.
-6. **Reminder offsets are computed in the session's time zone,** so they may land an hour off across DST. Suspected.
-7. **A report can be started for any period,** including future ones and up to 60 periods back. Confirmed: the insert policy only checks the author, and a draft for a future period was accepted locally. **Owner decision:** whether late reports for past periods are wanted. Not changed.
+6. **Fixed in `t4` (confirmed first).** **Reminder offsets are computed in the session's time zone,** so they land an hour off across DST. A "3 days before" reminder for a Nov 2 17:00 EST deadline fired at 18:00 EDT.
+7. **A report can be started for any period,** including future ones and up to 60 periods back. Confirmed: the insert policy only checks the author, and a draft for a future period was accepted locally. **Decided and done in `t4`:** the current and past periods are allowed, future ones refused.
 
 ## P1 — Calendar, notifications, search (read (subagent) unless marked)
 
@@ -266,21 +266,39 @@ Everything below ran on the local stack after `supabase db reset --local` replay
 - **The calendar doesn't show** appointments, tasks or time off. That is a feature, not a fix.
 - **Event drawer edit fields have visible labels with no `for`/`id` link.** It's a staff-only screen and not changed.
 
-## Still open (needs your OK or a decision)
+## Owner decisions (answered 2026-10-28) and what was built
+
+| Decision | Built in | Evidence (local stack) |
+|---|---|---|
+| **Receptionists: check-in only.** They lose client profiles and participant records. | Migration `t3` drops `participants.view` and `participants.edit` from the legacy receptionist role. The app loads the kiosk roster for staff who can't read the students table. | `t3_receptionist_check.sql` covers records shut, roster, visitor and student check-in, and check-out; it fails without `t3`. The role matrix declares `clients` as an intended removal. **In the browser:** student check-in from the roster, check-out, and `/clients/…` redirecting to Check-In |
+| **Reports for the current and past periods only.** | `t4` adds an insert trigger. My Reports hides Start until a period begins. | `t4_staff_report_rules_check.sql`, `MyReportsAction.test.jsx`, and the `StaffReports.test.jsx` "before the period" case |
+| **Revisions hidden from reviewers until resubmitted.** | `t4`: reviewers can't read the live row during a revision; `staff_reports_in_revision()` returns it with the submitted content. New files are hidden until resubmission; history and reviews stay readable. The app folds those rows into the reviewer list and the review screen. | The `t4` check (row, function, versions, reviews, attachments, storage, after resubmit). **Through the real API:** the reviewer reads no live row and gets "as submitted" with the period attached. **In the browser:** the list shows "Revision requested" and the review screen shows the submitted text, not the edit. `staffReportsRevision.test.js` |
+| **A used schedule is locked.** Its length and start date can't change. | `t4` adds an update trigger. The settings screen explains a refused change. | `t4` check: length and start are refused; other settings still change |
+
+Also in `t4`:
+- **Attachments:** the five-file cap holds under concurrent uploads, and the size and type come from the stored file.
+- **Reminders:** the DST reminder fix.
+
+`p6a`, `p6b` and `p6c` now use a started period. Before, they started reports in a future one, which `t4` refuses.
+
+**Note for live:** the first reporting period starts Nov 2, 2026. Once `t4` is applied, no report can be started before then, by design; My Reports shows when the first period starts.
+
+**Gap:** there is no "new schedule" screen. Changing a used schedule's length means an administrator creates a new schedule in SQL and switches the old one off.
+
+## Still open
 
 **REQUIRES OWNER APPROVAL:**
-- **Live dry runs, then applying migrations to the hosted project:**
-  - **`t1`:** `begin … rollback` with the SNAP parity run and `t1_tasks_check.sql`.
-  - **`t2`:** `begin … rollback` with `t2_time_label_check.sql`.
-  - **RLS items 1–6:** live checks, also with your approval.
+- **Live `begin … rollback` dry runs, then applying, for each migration:**
+  - **`t1`:** the SNAP parity run and `t1_tasks_check.sql`.
+  - **`t2`:** `t2_time_label_check.sql`.
+  - **`t3`:** `t3_receptionist_check.sql` and `p1_access_check.sql`.
+  - **`t4`:** `t4_staff_report_rules_check.sql` and `p6a/b/c`.
+- **The live RLS checks** (items 1–6).
 - **Marking PR #64 ready, merging and deploying.**
-- **NB4HS accounts and plans** (`nb4hs-accounts-checklist.md`, `launch-budget.md`): ownership transfers and any paid plan.
-
-**Owner decisions:**
-- receptionists and client profiles
-- whether a report can be started for future or past periods (staff reports item 7)
-- staff report items 2, 3, 4 and 6
+- **NB4HS accounts and plans:** ownership transfers and any paid plan.
 
 **Leads not acted on:**
 - the calendar not showing appointments, tasks or time off
 - the task items under `t1`'s "Not done here"
+- `taskPermissions()` mirroring legacy program roles
+- a "new schedule" screen

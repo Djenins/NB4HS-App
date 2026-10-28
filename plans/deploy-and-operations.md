@@ -49,7 +49,7 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 
 ## 2. Migration order
 
-`supabase/migrations/` is the source of truth, and the files apply in filename (timestamp) order. `supabase db reset --local` replays all 65 in that order on an empty database, so the order is tested locally as of 2026-10-28.
+`supabase/migrations/` is the source of truth, and the files apply in filename (timestamp) order. `supabase db reset --local` replays all 67 in that order on an empty database, so the order is tested locally as of 2026-10-28.
 
 **Rules that apply to every hosted change** (from `goals.md`): a `begin … rollback` dry run of the migration plus its probe in `supabase/tests/`, then explicit approval, then apply. Rollback scripts live in `supabase/rollback/`.
 
@@ -63,6 +63,8 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…20261027030000_p6b_outbound_email` | Email stays idle until the secrets in §1 are set |
 | `…20261028010000_t1_cross_program_tasks` | **Not on live.** It needs its dry run and your approval (see `launch-audit-2026-10-28.md`) |
 | `…20261028020000_t2_report_time_label` | **Not on live.** It adds the time zone to staff report email times; replaces one function. It needs its dry run and your approval |
+| `…20261028030000_t3_receptionist_check_in_only` | **Not on live.** Receptionists lose participant records and keep check-in. Deploy the app change (kiosk-roster fallback) at the same time or before |
+| `…20261028040000_t4_staff_report_rules` | **Not on live.** It adds the report period, revision, schedule-lock, attachment and DST rules. Deploy the app change (reviewer reads via `staff_reports_in_revision()`) at the same time or before, or reviewers won't see reports in revision |
 
 **Which files are on live:**
 - 26 migration headers say "APPLIED to vkbzarlkqzvhsfdmxyyq".
