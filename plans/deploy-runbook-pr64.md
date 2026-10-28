@@ -37,7 +37,7 @@ Nobody is affected today: live has no receptionists and no staff reports, and no
 
 These aren't required for the merge, but production runs on a custom domain:
 - **`SITE_URL` for `admin-users`: done 2026-10-28** (approved). It is set to `https://app.nb4hs.org` on `vkbzarlkqzvhsfdmxyyq`; the listed checksum matches that exact value. Before this, invite and password-reset links requested from the custom domain fell back to `https://nb4hs-app.vercel.app`. **To confirm,** an administrator sends a password reset to a test account from Administration → Users on `app.nb4hs.org`: the emailed link should open `https://app.nb4hs.org/reset-password`. If it still points at `vercel.app`, check the Auth redirect URLs below. If it's still wrong after that, redeploy `admin-users` so it reads the new secret.
-- **Supabase Auth URL settings** (Dashboard → Authentication → URL Configuration). Check that the Site URL is `https://app.nb4hs.org` and that the redirect URLs include `https://app.nb4hs.org/reset-password`. These settings can't be read from the repo.
+- **Supabase Auth URL settings: checked 2026-10-28** (read-only `supabase config diff`). The Site URL is `https://app.nb4hs.org`, and the redirect URLs include `https://app.nb4hs.org/**`. Optional: add `https://nb4hs-app.vercel.app/**` if staff use that address.
 - **Report emails stay off** until the email setup in `deploy-and-operations.md` §1 is done:
   - `send-outbound` isn't deployed
   - it has no secrets

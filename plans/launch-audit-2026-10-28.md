@@ -349,11 +349,32 @@ Five earlier stacked runs left the migrations out by mistake, because of shell w
 - **Leftovers:** no test accounts.
 - **Data unchanged:** staff reports 0, tasks 0, clients 3, students 10.
 
+## Live security checks (2026-10-28)
+
+All read-only, against `vkbzarlkqzvhsfdmxyyq`. Covers RLS items 1–6 from "P0 — RLS: verified vs assumed".
+
+| # | Item | Result on live |
+|---|---|---|
+| 1 | Does the applied security setup match the repo? | **Verified identical.** 580 items compared against a fresh local replay of the repo: 212 policies (`public` and `storage`), the RLS flags on 76 tables, `anon`/`authenticated`/`PUBLIC` execute grants and definer flags on 142 functions, and 150 table grants. Nothing differs, and nothing exists on only one side. |
+| 2 | Appointments and calendar events aren't scoped by program | **Confirmed as designed.** Both select policies are `has_permission('calendar.view')`. All 5 active staff hold it, through every legacy role and Executive Oversight, so everyone reads every appointment, including `person_name` and `notes`. **Owner decision:** keep, or scope by program. |
+| 3 | Functions open without sign-in, with no rate limit | **Confirmed: 13 that touch data**, all security definer: `book_staff_appointment`, `bookable_staff`, `check_out_visit`, `kiosk_create_visit`, `kiosk_roster`, `kiosk_student_check_in`, `kiosk_visits`, `lookup_client_appointments`, `public_appointment_staff`, `public_register_case_client`, `public_visit_count`, `request_appointment` and `staff_open_slots`. Four more open functions (`access_scope_name`, `access_scope_rank`, `audit_values_table`, `legacy_role_programs`) are fixed lookups that read no data. No rate limiting exists. **Owner decision** (S13 in `goals.md`). |
+| 4 | `notifications_update_own` allows any column | **Confirmed, and low risk.** Staff can change `title`, `message`, `link` or `type` on their **own** notifications. `user_id` is pinned by `with check`, and `link` is limited to in-app paths. The fix would grant update on `read` only (a small migration). Not done here. |
+| 5 | Reviewers could read revisions in progress | **Fixed by `t4`** (applied). `t4_staff_report_rules_check` passed on live. |
+| 6 | Tasks RLS hardcoded `snap.tasks.*` | **Fixed by `t1`** (applied). Module-aware `can_on_task()`; SNAP parity passed on live. |
+
+**Supabase Auth settings** (read with `supabase config diff`, which writes nothing):
+- **Site URL:** `https://app.nb4hs.org`.
+- **Redirect URLs:** `https://app.nb4hs.org/**`, `https://*-marcdeeh.vercel.app/**` and `http://localhost:5173/**`. The reset page on the custom domain is allowed.
+  - **Gap:** the plain `nb4hs-app.vercel.app` alias isn't in the list. A reset requested there falls back to the Site URL. To make that alias work fully, add `https://nb4hs-app.vercel.app/**`; or tell staff to use `app.nb4hs.org`.
+- **Email:** confirmations are on. TOTP two-factor is enabled.
+- **SMTP:** no custom SMTP shows as differing from the local default, so production is probably still on Supabase's built-in mailer, which has a low hourly limit. See `deploy-and-operations.md` §1.
+- **Edge Function secret `SITE_URL`:** set to `https://app.nb4hs.org` (2026-10-28).
+
 ## Still open
 
 **REQUIRES OWNER APPROVAL:**
 - **Deploy this branch's app before Nov 2, 2026.** The steps, post-deploy checks and rollback are in [deploy-runbook-pr64.md](deploy-runbook-pr64.md). The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
-- **The live RLS checks** (items 1–6).
+- **Decisions from the live security checks:** calendar and appointment scoping (item 2); rate limits on the 13 open functions (item 3); whether to tighten `notifications` updates to `read` only (item 4).
 - **Marking PR #64 ready and merging.**
 - **NB4HS accounts and plans:** ownership transfers and any paid plan.
 
