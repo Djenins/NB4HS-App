@@ -166,6 +166,13 @@ Running a probe (each ends with a deliberate `*_PASSED` error, which rolls it ba
 psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -X --single-transaction -f supabase/tests/p1_access_check.sql
 ```
 
+The role matrix signs in as every seeded account and checks each one's pages
+through the app's own route guard (skipped in `npm test` and CI):
+
+```bash
+NB4HS_LOCAL_DB=1 NB4HS_LOCAL_ANON_KEY=<ANON_KEY> npx vitest run src/test/roleMatrix.local.test.jsx
+```
+
 The repo is also linked to the hosted project (`supabase/.temp`), so never run
 `supabase db push`, `supabase link` or any command without `--local` from here
 unless you mean to change production.
