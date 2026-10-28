@@ -33,6 +33,9 @@ export default function RequireRoute({ routeKey, kiosk: kioskOk, children }) {
   if (authLoading) return null;
   if (kiosk && kioskOk) return children;
   if (!session) return <Navigate to="/" replace />;
+  // Don't open (or refuse) a page on the account-type list while this
+  // session's permissions are still on their way -- wait for the real answer.
+  if (source === "legacy-loading") return null;
   if (routeAllowed(routeKey, items, { can, fromPermissions: source === "permissions" })) return children;
   const landing = landingItem(items, session.primaryWorkspace);
   return <Navigate to={landing ? navPath(landing) : "/"} replace />;

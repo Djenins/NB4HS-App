@@ -283,21 +283,34 @@ export function AppProvider({ children }) {
   // False until this session's first my_permissions() answer is in, so
   // permission-gated pages (Administration) wait instead of redirecting.
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  // True when the last my_permissions() call failed (fetchMyPermissions gave
+  // null). Only then does the sidebar fall back to the account-type pages; an
+  // empty answer means the account holds nothing (useNavItems.js).
+  const [permissionsFailed, setPermissionsFailed] = useState(false);
+  // Keyed on the user, not the session object: a token refresh hands back a
+  // new object for the same person, and re-entering the loading state then
+  // would blank every guarded page (RequireRoute waits on it) once an hour.
+  const sessionUserId = session ? session.id : null;
+  const applyPermissions = useCallback((rows) => {
+    setPermissions(rows || []);
+    setPermissionsFailed(rows === null);
+    setPermissionsLoaded(true);
+  }, []);
   const refetchProgramRoles = useCallback(
     () => Promise.all([
-      fetchMyProgramRoles(session && session.id).then((roles) => setProgramRoles(roles)),
-      fetchMyPermissions().then((rows) => setPermissions(rows))
+      fetchMyProgramRoles(sessionUserId).then((roles) => setProgramRoles(roles)),
+      fetchMyPermissions().then(applyPermissions)
     ]),
-    [session]
+    [sessionUserId, applyPermissions]
   );
   useEffect(() => {
-    if (!session || !session.id) { setProgramRoles({}); setPermissions([]); setPermissionsLoaded(false); return undefined; }
+    if (!sessionUserId) { setProgramRoles({}); setPermissions([]); setPermissionsFailed(false); setPermissionsLoaded(false); return undefined; }
     let cancelled = false;
     setPermissionsLoaded(false);
-    fetchMyProgramRoles(session.id).then((roles) => { if (!cancelled) setProgramRoles(roles); });
-    fetchMyPermissions().then((rows) => { if (!cancelled) { setPermissions(rows); setPermissionsLoaded(true); } });
+    fetchMyProgramRoles(sessionUserId).then((roles) => { if (!cancelled) setProgramRoles(roles); });
+    fetchMyPermissions().then((rows) => { if (!cancelled) applyPermissions(rows); });
     return () => { cancelled = true; };
-  }, [session]);
+  }, [sessionUserId, applyPermissions]);
   const can = useCallback((key, program) => canPermission(permissions, key, program), [permissions]);
 
   // Organization settings (app_settings, Phase 5) -- today the auto check-out
@@ -503,12 +516,12 @@ export function AppProvider({ children }) {
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
     refetchStudents, refetchVisits, refetchProgramRoles,
-    permissions, permissionsLoaded, can,
+    permissions, permissionsLoaded, permissionsFailed, can,
     orgSettings, refetchOrgSettings
   }), [
     data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
-    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, can, orgSettings, refetchOrgSettings
+    refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, permissionsFailed, can, orgSettings, refetchOrgSettings
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

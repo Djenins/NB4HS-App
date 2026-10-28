@@ -110,12 +110,15 @@ export function can(permissions, key, program) {
   });
 }
 
-// The signed-in user's effective permissions. Empty (never a throw) when the
-// RPC is unavailable, so nothing that reads it can break the page.
+// The signed-in user's effective permissions. null (never a throw) when the
+// RPC is unavailable, so nothing that reads it can break the page -- and so a
+// failed call can't be mistaken for an account that holds nothing (an empty
+// list), which must not fall back to the old account-type pages.
 export async function fetchMyPermissions() {
-  if (!supabase) return [];
-  var res = await supabase.rpc("my_permissions");
-  if (res.error) { console.warn("fetchMyPermissions failed", res.error); return []; }
+  if (!supabase) return null;
+  var res;
+  try { res = await supabase.rpc("my_permissions"); } catch (e) { res = { error: e }; }
+  if (res.error) { console.warn("fetchMyPermissions failed", res.error); return null; }
   return (res.data || []).map(function (r) {
     return { permissionKey: r.permission_key, programKey: r.program_key || "", scope: r.scope || null };
   });

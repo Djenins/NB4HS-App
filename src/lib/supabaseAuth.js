@@ -58,8 +58,10 @@ export async function updateProfile(id, patch) {
   return data;
 }
 
+// A deactivated profile is no session: StaffLogin refuses it at sign-in, and
+// this refuses it when a still-unexpired session is restored on reload.
 export function profileToSession(profile) {
-  if (!profile) return null;
+  if (!profile || profile.active === false) return null;
   return {
     id: profile.id, role: profile.role, currentUserEmail: profile.email, currentUserName: profile.name,
     primaryWorkspace: profile.primary_workspace || null

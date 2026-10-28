@@ -52,7 +52,7 @@ describe("forYouCounts", () => {
 });
 
 describe("ForYouPanel", () => {
-  const base = { session: { id: "u", role: "case_manager", currentUserEmail: "me@nb4hs.org" }, permissions: [], permissionsLoaded: true };
+  const base = { session: { id: "u", role: "case_manager", currentUserEmail: "me@nb4hs.org" }, permissions: [], permissionsLoaded: true, permissionsFailed: true }; // account-type pages
   it("shows tiles only for pages the person can open", async () => {
     app = Object.assign({}, base, { data: { programRoles: {}, appointments: [], workforceRoleAccess: [] } });
     render(<MemoryRouter><ForYouPanel /></MemoryRouter>);

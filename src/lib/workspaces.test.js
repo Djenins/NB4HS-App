@@ -86,9 +86,25 @@ describe("nav items source", () => {
   });
   it("falls back to the account type while loading, if the call failed, or under the legacy switch", () => {
     expect(resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: false, permissions: [] })).source).toBe("legacy-loading");
-    expect(resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissions: [] })).source).toBe("legacy-fallback");
+    expect(resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissionsFailed: true, permissions: [] })).source).toBe("legacy-fallback");
+    expect(resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissions: null })).source).toBe("legacy-fallback");
     const legacy = resolveNavItems(Object.assign({}, base, { model: "legacy", permissionsLoaded: true, permissions: [{ permissionKey: "calendar.view" }] }));
     expect(legacy.source).toBe("legacy");
     expect(legacy.items).toEqual(navItemsForRole("staff", [], {}));
+  });
+  // Regression: an empty answer used to fall back to the account-type pages,
+  // so a deactivated account, one with every page denied, or one whose
+  // modules were switched off kept its old sidebar and routes.
+  it("an empty answer that loaded is the real answer, not a reason to fall back", () => {
+    for (const role of ["administrator", "staff", "receptionist", "case_manager", "job_developer"]) {
+      const r = resolveNavItems({ role, workforceRoleAccess: [], programRoles: { snap: "worker" }, model: "permissions", permissionsLoaded: true, permissionsFailed: false, permissions: [] });
+      expect(r).toEqual({ items: [], source: "permissions" });
+    }
+  });
+  it("a failed call never wins over an answer that arrives later", () => {
+    const failed = resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissionsFailed: true, permissions: [] }));
+    expect(failed.items).toEqual(navItemsForRole("staff", [], {}));
+    const ok = resolveNavItems(Object.assign({}, base, { model: "permissions", permissionsLoaded: true, permissionsFailed: false, permissions: [{ permissionKey: "calendar.view", programKey: "" }] }));
+    expect(ok.items).toEqual(["calendar", "availability"]);
   });
 });
