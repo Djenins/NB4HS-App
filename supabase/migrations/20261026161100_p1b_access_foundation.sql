@@ -1208,6 +1208,11 @@ security definer
 set search_path = public
 as $$
 begin
+  -- A brand-new database (no active accounts yet) has no administrator to
+  -- protect; without this the later migrations can't be replayed from scratch.
+  if not exists (select 1 from public.profiles where active) then
+    return null;
+  end if;
   if not exists (
     select 1 from public.user_effective_permissions e
     join public.profiles p on p.id = e.user_id and p.active
