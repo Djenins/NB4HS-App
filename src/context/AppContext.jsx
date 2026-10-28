@@ -175,7 +175,12 @@ export function AppProvider({ children }) {
   // than subscribing (realtime only delivers rows the caller can SELECT).
   const signedIn = !!session;
   const loadVisits = useCallback(() => (signedIn ? fetchVisits() : fetchKioskVisits(todayStr())), [signedIn]);
-  const loadStudents = useCallback(() => (signedIn ? fetchStudents() : fetchKioskRoster()), [signedIn]);
+  // Staff who can't read the students table (receptionists, since t3) get
+  // the kiosk's roster for check-in instead. It's only empty when there are
+  // no students at all, so it never hides rows from someone who can read them.
+  const loadStudents = useCallback(() => (signedIn
+    ? fetchStudents().then((rows) => (rows.length ? rows : fetchKioskRoster()))
+    : fetchKioskRoster()), [signedIn]);
 
   useEffect(() => {
     if (authLoading) return undefined;

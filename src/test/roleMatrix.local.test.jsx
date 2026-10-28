@@ -6,7 +6,8 @@
 //
 // Two things are checked per account:
 //   * the pages the permission model opens equal the pages the old account
-//     types opened (the migration promise: nobody's access changed), and
+//     types opened (the migration promise: nobody's access changed), apart
+//     from changes an owner decided on purpose (`removed`), and
 //   * a handful of pages each role must never reach.
 //
 // Skipped unless NB4HS_LOCAL_DB=1 (CI has no database):
@@ -35,9 +36,9 @@ const ROUTE_KEYS = [
 const ACCOUNTS = {
   "admin1@example.test": { never: [] },
   "staff@example.test": { never: ["casemanagement", "jobdeveloper", "settings", "students", "staffreports"], admin: [] },
-  // Receptionists can open a client's profile: p3a gave them participants.view
-  // because the old rules let every staff member read the check-in roster.
-  "frontdesk@example.test": { never: ["dashboard", "casemanagement", "outreach", "settings", "search", "staffreports"], admin: [] },
+  // t3 (owner decision): receptionists keep check-in and lose client
+  // profiles, which the old account-type rules still allowed.
+  "frontdesk@example.test": { never: ["dashboard", "casemanagement", "outreach", "settings", "search", "clients", "staffreports"], admin: [], removed: ["clients"] },
   "casemgr@example.test": { never: ["jobdeveloper", "settings", "staffreports"], admin: [] },
   "jobdev@example.test": { never: ["casemanagement", "outreach", "settings", "staffreports"], admin: [] }
 };
@@ -73,7 +74,8 @@ describe.skipIf(!LOCAL || !KEY)("role matrix on the local stack", () => {
       expect(perm.source).toBe("permissions");
 
       const permRoutes = routesFor(perm.items, a.permissions, true);
-      const legacyRoutes = routesFor(legacy.items, a.permissions, false);
+      const removed = ACCOUNTS[email].removed || [];
+      const legacyRoutes = routesFor(legacy.items, a.permissions, false).filter((k) => removed.indexOf(k) === -1);
       expect(permRoutes).toEqual(legacyRoutes);
       ACCOUNTS[email].never.forEach((k) => expect(permRoutes, k).not.toContain(k));
       if (ACCOUNTS[email].admin) expect(adminSectionsFor((k) => can(a.permissions, k))).toEqual(ACCOUNTS[email].admin);
