@@ -329,12 +329,32 @@ Five earlier stacked runs left the migrations out by mistake, because of shell w
 - staff reports 0, tasks 0, clients 3, students 10
 - no notifications in the last hour
 
+## Applied to live (2026-10-28, approved)
+
+`t1`, `t2`, `t3` and `t4` were applied in order to `vkbzarlkqzvhsfdmxyyq`. Each ran as one transaction (`begin; <file>; insert into supabase_migrations.schema_migrations …; commit;`) and was recorded under its file's version.
+
+**Before:** the read-only state matched the dry runs: 63 migrations, no staff reports, no tasks, no receptionists.
+
+**After each migration:**
+
+| | Visible on live | Checks |
+|---|---|---|
+| `t1` | Module column, the 3 new functions, `task_notices_sent`, the job at `5 * * * *` running `send_task_reminders()`, and `tasks` in realtime | `t1_tasks_check`: **pass**. SNAP parity against the old rules (rolled back): **pass**, 2,880 answers, no changes |
+| `t2` | The label reads "Mon, Nov 2, 2026 at 5:00 PM EST" | `t2_time_label_check`, `p6b`: **pass** |
+| `t3` | Receptionist participant grants: 0 | `t3_receptionist_check`, `p1`: **pass** |
+| `t4` | 3 triggers and 3 functions; the period trigger runs as the caller | `t4_staff_report_rules_check`, `p6a`, `p6c`: **pass** |
+
+**Final sweep against live:** `p0b`, `p1`, `p2`, `p3a`, `p5`, `p6a`, `p6b`, `p6c` and `t1`–`t4` all **pass**.
+- **Migrations:** live and the repo hold the same 67 versions.
+- **Leftovers:** no test accounts.
+- **Data unchanged:** staff reports 0, tasks 0, clients 3, students 10.
+
 ## Still open
 
 **REQUIRES OWNER APPROVAL:**
-- **Applying `t1`–`t4` to the hosted project.** The dry runs passed (above). Follow the steps in `deploy-and-operations.md`.
+- **Deploy this branch's app before Nov 2, 2026.** The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
 - **The live RLS checks** (items 1–6).
-- **Marking PR #64 ready, merging and deploying.**
+- **Marking PR #64 ready and merging.**
 - **NB4HS accounts and plans:** ownership transfers and any paid plan.
 
 **Leads not acted on:**

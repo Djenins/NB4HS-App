@@ -61,10 +61,10 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…071541_stage2b_schedule_task_reminders` | Enables `pg_cron`. `p6b` enables `pg_net`. Both are free extensions built into Supabase |
 | `…161100_p1b_access_foundation` | Edited 2026-10-28: the admin guard skips a database with no active account that never had an administrator, so a new project can be built and its first user can sign up. A deactivated last administrator is still protected. It behaves the same on live, which has active administrators |
 | `…20261027030000_p6b_outbound_email` | Email stays idle until the secrets in §1 are set |
-| `…20261028010000_t1_cross_program_tasks` | **Not on live.** It needs its dry run and your approval (see `launch-audit-2026-10-28.md`) |
-| `…20261028020000_t2_report_time_label` | **Not on live.** It adds the time zone to staff report email times; replaces one function. It needs its dry run and your approval |
-| `…20261028030000_t3_receptionist_check_in_only` | **Not on live.** Receptionists lose participant records and keep check-in. Deploy the app change (kiosk-roster fallback) at the same time or before |
-| `…20261028040000_t4_staff_report_rules` | **Not on live.** It adds the report period, revision, schedule-lock, attachment and DST rules. Deploy the app change (reviewer reads via `staff_reports_in_revision()`) at the same time or before, or reviewers won't see reports in revision |
+| `…20261028010000_t1_cross_program_tasks` | **Applied 2026-10-28.** SNAP tasks can carry a module; the hourly reminder job is live |
+| `…20261028020000_t2_report_time_label` | **Applied 2026-10-28.** Staff report email times show EST/EDT |
+| `…20261028030000_t3_receptionist_check_in_only` | **Applied 2026-10-28.** Receptionists lose participant records. A signed-in receptionist needs this branch's app (kiosk-roster fallback) for the student roster |
+| `…20261028040000_t4_staff_report_rules` | **Applied 2026-10-28.** Report period, revision, schedule-lock, attachment and DST rules. Reviewers need this branch's app to see reports in revision |
 
 **Which files are on live (checked 2026-10-28, read-only):**
 - All 63 versions recorded on the hosted project match a file here.
@@ -72,12 +72,17 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 - **Version fix (`230bfcd`).** Four files carried different version numbers from live: `adult_education_courses`, `case_resources`, `case_client_self_registration` and `staff_availability_booking`. Their SQL matched what live recorded, so they were renamed to live's versions. Before that, `supabase db push` would have run them a second time.
 - **Before any push,** repeat the comparison: list `supabase_migrations.schema_migrations.version` on the project and compare it with this folder's filenames.
 
-**Applying `t1`–`t4` (REQUIRES OWNER APPROVAL)**
-1. **Deploy the app first.** This branch works both before and after the migrations.
-2. **Repeat the dry runs** described in `launch-audit-2026-10-28.md` ("Live dry runs") if anything changed since 2026-10-28.
-3. **Apply in order:** `t1`, `t2`, `t3`, `t4`. Each file is one transaction.
-4. **Re-run each check against live afterwards.** Each check still ends by raising, so it writes nothing.
-5. **Rollback scripts** are in `supabase/rollback/`. Run them newest first, if needed.
+**`t1`–`t4` were applied on 2026-10-28** (approved), each in one transaction with its `schema_migrations` row under the file's version, in order. After each, its own checks passed against live. Then every check in `supabase/tests` passed against live, except `p0a` (stale by design) and `p1b_bootstrap` (local only). Live and this folder now hold the same 67 versions.
+
+**Still to do: deploy this branch's app before Nov 2, 2026, when the first report period opens.** Until then, production runs the old app against the new database. Nobody is affected today: live has no receptionists, no staff reports and no tasks. But:
+- a receptionist created before the deploy would see an empty student roster when signed in
+- reviewers on the old app wouldn't see reports sent back for revision
+
+**How future migrations should go:**
+1. Dry run with `begin … rollback`.
+2. Get approval.
+3. Apply the file together with `insert into supabase_migrations.schema_migrations (version, name, statements, created_by)` in one transaction, so the recorded version matches the filename.
+4. Re-run its checks.
 
 **Building a new project from scratch:**
 1. `supabase link --project-ref <new-ref>`, then `supabase db push`. This replays every migration in order, each in its own transaction.

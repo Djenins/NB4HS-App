@@ -1,9 +1,9 @@
 -- t3 -- receptionists keep check-in and check-out, and lose participant
 -- records (owner decision, 2026-10-28; launch-audit-2026-10-28.md).
--- NOT APPLIED to the hosted project. Live dry run 2026-10-28 (rolled back): t3 check
--- and p1 passed. Tested on the local stack with
--- supabase/tests/t3_receptionist_check.sql. Undo with
--- supabase/rollback/t3_receptionist_check_in_only_down.sql.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-28 (version 20261028030000) after
+-- rolled-back dry runs on live passed: supabase/tests/t3_receptionist_check.sql
+-- and p1_access_check.sql. The same checks passed against live afterwards.
+-- Undo with supabase/rollback/t3_receptionist_check_in_only_down.sql.
 --
 -- p3a gave the legacy receptionist role participants.view and
 -- participants.edit (org scope) to mirror the old "any staff member reads

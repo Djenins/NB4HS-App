@@ -1,10 +1,10 @@
 -- t4 -- staff report rules decided by the owner on 2026-10-28, plus two
 -- fixes found in the launch audit (launch-audit-2026-10-28.md, staff
 -- reports items 2, 3, 4, 6, 7).
--- NOT APPLIED to the hosted project. Live dry run 2026-10-28 (rolled back): t4 check
--- and p6a/b/c passed. Tested on the local stack with
--- supabase/tests/t4_staff_report_rules_check.sql. Undo with
--- supabase/rollback/t4_staff_report_rules_down.sql.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-28 (version 20261028040000) after
+-- rolled-back dry runs on live passed: supabase/tests/
+-- t4_staff_report_rules_check.sql and p6a/b/c. The same checks passed against
+-- live afterwards. Undo with supabase/rollback/t4_staff_report_rules_down.sql.
 --
 --   1. Periods: a report can be started for the current period or a past one
 --      (late reports), never a future one.
