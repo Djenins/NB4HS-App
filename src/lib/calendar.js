@@ -159,6 +159,16 @@ export function nearestWorkday(date) {
   return d;
 }
 
+// What the signed-in user may do with a staff-added event, mirroring
+// calendar_events' policies (p3f): copying one is creating an event
+// (calendar.events.create); changing or deleting it needs its creator or
+// calendar.events.manage_all. Class blocks (no event) get nothing.
+export function eventRights(event, userId, canCreate, canManageAll) {
+  if (!event) return { edit: false, duplicate: false, remove: false };
+  var change = canManageAll || (!!userId && event.createdBy === userId);
+  return { edit: change, duplicate: !!canCreate, remove: change };
+}
+
 export function sortDayBlocks(blocks) {
   return (blocks || []).slice().sort(function (a, b) {
     return (a.startTime || "").localeCompare(b.startTime || "");

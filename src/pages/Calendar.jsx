@@ -26,7 +26,7 @@ import { Info } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
-import { addDays, addMonths, addWorkdays, classBlocksForDay, classGroupAccents, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
+import { addDays, addMonths, addWorkdays, classBlocksForDay, classGroupAccents, eventRights, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
 import { createCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, fetchCalendarEvents, subscribeCalendarEvents, updateCalendarEvent } from "../lib/calendarData.js";
 import { dateStrFromDate, fullServiceList, labelFor, todayStr } from "../lib/utils.js";
 import { studentsForClass } from "../lib/students.js";
@@ -182,7 +182,12 @@ function minutesOfDay(date) {
 }
 
 export default function CalendarPage() {
-  const { data, session, config, lang, updateConfig, requestConfirm, showToast } = useApp();
+  const { data, session, config, lang, updateConfig, requestConfirm, showToast, can, permissionsFailed } = useApp();
+  // If permissions failed to load, keep offering the actions and let the
+  // database decide, as before.
+  const canCreate = permissionsFailed || can("calendar.events.create");
+  const canManageAll = permissionsFailed || can("calendar.events.manage_all");
+  const addEvent = canCreate ? (dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); } : null;
   const t = useT();
   const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState([]);
@@ -356,13 +361,13 @@ export default function CalendarPage() {
         .map((b) => Object.assign({}, b, classMeta(b.classKeys)));
       const dayEvents = events.filter((e) => e.date === dateStr);
       let blocks = sortDayBlocks(
-        classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, location: e.location, event: e })))
+        classBlocks.concat(dayEvents.map((e) => ({ key: e.id, kind: e.type, title: e.title, startTime: e.startTime, endTime: e.endTime, location: e.location, event: e, rights: eventRights(e, session && session.id, canCreate, canManageAll) })))
       );
       if (filter !== "all") blocks = blocks.filter((b) => b.kind === filter);
       if (q) blocks = blocks.filter((b) => b.title.toLowerCase().includes(q) || (b.event?.personName || "").toLowerCase().includes(q) || (b.location || "").toLowerCase().includes(q));
       return { date: d, dateStr, blocks };
     });
-  }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime, classAccents, classMeta]);
+  }, [days, data.classes, events, filter, search, config.calendarClassStartTime, config.calendarClassEndTime, classAccents, classMeta, session, canCreate, canManageAll]);
 
   // Day view gets a taller hour so a single column can carry more detail;
   // the grid otherwise spans 8 AM-6 PM, widened to cover anything actually
@@ -405,7 +410,7 @@ export default function CalendarPage() {
           t={t}
           onSelectDay={(dateStr) => { setAnchor(new Date(dateStr + "T00:00:00")); setView("day"); }}
           onOpenEvent={openEvent}
-          onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
+          onAddEvent={addEvent}
         />
       );
     }
@@ -417,7 +422,7 @@ export default function CalendarPage() {
           holidaysByDate={rangeHolidays}
           t={t}
           onOpenEvent={openEvent}
-          onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
+          onAddEvent={addEvent}
         />
       );
     }
@@ -436,7 +441,7 @@ export default function CalendarPage() {
         onEdit={editEvent}
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
-        onAddEvent={(dateStr) => { setAddModalDate(dateStr); setAddModalType("visit"); }}
+        onAddEvent={addEvent}
       />
     );
   }
@@ -468,7 +473,7 @@ export default function CalendarPage() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
-        <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />
+        {canCreate && <EventMenu t={t} onPick={(type) => { setAddModalDate(todayStr()); setAddModalType(type); }} />}
       </div>
 
       {/* The grid itself always stays on screen when a range is empty -- the

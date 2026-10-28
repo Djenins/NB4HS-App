@@ -113,11 +113,11 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
             key={h}
             style={{ height: grid.hourHeight, top: i * grid.hourHeight }}
             className={cn("absolute inset-x-0", i > 0 && "border-t border-dashed border-[var(--cal-grid)]")}
-            onDoubleClick={() => onAddEvent(day.dateStr)}
+            onDoubleClick={onAddEvent ? () => onAddEvent(day.dateStr) : undefined}
           />
         ))}
 
-        {blocks.length === 0 && (
+        {blocks.length === 0 && onAddEvent && (
           <button
             type="button"
             onClick={() => onAddEvent(day.dateStr)}

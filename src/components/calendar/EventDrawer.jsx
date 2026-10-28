@@ -40,7 +40,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
   const panelRef = useModalA11y(onClose, open);
   const style = open ? blockStyle(block) : null;
   const Icon = style?.icon;
-  const editable = !!block?.event;
+  const rights = block?.rights || {};
 
   function startEdit() {
     setFields({
@@ -65,7 +65,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
   // already open resets edit state instead of leaking the previous one.
   useEffect(() => {
     if (!block) return;
-    if (openInEditMode && editable) startEdit();
+    if (openInEditMode && rights.edit) startEdit();
     else setEditing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block?.key, openInEditMode]);
@@ -173,11 +173,11 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
                     <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>{t("calendarCancel")}</Button>
                     <Button size="sm" disabled={!canSave} onClick={() => { onSave(block.event.id, fields); setEditing(false); }}>{t("calendarSave")}</Button>
                   </>
-                ) : editable ? (
+                ) : block.event ? (
                   <>
-                    <Button type="button" variant="outline" size="sm" onClick={startEdit}><Pencil className="mr-1.5 h-3.5 w-3.5" />{t("calendarEdit")}</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => onDuplicate(block)}><Copy className="mr-1.5 h-3.5 w-3.5" />{t("calendarDuplicate")}</Button>
-                    <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(block)}><Trash2 className="mr-1.5 h-3.5 w-3.5" />{t("calendarDelete")}</Button>
+                    {rights.edit && <Button type="button" variant="outline" size="sm" onClick={startEdit}><Pencil className="mr-1.5 h-3.5 w-3.5" />{t("calendarEdit")}</Button>}
+                    {rights.duplicate && <Button type="button" variant="outline" size="sm" onClick={() => onDuplicate(block)}><Copy className="mr-1.5 h-3.5 w-3.5" />{t("calendarDuplicate")}</Button>}
+                    {rights.remove && <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(block)}><Trash2 className="mr-1.5 h-3.5 w-3.5" />{t("calendarDelete")}</Button>}
                   </>
                 ) : (
                   <p className="m-0 text-xs text-muted">Recurring class schedule — edited from Manage.</p>
