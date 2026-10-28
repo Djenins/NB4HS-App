@@ -36,10 +36,7 @@ Nobody is affected today: live has no receptionists and no staff reports, and no
 ## Recommended alongside (separate approval each)
 
 These aren't required for the merge, but production runs on a custom domain:
-- **`SITE_URL` for `admin-users`.** It isn't set today. Invite and password-reset links requested from `app.nb4hs.org` fall back to `https://nb4hs-app.vercel.app`, because the function only trusts `nb4hs-app*.vercel.app` origins. Setting it sends people to the custom domain:
-  ```bash
-  supabase secrets set SITE_URL=https://app.nb4hs.org --project-ref vkbzarlkqzvhsfdmxyyq
-  ```
+- **`SITE_URL` for `admin-users`: done 2026-10-28** (approved). It is set to `https://app.nb4hs.org` on `vkbzarlkqzvhsfdmxyyq`; the listed checksum matches that exact value. Before this, invite and password-reset links requested from the custom domain fell back to `https://nb4hs-app.vercel.app`. **To confirm,** an administrator sends a password reset to a test account from Administration → Users on `app.nb4hs.org`: the emailed link should open `https://app.nb4hs.org/reset-password`. If it still points at `vercel.app`, check the Auth redirect URLs below. If it's still wrong after that, redeploy `admin-users` so it reads the new secret.
 - **Supabase Auth URL settings** (Dashboard → Authentication → URL Configuration). Check that the Site URL is `https://app.nb4hs.org` and that the redirect URLs include `https://app.nb4hs.org/reset-password`. These settings can't be read from the repo.
 - **Report emails stay off** until the email setup in `deploy-and-operations.md` §1 is done:
   - `send-outbound` isn't deployed

@@ -22,7 +22,7 @@ Set these with `supabase secrets set …` or in the dashboard. Every function al
 
 | Function | Name | Required | Purpose |
 |---|---|---|---|
-| `admin-users` | `SITE_URL` | **yes, on a custom domain** | Where the links in invite and password-reset emails point. The function trusts the caller's origin only for `https://nb4hs-app*.vercel.app` and `http://localhost:*` (`handler.ts` `redirectFor`). Any other domain falls back to `SITE_URL`, then to the built-in default |
+| `admin-users` | `SITE_URL` | **yes, on a custom domain**. Set to `https://app.nb4hs.org` on 2026-10-28 | Where the links in invite and password-reset emails point. The function trusts the caller's origin only for `https://nb4hs-app*.vercel.app` and `http://localhost:*` (`handler.ts` `redirectFor`). Any other domain falls back to `SITE_URL`, then to the built-in default |
 | `send-outbound` | `CRON_SECRET` | for email | Shared with the Vault secret `send_outbound_secret` |
 | `send-outbound` | `RESEND_API_KEY` | for email | The email provider key. The sending domain must be verified with the provider |
 | `send-outbound` | `EMAIL_FROM` | for email | For example `NB4HS Reports <reports@nb4hs.org>` |
