@@ -14,7 +14,7 @@ const kinds = (groups) => groups.map((g) => g.key);
 describe("searchScopes", () => {
   it("lets administrators search everything", () => {
     const scopes = searchScopes(navItemsForRole("administrator", [], {}), true);
-    expect(scopes).toEqual({ students: true, clients: true, staff: true });
+    expect(scopes).toEqual({ students: true, clients: true, staff: true, profiles: true });
     expect(searchPlaceholderKey(scopes)).toBe("cmdkPlaceholderAll");
   });
 
@@ -46,5 +46,15 @@ describe("buildResults", () => {
     expect(students.results[0]).toMatchObject({ to: "/clients/NB-1", subtitle: "ST-7 · Morning ESL" });
     const [staff] = buildResults({ query: "marie@", scopes: { students: false, clients: false, staff: true }, data, pages });
     expect(staff.results[0]).toMatchObject({ to: "/admin/users/p1" });
+  });
+
+  it("sends people who can't open profiles to the module page instead", () => {
+    // Executive Oversight: students.view without participants.view.
+    const scopes = searchScopes(["students"], false, false);
+    expect(scopes.profiles).toBe(false);
+    const [students] = buildResults({ query: "st-7", scopes, data, pages });
+    expect(students.results[0]).toMatchObject({ to: "/students" });
+    const [clients] = buildResults({ query: "555-0101", scopes: { students: false, clients: true, staff: false, profiles: false }, data, pages });
+    expect(clients.results[0]).toMatchObject({ to: "/case-management" });
   });
 });

@@ -31,6 +31,7 @@ import { useNavItems } from "../lib/useNavItems.js";
 import { navKeyForPath, visibleWorkspaces, workspaceOfItem } from "../lib/workspaces.js";
 import { fetchOutreachPrograms } from "../lib/outreachPrograms.js";
 import { searchPlaceholderKey, searchScopes } from "../lib/commandSearch.js";
+import { routeAllowed } from "./RequireRoute.jsx";
 import { cn } from "../lib/cn.js";
 import { TooltipProvider } from "./ui/tooltip.jsx";
 import AppSidebar from "./sidebar/AppSidebar.jsx";
@@ -204,7 +205,7 @@ export default function Shell() {
     // Job Developer's page lives inside the Workforce program now.
     workforce: items.indexOf("jobdeveloper") !== -1 ? pendingApptCount(data.appointments, "job_developer") : 0
   };
-  const scopes = searchScopes(items, can("admin.users.view"));
+  const scopes = searchScopes(items, can("admin.users.view"), routeAllowed("clients", items, { can, fromPermissions: nav.source === "permissions" }));
   const searchPlaceholder = t(searchPlaceholderKey(scopes));
   const pages = sections.flatMap((s) => s.entries.map((e) => ({ key: e.key, label: e.label, to: e.to, icon: e.icon, section: s.label })));
   const isMobile = viewport === "mobile";
