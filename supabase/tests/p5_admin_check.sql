@@ -116,13 +116,14 @@ begin
   begin perform public.admin_add_override(staff, v_perm, 'grant', case when v_scoped then 'org' end, null, now() - interval '1 day', 'testing'); exception when others then msg := sqlerrm; end;
   if msg is null then raise exception 'FAIL: override added with a past expiry'; end if;
 
-  -- Grant: preview, save, compare.
-  select array_agg(permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') order by 1) into preview_set
+  -- Grant: preview, save, compare. (An aggregate's "order by 1" sorts by
+  -- the constant 1, not a column, so each one orders by its own expression.)
+  select array_agg(permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') order by permission_key || '|' || program_key || '|' || coalesce(after_scope, '-')) into preview_set
   from public.preview_effective_permissions(staff, jsonb_build_object('add_overrides', jsonb_build_array(jsonb_build_object(
     'permission_key', v_perm, 'effect', 'grant', 'scope', case when v_scoped then 'org' end, 'reason', 'testing'))))
   where change <> 'removed';
   v_override := public.admin_add_override(staff, v_perm, 'grant', case when v_scoped then 'org' end, null, null, 'Covering for a colleague');
-  select array_agg(permission_key || '|' || program_key || '|' || coalesce(scope, '-') order by 1) into actual_set
+  select array_agg(permission_key || '|' || program_key || '|' || coalesce(scope, '-') order by permission_key || '|' || program_key || '|' || coalesce(scope, '-')) into actual_set
   from public.user_permissions(staff);
   if preview_set is distinct from actual_set then
     raise exception 'FAIL: the grant preview (%) differs from the saved result (%)', preview_set, actual_set;
@@ -132,12 +133,12 @@ begin
   end if;
 
   -- Deny: preview, save, compare.
-  select array_agg(permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') order by 1) into preview_set
+  select array_agg(permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') order by permission_key || '|' || program_key || '|' || coalesce(after_scope, '-')) into preview_set
   from public.preview_effective_permissions(staff, jsonb_build_object('add_overrides', jsonb_build_array(jsonb_build_object(
     'permission_key', v_held, 'effect', 'deny', 'reason', 'testing'))))
   where change <> 'removed';
   v_deny := public.admin_add_override(staff, v_held, 'deny', null, null, null, 'Paused during review');
-  select array_agg(permission_key || '|' || program_key || '|' || coalesce(scope, '-') order by 1) into actual_set
+  select array_agg(permission_key || '|' || program_key || '|' || coalesce(scope, '-') order by permission_key || '|' || program_key || '|' || coalesce(scope, '-')) into actual_set
   from public.user_permissions(staff);
   if preview_set is distinct from actual_set then
     raise exception 'FAIL: the deny preview differs from the saved result';
@@ -209,7 +210,7 @@ begin
   s := jsonb_build_array(jsonb_build_object('key', v_perm, 'scope', case when v_scoped then 'program' end))::text;
   -- the override above already grants v_perm at org scope; drop it so the role edit shows
   perform public.admin_revoke_override(v_override, 'Test cleanup');
-  select array_agg(user_id::text || '|' || permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') || '|' || change order by 1)
+  select array_agg(user_id::text || '|' || permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') || '|' || change order by user_id::text || '|' || permission_key || '|' || program_key || '|' || coalesce(after_scope, '-') || '|' || change)
     into preview_set from public.preview_role_permissions(v_role2, s::jsonb);
   reset role;
   create temp table p5_before on commit drop as
@@ -218,7 +219,7 @@ begin
   n := public.admin_set_role_permissions(v_role2, s::jsonb, 'Give the test permission');
   reset role;
   if n <> 1 then raise exception 'FAIL: expected 1 person affected, got %', n; end if;
-  select array_agg(x order by 1) into actual_set from (
+  select array_agg(x order by x) into actual_set from (
     select coalesce(a.user_id, b.user_id)::text || '|' || coalesce(a.permission_key, b.permission_key) || '|' || coalesce(a.program_key, b.program_key)
            || '|' || coalesce(a.scope, '-') || '|' ||
            case when b.permission_key is null then 'added' when a.permission_key is null then 'removed' else 'scope_changed' end as x
