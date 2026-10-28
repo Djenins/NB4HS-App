@@ -428,7 +428,16 @@ export async function saveDraft(id, fields) {
   return reportFromRow(data);
 }
 
+// The files go first: storage's delete policy finds them through the
+// report's attachment rows, which the report's delete cascades away.
 export async function discardDraft(id) {
+  const files = await supabase.from("staff_report_attachments").select("storage_path").eq("report_id", id);
+  if (files.error) throw files.error;
+  const paths = (files.data || []).map(function (a) { return a.storage_path; });
+  if (paths.length) {
+    const rm = await supabase.storage.from(ATTACHMENT_BUCKET).remove(paths);
+    if (rm.error) throw rm.error;
+  }
   const { error } = await supabase.from("staff_reports").delete().eq("id", id);
   if (error) throw error;
 }
