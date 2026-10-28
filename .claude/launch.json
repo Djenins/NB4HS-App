@@ -4,14 +4,34 @@
     {
       "name": "dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173,
       "autoPort": true
     },
     {
+      "name": "dev-localdb",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:local"
+      ],
+      "port": 5174
+    },
+    {
       "name": "design-system",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "../NB4HS-App-React-ds", "run", "dev", "--", "--port", "5190"],
+      "runtimeArgs": [
+        "--prefix",
+        "../NB4HS-App-React-ds",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5190"
+      ],
       "port": 5190,
       "autoPort": true
     }

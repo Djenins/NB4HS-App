@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --mode localdb --port 5174",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

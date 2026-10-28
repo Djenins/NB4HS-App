@@ -15,7 +15,21 @@ Work queue: `NB4HS_Claude_Goal_Kit/TODAY_CHECKLIST.md`. This document adds to `g
 | Build | `npm run build` passes. One chunk is over 500 KB (`index` 1,025 KB, `charts` 553 KB). That is goal 3 in `goals.md` |
 | Tests before | 561 passed in 39 files |
 | Tests after | 573 passed in 40 files (12 new) |
-| Local database | Not available. The repo has no `supabase/config.toml`, so no migration or RLS check ran locally |
+| Local database | Set up later the same day; see "Local stack" below |
+
+## Local stack (set up 2026-10-28)
+
+- `supabase/config.toml` (ports 5532x), `supabase/seed.sql` (7 fake accounts), `npm run dev:local`. How to use it is in `README-Dev.md`.
+- **All 63 migrations replay from an empty database (tested)**, after one fix. Before the fix, the p1b guard "this would leave no active System Administrator" stopped `p3d_snap_policies` on any database that has no accounts yet. That means a brand-new NB4HS-owned Supabase project could not have been built from the migrations either. The fix adds an early return to `assert_system_admin_remains()` when no active profile exists. On live there are active administrators, so it never takes this branch and live behavior doesn't change. **This edits an already-applied migration file**, so it is in its own commit and needs your OK.
+- **Probes run locally (tested):**
+  - `p0b`, `p1`, `p2`, `p3a`, `p5`, `p6a`, `p6b` and `p6c` all pass. `p1` reports legacy parity OK for the 6 active seeded accounts.
+  - `p0a` fails on purpose. It asserts the old anonymous appointments insert still works, which was only true between p0a and p0b.
+  - The p3 parity scripts weren't run. They wrap a single migration (before, then apply, then after) and need that migration rolled back first.
+- **Cron:** the three jobs are scheduled locally. `send-outbound` does nothing because the local vault has no `send_outbound_url`, so nothing calls out.
+- **Permission fix in the browser (tested, local stack):**
+  - The receptionist lands on Check-In.
+  - Typing `/case-management` or `/admin/users` redirects back to Check-In.
+  - Deactivating the receptionist mid-session and reloading lands on sign-in with no sidebar.
 
 ## How this maps to goals.md
 
