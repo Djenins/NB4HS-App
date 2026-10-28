@@ -25,6 +25,26 @@ These follow the live security checks in `launch-audit-2026-10-28.md` ("Live sec
 - `t6`'s `alter role authenticator set pgrst.db_pre_request` is accepted on the hosted project.
 - **Afterwards, live is unchanged:** 67 migrations, the same `authenticator` settings, no new tables or functions, the old policies, and no test accounts.
 
+## App deployed (2026-10-28)
+
+**Merge:** PR #66 merged at 20:36 UTC as `f947437`. CI was green on the head `3c43c4b`.
+
+**Production deployment:** `dpl_5RFh9hc7ykQc5F4Bf1hwhQ6cLRye` (`nb4hs-5pxuh1chc-marcdeeh.vercel.app`), READY.
+- **Domains:** `app.nb4hs.org` and `nb4hs-app.vercel.app` serve `index-BICROSyV.js`.
+- **Rollback target:** PR #64's `dpl_4Cx9ZLXAFZE39Y8tfTL1MTLdRbLf`.
+
+**Checked without signing in on `app.nb4hs.org` (pass):**
+- the sign-in form
+- the appointment request form, including the Kreyòl switch: heading and `lang=ht`
+- the appointment lookup page
+- the signed-out `/dashboard` → `/` redirect
+- the kiosk landing with six choices
+- no console errors
+
+**Not checked:** the calendar needs a staff sign-in. Until `t7` is applied, it falls back to reading the table, as before (`calendarDataFetch.test.js`).
+
+**`t5`–`t7` are still not applied;** live is on 67 migrations. Step 1 below is done.
+
 ## Order to apply (REQUIRES OWNER APPROVAL)
 
 1. **Deploy the app first,** by merging this PR. The calendar now reads through `calendar_events_between()`, falling back to the table while `t7` isn't applied. It also refreshes every minute, because realtime will only carry your own events. If `t7` went first, staff on the old app would stop seeing colleagues' calendar blocks.
