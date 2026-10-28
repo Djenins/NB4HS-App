@@ -91,6 +91,11 @@ export function AppProvider({ children }) {
   const [clientLang, setLang] = useState("en");
   const location = useLocation();
   const lang = isClientFacingPath(location.pathname) ? clientLang : "en";
+  // Screen readers pick their voice from <html lang>; keep it on the
+  // language the page is actually showing.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [kiosk, setKioskState] = useState(initialKiosk);
   const setKiosk = useCallback((on) => {
     try {
