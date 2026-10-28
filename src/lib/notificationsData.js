@@ -12,10 +12,15 @@ function notificationFromRow(row) {
   };
 }
 
+// The bell shows the newest few; every realtime event refetches this, so it
+// must not grow with the account's whole history. "Mark all read" still
+// clears every unread row server-side.
+export var NOTIFICATION_LIMIT = 50;
+
 export async function fetchNotifications(userId) {
   if (!userId) return [];
   const { data, error } = await supabase.from("notifications").select("*")
-    .eq("user_id", userId).order("created_at", { ascending: false });
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(NOTIFICATION_LIMIT);
   if (error) { console.warn("fetchNotifications failed", error); return []; }
   return data.map(notificationFromRow);
 }
