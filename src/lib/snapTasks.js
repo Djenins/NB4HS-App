@@ -45,6 +45,18 @@ export function addDays(ymd, n) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
+// Who a lead can hand a task to: the program's active members (from
+// fetchProgramStaff), plus themselves. Anyone else could never open the task.
+// `members` null means the list didn't load: offer every active profile, as
+// before, and let the database refuse what it must.
+export function assigneeOptions(profiles, members, userId) {
+  return (profiles || []).filter(function (p) {
+    if (p.active === false) return false;
+    if (!members) return true;
+    return p.id === userId || !!(members[p.id] && members[p.id].active);
+  });
+}
+
 // Automation-created tasks carry a stored English title; show them in the
 // reader's language instead. Manual tasks show exactly what staff typed.
 export function taskTitle(task, t) {

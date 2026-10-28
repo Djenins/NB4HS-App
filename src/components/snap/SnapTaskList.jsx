@@ -8,11 +8,12 @@
 // `task` domain: overdue (open, due before today), dueToday (open, due
 // today) and done. An open task due later carries no badge -- its due date
 // says enough.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
-import { TASK_PRIORITIES, TASK_TEXT_MAX, createTask, taskPermissions, taskTitle, updateTask } from "../../lib/snapTasks.js";
+import { fetchProgramStaff } from "../../lib/programStaff.js";
+import { TASK_PRIORITIES, TASK_TEXT_MAX, assigneeOptions, createTask, taskPermissions, taskTitle, updateTask } from "../../lib/snapTasks.js";
 import { cn } from "../../lib/cn.js";
 import { fmtDateLong, todayStr } from "../../lib/utils.js";
 import { Badge } from "../ui/badge.jsx";
@@ -126,7 +127,15 @@ export function SnapTaskForm({ context, onSaved, onCancel }) {
   const lead = programRole === "supervisor" || programRole === "program_admin";
   const [fields, setFields] = useState({ title: "", dueDate: "", priority: "normal", assignedTo: userId });
   const [busy, setBusy] = useState(false);
+  const [members, setMembers] = useState(null);
   const set = (k) => (v) => setFields((f) => Object.assign({}, f, { [k]: v }));
+
+  useEffect(() => {
+    if (!lead || !program) return undefined;
+    let live = true;
+    fetchProgramStaff(program).then((m) => { if (live) setMembers(m); }).catch((err) => console.warn("fetchProgramStaff failed", err));
+    return () => { live = false; };
+  }, [lead, program]);
 
   async function submit(e) {
     e.preventDefault();
@@ -160,7 +169,7 @@ export function SnapTaskForm({ context, onSaved, onCancel }) {
       {lead ? (
         <Field className="sm:col-span-2" label={t("snapAssignedTo")} htmlFor="task-assignee">
           <Select id="task-assignee" value={fields.assignedTo || ""} onChange={(e) => set("assignedTo")(e.target.value)}>
-            {(data.profiles || []).filter((p) => p.active !== false).map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
+            {assigneeOptions(data.profiles, members, userId).map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
           </Select>
         </Field>
       ) : <div className="hidden sm:col-span-2 sm:block" />}
