@@ -43,6 +43,7 @@ function RescheduleForm({ appt, onDone }) {
 // Server-written notifications store English text; show known types' titles
 // in the reader's language.
 export const TYPE_TITLE = {
+  appointment_assigned: "apptNotifAssigned",
   snap_task_due: "snapNotifTaskDue",
   task_overdue: "taskNotifOverdue",
   staff_report_submitted: "srNotifSubmitted",

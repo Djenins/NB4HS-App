@@ -287,6 +287,7 @@ export var STR = {
   snapNothingHere: { en: "Nothing here right now.", ht: "Pa gen anyen la a kounye a.", fr: "Rien pour le moment." },
   snapComingNext: { en: "Today's appointments, outreach events and partner referrals will appear here once those parts are built.", ht: "Randevou jodi a, evènman sansibilizasyon ak referans patnè yo ap parèt isit la lè pati sa yo fini.", fr: "Les rendez-vous du jour, les événements et les orientations vers les partenaires apparaîtront ici une fois ces parties réalisées." },
   snapSource_unknown: { en: "Not recorded", ht: "Pa anrejistre", fr: "Non renseigné" },
+  apptNotifAssigned: { en: "New appointment", ht: "New appointment", fr: "New appointment" },
   snapNotifTaskDue: { en: "Follow-up due", ht: "Swivi pou fè", fr: "Suivi à faire" },
   taskNotifOverdue: { en: "Follow-up overdue", ht: "Follow-up overdue", fr: "Follow-up overdue" },
   // Staff Reporting (biweekly reports to the Executive Director). {placeholders}
