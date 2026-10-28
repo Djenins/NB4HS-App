@@ -158,7 +158,7 @@ Files: `supabase/migrations/20261028010000_t1_cross_program_tasks.sql`, `supabas
 The database enforces the state machine, blocks self-review and blocks edits after submit. Period and deadline maths is tested across DST.
 
 **Problems:**
-1. **Discarding a draft leaves its attachments in storage.** **Read** and confirmed: `discardDraft` deletes only the row (`staffReports.js:431`). After that, the storage delete policy can no longer match.
+1. **Fixed (`6b666e4`, tested).** **Discarding a draft leaves its attachments in storage.** **Read** and confirmed: `discardDraft` deletes only the row (`staffReports.js:431`). After that, the storage delete policy can no longer match.
 2. **Changing a schedule's length or start can create overlapping periods.** Only `(schedule_id, period_start)` is unique. Rebuilt periods get new ids, so reminders may go out again.
 3. **Reviewers can see live revisions.** See RLS item 5.
 4. **The 5-file limit can race,** and the client supplies `size_bytes` and `mime_type`. The bucket still enforces the 10 MB limit and the allowed types.
@@ -168,10 +168,10 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 
 ## P1 — Calendar, notifications, search (read (subagent) unless marked)
 
-1. **"Mark all read" can never be clicked. Read and confirmed:**
+1. **Fixed (`9b849db`, tested).** **"Mark all read" can never be clicked. Read and confirmed:**
    - Opening the bell marks every item read one by one (`NotificationBell.jsx:125`). The button then disappears because it only shows while `unreadCount > 0`.
    - Failed requests aren't rolled back.
-2. **The calendar shows actions the database refuses.** Edit, Duplicate and Delete appear for events the user doesn't own. A refused delete removes 0 rows and looks like it worked.
+2. **Fixed (`21b6228`, tested).** **The calendar shows actions the database refuses.** Edit, Duplicate and Delete appear for events the user doesn't own. A refused delete removes 0 rows and looks like it worked.
 3. **The calendar doesn't show** rows from the real `appointments` table, tasks, report due dates or time off.
 4. **The `appointment_assigned` type has no translated title.** Its test leaves the type out, so it can't catch this.
 5. **⌘K search covers only** pages, students, case clients and staff. Student results link to `/clients/:nbId`, which needs `participants.view`.
@@ -180,11 +180,18 @@ The database enforces the state machine, blocks self-review and blocks edits aft
 ## Next steps (proposed, need your OK)
 
 - **Live dry run of `t1`** (`begin … rollback`), then apply it, only with your approval.
-- **Low-risk fixes for the P2 slot:**
-  - mark-all-read
-  - orphaned attachments on discard
-  - calendar action gating
-  - reminder `link` and translated titles
-
-  Each would be its own PR.
+- **Reminder link:** done in `t1`. There's still no translated title for `appointment_assigned`.
 - **Still to do:** deploy variables and migration order, the NB4HS-owned accounts checklist, and the budget (required vs optional, no invented prices).
+
+## P2 — Low-risk fixes (done)
+
+Each fix is its own commit on `Djenins/launch-goals`. None is pushed.
+
+| Commit | Fix | How it was checked |
+|---|---|---|
+| `9b849db` | **Notification bell.** Items stay unread while the panel is open, and "Mark all read" works. Closing the panel marks them read in one request. A failed write puts the unread state back. | New component test `NotificationBell.open.test.jsx` (3 cases) |
+| `6b666e4` | **Discard draft.** The draft's uploaded files are removed before the report row is deleted. If storage fails, the draft is kept. | Unit test `staffReportsDiscard.test.js` (3 cases). On the local stack, as the seeded staff account: the old order left the file in the bucket, and the new order removes it |
+| `21b6228` | **Calendar actions.** Edit and Delete only on your own events, or with `calendar.events.manage_all`. Duplicate and adding need `calendar.events.create`, which Executive Oversight doesn't have. A refused delete or update now shows an error. | Unit test `calendarRights.test.js` (6 cases). In the browser as the seeded receptionist: another person's event offers only View and Duplicate, their own offers all four. The API confirms a refused delete returns 204 with 0 rows |
+
+After these fixes: 585 unit tests and the build pass.
+
