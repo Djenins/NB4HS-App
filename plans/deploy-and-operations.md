@@ -65,6 +65,7 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…20261028020000_t2_report_time_label` | **Applied 2026-10-28.** Staff report email times show EST/EDT |
 | `…20261028030000_t3_receptionist_check_in_only` | **Applied 2026-10-28.** Receptionists lose participant records. A signed-in receptionist needs this branch's app (kiosk-roster fallback) for the student roster |
 | `…20261028040000_t4_staff_report_rules` | **Applied 2026-10-28.** Report period, revision, schedule-lock, attachment and DST rules. Reviewers need this branch's app to see reports in revision |
+| `…20261028050000_t5_notifications_read_only` … `…20261028070000_t7_calendar_privacy` | **Not on live yet.** Owner decisions from the live security checks; see `security-decisions-2026-10-28.md` for the order (app first) |
 
 **Which files are on live (checked 2026-10-28, read-only):**
 - All 63 versions recorded on the hosted project match a file here.

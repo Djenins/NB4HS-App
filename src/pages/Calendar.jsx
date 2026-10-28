@@ -181,6 +181,9 @@ function minutesOfDay(date) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+
+// How often an open calendar re-reads the range (see the effect below).
+const CALENDAR_REFRESH_MS = 60000;
 export default function CalendarPage() {
   const { data, session, config, lang, updateConfig, requestConfirm, showToast, can, permissionsFailed } = useApp();
   // If permissions failed to load, keep offering the actions and let the
@@ -269,7 +272,10 @@ export default function CalendarPage() {
     }
     load(true);
     const unsub = subscribeCalendarEvents(() => load(false));
-    return () => { cancelled = true; unsub(); };
+    // Realtime only delivers rows you can read -- since t7, your own events
+    // -- so colleagues' changes arrive on this refresh instead.
+    const timer = setInterval(() => { if (!document.hidden) load(false); }, CALENDAR_REFRESH_MS);
+    return () => { cancelled = true; unsub(); clearInterval(timer); };
   }, [rangeStart, rangeEnd, reloadKey]);
 
   // Drives the "now" line. A minute is as precise as an hour-tall row can

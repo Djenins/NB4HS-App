@@ -26,7 +26,15 @@ function calendarEventFromRow(row) {
 // Throws on failure rather than returning [] -- the calendar page has to be
 // able to tell "this range is empty" apart from "the fetch failed", so it can
 // show its error state with a retry instead of a convincingly empty week.
+//
+// Since t7 the table only returns your own events (administrators: all), so
+// the calendar reads calendar_events_between(): every event in the range,
+// with the person and notes only on your own. Before t7 is applied the
+// function doesn't exist (PGRST202) and the table read is the same thing.
 export async function fetchCalendarEvents(startDate, endDate) {
+  const rpc = await supabase.rpc("calendar_events_between", { p_from: startDate, p_to: endDate });
+  if (!rpc.error) return (rpc.data || []).map(calendarEventFromRow);
+  if (rpc.error.code !== "PGRST202") throw rpc.error;
   const { data, error } = await supabase
     .from("calendar_events")
     .select("*")
