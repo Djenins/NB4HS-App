@@ -56,7 +56,9 @@ function ScheduleCard({ schedule, onSaved }) {
       onSaved();
     } catch (err) {
       console.warn("updateSchedule failed", err);
-      showToast(t("srScheduleSaveError"));
+      // t4: a schedule with reports keeps its length and start date.
+      const locked = err && /already has reports/.test(err.message || "");
+      showToast(t(locked ? "srScheduleLocked" : "srScheduleSaveError"));
     } finally {
       setBusy(false);
     }

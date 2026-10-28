@@ -33,7 +33,10 @@ function dueHint(dueAt, timeZone, overdue, t) {
   return { text: t("srDueInDays").replace("{n}", days), tone: "text-muted" };
 }
 
-function ActionFor({ row, onCreate, onOpen, busy, t }) {
+// `notStarted`: the period lies ahead, and reports can't be started before
+// it begins (t4) -- the card already says when it starts.
+export function ActionFor({ row, onCreate, onOpen, busy, t, notStarted }) {
+  if (!row.reportId && notStarted) return null;
   if (!row.reportId) {
     return <Button size="sm" className="gap-1.5" onClick={() => onCreate(row)} disabled={busy}><FilePlus2 className="h-4 w-4" aria-hidden="true" /> {t("srCreateReport")}</Button>;
   }
@@ -230,7 +233,7 @@ export default function MyReports() {
                         {row.submittedAt ? t("srSubmittedAt") + ": " + fmtStamp(row.submittedAt, lang) : hint.text}
                       </div>
                     </div>
-                    <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} />
+                    <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} notStarted={notStartedYet} />
                   </li>
                 );
               })}

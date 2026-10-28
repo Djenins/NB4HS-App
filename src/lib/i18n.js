@@ -456,6 +456,7 @@ export var STR = {
   srScheduleChangeNote: { en: "Changing the dates rebuilds future periods. Periods that already have reports keep their dates.", ht: "Si ou chanje dat yo, peryòd ki poko rive yo ap refèt. Peryòd ki deja gen rapò kenbe dat yo.", fr: "Modifier les dates recalcule les périodes futures. Les périodes qui ont déjà des rapports conservent leurs dates." },
   srSaveSchedule: { en: "Save schedule", ht: "Sove orè a", fr: "Enregistrer le calendrier" },
   srScheduleSaved: { en: "Schedule saved", ht: "Orè a sove", fr: "Calendrier enregistré" },
+  srScheduleLocked: { en: "This schedule already has reports, so its length and start date can't change. Other settings still can.", ht: "This schedule already has reports, so its length and start date can't change. Other settings still can.", fr: "This schedule already has reports, so its length and start date can't change. Other settings still can." },
   srScheduleSaveError: { en: "Couldn't save the schedule.", ht: "Nou pa t ka sove orè a.", fr: "Impossible d'enregistrer le calendrier." },
   srDepartmentsTitle: { en: "Departments", ht: "Depatman yo", fr: "Départements" },
   srNewDepartment: { en: "New department name", ht: "Non nouvo depatman", fr: "Nom du nouveau département" },

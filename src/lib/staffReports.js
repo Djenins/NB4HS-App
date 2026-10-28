@@ -390,19 +390,44 @@ export async function fetchPeriods() {
 
 const REPORT_SELECT = "*, reporting_periods(period_start, period_end, due_at)";
 
+// Reports sent back for revision, as reviewers may see them (t4): the last
+// submitted content, never the author's edits in progress. Empty for anyone
+// who doesn't review, and before t4 is applied.
+async function fetchInRevision(id) {
+  let query = supabase.rpc("staff_reports_in_revision", id ? { p_report: id } : {}).select(REPORT_SELECT);
+  const { data, error } = await query;
+  if (error) { console.warn("staff_reports_in_revision failed", error); return []; }
+  return data || [];
+}
+
+// Reviewers can't read a report row while it's in revision (t4), so the
+// submitted list adds those from fetchInRevision(). An author's own rows
+// come from the table either way.
+export function mergeReportRows(rows, inRevision, filters) {
+  var seen = {};
+  (rows || []).forEach(function (r) { seen[r.id] = true; });
+  var extra = (inRevision || []).filter(function (r) {
+    return !seen[r.id] && (!filters || !filters.staffId || r.staff_id === filters.staffId);
+  });
+  return (rows || []).concat(extra).sort(function (a, b) { return (b.created_at || "").localeCompare(a.created_at || ""); });
+}
+
 export async function fetchReports(filters) {
   let query = supabase.from("staff_reports").select(REPORT_SELECT);
   if (filters && filters.staffId) query = query.eq("staff_id", filters.staffId);
   if (filters && filters.submittedOnly) query = query.not("submitted_at", "is", null);
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
-  return data.map(reportFromRow);
+  const extra = filters && filters.submittedOnly ? await fetchInRevision(null) : [];
+  return mergeReportRows(data, extra, filters).map(reportFromRow);
 }
 
 export async function fetchReport(id) {
   const { data, error } = await supabase.from("staff_reports").select(REPORT_SELECT).eq("id", id).maybeSingle();
   if (error) throw error;
-  return data ? reportFromRow(data) : null;
+  if (data) return reportFromRow(data);
+  const [inRevision] = await fetchInRevision(id);
+  return inRevision ? reportFromRow(inRevision) : null;
 }
 
 // Starts the caller's draft for a period. A unique-violation means one
