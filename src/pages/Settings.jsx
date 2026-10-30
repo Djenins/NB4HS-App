@@ -13,7 +13,7 @@
 // an actual data wipe.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Boxes, Briefcase, Building2, CheckCircle2, Circle, Clock, Info, ListChecks, ShieldCheck, UserRound, Users } from "lucide-react";
+import { Boxes, Briefcase, Building2, CheckCircle2, Circle, Clock, ListChecks, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { setWorkforceRoleAccess } from "../lib/clientsData.js";
 import { saveAppSetting } from "../lib/permissionAdmin.js";
@@ -183,13 +183,6 @@ export default function Settings() {
         </div>
       ) : null}
 
-      <div className="info-callout">
-        <Info className="icon" />
-        <div>
-          <strong>{t("aboutPrototypeTitle")}</strong>
-          <p>{t("aboutPrototypeDesc")}</p>
-        </div>
-      </div>
     </>
   );
 }
