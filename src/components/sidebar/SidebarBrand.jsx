@@ -7,7 +7,7 @@
 // the control is a Close button instead.
 import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { ORG } from "../../lib/constants.js";
-import { LOGO_DATA_URI } from "../../lib/logo.js";
+import { LOGO_URL } from "../../lib/logo.js";
 import { cn } from "../../lib/cn.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip.jsx";
 import { BTN_RESET, EASE, FOCUS_RING } from "./sidebarStyles.js";
@@ -26,7 +26,7 @@ export default function SidebarBrand({ collapsed, drawer, appTitle, onToggle, on
               aria-label={t("expandSidebarLabel")}
               className={cn(BTN_RESET, TILE, EASE, FOCUS_RING, "group relative h-11 w-11 hover:border-sb-field-border")}
             >
-              <img src={LOGO_DATA_URI} alt="" className="h-auto w-9 transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none" />
+              <img src={LOGO_URL} alt="" className="h-auto w-9 transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none" />
               <ChevronsRight aria-hidden="true" className="absolute h-[18px] w-[18px] text-slate-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none" />
             </button>
           </TooltipTrigger>
@@ -40,7 +40,7 @@ export default function SidebarBrand({ collapsed, drawer, appTitle, onToggle, on
   return (
     <div className="flex items-center gap-3 px-4 pb-3 pt-4">
       <div className={cn(TILE, "h-11 px-2")}>
-        <img src={LOGO_DATA_URI} alt={ORG.name} className="h-[30px] w-auto" />
+        <img src={LOGO_URL} alt={ORG.name} className="h-[30px] w-auto" />
       </div>
       <div className="min-w-0 flex-1 text-[12px] font-medium leading-tight text-sb-muted">{appTitle}</div>
       <button

@@ -10,3 +10,4 @@ dist/
 
 # Supabase CLI local state
 supabase/.temp/
+dist-localdb

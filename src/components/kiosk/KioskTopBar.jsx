@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { ORG } from "../../lib/constants.js";
-import { LOGO_DATA_URI } from "../../lib/logo.js";
+import { LOGO_URL } from "../../lib/logo.js";
 import { fmtDateLong, fmtTime, todayStr } from "../../lib/utils.js";
 import LangSelect from "../LangSelect.jsx";
 
@@ -41,7 +41,7 @@ export default function KioskTopBar({ onBack }) {
           {t("back")}
         </button>
       )}
-      <img src={LOGO_DATA_URI} alt={ORG.name} className="h-8 w-auto min-w-0 shrink object-contain sm:h-11" />
+      <img src={LOGO_URL} alt={ORG.name} className="h-8 w-auto min-w-0 shrink object-contain sm:h-11" />
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <div className="hidden items-center gap-3 rounded-2xl border border-border bg-background px-4 py-2 text-[0.95rem] font-semibold text-navy dark:text-[color:var(--text)] md:flex">

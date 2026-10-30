@@ -16,7 +16,7 @@ Rules for every goal:
 |---|---|---|---|---|
 | 1 | Clean-up and docs | Rewrite `README-Dev.md` to match the current app. Mark `snap-outreach-architecture.md` with its real status. Merge or close PR #21 (Add a Household form) | The docs match the code and PR #21 is closed or merged | ☐ |
 | 2 | Security leftovers | Confirm S7 and S8 are fixed on live (Phase 3). Fix S11: make `audit_events` append-only and audit profile changes. Decide on S13 (kiosk RPC rate limits) | Each item has a regression check and is marked closed in `unified-access-architecture.md` | ☐ |
-| 3 | Bundle size | Split the ~1 MB main chunk: route-level `lazy()`, and separate chunks for the chart, jsPDF and html2canvas libraries | No chunk is over 500 KB; build and tests pass | ☐ |
+| 3 | Bundle size | Split the ~1 MB main chunk: route-level `lazy()`, and separate chunks for the chart, jsPDF and html2canvas libraries | No chunk is over 500 KB; build and tests pass | ☑ 2026-10-29: largest chunk 401 KB (was 1,006 KB); first-load JavaScript 521 → 287 KB gzip |
 | 4 | Design batch 3d: Outreach | `Outreach.jsx` shell, Contacts, Cases, Tasks, Staff, the detail modals: PageHeaders, `DataTable` with phone cards, Skeletons, `EmptyState` | `impeccable detect` is clean for the batch; PR merged | ☐ |
 | 5 | Design batch 3e: Programs and admin | Food Distribution, Manage, Settings, Users, QR Code: remove about 60 inline styles | `impeccable detect` is clean; PR merged | ☐ |
 | 6 | Design batches 3f and 3g: Calendar and Shell | Calendar on the shared tokens and components; sidebar, topbar, ModuleNav and notifications with a quiet topbar and the phone menu that slides in from the side | `impeccable detect` is clean; PRs merged | ☐ |
@@ -24,7 +24,7 @@ Rules for every goal:
 | 8 | Design clean-up and audit | Delete the old CSS that no longer applies (`.btn-*`, `.modal-box`, `.card`, bare tag rules, `.pill-row`), the local component copies and the token aliases; refresh `DESIGN.md` | `/impeccable audit` scores at least 17/20 | ☐ |
 | 9 | Phase 8 checks | Log in and check every role, axe scan, keyboard pass, reduced motion, Kreyòl and French text fitting | Every problem found is fixed or written down | ☐ |
 | 10 | Retire the old access model | Remove the old roles and the `auth_model` flag; final clean-up migration (drop `workforce_role_access`, departments, `profiles.role` usage) | Your sign-off, then the migration is applied and verified | ☐ |
-| 11 | Production deploy | Deploy to production on Vercel | Your OK; the live site has been checked after the deploy | ☐ |
+| 11 | Production deploy | Deploy to production on Vercel | Your OK; the live site has been checked after the deploy | ☑ 2026-10-28: PR #64 and #66 deployed to `app.nb4hs.org`; the no-sign-in checks passed (`deploy-runbook-pr64.md`) |
 
 ## Order
 
