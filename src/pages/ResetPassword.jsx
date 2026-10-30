@@ -95,7 +95,7 @@ export default function ResetPassword() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 h-9 w-9 -translate-y-1/2 text-muted hover:bg-background hover:text-card-foreground"
+                      className="absolute inset-y-0 right-2 my-auto h-9 w-9 text-muted hover:bg-background hover:text-card-foreground"
                       onClick={() => setShowPw((v) => !v)}
                       aria-label={showPw ? t("hidePassword") : t("showPassword")}
                       title={showPw ? t("hidePassword") : t("showPassword")}
