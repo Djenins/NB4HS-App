@@ -3,7 +3,7 @@
 // read-only report body, and the submission/review history.
 import { useCallback, useEffect, useState } from "react";
 import { useApp, useT } from "../../context/AppContext.jsx";
-import { fmtTime, fmtDateLong } from "../../lib/utils.js";
+import { dateStrFromDate, fmtTime, fmtDateLong } from "../../lib/utils.js";
 import { fetchProgramNames, programsLabel, statusVariant } from "../../lib/staffReports.js";
 import { Badge } from "../ui/badge.jsx";
 
@@ -29,9 +29,12 @@ export function useProgramLabels() {
   return { names, label };
 }
 
+// Date and time both in the viewer's own time zone. (The date used to be cut
+// from the UTC string, so an evening submission in New York showed the next
+// day's date beside the right time.)
 export function fmtStamp(iso, lang) {
   if (!iso) return "—";
-  return fmtDateLong(iso.slice(0, 10), lang) + " · " + fmtTime(iso);
+  return fmtDateLong(dateStrFromDate(new Date(iso)), lang) + " · " + fmtTime(iso);
 }
 
 function Block({ label, children }) {
