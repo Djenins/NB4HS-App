@@ -19,6 +19,8 @@ import { cn } from "../../lib/cn.js";
 // and its hover-lift/press-scale transforms (Tailwind's preflight is off, so
 // those legacy tag rules still reach every <button>). `transform-none` beats
 // the lift's zero-specificity :where() rule; product buttons don't jump.
+// It also beats Tailwind's translate-* utilities, so a Button can't be
+// centred with `top-1/2 -translate-y-1/2`: use `inset-y-0 my-auto` instead.
 export const BUTTON_RESET = "min-h-0 border-0 bg-transparent p-0 font-normal leading-none transform-none";
 
 const buttonVariants = cva(
