@@ -28,4 +28,16 @@ begin
   if (select count(*) from public.audit_events) <> (select audit_rows from t1r_audit) then
     raise exception 'FAIL: the rollback wrote audit rows (it should not touch task data)';
   end if;
+  -- The old daily job must not resend what t1 already sent.
+  n := (select count(*) from public.notifications where title = 'Follow-up due');
+  perform public.snap_send_task_reminders();
+  if (select count(*) from public.notifications where title = 'Follow-up due') <> n then
+    raise exception 'FAIL: after the rollback the old job re-sent a reminder t1 had already sent';
+  end if;
+  -- t1's history is kept for a re-apply.
+  if to_regclass('public.task_notices_sent_rolled_back') is null
+     or exists (select notice_key, sent_at from t1r_notices
+                except select notice_key, sent_at from public.task_notices_sent_rolled_back) then
+    raise exception 'FAIL: the rollback did not keep the reminders t1 sent';
+  end if;
 end $$;
