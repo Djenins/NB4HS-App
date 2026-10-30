@@ -8,7 +8,7 @@ import { ArrowRight, CalendarCheck, GraduationCap, Headset, Heart, LogOut, User,
 import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import KioskTopBar from "../components/kiosk/KioskTopBar.jsx";
 
 // On a phone each card is a full-width row matching the Request an
@@ -206,7 +206,7 @@ export default function CheckIn() {
             </p>
           </div>
           <div className="hidden items-center gap-2.5 sm:flex">
-            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-0.5" />
+            <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-0.5" />
             <span className="text-sm font-bold">{ORG.shortName}</span>
           </div>
           <div className="hidden items-center gap-2 text-sm font-medium text-white/90 sm:flex">

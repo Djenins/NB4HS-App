@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { ChevronRight, Copy, ExternalLink, Globe, Home, Printer, QrCode, ShieldCheck, UserPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { DEFAULT_CHECKIN_URL, ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
 
@@ -75,7 +75,7 @@ export default function QRCode() {
             <p className="mt-1 max-w-xs text-sm text-muted">{t("qrScanDesc")}</p>
 
             <div className="qr-plate mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border p-4">
-              <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
+              <img src={LOGO_URL} alt={ORG.name} className="h-11 w-auto" />
               <img src={qrImg} alt="QR code" className={imgFailed ? "hidden" : "h-[220px] w-[220px]"} onError={() => setImgFailed(true)} />
               {/* Sits on the always-white .qr-plate, so it can't use --muted: in dark
                   mode that's #a2acba on white, ~2.3:1. Navy reads on white in both themes. */}
@@ -147,7 +147,7 @@ export default function QRCode() {
       <Card className="qr-box">
         <CardContent className="flex flex-col items-center gap-6 p-8 text-center md:flex-row md:text-left">
           <div className="qr-plate flex shrink-0 flex-col items-center gap-3 rounded-2xl border border-border p-4">
-            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-auto" />
+            <img src={LOGO_URL} alt={ORG.name} className="h-11 w-auto" />
             <img src={registerQrImg} alt={t("registerQrHeading")} className={imgFailed ? "hidden" : "h-[200px] w-[200px]"} onError={() => setImgFailed(true)} />
           </div>
           <div className="min-w-0 flex-1">

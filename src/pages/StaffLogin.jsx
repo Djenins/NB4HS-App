@@ -32,7 +32,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
 import { pendingApptCount } from "../lib/appointments.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import { navPath } from "../lib/nav.js";
 import { fetchMyPermissions } from "../lib/permissions.js";
 import { resolveNavItems } from "../lib/useNavItems.js";
@@ -141,7 +141,7 @@ export default function StaffLogin() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-11 w-11 rounded-lg bg-white/90 object-contain p-1" />
+            <img src={LOGO_URL} alt={ORG.name} className="h-11 w-11 rounded-lg bg-white/90 object-contain p-1" />
             <div>
               <div className="text-xl font-extrabold leading-tight"><Wordmark /></div>
               <div className="text-xs font-medium text-white/70">{ORG.name}</div>

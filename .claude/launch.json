@@ -34,6 +34,15 @@
       ],
       "port": 5190,
       "autoPort": true
+    },
+    {
+      "name": "build-localdb",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npx vite build --mode localdb --outDir dist-localdb && npx vite preview --outDir dist-localdb --port 4174 --strictPort"
+      ],
+      "port": 4174
     }
   ]
 }

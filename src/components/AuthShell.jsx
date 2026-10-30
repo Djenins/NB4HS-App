@@ -6,7 +6,7 @@
 // both pages now share this exact shell -- one place to fix if the layout
 // needs to change again.
 import { ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import ThemeToggle from "./ThemeToggle.jsx";
 import LangSelect from "./LangSelect.jsx";
 
@@ -15,7 +15,7 @@ export default function AuthShell({ tagline, foot, children }) {
     <div className="auth-split">
       <div className="auth-split-panel no-print">
         <div className="auth-split-brand">
-          <img src={LOGO_DATA_URI} alt={ORG.name} />
+          <img src={LOGO_URL} alt={ORG.name} />
           <span>{ORG.shortName}</span>
         </div>
         {tagline && <p className="auth-split-tagline">{tagline}</p>}

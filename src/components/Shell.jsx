@@ -24,7 +24,7 @@ import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useStaffT } from "../context/AppContext.jsx";
 import { isClientFacingPath } from "../lib/i18n.js";
 import { ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { navLabel } from "../lib/nav.js";
 import { useNavItems } from "../lib/useNavItems.js";
@@ -287,7 +287,7 @@ export default function Shell() {
                 ) : null}
                 {(!showSidebar || (isMobile && !crumbWorkspace)) && (
                   <div className="brand">
-                    <img src={LOGO_DATA_URI} alt={ORG.name} />
+                    <img src={LOGO_URL} alt={ORG.name} />
                     {/* Next to the phone menu button the subtitle would wrap the bar onto two rows. */}
                     <span className={cn("brand-sub no-print", showSidebar && "hidden")}>{t("appTitle")}</span>
                   </div>

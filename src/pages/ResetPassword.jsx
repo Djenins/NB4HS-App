@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
-import { LOGO_DATA_URI } from "../lib/logo.js";
+import { LOGO_URL } from "../lib/logo.js";
 import { getSession, signOut, updatePassword } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent } from "../components/ui/card.jsx";
@@ -60,7 +60,7 @@ export default function ResetPassword() {
             <Lock className="h-6 w-6" strokeWidth={2} />
           </div>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <img src={LOGO_DATA_URI} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-1" />
+            <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-1" />
             <span className="text-sm font-bold text-primary">{ORG.name}</span>
           </div>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>

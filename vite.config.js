@@ -16,8 +16,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Each large dependency group gets its own file, so none is over 500 KB
+        // and each is cached on its own. React must be named: left unassigned,
+        // Rollup parked it inside "charts", which then loaded on every page.
+        // Everything recharts pulls in (lodash, decimal.js-light...) follows it
+        // into "charts", which only the chart pages load.
         manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          if (/node_modules\/(react-router|react-router-dom|@remix-run)\//.test(id)) return "router";
+          if (/node_modules\/@supabase\//.test(id)) return "supabase";
+          if (/node_modules\/(@radix-ui|@floating-ui|lucide-react|tailwind-merge|clsx|class-variance-authority)\//.test(id)) return "ui";
           if (/node_modules\/(recharts|d3-|victory-vendor)/.test(id)) return "charts";
+          if (/\/src\/lib\/i18n\.js$/.test(id)) return "i18n";
         }
       }
     }
