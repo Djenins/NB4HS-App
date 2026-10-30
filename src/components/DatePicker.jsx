@@ -3,7 +3,8 @@
 // reference design the client shared. Deliberately scoped to single-date
 // selection only -- every date field in this app (intake date, DOB, work
 // permit expiration, appointment date, report from/to) picks one date, not
-// a range, so there's no Start/End-time range picker here.
+// a range, so there's no Start/End-time range picker here. `min`
+// ("YYYY-MM-DD", optional) disables earlier days.
 //
 // Drop-in replacement: the underlying value is still a plain "YYYY-MM-DD"
 // string, so none of the surrounding validation/business logic (buildClient,
@@ -22,7 +23,7 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
 
-export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder }) {
+export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min }) {
   const { lang } = useApp();
   const t = useT();
   const isControlled = value !== undefined && typeof onChange === "function";
@@ -106,7 +107,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
       {open && (
         <div className="date-picker-panel" role="dialog" aria-label={t("pleaseSelect")}>
           <div className="date-picker-quick">
-            <button type="button" className="pill" onClick={() => commit(today)}>{t("today")}</button>
+            <button type="button" className="pill" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
             <button type="button" className="pill" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
           </div>
           <div className="date-picker-nav">
@@ -142,7 +143,9 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
                 onChange={(e) => setDay(parseInt(e.target.value, 10))}
               >
                 <option value="" disabled>{t("pleaseSelect")}</option>
-                {dayOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+                {dayOptions.map((d) => (
+                  <option key={d} value={d} disabled={!!min && viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(d) < min}>{d}</option>
+                ))}
               </select>
             </label>
           </div>
@@ -153,6 +156,8 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
             {cells.map((c) => {
               const isSelected = !!current && c.dateStr === current;
               const isToday = c.dateStr === today;
+              // "YYYY-MM-DD" strings compare in date order.
+              const tooEarly = !!min && c.dateStr < min;
               return (
                 <button
                   type="button"
@@ -160,6 +165,8 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
                   className={"date-picker-day" + (c.inMonth ? "" : " outside") + (isSelected ? " selected" : "") + (isToday ? " today" : "")}
                   onClick={() => commit(c.dateStr)}
                   aria-pressed={isSelected}
+                  aria-label={fmtDateLong(c.dateStr, lang)}
+                  disabled={tooEarly}
                 >
                   {c.day}
                 </button>

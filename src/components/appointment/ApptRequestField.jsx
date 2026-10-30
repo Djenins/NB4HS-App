@@ -10,7 +10,7 @@
 // for the leading Lucide icon.
 import DatePicker from "../DatePicker.jsx";
 import { cn } from "../../lib/cn.js";
-import { formatPhone } from "../../lib/utils.js";
+import { formatPhone, todayStr } from "../../lib/utils.js";
 import AddressInput from "../AddressInput.jsx";
 
 // `appt-control` is the hook main.css uses to trim these back on short
@@ -157,7 +157,8 @@ export function ApptDateField({ name, label, required = false, error = "", class
   return (
     <div className={cn("min-w-0", className)}>
       <ApptLabel htmlFor={id} required={required}>{label}</ApptLabel>
-      <DatePicker id={id} name={name} required={required} invalid={!!error} />
+      {/* No past days: request_appointment refuses them. */}
+      <DatePicker id={id} name={name} required={required} invalid={!!error} min={todayStr()} />
       <ApptFieldError id={errorId}>{error}</ApptFieldError>
     </div>
   );

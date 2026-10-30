@@ -925,6 +925,8 @@
   }
   .date-picker-day:hover{background:var(--bg);}
   .date-picker-day.outside{color:var(--muted); opacity:.55;}
+  .date-picker-day:disabled{color:var(--muted); opacity:.35; cursor:not-allowed; text-decoration:line-through;}
+  .date-picker-day:disabled:hover{background:transparent;}
   .date-picker-day.selected{background:var(--primary); color:#fff;}
   .date-picker-day.selected:hover{background:var(--primary-dark);}
   .date-picker-day.today:not(.selected):after{
