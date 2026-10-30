@@ -193,7 +193,7 @@ export default function CheckOut() {
                 type="button"
                 onClick={() => setQ("")}
                 aria-label={t("clearLabel")}
-                className="absolute right-3 top-1/2 flex h-9 min-h-0 w-9 -translate-y-1/2 items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted transform-none hover:bg-tint-neutral hover:text-card-foreground"
+                className="absolute inset-y-0 right-3 my-auto flex h-9 min-h-0 w-9 items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted transform-none hover:bg-tint-neutral hover:text-card-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
