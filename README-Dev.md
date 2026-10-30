@@ -173,6 +173,20 @@ through the app's own route guard (skipped in `npm test` and CI):
 NB4HS_LOCAL_DB=1 NB4HS_LOCAL_ANON_KEY=<ANON_KEY> npx vitest run src/test/roleMatrix.local.test.jsx
 ```
 
+Concurrency check for the public-function throttle (local only; it refuses
+any other host because it commits rows):
+
+```bash
+sh supabase/tests/t8_rate_limit_concurrency.sh postgresql://postgres:postgres@127.0.0.1:55322/postgres
+```
+
+The t1 rollback/re-apply test is a three-part file set; the command is at the
+top of `supabase/tests/t1_rollback_before.sql`. A re-apply of t1 after its
+rollback must include `supabase/rollback/t1_reapply_restore_notices.sql`.
+
+`npm run audit` runs the same dependency check CI runs (`npm audit
+--audit-level=low`); it fails on any known advisory.
+
 The repo is also linked to the hosted project (`supabase/.temp`), so never run
 `supabase db push`, `supabase link` or any command without `--local` from here
 unless you mean to change production.
@@ -192,8 +206,7 @@ unless you mean to change production.
    schedule an appointment, confirm/cancel/complete it, remove a client.
 7. Users: add an account, deactivate one, try deleting yourself (should be
    blocked).
-8. Settings: change the closing time, reset demo data (confirm dialog
-   should appear).
+8. Settings: change the closing time.
 9. Dark mode toggle, language switcher, kiosk mode from the landing page.
 
 Please report back what breaks -- especially anything that only shows up at

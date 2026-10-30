@@ -76,3 +76,12 @@ Step 1 below was done here; steps 2 and 3 are in "Applied to live" below.
 - **The calendar.** A colleague's event should show its time and title but no person or notes; your own should show everything; an administrator sees all.
 - **Case Management's appointment list.** Each case manager sees their own appointments plus unassigned case requests.
 
+## Review of t6 (2026-10-29)
+
+A later review found four problems in `t6`, each confirmed on the local stack:
+- concurrent calls overshoot the limit
+- any signed-in token skips the count, including an inactive self-sign-up
+- the fallback IP is the client's own first `x-forwarded-for` entry
+- old rows are never cleared for callers who don't come back
+
+It also found the kiosk poll limits too tight for a site's shared Wi-Fi. `t8_rate_limit_hardening` fixes these. **It is local only and needs the same dry run and approval before live.** Details, tests and the limits that remain: [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md) §2.
