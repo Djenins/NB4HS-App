@@ -373,9 +373,8 @@ All read-only, against `vkbzarlkqzvhsfdmxyyq`. Covers RLS items 1–6 from "P0 �
 ## Still open
 
 **REQUIRES OWNER APPROVAL:**
-- **Deploy this branch's app before Nov 2, 2026.** The steps, post-deploy checks and rollback are in [deploy-runbook-pr64.md](deploy-runbook-pr64.md). The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
+- **Deployed 2026-10-28** (PR #64, merge `16a1cc7`, production `dpl_4Cx9ZLX…`). The no-sign-in checks passed; the per-role checks in `deploy-runbook-pr64.md` still need staff with real accounts.
 - **Decisions from the live security checks:** calendar and appointment scoping (item 2); rate limits on the 13 open functions (item 3); whether to tighten `notifications` updates to `read` only (item 4).
-- **Marking PR #64 ready and merging.**
 - **NB4HS accounts and plans:** ownership transfers and any paid plan.
 
 **Leads not acted on:**

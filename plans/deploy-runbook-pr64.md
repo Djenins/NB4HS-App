@@ -1,6 +1,6 @@
 # Production deploy runbook: PR #64
 
-Prepared 2026-10-28. **Nothing here has been done yet.** Merging, deploying and changing settings each need the owner's go-ahead.
+Prepared 2026-10-28. **Deployed 2026-10-28** (approved): see "Deploy record" at the end.
 
 ## What a merge does
 
@@ -109,3 +109,33 @@ If any check fails, go to Rollback first, then investigate.
 - **The live RLS checks** (launch audit, items 1–6).
 - **NB4HS-owned accounts and plans** (`nb4hs-accounts-checklist.md`, `launch-budget.md`).
 - **Report emails** (above).
+
+## Deploy record (2026-10-28)
+
+**Gates:**
+- **CI:** the PR head `5183163`'s `test-and-build` run was still going at merge time. It changed only two plan docs since `5b30e04`, whose run passed; every earlier run on the branch passed too.
+- **Database:** `67 | 20261028040000`.
+- **`SITE_URL` and the Auth URLs:** already confirmed.
+
+**Merge:**
+- **PR #64** was marked ready and merged at 19:37 UTC as merge commit `16a1cc7`.
+- **Production deployment:** `dpl_4Cx9ZLXAFZE39Y8tfTL1MTLdRbLf` (`nb4hs-plieg0yid-marcdeeh.vercel.app`) was READY about 20 seconds after the build started, with no alias errors.
+- **Domains:** `app.nb4hs.org`, `nb4hs-app.vercel.app`, `nb4hs-app-marcdeeh.vercel.app` and `nb4hs-app-git-main-marcdeeh.vercel.app` all serve the new bundle `index-BHtttOvn.js`, the same one as the branch preview.
+- **Rollback target:** still `dpl_AFhFvDPCodYq38M43z8wfEkiyfgU` (PR #63).
+
+**Checked without signing in, on `app.nb4hs.org` (pass):**
+- `/staff-login` renders the sign-in form.
+- `/appointments/request`:
+  - the form renders
+  - switching to Kreyòl changes the heading ("Mande yon Randevou") and `<html lang>` to `ht`
+- `/appointments/lookup` renders.
+- `/dashboard` while signed out redirects to `/`.
+- `/kiosk` opens the check-in landing with all six choices.
+- No console errors on any of these.
+
+**Not checked by me** (needs staff sign-ins, or would create production data):
+- the per-role checks in "After the deploy"
+- the student roster (real names)
+- a test visitor check-in and check-out
+- a password reset from Administration → Users on `app.nb4hs.org`, confirming the link opens `https://app.nb4hs.org/reset-password`
+
