@@ -1,7 +1,7 @@
 // admin-users Edge Function entry point. The logic and its rules live in
 // handler.ts; this file only wires up the two Supabase clients from the
 // variables every Edge Function gets (no secrets to configure).
-import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { createHandler } from "./handler.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;
