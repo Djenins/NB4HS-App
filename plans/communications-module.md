@@ -1,6 +1,6 @@
 # Communications module
 
-Status: **built 2026-10-30 on branch `Djenins/communications-module`, not merged. Migration `c1_communications` is not on live.**
+Status: **live since 2026-10-30.** Migration `c1_communications` was applied to live after a rolled-back dry run (checks passed before and after), then PR #75 was merged and deployed to production. Texting is off until Twilio is decided, and client emails wait until email (Resend) is set up.
 
 One sidebar entry, **Communications** (`/communications/:section`), with four sections. Each section shows only for the permission behind it, and the database enforces the same permissions on its own.
 
@@ -31,9 +31,9 @@ The client profile's Communications tab also gets **Send message**, follow-up cl
 
 The deployed function keeps working unchanged after the migration, because the new `claim_outbound_messages` defaults to email only. To send texts, redeploy the function with the Twilio secrets.
 
-## Before it can go live
+## Still open
 
-1. Dry-run `c1_communications` against live: `begin;` + migration + `supabase/tests/c1_communications_check.sql` (it ends by raising `C1_CHECKS_PASSED`, so nothing is committed). Then get approval and apply it. The rollback is `supabase/rollback/c1_communications_down.sql`. On the local stack the checks passed and the rollback restored the schema exactly.
+1. ~~Dry-run and apply `c1_communications` on live.~~ Done 2026-10-30: the dry run (`begin;` + migration + `supabase/tests/c1_communications_check.sql`, ending in `C1_CHECKS_PASSED`) passed, the migration was applied with its `schema_migrations` row in one transaction, and the checks passed again on live. The rollback is `supabase/rollback/c1_communications_down.sql`; on the local stack it restored the schema exactly.
 2. Decide on Twilio, or leave texting off. Email needs only Resend, which goes live with the staff report emails.
 3. Native-speaker check of the Kreyòl and French footer in client emails (`CLIENT_FOOTER` in `send-outbound/handler.ts`). Templates are written by staff in each language.
 4. Follow-up, not built: replies such as STOP. Twilio blocks texts to numbers that replied STOP and the send then fails, but nothing writes a `revoked` consent row yet. That needs an inbound webhook.
