@@ -45,6 +45,11 @@ const STATUS_TONES = {
   "message:failed": "danger",
   "message:cancelled": "neutral",
 
+  // Newsletters
+  "newsletter:draft": "neutral",
+  "newsletter:sent": "success",
+  "newsletter:cancelled": "warning",
+
   // Outreach follow-up tasks (overdue/dueToday are derived from open + due date)
   "task:overdue": "danger",
   "task:dueToday": "warning",

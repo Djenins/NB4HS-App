@@ -18,6 +18,7 @@ import LegacyRedirect from "./components/LegacyRedirect.jsx";
 import Shell from "./components/Shell.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import Unsubscribe from "./pages/Unsubscribe.jsx";
 import RequireRoute from "./components/RequireRoute.jsx";
 import CheckIn from "./pages/CheckIn.jsx";
 import CheckInStudent from "./pages/CheckInStudent.jsx";
@@ -130,6 +131,8 @@ export default function App() {
         <Route path="/staff-login" element={<StaffHome />} />
         <Route path="/kiosk" element={<KioskEntry />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* A newsletter's unsubscribe link: public, client-facing, outside Shell. */}
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
 
         <Route element={<Shell />}>
           <Route path="/dashboard" element={<RequireRoute routeKey="dashboard"><Dashboard /></RequireRoute>} />

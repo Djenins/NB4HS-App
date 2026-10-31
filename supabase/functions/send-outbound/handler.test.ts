@@ -1,6 +1,6 @@
 // deno test supabase/functions/send-outbound/handler.test.ts
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { appLink, createHandler, escapeHtml, renderClientEmail, renderEmail, resendSender, textToHtml, twilioSender } from "./handler.ts";
+import { appLink, createHandler, escapeHtml, renderClientEmail, renderEmail, renderNewsletter, resendSender, textToHtml, twilioSender, unsubscribeLink } from "./handler.ts";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -150,7 +150,7 @@ Deno.test("texts are claimed only once Twilio is configured, and go out as writt
 
 Deno.test("client emails escape staff text and fall back to English", () => {
   const e = renderClientEmail({ subject: "", body: "<script>x</script>", language: "xx" })!;
-  assertEquals(e.subject, "New Beginnings for Haitian Seniors");
+  assertEquals(e.subject, "New Bridges for Haitian Success");
   assert(!e.html.includes("<script>"));
   assert(e.html.includes('lang="en"'));
   assertEquals(renderClientEmail({ body: "  " }), null);
@@ -170,4 +170,39 @@ Deno.test("Twilio: form post with basic auth; a Messaging Service SID is used as
   assertEquals(seen[1][1].get("From"), null);
   const badFetch = (() => Promise.resolve(new Response(JSON.stringify({ message: "unsubscribed recipient" }), { status: 400 }))) as Any;
   assertEquals(await twilioSender("AC1", "tok", "+1", badFetch)({ to: "+1", body: "x" }), { ok: false, error: "provider 400: unsubscribed recipient" });
+});
+
+const TOKEN = "a".repeat(64);
+
+Deno.test("newsletters carry the mailing address, an unsubscribe link and header", async () => {
+  const sent: Any[] = [];
+  const queue = [{ id: "n1", channel: "email", to_address: "marie@example.org", template: "newsletter",
+    payload: { subject: "Fall <classes>", body: "Classes start Monday.", language: "ht", unsubscribe_token: TOKEN, mailing_address: "123 Main St, Providence, RI 02903" } }];
+  const admin = { rpc: (name: string) => Promise.resolve({ data: name === "claim_outbound_messages" ? queue : null, error: null }) };
+  const handle = createHandler({ admin, cronSecret: "s3cret", appUrl: "https://app.example/", providerConfigured: true,
+    send: (e: Any) => { sent.push(e); return Promise.resolve({ ok: true, id: "re" }); } });
+  assertEquals((await (await handle(post())).json()).sent, 1);
+  const e = sent[0];
+  assertEquals(e.subject, "Fall <classes>");
+  assert(e.html.includes("Fall &lt;classes&gt;"));
+  assert(e.html.includes("123 Main St, Providence, RI 02903"));
+  assert(e.html.includes('href="https://app.example/unsubscribe?t=' + TOKEN + '&amp;l=ht"'));
+  assert(e.html.includes("Dezabòne"));
+  assert(e.text.includes("https://app.example/unsubscribe?t=" + TOKEN + "&l=ht"));
+  assertEquals(e.headers, { "List-Unsubscribe": "<https://app.example/unsubscribe?t=" + TOKEN + "&l=ht>" });
+});
+
+Deno.test("an incomplete newsletter is never sent", () => {
+  assertEquals(renderNewsletter({ subject: "S", body: "B", unsubscribe_token: TOKEN }, "https://a"), null);
+  assertEquals(renderNewsletter({ subject: "S", body: "B", mailing_address: "Addr" }, "https://a"), null);
+  assertEquals(unsubscribeLink("https://a", "../../evil", "xx"), "https://a/unsubscribe?t=&l=en");
+});
+
+Deno.test("Resend gets the List-Unsubscribe header when there is one", async () => {
+  const seen: Any[] = [];
+  const okFetch = ((_u: string, init: Any) => { seen.push(JSON.parse(init.body)); return Promise.resolve(new Response("{}", { status: 200 })); }) as Any;
+  await resendSender("k", "f", okFetch)({ to: "a@b.org", subject: "S", html: "h", text: "t", headers: { "List-Unsubscribe": "<x>" } });
+  await resendSender("k", "f", okFetch)({ to: "a@b.org", subject: "S", html: "h", text: "t" });
+  assertEquals(seen[0].headers, { "List-Unsubscribe": "<x>" });
+  assertEquals(seen[1].headers, undefined);
 });

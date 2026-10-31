@@ -34,11 +34,19 @@ export interface Message {
   payload: Record<string, unknown>;
 }
 
+export interface Email {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  headers?: Record<string, string>;
+}
+
 export interface Deps {
   // The service-role client (claim_outbound_messages / complete_outbound_message).
   admin: Any;
   // POSTs one email to the provider; resolves to the provider's answer.
-  send(email: { to: string; subject: string; html: string; text: string }): Promise<{ ok: boolean; id?: string; error?: string }>;
+  send(email: Email): Promise<{ ok: boolean; id?: string; error?: string }>;
   // POSTs one text message; only called when smsConfigured.
   sendSms?(sms: { to: string; body: string }): Promise<{ ok: boolean; id?: string; error?: string }>;
   cronSecret?: string;
@@ -66,7 +74,7 @@ function layout(heading: string, lines: string[], button: string, href: string) 
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
-<tr><td><p style="margin:0 0 4px;font-size:13px;color:#5b6b82">New Beginnings for Haitian Seniors</p>
+<tr><td><p style="margin:0 0 4px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
 <h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(heading)}</h1>
 ${lines.map((l) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.5">${l}</p>`).join("\n")}
 <p style="margin:22px 0 8px"><a href="${escapeHtml(href)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold">${escapeHtml(button)}</a></p>
@@ -78,9 +86,9 @@ ${lines.map((l) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.5">${
 // Client-facing footer, in the language the message was written in.
 // The Kreyòl and French wording needs a native speaker's check.
 const CLIENT_FOOTER: Record<Lang, string> = {
-  en: "This message was sent to you by New Beginnings for Haitian Seniors. If you no longer want these messages, reply to this email or call us.",
-  ht: "Se New Beginnings for Haitian Seniors ki voye mesaj sa a ba ou. Si ou pa vle resevwa mesaj sa yo ankò, reponn imèl sa a oswa rele nou.",
-  fr: "Ce message vous a été envoyé par New Beginnings for Haitian Seniors. Si vous ne souhaitez plus recevoir ces messages, répondez à cet e-mail ou appelez-nous."
+  en: "This message was sent to you by New Bridges for Haitian Success. If you no longer want these messages, reply to this email or call us.",
+  ht: "Se New Bridges for Haitian Success ki voye mesaj sa a ba ou. Si ou pa vle resevwa mesaj sa yo ankò, reponn imèl sa a oswa rele nou.",
+  fr: "Ce message vous a été envoyé par New Bridges for Haitian Success. Si vous ne souhaitez plus recevoir ces messages, répondez à cet e-mail ou appelez-nous."
 };
 
 export function clientLang(value: unknown): Lang {
@@ -96,18 +104,61 @@ export function textToHtml(text: string) {
 
 export function renderClientEmail(payload: Record<string, unknown>) {
   const lang = clientLang(payload.language);
-  const subject = String(payload.subject ?? "").trim() || "New Beginnings for Haitian Seniors";
+  const subject = String(payload.subject ?? "").trim() || "New Bridges for Haitian Success";
   const body = String(payload.body ?? "").trim();
   if (!body) return null;
   const footer = CLIENT_FOOTER[lang];
   const html = `<!doctype html><html lang="${lang}"><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
-<tr><td><p style="margin:0 0 16px;font-size:13px;color:#5b6b82">New Beginnings for Haitian Seniors</p>
+<tr><td><p style="margin:0 0 16px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
 ${textToHtml(body)}
 <p style="margin:20px 0 0;font-size:12px;color:#5b6b82">${escapeHtml(footer)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject, html, text: `${body}\n\n—\n${footer}` };
+}
+
+// Newsletters (c2_newsletters): the same client layout, plus what US law
+// (CAN-SPAM) asks of bulk email -- the organization's mailing address and a
+// working unsubscribe link -- and a List-Unsubscribe header so mail apps
+// show their own unsubscribe button. The link opens a page that asks before
+// unsubscribing, so a mail scanner following it changes nothing.
+// The Kreyòl and French wording needs a native speaker's check.
+const NEWSLETTER_FOOTER: Record<Lang, { why: string; stop: string }> = {
+  en: { why: "You're receiving this because you agreed to receive program updates from New Bridges for Haitian Success.", stop: "Unsubscribe" },
+  ht: { why: "Ou resevwa mesaj sa a paske ou te dakò pou resevwa nouvèl pwogram New Bridges for Haitian Success.", stop: "Dezabòne" },
+  fr: { why: "Vous recevez ce message parce que vous avez accepté de recevoir les actualités des programmes de New Bridges for Haitian Success.", stop: "Se désabonner" }
+};
+
+// The page opens in the newsletter's language (`l`).
+export function unsubscribeLink(appUrl: string, token: unknown, lang?: unknown) {
+  const tk = typeof token === "string" && /^[0-9a-f]{64}$/.test(token) ? token : "";
+  return (appUrl || DEFAULT_APP).replace(/\/+$/, "") + "/unsubscribe?t=" + tk + "&l=" + clientLang(lang);
+}
+
+export function renderNewsletter(payload: Record<string, unknown>, appUrl: string) {
+  const lang = clientLang(payload.language);
+  const subject = String(payload.subject ?? "").trim();
+  const body = String(payload.body ?? "").trim();
+  const address = String(payload.mailing_address ?? "").trim();
+  if (!subject || !body || !address || typeof payload.unsubscribe_token !== "string") return null;
+  const href = unsubscribeLink(appUrl, payload.unsubscribe_token, lang);
+  const f = NEWSLETTER_FOOTER[lang];
+  const html = `<!doctype html><html lang="${lang}"><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
+<tr><td><p style="margin:0 0 16px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
+<h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(subject)}</h1>
+${textToHtml(body)}
+<p style="margin:24px 0 4px;font-size:12px;color:#5b6b82">${escapeHtml(f.why)}</p>
+<p style="margin:0 0 4px;font-size:12px;color:#5b6b82">${escapeHtml(address)}</p>
+<p style="margin:0;font-size:12px"><a href="${escapeHtml(href)}" style="color:#1d4ed8">${escapeHtml(f.stop)}</a></p>
+</td></tr></table></td></tr></table></body></html>`;
+  return {
+    subject, html,
+    text: `${subject}\n\n${body}\n\n—\n${f.why}\n${address}\n${f.stop}: ${href}`,
+    headers: { "List-Unsubscribe": `<${href}>` }
+  };
 }
 
 // One template per queued kind. Text versions mirror the HTML.
@@ -154,6 +205,11 @@ export function createHandler(deps: Deps) {
       if (!body) return { ok: false, error: "unknown template " + m.template };
       return await deps.sendSms!({ to: m.to_address, body });
     }
+    if (m.template === "newsletter") {
+      const nl = renderNewsletter(m.payload || {}, deps.appUrl);
+      if (!nl) return { ok: false, error: "incomplete newsletter payload" };
+      return await deps.send({ to: m.to_address, subject: nl.subject, html: nl.html, text: nl.text, headers: nl.headers });
+    }
     const email = m.template === "client_message" ? renderClientEmail(m.payload || {}) : renderEmail(m.template, m.payload || {}, deps.appUrl);
     if (!email) return { ok: false, error: "unknown template " + m.template };
     return await deps.send({ to: m.to_address, subject: email.subject, html: email.html, text: email.text });
@@ -190,11 +246,14 @@ export function createHandler(deps: Deps) {
 
 // The Resend API (https://resend.com/docs/api-reference/emails/send-email).
 export function resendSender(apiKey: string, from: string, fetchImpl: typeof fetch = fetch) {
-  return async function send(email: { to: string; subject: string; html: string; text: string }) {
+  return async function send(email: Email) {
     const res = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [email.to], subject: email.subject, html: email.html, text: email.text })
+      body: JSON.stringify(Object.assign(
+        { from, to: [email.to], subject: email.subject, html: email.html, text: email.text },
+        email.headers ? { headers: email.headers } : {}
+      ))
     });
     let body: Any = null;
     try { body = await res.json(); } catch (_) { body = null; }

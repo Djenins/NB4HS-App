@@ -12,6 +12,11 @@ describe("Communications sections", () => {
       "communications.view", "communications.messages.send", "communications.templates.manage", "communications.announcements.view"
     ))).toEqual(["log", "messages", "templates", "announcements"]);
   });
+  it("adds Newsletters, after Messages, only for whoever may send them", () => {
+    expect(communicationsSectionsFor(holding("communications.view", "communications.newsletters.send", "communications.announcements.view")))
+      .toEqual(["log", "messages", "newsletters", "announcements"]);
+    expect(navItemsFromPermissions([{ permissionKey: "communications.newsletters.send" }])).toEqual(["communications"]);
+  });
   it("lands someone who only reads announcements straight on them", () => {
     expect(communicationsSectionsFor(holding("communications.announcements.view"))).toEqual(["announcements"]);
     expect(communicationsSectionsFor(holding("communications.announcements.post"))).toEqual(["announcements"]);

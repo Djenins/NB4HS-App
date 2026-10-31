@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./supabase.js", () => ({ supabase: null }));
 const {
-  composeProblem, currentAnnouncements, fillTemplate, filterLog, logEntryFromRow, logSummaryCounts, messageAddress,
+  composeProblem, currentAnnouncements, newsletterErrorKey, fillTemplate, filterLog, logEntryFromRow, logSummaryCounts, messageAddress,
   openFollowUps, sendErrorKey, smsSegments, textablePhone, unreadCount
 } = await import("./communications.js");
 
@@ -117,5 +117,15 @@ describe("announcements", () => {
   });
   it("counts unread among current ones only", () => {
     expect(unreadCount(list, new Set(["pin", "imp", "gone"]), TODAY)).toBe(3);
+  });
+});
+
+describe("newsletters", () => {
+  it("turns send refusals into messages", () => {
+    expect(newsletterErrorKey({ hint: "no_mailing_address" })).toBe("nlNoAddress");
+    expect(newsletterErrorKey({ hint: "no_recipients" })).toBe("nlNoRecipients");
+    expect(newsletterErrorKey({ hint: "too_many" })).toBe("nlTooMany");
+    expect(newsletterErrorKey({ hint: "already_sent" })).toBe("nlAlreadySent");
+    expect(newsletterErrorKey(new Error("x"))).toBe("userActionError");
   });
 });
