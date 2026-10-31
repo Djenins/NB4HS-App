@@ -127,7 +127,7 @@ export var NAV_GROUP = { dashboard: "core", mycaseload: "core", checkin: "core",
 // showDividerBefore() (a leftover from the old flat tab-bar layout).
 export var NAV_SECTION = {
   dashboard: "overview", mycaseload: "overview", myreports: "overview", staffreports: "overview",
-  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", calendar: "dailyOps", availability: "dailyOps",
+  checkin: "dailyOps", checkout: "dailyOps", search: "dailyOps", communications: "dailyOps", calendar: "dailyOps", availability: "dailyOps",
   students: "programs", assessments: "programs", casemanagement: "programs", fooddistribution: "programs", outreach: "programs",
   // jobdeveloper (the older participant/job-seeker tracking page) lives in
   // the same "Workforce" submenu as the newer Employer & Job Opportunity

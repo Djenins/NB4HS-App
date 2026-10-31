@@ -21,7 +21,7 @@
 // rules for what is required.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Download, FileUp, Home, LayoutGrid, Plus, Repeat, ShoppingBasket, Trash2, Users } from "lucide-react";
+import { BarChart3, Download, FileUp, Home, LayoutGrid, Plus, Ruler, ShoppingBasket, ShoppingCart, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientDisplayName, clientMatchesSearch, downloadFoodClientTemplate,
@@ -399,10 +399,10 @@ function FoodDashboard({ foodClients, onNavigate }) {
   return (
     <>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label={t("totalHouseholdsLabel")} value={foodClients.length} icon={Home} tone="violet" onClick={() => onNavigate("households")} />
-        <KpiCard label={t("pickupsThisMonthLabel")} value={pickupsThisMonth} icon={ShoppingBasket} tone="success" onClick={() => onNavigate("distributions")} />
-        <KpiCard label={t("totalPickupsLabel")} value={dists.length} icon={Repeat} tone="info" />
-        <KpiCard label={t("avgHouseholdSizeLabel")} value={avgHouseholdSize} icon={Users} tone="warning" />
+        <KpiCard label={t("totalHouseholdsLabel")} value={foodClients.length} icon={Users} tone="violet" onClick={() => onNavigate("households")} />
+        <KpiCard label={t("pickupsThisMonthLabel")} value={pickupsThisMonth} icon={ShoppingCart} tone="success" onClick={() => onNavigate("distributions")} />
+        <KpiCard label={t("totalPickupsLabel")} value={dists.length} icon={BarChart3} tone="info" />
+        <KpiCard label={t("avgHouseholdSizeLabel")} value={avgHouseholdSize} icon={Ruler} tone="warning" />
       </div>
       <SectionCard
         title={t("foodRecentPickupsTitle")}

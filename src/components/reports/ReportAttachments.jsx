@@ -65,7 +65,7 @@ export default function ReportAttachments({ report, editable }) {
               <span className="flex min-w-0 items-center gap-2 text-sm">
                 <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                 <span className="min-w-0 truncate font-semibold text-card-foreground">{f.name}</span>
-                <span className="shrink-0 text-xs text-muted">{ATTACHMENT_TYPES[f.type] || ""} · {fmtBytes(f.size)}</span>
+                <span className="shrink-0 text-meta text-muted">{ATTACHMENT_TYPES[f.type] || ""} · {fmtBytes(f.size)}</span>
               </span>
               <span className="flex gap-1">
                 <Button type="button" size="sm" variant="ghost" className="gap-1.5" onClick={() => open(f)} aria-label={t("srAttachDownload").replace("{name}", f.name)}>
@@ -90,7 +90,7 @@ export default function ReportAttachments({ report, editable }) {
             onClick={() => input.current && input.current.click()}>
             <Paperclip className="h-4 w-4" aria-hidden="true" /> {busy ? t("srAttachUploading") : t("srAttachAdd")}
           </Button>
-          <span className="text-xs text-muted">{t("srAttachHelp").replace("{n}", ATTACHMENTS_MAX)}</span>
+          <span className="text-meta text-muted">{t("srAttachHelp").replace("{n}", ATTACHMENTS_MAX)}</span>
         </div>
       ) : null}
     </div>

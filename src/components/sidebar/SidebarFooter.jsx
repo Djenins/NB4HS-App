@@ -41,7 +41,7 @@ export default function SidebarFooter({ collapsed, t }) {
       <DropdownMenuContent align="start" side={collapsed ? "right" : "top"}>
         <div className="px-2.5 py-1.5">
           <div className="truncate text-sm font-semibold">{name}</div>
-          <div className="truncate text-xs text-muted">{role}</div>
+          <div className="truncate text-meta text-muted">{role}</div>
         </div>
         <DropdownMenuItem onSelect={() => navigate("/profile")}>
           <UserRound className="h-4 w-4" /> {t("profileMenuItem")}
@@ -87,7 +87,7 @@ export default function SidebarFooter({ collapsed, t }) {
               {avatar}
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-semibold leading-snug text-sb-text">{name}</span>
-                <span className="block truncate text-[12px] leading-snug text-sb-muted">{role}</span>
+                <span className="block truncate text-meta leading-snug text-sb-muted">{role}</span>
               </span>
             </button>
           </DropdownMenuTrigger>

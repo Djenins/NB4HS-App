@@ -109,7 +109,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
               {contact.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}
             </div>
             <div className="mt-1 text-sm text-muted">{[formatPhone(contact.phone), contact.email].filter(Boolean).join(" · ") || "—"}</div>
-            <Link to={"/clients/" + contact.nbId} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link to={"/clients/" + contact.nbId} className="mt-1 inline-flex items-center gap-1 text-meta font-semibold text-primary">
               <ExternalLink className="h-3 w-3" aria-hidden="true" /> {t("nbIdLabel")} {contact.nbId}
             </Link>
           </div>
@@ -119,14 +119,14 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
           </button>
         </div>
 
-        {!perms.canEdit && <p className="!mb-3 !text-xs text-muted">{t("snapContactReadOnly")}</p>}
+        {!perms.canEdit && <p className="!mb-3 !text-meta text-muted">{t("snapContactReadOnly")}</p>}
         <div className="grid gap-3 sm:grid-cols-3">
           <SnapSelect id="snapd-lang" t={t} label={t("snapPreferredLanguage")} value={contact.preferredLanguage} options={CONTACT_LANGUAGES} labelPrefix="snapLang_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredLanguage: v })} />
           <SnapSelect id="snapd-method" t={t} label={t("snapPreferredMethod")} value={contact.preferredContactMethod} options={CONTACT_METHODS} labelPrefix="snapMethod_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredContactMethod: v })} />
           <SnapSelect id="snapd-source" t={t} label={t("snapOutreachSource")} value={contact.outreachSource} options={OUTREACH_SOURCES} labelPrefix="snapSource_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ outreachSource: v })} />
           <SnapSelect id="snapd-follow" t={t} label={t("snapFollowUp")} value={contact.followUpStatus} options={FOLLOW_UP_STATUSES} labelPrefix="snapFollow_" disabled={!perms.canEdit || busy} onChange={(v) => patch({ followUpStatus: v })} />
           <div className="grid gap-1.5">
-            <label htmlFor="snapd-assigned" className="text-xs font-semibold text-muted">{t("snapAssignedTo")}</label>
+            <label htmlFor="snapd-assigned" className="text-meta font-semibold text-muted">{t("snapAssignedTo")}</label>
             {perms.canReassign ? (
               <select id="snapd-assigned" className={SNAP_CONTROL} value={contact.assignedTo || ""} disabled={busy} onChange={(e) => patch({ assignedTo: e.target.value || null })}>
                 <option value="">{t("snapUnassigned")}</option>
@@ -142,9 +142,9 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
 
         <section className="mt-6" aria-labelledby="snapd-consent">
           <h3 id="snapd-consent" className={H3}>{t("snapConsentTitle")}</h3>
-          <p className="!mb-3 !text-xs text-muted">{t("snapConsentHelp")}</p>
+          <p className="!mb-3 !text-meta text-muted">{t("snapConsentHelp")}</p>
           <div className="mb-3 flex items-center gap-2 text-sm">
-            <label htmlFor="snapd-consent-method" className="text-xs font-semibold text-muted">{t("snapConsentMethod")}</label>
+            <label htmlFor="snapd-consent-method" className="text-meta font-semibold text-muted">{t("snapConsentMethod")}</label>
             <select id="snapd-consent-method" className={SNAP_CONTROL + " !w-auto"} value={consentMethod} onChange={(e) => setConsentMethod(e.target.value)}>
               {CONSENT_METHODS.map((m) => <option key={m} value={m}>{t("snapConsentMethod_" + m)}</option>)}
             </select>
@@ -171,7 +171,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
                         <Badge variant={row ? (row.status === "granted" ? "success" : "warn") : "neutral"}>
                           {t("snapConsent_" + (row ? row.status : "none"))}
                         </Badge>
-                        {row && <span className="ml-2 text-xs text-muted">{fmtWhen(row.capturedAt)} · {t("snapConsentMethod_" + row.method)}</span>}
+                        {row && <span className="ml-2 text-meta text-muted">{fmtWhen(row.capturedAt)} · {t("snapConsentMethod_" + row.method)}</span>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">
                         <Button size="sm" variant="ghost" disabled={busy} aria-label={t("snapConsentRecordYes") + ": " + label} onClick={() => addConsent(channel, purpose, "granted")}>{t("snapConsentRecordYes")}</Button>
@@ -192,14 +192,14 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
             <SnapSelect id="snapd-dir" t={t} label={t("snapDirection")} value={entry.direction} options={INTERACTION_DIRECTIONS} labelPrefix="snapDir_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { direction: v }))} />
             <SnapSelect id="snapd-outcome" t={t} label={t("snapOutcome")} value={entry.outcome} options={INTERACTION_OUTCOMES} labelPrefix="snapOutcome_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { outcome: v }))} />
             <div className="grid gap-1.5 sm:col-span-3">
-              <label htmlFor="snapd-summary" className="text-xs font-semibold text-muted">{t("snapSummary")}</label>
+              <label htmlFor="snapd-summary" className="text-meta font-semibold text-muted">{t("snapSummary")}</label>
               <textarea
                 id="snapd-summary" rows={2} maxLength={SUMMARY_MAX} value={entry.summary}
                 aria-describedby="snapd-summary-hint"
                 onChange={(e) => setEntry((x) => Object.assign({}, x, { summary: e.target.value }))}
                 className="min-h-0 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
               />
-              <p id="snapd-summary-hint" className="!m-0 !text-xs text-muted">{t("snapSummaryHint")}</p>
+              <p id="snapd-summary-hint" className="!m-0 !text-meta text-muted">{t("snapSummaryHint")}</p>
             </div>
             <div className="sm:col-span-3 flex justify-end">
               <Button type="submit" size="sm" disabled={busy}>{t("snapLogActivity")}</Button>
@@ -211,9 +211,9 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
                 <li key={a.id} className="rounded-lg border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge>{t("snapType_" + a.type)}</Badge>
-                    {a.direction && <span className="text-xs text-muted">{t("snapDir_" + a.direction)}</span>}
+                    {a.direction && <span className="text-meta text-muted">{t("snapDir_" + a.direction)}</span>}
                     {a.outcome && <Badge variant="neutral">{t("snapOutcome_" + a.outcome)}</Badge>}
-                    <span className="ml-auto text-xs text-muted">{fmtWhen(a.occurredAt)} · {nameOf(a.staffId)}</span>
+                    <span className="ml-auto text-meta text-muted">{fmtWhen(a.occurredAt)} · {nameOf(a.staffId)}</span>
                   </div>
                   {a.summary && <p className="!mb-0 mt-1.5 !text-sm text-card-foreground">{a.summary}</p>}
                 </li>

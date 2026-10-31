@@ -18,6 +18,12 @@ export var NAV_REQUIREMENTS = {
   checkin: ["front_desk.checkin"],
   checkout: ["front_desk.checkout"],
   search: ["front_desk.visits.search"],
+  // Everyone who reads announcements opens Communications; its sections
+  // (pages/Communications.jsx) follow the finer permissions.
+  communications: [
+    "communications.view", "communications.messages.send", "communications.templates.manage",
+    "communications.announcements.view", "communications.announcements.post"
+  ],
   calendar: ["calendar.view"],
   // My Availability: anyone who can open the calendar sets their own hours.
   availability: ["calendar.view"],
@@ -45,7 +51,7 @@ export var NAV_REQUIREMENTS = {
 // Canonical sidebar order: the administrator's order from nav.js (every other
 // role's list is a subsequence of it).
 export var NAV_ORDER = [
-  "dashboard", "mycaseload", "checkin", "checkout", "search", "reports", "fooddistribution", "calendar", "availability",
+  "dashboard", "mycaseload", "checkin", "checkout", "search", "communications", "reports", "fooddistribution", "calendar", "availability",
   "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper",
   "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports",
   "users", "settings", "outreach", "myreports", "staffreports"

@@ -50,6 +50,7 @@ import { RangeBar } from "../components/ui/range-bar.jsx";
 import { TrendDelta } from "../components/ui/trend-delta.jsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 const PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
@@ -211,6 +212,7 @@ export default function WorkforceReports() {
 
   return (
     <>
+      <WorkforceNav value="workforcereports" />
       <PageHeader
         title={t("workforceReportsTitle")}
         description={t("workforceReportsDesc")}

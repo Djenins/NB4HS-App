@@ -2,41 +2,23 @@
 // Ported from manage.js's renderManage()/renderClassManageCard()/
 // attachManageHandlers(). Classroom deletion uses AppContext's promise-based
 // requestConfirm() in place of the original's callback-based showConfirmModal().
-//
-// On the NB4HS Operate design system (plans/ui-design-system.md, batch 3e):
-// PageHeader, the active counts as a KpiCard row, SectionCards for the lists
-// and the add forms, and ActiveToggle switches. Every save, toggle and
-// delete calls the same helper as before.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, CheckCircle2, GraduationCap, HelpCircle, MapPin, Plus, Trash2, Users } from "lucide-react";
+import { Award, Briefcase, Building2, CheckCircle2, GraduationCap, HelpCircle, Info, MapPin, Plus, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { meetingDaysLabel, studentsForClass } from "../lib/students.js";
 import { fullIndustryList, fullServiceList, fullStaffList, slugify } from "../lib/utils.js";
 import { createClass, deleteClass, subscribeTable, updateClass } from "../lib/checkinData.js";
 import { createGrant, deleteGrant, fetchGrants, updateGrant } from "../lib/grants.js";
-import ManageListCard, { ActiveToggle } from "../components/ManageListCard.jsx";
+import ManageListCard from "../components/ManageListCard.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Card } from "../components/ui/card.jsx";
 import { Field, Input } from "../components/ui/field.jsx";
-import { FilterChips } from "../components/ui/filter-chips.jsx";
 import { IconButton } from "../components/ui/icon-button.jsx";
-import { KpiCard } from "../components/ui/kpi-card.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
-
-// A titled group of cards on the page (Classrooms, Grants): a section
-// heading with its one-line description, then the cards.
-function GroupHeading({ title, desc }) {
-  return (
-    <div className="mb-4 mt-8">
-      <h2 className="m-0 text-section font-semibold text-card-foreground">{title}</h2>
-      <p className="m-0 mt-0.5 text-meta text-muted">{desc}</p>
-    </div>
-  );
-}
+import { Switch } from "../components/ui/switch.jsx";
 
 function ClassManageCard({ c }) {
   const { data, lang, requestConfirm, showToast } = useApp();
@@ -90,23 +72,20 @@ function ClassManageCard({ c }) {
   const locationId = "class-location-" + c.key;
 
   return (
-    <Card className="flex flex-col p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="m-0 flex flex-wrap items-center gap-2 text-section font-semibold text-card-foreground">
-            <span className="break-words">{c.name}</span>
-            {c.custom ? <Badge variant="neutral">{t("customLabel")}</Badge> : null}
-          </h3>
-          <p className="m-0 mt-1 text-meta text-muted">{t("meetsOn")}: {meetingDaysLabel(c.days, lang)}</p>
+    <SectionCard
+      title={<span className="flex flex-wrap items-center gap-2">{c.name}{c.custom && <Badge variant="neutral">{t("customLabel")}</Badge>}</span>}
+      description={t("meetsOn") + ": " + meetingDaysLabel(c.days, lang)}
+      action={c.custom ? <Button variant="ghost" size="sm" className="text-tone-danger-ink hover:bg-tone-danger-bg" onClick={deleteClassroom}><Trash2 className="h-4 w-4" aria-hidden="true" />{t("deleteLabel")}</Button> : null}
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-meta text-muted tabular-nums">{t("rosterTitle")}: {roster.length}</span>
+          <Button variant="secondary" size="sm" onClick={() => navigate("/students/classrooms")}>
+            <Users className="h-4 w-4" aria-hidden="true" />{t("viewStudentsLabel")}
+          </Button>
         </div>
-        {c.custom ? (
-          <IconButton size="sm" variant="danger" label={t("deleteLabel") + " " + c.name} onClick={deleteClassroom}>
-            <Trash2 aria-hidden="true" />
-          </IconButton>
-        ) : null}
-      </div>
-
-      <Field className="mt-4" label={<span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-muted" aria-hidden="true" />{t("classLocationLabel")}</span>} htmlFor={locationId}>
+      }
+    >
+      <Field label={<span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-muted" aria-hidden="true" />{t("classLocationLabel")}</span>} htmlFor={locationId} hint={t("manageRosterHere")}>
         <Input
           id={locationId}
           maxLength={80}
@@ -117,18 +96,10 @@ function ClassManageCard({ c }) {
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setLocationDraft(c.location || ""); }}
         />
       </Field>
-
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-line-subtle pt-4">
-        <ActiveToggle name={c.name} active={isActive} onToggle={toggleActive} />
-        <span className="text-meta tabular-nums text-muted">{t("rosterTitle")}: {roster.length}</span>
+      <div className="mt-3">
+        <Switch checked={isActive} onCheckedChange={() => toggleActive().catch(() => {})} label={c.name} onText={t("activeLabel")} offText={t("inactiveLabel")} />
       </div>
-      <p className="m-0 mt-3 text-meta text-muted">{t("manageRosterHere")}</p>
-      <div className="mt-auto pt-3">
-        <Button variant="secondary" size="sm" onClick={() => navigate("/students/classrooms")}>
-          <Users className="h-4 w-4" aria-hidden="true" />{t("viewStudentsLabel")}
-        </Button>
-      </div>
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -159,21 +130,13 @@ function GrantRow({ g }) {
   const period = [g.periodStart, g.periodEnd].filter(Boolean).join(" – ");
 
   return (
-    <Card className="flex flex-col p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="m-0 break-words text-section font-semibold text-card-foreground">{g.name}</h3>
-          {g.funder ? <p className="m-0 mt-1 text-meta text-muted">{g.funder}</p> : null}
-          {period ? <p className="m-0 mt-0.5 text-meta tabular-nums text-muted">{period}</p> : null}
-        </div>
-        <IconButton size="sm" variant="danger" label={t("deleteLabel") + " " + g.name} onClick={removeGrant}>
-          <Trash2 aria-hidden="true" />
-        </IconButton>
-      </div>
-      <div className="mt-auto pt-4">
-        <ActiveToggle name={g.name} active={isActive} onToggle={toggleActive} />
-      </div>
-    </Card>
+    <SectionCard
+      title={g.name}
+      description={[g.funder, period].filter(Boolean).join(" · ") || null}
+      action={<IconButton label={"Delete " + g.name} variant="danger" size="sm" onClick={removeGrant}><Trash2 aria-hidden="true" /></IconButton>}
+    >
+      <Switch checked={isActive} onCheckedChange={() => toggleActive().catch(() => {})} label={g.name} onText={t("activeLabel")} offText={t("inactiveLabel")} />
+    </SectionCard>
   );
 }
 
@@ -201,32 +164,48 @@ function GrantsManageCard() {
   }
 
   return (
-    <>
-      <GroupHeading title="Grants" desc="Track funder grants so services can be tagged for reporting." />
+    <section aria-labelledby="manage-grants-title" className="flex flex-col gap-4">
+      <GroupHeading id="manage-grants-title" icon={Award} title="Grants" description="Track funder grants so services can be tagged for reporting." />
       {grants.length ? (
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {grants.map((g) => <GrantRow g={g} key={g.id} />)}
         </div>
       ) : null}
-
-      <SectionCard title="Add a Grant" description="Name it after the funder/program so staff can pick it when tagging a service.">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Grant Name" htmlFor="new-grant-name" required>
-            <Input id="new-grant-name" placeholder="e.g. RI DOL Workforce Development FY26" value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-          <Field label="Funder" htmlFor="new-grant-funder">
-            <Input id="new-grant-funder" placeholder="e.g. RI Department of Labor and Training" value={funder} onChange={(e) => setFunder(e.target.value)} />
-          </Field>
-          <Field label="Period Start" htmlFor="new-grant-start">
-            <Input id="new-grant-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-          </Field>
-          <Field label="Period End" htmlFor="new-grant-end">
-            <Input id="new-grant-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
-          </Field>
-        </div>
-        <Button className="mt-5" onClick={addGrant}><Plus className="h-4 w-4" aria-hidden="true" />Add Grant</Button>
+      <SectionCard title="Add a grant" description="Name it after the funder or program so staff can pick it when tagging a service.">
+        <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); addGrant(); }}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Grant name" htmlFor="grant-name" required>
+              <Input id="grant-name" placeholder="e.g. RI DOL Workforce Development FY26" value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Funder" htmlFor="grant-funder">
+              <Input id="grant-funder" placeholder="e.g. RI Department of Labor and Training" value={funder} onChange={(e) => setFunder(e.target.value)} />
+            </Field>
+            <Field label="Period start" htmlFor="grant-start">
+              <Input id="grant-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+            </Field>
+            <Field label="Period end" htmlFor="grant-end">
+              <Input id="grant-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+            </Field>
+          </div>
+          <div><Button type="submit"><Plus className="h-4 w-4" aria-hidden="true" />Add grant</Button></div>
+        </form>
       </SectionCard>
-    </>
+    </section>
+  );
+}
+
+// A heading for a group of cards on this page (Classrooms, Grants).
+function GroupHeading({ id, icon: GroupIcon, title, description }) {
+  return (
+    <div className="mt-4 flex items-center gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-chip bg-primary-tint text-primary">
+        <GroupIcon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <h2 id={id} className="m-0 text-heading font-bold text-card-foreground">{title}</h2>
+        <p className="m-0 mt-0.5 text-meta text-muted">{description}</p>
+      </div>
+    </div>
   );
 }
 
@@ -249,6 +228,10 @@ export default function Manage() {
   const activeStaffCount = staffList.filter((i) => disabledStaff.indexOf(i.key) === -1).length;
   const activeClassesCount = classes.filter((c) => c.active !== false).length;
 
+  function toggleDay(d) {
+    setNewClassDays((prev) => (prev.indexOf(d) !== -1 ? prev.filter((x) => x !== d) : prev.concat([d])));
+  }
+
   async function addClassroom() {
     const name = newClassName.trim();
     if (!name) { showToast(t("fixErrors")); return; }
@@ -268,95 +251,110 @@ export default function Manage() {
       <PageHeader
         title={t("navManage")}
         description={t("manageListsSubtitle")}
-        actions={
-          <Button variant="secondary" onClick={() => showToast(t("manageHelpToast"))}>
-            <HelpCircle className="h-4 w-4" aria-hidden="true" />{t("helpLabel")}
-          </Button>
-        }
+        actions={<Button variant="secondary" onClick={() => showToast(t("manageHelpToast"))}><HelpCircle className="h-4 w-4" aria-hidden="true" />{t("helpLabel")}</Button>}
       />
 
-      <section aria-label={t("summaryTitle")} className="mb-6 grid grid-cols-3 gap-3 sm:gap-4">
-        <KpiCard label={t("servicesActiveStat")} value={activeServicesCount} icon={Briefcase} tone="info" />
-        <KpiCard label={t("staffActiveStat")} value={activeStaffCount} icon={Users} tone="violet" />
-        <KpiCard label={t("classroomsActiveStat")} value={activeClassesCount} icon={GraduationCap} tone="success" />
-      </section>
-
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <ManageListCard
-          kind="service"
-          title={t("manageServicesTitle")}
-          description={t("manageServicesDesc")}
-          list={serviceList}
-          disabled={disabledServices}
-          placeholder={t("newServiceName")}
-        />
-        <ManageListCard
-          kind="staff"
-          title={t("manageStaffTitle")}
-          description={t("manageStaffDesc")}
-          list={staffList}
-          disabled={disabledStaff}
-          placeholder={t("newStaffName")}
-        />
-        <ManageListCard
-          kind="industry"
-          title={t("manageIndustriesTitle")}
-          description={t("manageIndustriesDesc")}
-          list={industryList}
-          disabled={disabledIndustries}
-          placeholder={t("addIndustryPlaceholder")}
-        />
-      </div>
-
-      <GroupHeading title={t("manageClassesTitle")} desc={t("manageClassesDesc")} />
-      {classes.length ? (
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {classes.map((c) => <ClassManageCard c={c} key={c.key} />)}
-        </div>
-      ) : null}
-
-      <SectionCard title={t("addClassroomTitle")} description={t("sectionNewClassroomDesc")}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t("classroomNameLabel")} htmlFor="new-class-name" required>
-            <Input id="new-class-name" placeholder={t("classroomNamePlaceholder")} value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
-          </Field>
-          <Field label={t("classLocationOptional")} htmlFor="new-class-location" hint={t("classLocationHint")}>
-            <Input
-              id="new-class-location"
-              maxLength={80}
-              placeholder={t("classLocationPlaceholder")}
-              value={newClassLocation}
-              onChange={(e) => setNewClassLocation(e.target.value)}
-              aria-describedby="new-class-location-hint"
-            />
-          </Field>
-        </div>
-        <fieldset className="m-0 mt-4 min-w-0 border-0 p-0">
-          <legend className="mb-2 p-0 text-meta font-semibold text-card-foreground">{t("meetsOn")}</legend>
-          <FilterChips
-            label={t("meetsOn")}
-            multiple
-            value={newClassDays}
-            onChange={setNewClassDays}
-            options={[0, 1, 2, 3, 4, 5, 6].map((d) => ({ value: d, label: dayNames[d] }))}
+      <div className="flex flex-col gap-6">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <ManageListCard
+            kind="service"
+            icon={<Briefcase />}
+            title={t("manageServicesTitle")}
+            description={t("manageServicesDesc")}
+            list={serviceList}
+            disabled={disabledServices}
+            placeholder={t("newServiceName")}
           />
-          <p className="m-0 mt-2 text-meta text-muted">{t("noDaysMeansOnline")}</p>
-        </fieldset>
-        <Button className="mt-5" onClick={addClassroom}><Plus className="h-4 w-4" aria-hidden="true" />{t("addClassroom")}</Button>
-      </SectionCard>
+          <ManageListCard
+            kind="staff"
+            icon={<Users />}
+            title={t("manageStaffTitle")}
+            description={t("manageStaffDesc")}
+            list={staffList}
+            disabled={disabledStaff}
+            placeholder={t("newStaffName")}
+          />
+          <ManageListCard
+            kind="industry"
+            icon={<Building2 />}
+            title={t("manageIndustriesTitle")}
+            description={t("manageIndustriesDesc")}
+            list={industryList}
+            disabled={disabledIndustries}
+            placeholder={t("addIndustryPlaceholder")}
+          />
+        </div>
 
-      <GrantsManageCard />
+        <section aria-labelledby="manage-classes-title" className="flex flex-col gap-4">
+          <GroupHeading id="manage-classes-title" icon={GraduationCap} title={t("manageClassesTitle")} description={t("manageClassesDesc")} />
+          {classes.length ? (
+            <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {classes.map((c) => <ClassManageCard c={c} key={c.key} />)}
+            </div>
+          ) : null}
 
-      <SectionCard className="mt-8" title={t("tipsTitle")} description={t("tipsSubtitle")}>
-        <ul className="m-0 list-none space-y-2.5 p-0">
-          {["tipInactiveHidden", "tipChangesImmediate", "tipClearNames"].map((k) => (
-            <li key={k} className="flex items-start gap-2.5 text-ui text-card-foreground">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-tone-success-ink" aria-hidden="true" />
-              <span>{t(k)}</span>
-            </li>
-          ))}
-        </ul>
-      </SectionCard>
+          <SectionCard title={t("addClassroomTitle")} description={t("sectionNewClassroomDesc")}>
+            <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); addClassroom(); }}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label={t("classroomNameLabel")} htmlFor="new-class-name" required>
+                  <Input id="new-class-name" placeholder={t("classroomNamePlaceholder")} value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
+                </Field>
+                <Field label={t("classLocationOptional")} htmlFor="new-class-location" hint={t("classLocationHint")}>
+                  <Input id="new-class-location" maxLength={80} placeholder={t("classLocationPlaceholder")} value={newClassLocation} onChange={(e) => setNewClassLocation(e.target.value)} />
+                </Field>
+              </div>
+              <fieldset className="m-0 min-w-0 border-0 p-0">
+                <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">{t("meetsOn")}</legend>
+                <div className="flex flex-wrap gap-2">
+                  {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+                    const on = newClassDays.indexOf(d) !== -1;
+                    return (
+                      <label
+                        key={d}
+                        className={"inline-flex h-9 cursor-pointer items-center gap-2 rounded-chip border px-4 text-meta font-semibold transition-colors duration-fast focus-within:ring-2 [@media(pointer:coarse)]:h-11 " +
+                          (on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-card-foreground hover:border-primary hover:text-primary")}
+                      >
+                        <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleDay(d)} />
+                        {dayNames[d]}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="m-0 mt-2 flex items-start gap-2 text-meta text-muted">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{t("noDaysMeansOnline")}
+                </p>
+              </fieldset>
+              <div><Button type="submit"><Plus className="h-4 w-4" aria-hidden="true" />{t("addClassroom")}</Button></div>
+            </form>
+          </SectionCard>
+        </section>
+
+        <GrantsManageCard />
+
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <SectionCard title={t("summaryTitle")} description={t("summarySubtitle")}>
+            <dl className="m-0 grid grid-cols-3 gap-4">
+              {[[activeServicesCount, "servicesActiveStat"], [activeStaffCount, "staffActiveStat"], [activeClassesCount, "classroomsActiveStat"]].map(([n, k]) => (
+                <div key={k} className="flex min-w-0 flex-col-reverse gap-1">
+                  <dt className="text-meta text-muted">{t(k)}</dt>
+                  <dd className="m-0 text-kpi font-bold tabular-nums text-card-foreground">{n}</dd>
+                </div>
+              ))}
+            </dl>
+          </SectionCard>
+
+          <SectionCard title={t("tipsTitle")} description={t("tipsSubtitle")}>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0 text-ui text-card-foreground">
+              {["tipInactiveHidden", "tipChangesImmediate", "tipClearNames"].map((k) => (
+                <li key={k} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-tone-success-ink" aria-hidden="true" />
+                  <span>{t(k)}</span>
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        </div>
+      </div>
     </>
   );
 }

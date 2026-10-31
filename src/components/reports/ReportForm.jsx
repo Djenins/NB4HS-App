@@ -43,7 +43,7 @@ function TextArea({ field, value, onChange, invalid, disabled, t }) {
   return (
     <div className="grid gap-1.5">
       <label htmlFor={id} className={"text-sm font-semibold text-card-foreground" + (field.required ? " required" : "")}>{t(field.label)}</label>
-      {field.help && <p id={id + "-help"} className="!m-0 !text-xs text-muted">{t(field.help)}</p>}
+      {field.help && <p id={id + "-help"} className="!m-0 !text-meta text-muted">{t(field.help)}</p>}
       <textarea
         id={id} rows={4} maxLength={REPORT_TEXT_MAX} value={value} disabled={disabled}
         aria-invalid={invalid || undefined} aria-describedby={field.help ? id + "-help" : undefined}
@@ -63,7 +63,7 @@ function ProgramsField({ value, options, invalid, disabled, onChange }) {
   return (
     <fieldset id="report-programs" tabIndex={-1} className="m-0 grid min-w-0 gap-2 border-0 p-0" aria-invalid={invalid || undefined}>
       <legend className="required mb-1 text-sm font-semibold text-card-foreground">{t("srFieldPrograms")}</legend>
-      <p className="!m-0 !text-xs text-muted">{t("srHelpPrograms")}</p>
+      <p className="!m-0 !text-meta text-muted">{t("srHelpPrograms")}</p>
       <div className={"flex flex-wrap gap-2 rounded-lg" + (invalid ? " field-invalid p-2" : "")}>
         {shown.map((k) => {
           const on = value.indexOf(k) !== -1;
@@ -176,7 +176,7 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" className="gap-1.5 px-2 text-muted" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("srBackToMyReports")}</Button>
-        <span className={"text-xs " + (saveState.status === "error" ? "font-semibold text-accent" : "text-muted")} role="status" aria-live="polite">{saveText}</span>
+        <span className={"text-meta " + (saveState.status === "error" ? "font-semibold text-accent" : "text-muted")} role="status" aria-live="polite">{saveText}</span>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-card sm:p-6">
@@ -194,7 +194,7 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
           </div>
         )}
 
-        <div className="info-callout mt-4"><p className="!m-0 !text-xs">{t("srPrivacyNote")}</p></div>
+        <div className="info-callout mt-4"><p className="!m-0 !text-meta">{t("srPrivacyNote")}</p></div>
 
         {showErrors && missing.length > 0 && (
           <div role="alert" className="mt-4 rounded-lg border border-accent-soft bg-accent-tint px-4 py-3 text-sm text-card-foreground">
@@ -212,21 +212,21 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
 
           <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
             <legend className="mb-1 text-sm font-semibold text-card-foreground">{t("srFieldOutcomes")}</legend>
-            <p className="!m-0 !text-xs text-muted">{t("srHelpOutcomes")}</p>
+            <p className="!m-0 !text-meta text-muted">{t("srHelpOutcomes")}</p>
             {fields.outcomes.map((o, i) => (
               <div key={i} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end sm:border-0 sm:p-0">
                 <div className="grid gap-1">
-                  <label htmlFor={"outcome-metric-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeMetric")}</label>
+                  <label htmlFor={"outcome-metric-" + i} className="text-meta font-semibold text-muted">{t("srOutcomeMetric")}</label>
                   <input id={"outcome-metric-" + i} className={REPORT_CONTROL + " h-10"} value={o.metric} maxLength={200}
                     placeholder={t("srOutcomeMetricPlaceholder")} onChange={(e) => setOutcome(i, "metric", e.target.value)} disabled={busy} />
                 </div>
                 <div className="grid gap-1">
-                  <label htmlFor={"outcome-value-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeValue")}</label>
+                  <label htmlFor={"outcome-value-" + i} className="text-meta font-semibold text-muted">{t("srOutcomeValue")}</label>
                   <input id={"outcome-value-" + i} className={REPORT_CONTROL + " h-10"} value={o.value} maxLength={60}
                     placeholder="12" onChange={(e) => setOutcome(i, "value", e.target.value)} disabled={busy} />
                 </div>
                 <div className="grid gap-1">
-                  <label htmlFor={"outcome-notes-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeNotes")}</label>
+                  <label htmlFor={"outcome-notes-" + i} className="text-meta font-semibold text-muted">{t("srOutcomeNotes")}</label>
                   <input id={"outcome-notes-" + i} className={REPORT_CONTROL + " h-10"} value={o.notes} maxLength={300}
                     placeholder={t("srOutcomeNotesPlaceholder")} onChange={(e) => setOutcome(i, "notes", e.target.value)} disabled={busy} />
                 </div>

@@ -10,7 +10,7 @@ export const SNAP_CONTROL = "h-10 min-h-0 w-full rounded-lg border border-border
 export function SnapSelect({ id, label, value, options, labelPrefix, labelFor, emptyLabel, onChange, disabled, t }) {
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-xs font-semibold text-muted">{label}</label>
+      <label htmlFor={id} className="text-meta font-semibold text-muted">{label}</label>
       <select id={id} className={SNAP_CONTROL} value={value || ""} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
         {options.map((o) => <option key={o} value={o}>{labelFor ? labelFor(o) : t(labelPrefix + o)}</option>)}
@@ -22,7 +22,7 @@ export function SnapSelect({ id, label, value, options, labelPrefix, labelFor, e
 export function SnapInput({ id, label, value, onChange, type = "text", required, placeholder, invalid }) {
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className={"text-xs font-semibold text-muted" + (required ? " required" : "")}>{label}</label>
+      <label htmlFor={id} className={"text-meta font-semibold text-muted" + (required ? " required" : "")}>{label}</label>
       <input
         id={id} type={type} value={value} placeholder={placeholder} autoComplete="off"
         aria-invalid={invalid || undefined}

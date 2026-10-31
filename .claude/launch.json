@@ -21,6 +21,19 @@
       "port": 5174
     },
     {
+      "name": "dev-localdb-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--mode",
+        "localdb",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
       "name": "design-system",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
