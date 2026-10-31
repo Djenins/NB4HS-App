@@ -2,8 +2,12 @@
 // the assigned worker or a supervisor -- contactPermissions() mirrors the
 // RLS update policy), communication consent (append-only history, newest
 // answer per channel/purpose shown), and the activity log.
+//
+// A Dialog (xl) with no footer: each field saves as it changes, as before.
+// Consent is a divided list rather than a table, so the record buttons stay
+// on screen at phone width.
 import { useEffect, useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
@@ -14,12 +18,15 @@ import {
 } from "../../lib/outreachContacts.js";
 import { fmtTime, formatPhone } from "../../lib/utils.js";
 import NbIdBadge from "../NbIdBadge.jsx";
+import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
-import { useModalA11y } from "../../lib/useModalA11y.js";
-import { SNAP_CONTROL, SnapSelect } from "./SnapField.jsx";
+import { Dialog } from "../ui/dialog.jsx";
+import { Field, Select, Textarea } from "../ui/field.jsx";
+import { StatusBadge } from "../ui/status-badge.jsx";
+import { SnapSelect } from "./SnapField.jsx";
 
-const H3 = "m-0 mb-3 text-sm font-bold text-card-foreground";
+const H3 = "m-0 text-section font-semibold text-card-foreground";
 
 function fmtWhen(iso) {
   if (!iso) return "";
@@ -48,8 +55,6 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
     fetchInteractions(contact.clientId).then((rows) => { if (!cancelled) setActivity(rows); }).catch(() => {});
     return () => { cancelled = true; };
   }, [contact.clientId]);
-
-  const boxRef = useModalA11y(onClose);
 
   async function patch(fields) {
     setBusy(true);
@@ -99,129 +104,117 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
   const name = (contact.firstName + " " + contact.lastName).trim();
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={boxRef} className="modal-box max-h-[90vh] max-w-3xl overflow-auto" role="dialog" aria-modal="true" aria-labelledby="snap-contact-title">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="snap-contact-title" className="m-0 text-lg font-bold text-card-foreground">{name}</h2>
-              <NbIdBadge nbId={contact.nbId} />
-              {contact.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}
-            </div>
-            <div className="mt-1 text-sm text-muted">{[formatPhone(contact.phone), contact.email].filter(Boolean).join(" · ") || "—"}</div>
-            <Link to={"/clients/" + contact.nbId} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
-              <ExternalLink className="h-3 w-3" aria-hidden="true" /> {t("nbIdLabel")} {contact.nbId}
+    <Dialog
+      open
+      onClose={onClose}
+      size="xl"
+      title={name}
+      description={[formatPhone(contact.phone), contact.email].filter(Boolean).join(" · ") || undefined}
+      closeLabel={t("closeLabel")}
+    >
+      <div className="grid gap-8">
+        <div className="grid gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <NbIdBadge nbId={contact.nbId} />
+            {contact.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}
+            <Link to={"/clients/" + contact.nbId} className="inline-flex items-center gap-1 rounded-badge text-meta font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2">
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> {t("snapOpenClientProfile")}
             </Link>
           </div>
-          <button type="button" aria-label={t("closeLabel")} onClick={onClose}
-            className="flex h-9 w-9 min-h-0 items-center justify-center rounded-lg border border-border bg-card p-0 text-muted hover:bg-background">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {!perms.canEdit && <p className="!mb-3 !text-xs text-muted">{t("snapContactReadOnly")}</p>}
-        <div className="grid gap-3 sm:grid-cols-3">
-          <SnapSelect id="snapd-lang" t={t} label={t("snapPreferredLanguage")} value={contact.preferredLanguage} options={CONTACT_LANGUAGES} labelPrefix="snapLang_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredLanguage: v })} />
-          <SnapSelect id="snapd-method" t={t} label={t("snapPreferredMethod")} value={contact.preferredContactMethod} options={CONTACT_METHODS} labelPrefix="snapMethod_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredContactMethod: v })} />
-          <SnapSelect id="snapd-source" t={t} label={t("snapOutreachSource")} value={contact.outreachSource} options={OUTREACH_SOURCES} labelPrefix="snapSource_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ outreachSource: v })} />
-          <SnapSelect id="snapd-follow" t={t} label={t("snapFollowUp")} value={contact.followUpStatus} options={FOLLOW_UP_STATUSES} labelPrefix="snapFollow_" disabled={!perms.canEdit || busy} onChange={(v) => patch({ followUpStatus: v })} />
-          <div className="grid gap-1.5">
-            <label htmlFor="snapd-assigned" className="text-xs font-semibold text-muted">{t("snapAssignedTo")}</label>
+          {!perms.canEdit && <Alert tone="info">{t("snapContactReadOnly")}</Alert>}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <SnapSelect id="snapd-lang" t={t} label={t("snapPreferredLanguage")} value={contact.preferredLanguage} options={CONTACT_LANGUAGES} labelPrefix="snapLang_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredLanguage: v })} />
+            <SnapSelect id="snapd-method" t={t} label={t("snapPreferredMethod")} value={contact.preferredContactMethod} options={CONTACT_METHODS} labelPrefix="snapMethod_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ preferredContactMethod: v })} />
+            <SnapSelect id="snapd-source" t={t} label={t("snapOutreachSource")} value={contact.outreachSource} options={OUTREACH_SOURCES} labelPrefix="snapSource_" emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={(v) => patch({ outreachSource: v })} />
+            <SnapSelect id="snapd-follow" t={t} label={t("snapFollowUp")} value={contact.followUpStatus} options={FOLLOW_UP_STATUSES} labelPrefix="snapFollow_" disabled={!perms.canEdit || busy} onChange={(v) => patch({ followUpStatus: v })} />
             {perms.canReassign ? (
-              <select id="snapd-assigned" className={SNAP_CONTROL} value={contact.assignedTo || ""} disabled={busy} onChange={(e) => patch({ assignedTo: e.target.value || null })}>
-                <option value="">{t("snapUnassigned")}</option>
-                {staff.map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
-              </select>
+              <Field label={t("snapAssignedTo")} htmlFor="snapd-assigned">
+                <Select id="snapd-assigned" value={contact.assignedTo || ""} disabled={busy} onChange={(e) => patch({ assignedTo: e.target.value || null })}>
+                  <option value="">{t("snapUnassigned")}</option>
+                  {staff.map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
+                </Select>
+              </Field>
             ) : (
-              <div id="snapd-assigned" className="flex h-10 items-center text-sm text-card-foreground">{contact.assignedTo ? nameOf(contact.assignedTo) : t("snapUnassigned")}</div>
+              <Field label={t("snapAssignedTo")} htmlFor="snapd-assigned">
+                <div id="snapd-assigned" className="flex h-10 items-center text-ui text-card-foreground">{contact.assignedTo ? nameOf(contact.assignedTo) : t("snapUnassigned")}</div>
+              </Field>
             )}
+            <SnapSelect id="snapd-status" t={t} label={t("snapContactStatus")} value={contact.status} options={["active", "inactive"]} labelPrefix="snapStatus_" disabled={!perms.canEdit || busy}
+              onChange={(v) => patch({ status: v })} />
           </div>
-          <SnapSelect id="snapd-status" t={t} label={t("snapContactStatus")} value={contact.status} options={["active", "inactive"]} labelPrefix="snapStatus_" disabled={!perms.canEdit || busy}
-            onChange={(v) => patch({ status: v })} />
         </div>
 
-        <section className="mt-6" aria-labelledby="snapd-consent">
-          <h3 id="snapd-consent" className={H3}>{t("snapConsentTitle")}</h3>
-          <p className="!mb-3 !text-xs text-muted">{t("snapConsentHelp")}</p>
-          <div className="mb-3 flex items-center gap-2 text-sm">
-            <label htmlFor="snapd-consent-method" className="text-xs font-semibold text-muted">{t("snapConsentMethod")}</label>
-            <select id="snapd-consent-method" className={SNAP_CONTROL + " !w-auto"} value={consentMethod} onChange={(e) => setConsentMethod(e.target.value)}>
-              {CONSENT_METHODS.map((m) => <option key={m} value={m}>{t("snapConsentMethod_" + m)}</option>)}
-            </select>
+        <section aria-labelledby="snapd-consent">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h3 id="snapd-consent" className={H3}>{t("snapConsentTitle")}</h3>
+              <p className="m-0 mt-1 max-w-[60ch] text-meta text-muted">{t("snapConsentHelp")}</p>
+            </div>
+            <Field label={t("snapConsentMethod")} htmlFor="snapd-consent-method">
+              <Select id="snapd-consent-method" className="w-auto min-w-[10rem]" value={consentMethod} onChange={(e) => setConsentMethod(e.target.value)}>
+                {CONSENT_METHODS.map((m) => <option key={m} value={m}>{t("snapConsentMethod_" + m)}</option>)}
+              </Select>
+            </Field>
           </div>
-          <div className="overflow-auto rounded-xl border border-border">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-3 py-2">{t("snapConsentChannel")}</th>
-                  <th className="px-3 py-2">{t("snapConsentPurpose")}</th>
-                  <th className="px-3 py-2">{t("snapConsentCurrent")}</th>
-                  <th className="px-3 py-2"><span className="sr-only">{t("actionsCol")}</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {CONSENT_CHANNELS.map((channel) => CONSENT_PURPOSES.map((purpose) => {
-                  const row = current[channel + ":" + purpose];
-                  const label = t("snapMethod_" + channel) + " — " + t("snapPurpose_" + purpose);
-                  return (
-                    <tr key={channel + purpose} className="border-t border-border">
-                      <td className="px-3 py-2">{t("snapMethod_" + channel)}</td>
-                      <td className="px-3 py-2">{t("snapPurpose_" + purpose)}</td>
-                      <td className="px-3 py-2">
-                        <Badge variant={row ? (row.status === "granted" ? "success" : "warn") : "neutral"}>
-                          {t("snapConsent_" + (row ? row.status : "none"))}
-                        </Badge>
-                        {row && <span className="ml-2 text-xs text-muted">{fmtWhen(row.capturedAt)} · {t("snapConsentMethod_" + row.method)}</span>}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right">
-                        <Button size="sm" variant="ghost" disabled={busy} aria-label={t("snapConsentRecordYes") + ": " + label} onClick={() => addConsent(channel, purpose, "granted")}>{t("snapConsentRecordYes")}</Button>
-                        <Button size="sm" variant="ghost" disabled={busy} aria-label={t("snapConsentRecordNo") + ": " + label} onClick={() => addConsent(channel, purpose, "revoked")}>{t("snapConsentRecordNo")}</Button>
-                      </td>
-                    </tr>
-                  );
-                }))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="m-0 list-none divide-y divide-line-subtle rounded-control border border-border p-0">
+            {CONSENT_CHANNELS.map((channel) => CONSENT_PURPOSES.map((purpose) => {
+              const row = current[channel + ":" + purpose];
+              const label = t("snapMethod_" + channel) + " — " + t("snapPurpose_" + purpose);
+              const status = row ? row.status : "none";
+              return (
+                <li key={channel + purpose} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-ui font-semibold text-card-foreground">{label}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-meta text-muted">
+                      <StatusBadge domain="consent" status={status}>{t("snapConsent_" + status)}</StatusBadge>
+                      {row && <span className="tabular-nums">{fmtWhen(row.capturedAt)} · {t("snapConsentMethod_" + row.method)}</span>}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button size="sm" variant="secondary" disabled={busy} aria-label={t("snapConsentRecordYes") + ": " + label} onClick={() => addConsent(channel, purpose, "granted")}>{t("snapConsentRecordYes")}</Button>
+                    <Button size="sm" variant="ghost" disabled={busy} aria-label={t("snapConsentRecordNo") + ": " + label} onClick={() => addConsent(channel, purpose, "revoked")}>{t("snapConsentRecordNo")}</Button>
+                  </div>
+                </li>
+              );
+            }))}
+          </ul>
         </section>
 
-        <section className="mt-6" aria-labelledby="snapd-activity">
-          <h3 id="snapd-activity" className={H3}>{t("snapActivityTitle")}</h3>
-          <form onSubmit={addActivity} className="mb-4 grid gap-3 rounded-xl border border-border p-3 sm:grid-cols-3">
+        <section aria-labelledby="snapd-activity">
+          <h3 id="snapd-activity" className={H3 + " mb-3"}>{t("snapActivityTitle")}</h3>
+          <form onSubmit={addActivity} className="mb-4 grid gap-4 rounded-control border border-border bg-surface-sunken p-4 sm:grid-cols-3">
             <SnapSelect id="snapd-type" t={t} label={t("snapActivityType")} value={entry.type} options={INTERACTION_TYPES} labelPrefix="snapType_" onChange={(v) => setEntry((x) => Object.assign({}, x, { type: v }))} />
             <SnapSelect id="snapd-dir" t={t} label={t("snapDirection")} value={entry.direction} options={INTERACTION_DIRECTIONS} labelPrefix="snapDir_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { direction: v }))} />
             <SnapSelect id="snapd-outcome" t={t} label={t("snapOutcome")} value={entry.outcome} options={INTERACTION_OUTCOMES} labelPrefix="snapOutcome_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { outcome: v }))} />
-            <div className="grid gap-1.5 sm:col-span-3">
-              <label htmlFor="snapd-summary" className="text-xs font-semibold text-muted">{t("snapSummary")}</label>
-              <textarea
+            <Field className="sm:col-span-3" label={t("snapSummary")} htmlFor="snapd-summary" hint={t("snapSummaryHint")}>
+              <Textarea
                 id="snapd-summary" rows={2} maxLength={SUMMARY_MAX} value={entry.summary}
                 aria-describedby="snapd-summary-hint"
+                className="min-h-[72px]"
                 onChange={(e) => setEntry((x) => Object.assign({}, x, { summary: e.target.value }))}
-                className="min-h-0 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
               />
-              <p id="snapd-summary-hint" className="!m-0 !text-xs text-muted">{t("snapSummaryHint")}</p>
-            </div>
-            <div className="sm:col-span-3 flex justify-end">
-              <Button type="submit" size="sm" disabled={busy}>{t("snapLogActivity")}</Button>
+            </Field>
+            <div className="flex justify-end sm:col-span-3">
+              <Button type="submit" size="sm" loading={busy}>{t("snapLogActivity")}</Button>
             </div>
           </form>
           {activity.length ? (
-            <ol className="m-0 list-none space-y-2 p-0">
+            <ol className="m-0 list-none divide-y divide-line-subtle p-0">
               {activity.map((a) => (
-                <li key={a.id} className="rounded-lg border border-border p-3 text-sm">
+                <li key={a.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{t("snapType_" + a.type)}</Badge>
-                    {a.direction && <span className="text-xs text-muted">{t("snapDir_" + a.direction)}</span>}
+                    <Badge variant="neutral">{t("snapType_" + a.type)}</Badge>
+                    {a.direction && <span className="text-meta text-muted">{t("snapDir_" + a.direction)}</span>}
                     {a.outcome && <Badge variant="neutral">{t("snapOutcome_" + a.outcome)}</Badge>}
-                    <span className="ml-auto text-xs text-muted">{fmtWhen(a.occurredAt)} · {nameOf(a.staffId)}</span>
+                    <span className="ml-auto text-meta tabular-nums text-muted">{fmtWhen(a.occurredAt)} · {nameOf(a.staffId)}</span>
                   </div>
-                  {a.summary && <p className="!mb-0 mt-1.5 !text-sm text-card-foreground">{a.summary}</p>}
+                  {a.summary && <p className="m-0 mt-1.5 text-ui text-card-foreground">{a.summary}</p>}
                 </li>
               ))}
             </ol>
-          ) : <p className="!mb-0 py-3 text-center !text-sm text-muted">{t("snapNoActivity")}</p>}
+          ) : <p className="m-0 text-meta text-muted">{t("snapNoActivity")}</p>}
         </section>
       </div>
-    </div>
+    </Dialog>
   );
 }

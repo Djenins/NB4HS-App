@@ -44,7 +44,21 @@ const STATUS_TONES = {
   "task:done": "success",
   "taskPriority:high": "warning",
   "taskPriority:low": "neutral",
+  "caseReview:not_requested": "neutral",
   "caseReview:requested": "warning",
+  "caseReview:approved": "success",
+  "caseReview:changes_requested": "warning",
+
+  // Outreach contacts, cases and consent (Outreach Contacts and Cases)
+  "contactFollowUp:none": "neutral",
+  "contactFollowUp:needed": "warning",
+  "contactFollowUp:scheduled": "info",
+  "contactFollowUp:done": "success",
+  "outreachCase:open": "info",
+  "outreachCase:closed": "neutral",
+  "consent:granted": "success",
+  "consent:revoked": "warning",
+  "consent:none": "neutral",
 
   // Workforce: job openings, referrals, placements (not_selected is neutral -- it isn't an error)
   "opening:draft": "neutral",

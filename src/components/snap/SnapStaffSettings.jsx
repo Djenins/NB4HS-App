@@ -5,23 +5,26 @@
 // server-side. Lists active staff profiles only -- an inactive account
 // can't use a role anyway (has_program_role() requires an active profile).
 // Every change lands in audit_events via the table's trigger.
+//
+// PageHeader, the "how roles work" note, then a DataTable (stacked rows
+// below lg) with one role select per person.
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Users } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { PROGRAM_ROLES, fetchProgramStaff, setProgramRole } from "../../lib/programStaff.js";
+import { avatarColorFor } from "../../lib/avatarTone.js";
 import { roleLabel } from "../../lib/utils.js";
-import { avatarColorFor } from "../StudentCard.jsx";
-import EmptyState from "../EmptyState.jsx";
-import { SectionCard } from "../SectionCard.jsx";
+import { Alert } from "../ui/alert.jsx";
 import { Avatar, AvatarFallback } from "../ui/avatar.jsx";
 import { Badge } from "../ui/badge.jsx";
+import { Card } from "../ui/card.jsx";
+import { DataTable } from "../ui/data-table.jsx";
+import { EmptyState } from "../ui/empty-state.jsx";
+import { Select } from "../ui/field.jsx";
+import { PageHeader } from "../ui/page-header.jsx";
+import { LoadError } from "./SnapListParts.jsx";
 import { snapRoleLabelKey } from "./snapRoleLabel.js";
-
-const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
-// py-0: main.css gives every select 12px top/bottom padding, which leaves no
-// room for the text in a 36px box; pr-9 keeps it clear of the chevron.
-const SELECT = "h-9 min-h-0 rounded-lg border border-border bg-background py-0 pl-2.5 pr-9 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:opacity-50";
 
 function initials(name, email) {
   const parts = ((name || "").trim() || email || "").split(/\s+/).filter(Boolean);
@@ -63,64 +66,70 @@ export default function SnapStaffSettings() {
     .slice()
     .sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
 
-  return (
-    <SectionCard title={t("snapStaffTitle")}>
-      <div className="info-callout mb-4">
-        <ShieldCheck className="icon h-5 w-5" aria-hidden="true" />
-        <p>{t("snapStaffHelp")}</p>
+  const person = (p) => (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar className="h-9 w-9">
+        <AvatarFallback className={avatarColorFor(p.name || p.email)}>{initials(p.name, p.email)}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <div className="truncate text-ui font-semibold text-card-foreground">{p.name || "—"}</div>
+        <div className="truncate text-meta text-muted">{p.email}</div>
       </div>
+    </div>
+  );
+  const systemRole = (p) => <Badge variant="neutral">{roleLabel(p.role, lang)}</Badge>;
+  function roleSelect(p, className) {
+    const membership = members ? members[p.id] : null;
+    const current = membership && membership.active ? membership.role : "";
+    return (
+      <Select
+        className={className}
+        aria-label={t("snapRoleCol") + ": " + (p.name || p.email)}
+        value={current}
+        disabled={members === null || savingId !== null}
+        onChange={(e) => changeRole(p, e.target.value)}
+      >
+        <option value="">{t("snapRoleNone")}</option>
+        {PROGRAM_ROLES.map((r) => <option key={r} value={r}>{t(snapRoleLabelKey(r))}</option>)}
+      </Select>
+    );
+  }
 
-      {loadError ? (
-        <EmptyState icon="users" message={t("snapStaffLoadError")} />
-      ) : !staff.length ? (
-        <EmptyState icon="users" message={t("snapNoActiveStaff")} />
-      ) : (
-        <div className="overflow-auto rounded-xl border border-border">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={TH}>{t("staffMember")}</th>
-                <th className={TH}>{t("roleColLabel")}</th>
-                <th className={TH}>{t("snapRoleCol")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((p) => {
-                const membership = members ? members[p.id] : null;
-                const current = membership && membership.active ? membership.role : "";
-                return (
-                  <tr key={p.id} className="border-t border-border transition-colors hover:bg-background">
-                    <td className="px-4 py-3.5 align-middle">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback className={avatarColorFor(p.name || p.email)}>{initials(p.name, p.email)}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold text-card-foreground">{p.name || "—"}</div>
-                          <div className="truncate text-xs text-muted">{p.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 align-middle"><Badge variant="neutral">{roleLabel(p.role, lang)}</Badge></td>
-                    <td className="px-4 py-3.5 align-middle">
-                      <select
-                        className={SELECT}
-                        aria-label={t("snapRoleCol") + ": " + (p.name || p.email)}
-                        value={current}
-                        disabled={members === null || savingId !== null}
-                        onChange={(e) => changeRole(p, e.target.value)}
-                      >
-                        <option value="">{t("snapRoleNone")}</option>
-                        {PROGRAM_ROLES.map((r) => <option key={r} value={r}>{t(snapRoleLabelKey(r))}</option>)}
-                      </select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </SectionCard>
+  const columns = [
+    { key: "person", header: t("staffMember"), cell: person },
+    { key: "role", header: t("roleColLabel"), cell: systemRole },
+    { key: "programRole", header: t("snapRoleCol"), cell: (p) => roleSelect(p, "w-56"), className: "w-64" }
+  ];
+
+  let body;
+  if (loadError) {
+    body = <LoadError title={t("snapStaffLoadError")} onRetry={load} />;
+  } else {
+    body = (
+      <DataTable
+        caption={t("snapStaffTitle")}
+        columns={columns}
+        rows={staff}
+        getRowId={(p) => p.id}
+        renderCard={(p) => (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              {person(p)}
+              <span className="shrink-0">{systemRole(p)}</span>
+            </div>
+            <div className="mt-3">{roleSelect(p)}</div>
+          </>
+        )}
+        empty={<EmptyState icon={Users} title={t("snapNoActiveStaff")} />}
+      />
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title={t("snapStaffTitle")} description={t("snapStaffDesc")} />
+      <Alert tone="info" className="mb-6">{t("snapStaffHelp")}</Alert>
+      <Card className="p-4 sm:p-5">{body}</Card>
+    </>
   );
 }

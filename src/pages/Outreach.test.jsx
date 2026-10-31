@@ -94,12 +94,13 @@ describe("Outreach", () => {
 
   it("shows an administrator without a SNAP role only Staff & Access", async () => {
     renderAs("administrator", {});
-    expect(await screen.findByText(en("snapStaffTitle"))).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: en("snapStaffTitle") })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: en("snapSectionDashboard") })).not.toBeInTheDocument();
     // active staff only, with their current SNAP role
-    expect(screen.getByText("Cam Manager")).toBeInTheDocument();
+    // (the table and its phone rows both render here, so take the first)
+    expect(screen.getAllByText("Cam Manager")[0]).toBeInTheDocument();
     expect(screen.queryByText("Old Account")).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(en("snapRoleCol") + ": Cam Manager")).toHaveValue("worker"));
+    await waitFor(() => expect(screen.getAllByLabelText(en("snapRoleCol") + ": Cam Manager")[0]).toHaveValue("worker"));
   });
 
   it("sends people without a role or admin rights back to the dashboard", async () => {
@@ -149,7 +150,7 @@ describe("Outreach", () => {
 
   it("writes the chosen role, and revokes with null", async () => {
     renderAs("administrator", {});
-    const select = await screen.findByLabelText(en("snapRoleCol") + ": Cam Manager");
+    const select = (await screen.findAllByLabelText(en("snapRoleCol") + ": Cam Manager"))[0];
     await waitFor(() => expect(select).not.toBeDisabled());
     fireEvent.change(select, { target: { value: "supervisor" } });
     await waitFor(() => expect(setProgramRole).toHaveBeenCalledWith("u-cm", "snap", "supervisor", "u-admin"));
