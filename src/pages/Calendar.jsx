@@ -23,7 +23,7 @@
 // them (buildTimeGrid widens past 8-6 for anything scheduled outside office
 // hours) and the minute-resolution clock behind the "now" line.
 import { Info } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { WEEKDAYS } from "../lib/constants.js";
 import { addDays, addMonths, addWorkdays, classBlocksForDay, classGroupAccents, eventRights, nearestWorkday, sortDayBlocks, startOfMonth, workMonthGridDays, workWeekDays } from "../lib/calendar.js";
@@ -32,6 +32,8 @@ import { dateStrFromDate, fullServiceList, labelFor, todayStr } from "../lib/uti
 import { studentsForClass } from "../lib/students.js";
 import { holidaysByDate } from "../lib/holidays.js";
 import { Button } from "../components/ui/button.jsx";
+import { Dialog } from "../components/ui/dialog.jsx";
+import { Field, Input, Select } from "../components/ui/field.jsx";
 import { FILTERS } from "../components/calendar/kindStyle.js";
 import { buildTimeGrid } from "../components/calendar/calendarLayout.js";
 import CalendarHeader from "../components/calendar/CalendarHeader.jsx";
@@ -43,9 +45,6 @@ import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
 import { CalendarError, CalendarSkeleton } from "../components/calendar/CalendarStatus.jsx";
-import { useModalA11y } from "../lib/useModalA11y.js";
-
-const inputClass = "h-11 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 // The switcher in CalendarHeader. Week/Month/Day is the trio the redesign
 // reference puts there; Agenda stays on the end because it's a saved
@@ -74,9 +73,12 @@ function initialView(configuredView) {
   return saved;
 }
 
+// Add Office Visit / Add Appointment. A Dialog form: Enter in any field
+// saves once the required fields are filled, same as clicking Save.
 function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const idBase = useId();
+  const id = (name) => idBase + "-" + name;
   const [fields, setFields] = useState({
     title: "", personName: "", notes: "", location: "",
     date: defaultDate, startTime: "09:00", endTime: "",
@@ -84,82 +86,78 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
   });
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
   const label = type === "visit" ? t("calendarAddVisit") : t("calendarAddAppointment");
+  const canSave = !!(fields.title.trim() && fields.date && fields.startTime);
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-xl" role="dialog" aria-modal="true">
-        <p className="mb-4 text-base font-bold text-card-foreground">{label}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarPersonName")}</label><input className={inputClass} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDate")} *</label><input type="date" className={inputClass} value={fields.date} onChange={(e) => setField("date", e.target.value)} /></div>
-          {type === "appointment" && (
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarAvailability")}</label>
-              <select className={inputClass} value={fields.availability} onChange={(e) => setField("availability", e.target.value)}>
-                <option value="busy">{t("calendarBusy")}</option>
-                <option value="available">{t("calendarAvailable")}</option>
-              </select>
-            </div>
-          )}
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarStartTime")} *</label><input type="time" className={inputClass} value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} /></div>
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEndTime")}</label><input type="time" className={inputClass} value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} /></div>
-        </div>
-        <div className="mt-3">
-          <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("classLocationLabel")}</label><input className={inputClass} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} /></div>
-        </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label>
-          <input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} />
-        </div>
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={label}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (canSave) onSave(Object.assign({}, fields, { type, createdByName })); } }}
+      footer={(
+        <>
           <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
-          <Button disabled={!fields.title.trim() || !fields.date || !fields.startTime} onClick={() => onSave(Object.assign({}, fields, { type, createdByName }))}>{t("calendarSave")}</Button>
-        </div>
+          <Button type="submit" disabled={!canSave}>{t("calendarSave")}</Button>
+        </>
+      )}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label={t("calendarEventTitle")} required htmlFor={id("title")}>
+          <Input id={id("title")} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} />
+        </Field>
+        <Field label={t("calendarPersonName")} htmlFor={id("person")}>
+          <Input id={id("person")} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} />
+        </Field>
+        <Field label={t("calendarDate")} required htmlFor={id("date")}>
+          <Input id={id("date")} type="date" value={fields.date} onChange={(e) => setField("date", e.target.value)} />
+        </Field>
+        {type === "appointment" && (
+          <Field label={t("calendarAvailability")} htmlFor={id("availability")}>
+            <Select id={id("availability")} value={fields.availability} onChange={(e) => setField("availability", e.target.value)}>
+              <option value="busy">{t("calendarBusy")}</option>
+              <option value="available">{t("calendarAvailable")}</option>
+            </Select>
+          </Field>
+        )}
+        <Field label={t("calendarStartTime")} required htmlFor={id("start")}>
+          <Input id={id("start")} type="time" value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} />
+        </Field>
+        <Field label={t("calendarEndTime")} htmlFor={id("end")}>
+          <Input id={id("end")} type="time" value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} />
+        </Field>
+        <Field label={t("classLocationLabel")} htmlFor={id("location")} className="sm:col-span-2">
+          <Input id={id("location")} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} />
+        </Field>
+        <Field label={t("calendarNotes")} htmlFor={id("notes")} className="sm:col-span-2">
+          <Input id={id("notes")} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} />
+        </Field>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 function CalendarSettingsModal({ config, onSave, onCancel }) {
-  const boxRef = useModalA11y(onCancel);
   const t = useT();
+  const idBase = useId();
+  const id = (name) => idBase + "-" + name;
   const [defaultView, setDefaultView] = useState(config.calendarDefaultView || "week");
   const [defaultFilter, setDefaultFilter] = useState(config.calendarDefaultFilter || "all");
   const [classStartTime, setClassStartTime] = useState(config.calendarClassStartTime || "09:30");
   const [classEndTime, setClassEndTime] = useState(config.calendarClassEndTime || "12:30");
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={boxRef} className="modal-box max-w-md" role="dialog" aria-modal="true">
-        <p className="mb-1 text-base font-bold text-card-foreground">{t("calendarSettings")}</p>
-        <p className="mb-4 text-xs text-muted">{t("calendarSettingsDesc")}</p>
-
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDefaultViewLabel")}</label>
-          <select className={inputClass} value={defaultView} onChange={(e) => setDefaultView(e.target.value)}>
-            <option value="week">{t("calendarWeekView")}</option>
-            <option value="list">{t("calendarListView")}</option>
-          </select>
-        </div>
-
-        <div className="mb-3">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDefaultFilterLabel")}</label>
-          <select className={inputClass} value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)}>
-            {FILTERS.map((f) => <option key={f.key} value={f.key}>{t(f.label)}</option>)}
-          </select>
-        </div>
-
-        <div className="mb-1">
-          <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarClassTimesLabel")}</label>
-          <p className="mb-1.5 text-xs text-muted">{t("calendarClassTimesDesc")}</p>
-          <div className="grid grid-cols-2 gap-3">
-            <input type="time" className={inputClass} value={classStartTime} onChange={(e) => setClassStartTime(e.target.value)} />
-            <input type="time" className={inputClass} value={classEndTime} onChange={(e) => setClassEndTime(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="pill-row" style={{ justifyContent: "flex-end", marginTop: 16, marginBottom: 0 }}>
+    <Dialog
+      open
+      onClose={onCancel}
+      title={t("calendarSettings")}
+      description={t("calendarSettingsDesc")}
+      size="sm"
+      closeLabel={t("closeLabel")}
+      footer={(
+        <>
           <Button type="button" variant="secondary" onClick={onCancel}>{t("calendarCancel")}</Button>
           <Button onClick={() => onSave({
             calendarDefaultView: defaultView,
@@ -167,9 +165,33 @@ function CalendarSettingsModal({ config, onSave, onCancel }) {
             calendarClassStartTime: classStartTime,
             calendarClassEndTime: classEndTime
           })}>{t("calendarSave")}</Button>
-        </div>
+        </>
+      )}
+    >
+      <div className="flex flex-col gap-4">
+        <Field label={t("calendarDefaultViewLabel")} htmlFor={id("view")}>
+          <Select id={id("view")} value={defaultView} onChange={(e) => setDefaultView(e.target.value)}>
+            <option value="week">{t("calendarWeekView")}</option>
+            <option value="list">{t("calendarListView")}</option>
+          </Select>
+        </Field>
+
+        <Field label={t("calendarDefaultFilterLabel")} htmlFor={id("filter")}>
+          <Select id={id("filter")} value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)}>
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{t(f.label)}</option>)}
+          </Select>
+        </Field>
+
+        <fieldset className="m-0 flex flex-col gap-1.5 p-0">
+          <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">{t("calendarClassTimesLabel")}</legend>
+          <p className="m-0 mb-1 text-meta text-muted">{t("calendarClassTimesDesc")}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Input type="time" aria-label={t("calendarStartTime")} value={classStartTime} onChange={(e) => setClassStartTime(e.target.value)} />
+            <Input type="time" aria-label={t("calendarEndTime")} value={classEndTime} onChange={(e) => setClassEndTime(e.target.value)} />
+          </div>
+        </fieldset>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -407,17 +429,36 @@ export default function CalendarPage() {
     if (status === "loading") return <CalendarSkeleton columns={view === "day" ? 1 : 5} rows={view === "day" ? 6 : 8} />;
     if (status === "error") return <CalendarError t={t} onRetry={reload} />;
     if (view === "month") {
+      // Below sm the five-column month grid is unreadable, so a phone gets
+      // the month's busy days as an agenda list instead. Both get the same
+      // dayBlocks; only one is displayed at a time.
+      const monthDays = dayBlocks.filter((d) => d.date.getMonth() === anchor.getMonth());
       return (
-        <MonthView
-          dayBlocks={dayBlocks}
-          monthAnchor={anchor}
-          todayStr={today}
-          holidaysByDate={rangeHolidays}
-          t={t}
-          onSelectDay={(dateStr) => { setAnchor(new Date(dateStr + "T00:00:00")); setView("day"); }}
-          onOpenEvent={openEvent}
-          onAddEvent={addEvent}
-        />
+        <>
+          <div className="sm:hidden">
+            <AgendaView
+              dayBlocks={monthDays}
+              skipEmpty
+              todayStr={today}
+              holidaysByDate={rangeHolidays}
+              t={t}
+              onOpenEvent={openEvent}
+              onAddEvent={addEvent}
+            />
+          </div>
+          <div className="hidden sm:block">
+            <MonthView
+              dayBlocks={dayBlocks}
+              monthAnchor={anchor}
+              todayStr={today}
+              holidaysByDate={rangeHolidays}
+              t={t}
+              onSelectDay={(dateStr) => { setAnchor(new Date(dateStr + "T00:00:00")); setView("day"); }}
+              onOpenEvent={openEvent}
+              onAddEvent={addEvent}
+            />
+          </div>
+        </>
       );
     }
     if (view === "list") {
@@ -485,7 +526,7 @@ export default function CalendarPage() {
       {/* The grid itself always stays on screen when a range is empty -- the
           note sits above it so staff can still navigate or add an event. */}
       {isEmptyRange && (
-        <p className="m-0 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted">
+        <p className="m-0 flex items-center gap-2 rounded-control border border-border bg-card px-4 py-2.5 text-ui text-muted">
           <Info className="h-4 w-4 shrink-0 text-primary" />
           {search.trim() || filter !== "all" ? t("calendarNoMatches") : t("calendarNoEventsRange")}
         </p>
@@ -495,7 +536,7 @@ export default function CalendarPage() {
 
       <Legend t={t} summary={status === "ready" ? summary : null} classGroups={classGroupCount} />
 
-      <p className="m-0 flex items-start gap-2 px-1 text-xs text-muted">
+      <p className="m-0 flex items-start gap-2 px-1 text-meta text-muted">
         <Info className="mt-px h-3.5 w-3.5 shrink-0 text-primary" />
         {t("calendarAboutBody")}
       </p>

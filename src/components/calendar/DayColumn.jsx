@@ -46,24 +46,24 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
   const summary = daySummary(blocks, t);
 
   return (
-    <div className={cn("flex flex-col border-l border-[var(--cal-grid)] first:border-l-0", singleDay ? "min-w-0 flex-1" : "min-w-[150px] flex-1 sm:min-w-[168px]", isToday && "bg-[var(--cal-today-bg)]")}>
+    <div className={cn("flex flex-col border-l border-line-subtle first:border-l-0", singleDay ? "min-w-0 flex-1" : "min-w-[150px] flex-1 sm:min-w-[168px]", isToday && "bg-[var(--cal-today-bg)]")}>
       <div
         style={{ height: HEADER_HEIGHT }}
-        className="flex flex-col items-center justify-center border-b border-[var(--cal-grid)] px-2 [container-type:inline-size]"
+        className="flex flex-col items-center justify-center border-b border-line-subtle px-2 [container-type:inline-size]"
         aria-current={isToday ? "date" : undefined}
       >
-        <p className={cn("m-0 text-[13px] font-bold uppercase leading-none tracking-[0.06em]", isToday ? "text-primary" : "text-navy dark:text-card-foreground")}>{weekdayLabel}</p>
+        <p className={cn("m-0 text-meta font-bold uppercase leading-none tracking-[0.06em]", isToday ? "text-tone-info-ink" : "text-navy dark:text-card-foreground")}>{weekdayLabel}</p>
 
         <span
           className={cn(
-            "mt-2 flex h-12 w-12 items-center justify-center rounded-full text-[22px] font-bold leading-none tabular-nums",
-            isToday ? "bg-primary text-primary-foreground shadow-[0_6px_14px_-6px_rgba(37,99,235,.6)]" : "bg-tint-neutral text-navy dark:text-card-foreground"
+            "mt-2 flex h-12 w-12 items-center justify-center rounded-chip text-[22px] font-bold leading-none tabular-nums",
+            isToday ? "bg-primary text-primary-foreground shadow-card" : "bg-tone-neutral-bg text-navy dark:text-card-foreground"
           )}
         >
           {dayNumber}
         </span>
 
-        <p className="m-0 mt-2 text-sm font-medium leading-none text-muted">
+        <p className="m-0 mt-2 text-ui font-medium leading-none text-muted">
           {monthLabel}
           {isToday && <span className="sr-only"> — {t("calendarToday")}</span>}
         </p>
@@ -72,7 +72,7 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
             header bottoms out on the same line. */}
         <div className="mt-3 flex h-8 max-w-full items-center">
           {summary && (
-            <span title={summary} className="flex max-w-full items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-xs font-semibold leading-none text-primary [@container(min-width:13rem)]:gap-2 [@container(min-width:13rem)]:text-[13px]">
+            <span title={summary} className="flex max-w-full items-center gap-1.5 rounded-chip bg-tone-info-bg px-3 py-1.5 text-caption font-semibold leading-none tabular-nums text-tone-info-ink [@container(min-width:13rem)]:gap-2 [@container(min-width:13rem)]:text-meta">
               <Users className="hidden h-4 w-4 shrink-0 [@container(min-width:11rem)]:block" aria-hidden="true" />
               <span className="truncate">{summary}</span>
             </span>
@@ -83,12 +83,12 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
       {allDayHeight > 0 && (
         <div
           style={{ height: allDayHeight }}
-          className="flex items-center border-b border-[var(--cal-grid)] px-1.5"
+          className="flex items-center border-b border-line-subtle px-1.5"
         >
           {holiday && (
             <span
               className={cn(
-                "flex min-w-0 items-center gap-1.5 rounded-md border border-l-[3px] px-1.5 py-1 text-[11px] font-bold leading-none",
+                "flex min-w-0 items-center gap-1.5 rounded-badge border border-l-[3px] px-1.5 py-1 text-caption font-bold leading-none",
                 KIND_STYLE.holiday.cardBg,
                 KIND_STYLE.holiday.cardBorder,
                 KIND_STYLE.holiday.accent,
@@ -112,7 +112,7 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
           <div
             key={h}
             style={{ height: grid.hourHeight, top: i * grid.hourHeight }}
-            className={cn("absolute inset-x-0", i > 0 && "border-t border-dashed border-[var(--cal-grid)]")}
+            className={cn("absolute inset-x-0", i > 0 && "border-t border-dashed border-line-subtle")}
             onDoubleClick={onAddEvent ? () => onAddEvent(day.dateStr) : undefined}
           />
         ))}
@@ -121,7 +121,7 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
           <button
             type="button"
             onClick={() => onAddEvent(day.dateStr)}
-            className={cn(BTN_RESET, "absolute inset-x-3 top-1/2 flex -translate-y-1/2 items-center justify-center gap-1.5 rounded-xl border border-dashed border-secondary-border py-2.5 text-xs font-semibold text-muted transition-colors hover:border-primary hover:bg-primary-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary")}
+            className={cn(BTN_RESET, "absolute inset-x-3 top-1/2 flex -translate-y-1/2 items-center justify-center gap-1.5 rounded-control border border-dashed border-secondary-border py-2.5 text-meta font-semibold text-muted transition-colors hover:border-primary hover:bg-tone-info-bg hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary")}
           >
             <Plus className="h-3.5 w-3.5" /> {t("calendarNewEvent")}
           </button>
@@ -134,7 +134,7 @@ export default function DayColumn({ day, weekdayLabel, isToday, holiday, grid, s
         {isToday && nowOffset !== null && nowOffset !== undefined && (
           <div className="pointer-events-none absolute inset-x-0 z-30" style={{ top: nowOffset }} aria-hidden="true">
             <div className="relative h-px bg-primary">
-              <span className="absolute -left-[3px] -top-[3.5px] h-[7px] w-[7px] rounded-full bg-primary" />
+              <span className="absolute -left-[3px] -top-[3.5px] h-[7px] w-[7px] rounded-chip bg-primary" />
             </div>
           </div>
         )}

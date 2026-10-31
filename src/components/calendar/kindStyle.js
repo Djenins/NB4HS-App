@@ -5,91 +5,57 @@
 // the design brief's other categories (Immigration, Housing, etc.) aren't
 // here.
 //
-// Colors are design-system tokens from main.css, not new hex values:
-// Class = --primary (NB4HS blue), Office Visit = --success (green), Holiday
-// = --accent (red), and Appointment = the purple --ev-appt-* pair, the one
-// kind with no brand token of its own. Each kind's soft card tint and
-// hairline border come from the --ev-*-bg/--ev-*-border variables added for
-// this screen, referenced as bg-[var(--x)] rather than a Tailwind
-// `/opacity` modifier -- the palette in tailwind.config.js maps every color
-// to a var(), and an opacity modifier on one of those compiles to an
-// invalid rgb(var(--x) / .5) that renders as no background at all.
+// Colours come from the design system's six tones (main.css --tone-*,
+// exposed as bg-tone-<tone>-<slot> etc.): Class = info (NB4HS blue), Office
+// Visit = success, Appointment = violet, Holiday = danger. Every slot is a
+// named token, never a hex value or a Tailwind `/opacity` modifier -- the
+// palette in tailwind.config.js maps every colour to a var(), and an opacity
+// modifier on one of those compiles to an invalid rgb(var(--x) / .5).
 //
 // Each entry carries the whole card recipe -- tint, border, left accent,
-// icon disc, colored time -- so the week grid, month chips, agenda rows,
+// icon disc, coloured time -- so the week grid, month chips, agenda rows,
 // legend and drawer all draw the same event the same way. `iconBg` is the
-// disc behind the card's icon, one step deeper than `cardBg`.
+// disc behind the card's icon, one step deeper than `cardBg`; `chipBg` is the
+// same chip slot, used for the square icon tiles in the agenda and drawer.
+// `tone` is the tone's name, for shared components (FilterChips) that take one.
 import { CalendarClock, FileText, Monitor, PartyPopper, UserRound } from "lucide-react";
 
+function toneStyle(tone, icon, label) {
+  return {
+    tone: tone,
+    icon: icon,
+    label: label,
+    chipBg: "bg-tone-" + tone + "-chip",
+    iconBg: "bg-tone-" + tone + "-chip",
+    chipFg: "text-tone-" + tone + "-ink",
+    dot: "bg-tone-" + tone + "-solid",
+    cardBg: "bg-tone-" + tone + "-bg",
+    cardBorder: "border-tone-" + tone + "-border",
+    accent: "border-l-tone-" + tone + "-solid",
+    hover: "hover:border-tone-" + tone + "-solid"
+  };
+}
+
+// Tailwind only generates classes it finds written out in full, and
+// toneStyle() builds its strings, so every one it can return is listed here:
+//   bg-tone-info-chip text-tone-info-ink bg-tone-info-solid bg-tone-info-bg border-tone-info-border border-l-tone-info-solid hover:border-tone-info-solid
+//   bg-tone-success-chip text-tone-success-ink bg-tone-success-solid bg-tone-success-bg border-tone-success-border border-l-tone-success-solid hover:border-tone-success-solid
+//   bg-tone-violet-chip text-tone-violet-ink bg-tone-violet-solid bg-tone-violet-bg border-tone-violet-border border-l-tone-violet-solid hover:border-tone-violet-solid
+//   bg-tone-danger-chip text-tone-danger-ink bg-tone-danger-solid bg-tone-danger-bg border-tone-danger-border border-l-tone-danger-solid hover:border-tone-danger-solid
 export var KIND_STYLE = {
-  class: {
-    icon: Monitor,
-    label: "calendarClassLabel",
-    chipBg: "bg-primary-tint",
-    iconBg: "bg-[var(--ev-class-chip)]",
-    chipFg: "text-primary",
-    dot: "bg-primary",
-    cardBg: "bg-[var(--ev-class-bg)]",
-    cardBorder: "border-[var(--ev-class-border)]",
-    accent: "border-l-primary",
-    hover: "hover:border-primary"
-  },
-  visit: {
-    icon: UserRound,
-    label: "calendarVisitLabel",
-    chipBg: "bg-tint-success",
-    iconBg: "bg-[var(--ev-visit-chip)]",
-    chipFg: "text-success",
-    dot: "bg-success",
-    cardBg: "bg-[var(--ev-visit-bg)]",
-    cardBorder: "border-[var(--ev-visit-border)]",
-    accent: "border-l-success",
-    hover: "hover:border-success"
-  },
-  appointment: {
-    icon: CalendarClock,
-    label: "calendarAppointmentLabel",
-    chipBg: "bg-[var(--ev-appt-bg)]",
-    iconBg: "bg-[var(--ev-appt-chip)]",
-    chipFg: "text-[var(--ev-appt-fg)]",
-    dot: "bg-[var(--ev-appt-fg)]",
-    cardBg: "bg-[var(--ev-appt-bg)]",
-    cardBorder: "border-[var(--ev-appt-border)]",
-    accent: "border-l-[var(--ev-appt-fg)]",
-    hover: "hover:border-[var(--ev-appt-fg)]"
-  },
-  holiday: {
-    icon: PartyPopper,
-    label: "calendarHolidayLabel",
-    chipBg: "bg-accent-tint",
-    iconBg: "bg-[var(--ev-holiday-chip)]",
-    chipFg: "text-accent",
-    dot: "bg-accent",
-    cardBg: "bg-[var(--ev-holiday-bg)]",
-    cardBorder: "border-[var(--ev-holiday-border)]",
-    accent: "border-l-accent",
-    hover: "hover:border-accent"
-  }
+  class: toneStyle("info", Monitor, "calendarClassLabel"),
+  visit: toneStyle("success", UserRound, "calendarVisitLabel"),
+  appointment: toneStyle("violet", CalendarClock, "calendarAppointmentLabel"),
+  holiday: toneStyle("danger", PartyPopper, "calendarHolidayLabel")
 };
 
-// The class kind draws from a small palette rather than one fixed blue --
-// classGroupAccents() in lib/calendar.js assigns each distinct class
-// grouping in the week an index into this array, so Level 1 & 2 and Level 3
-// are told apart at a glance. Slot 0 is KIND_STYLE.class itself, so a
-// schedule with only one grouping looks exactly as it did before.
-//
-// Slot 1's violet is deliberately a lighter, bluer hue than the appointment
-// purple (--ev-appt-fg): the two kinds still differ by hue, and they always
-// differ by icon (graduation cap vs. clock) and by the type word in the
-// tooltip, legend and drawer -- colour is never the only signal here. Each
-// slot also has its own icon (monitor / document), so two groupings differ
-// by glyph as well as hue.
 export var CLASS_ACCENTS = [
   KIND_STYLE.class,
   {
+    tone: null,
     icon: FileText,
     label: "calendarClassLabel",
-    chipBg: "bg-[var(--ev-class-alt-bg)]",
+    chipBg: "bg-[var(--ev-class-alt-chip)]",
     iconBg: "bg-[var(--ev-class-alt-chip)]",
     chipFg: "text-[var(--ev-class-alt-fg)]",
     dot: "bg-[var(--ev-class-alt-fg)]",

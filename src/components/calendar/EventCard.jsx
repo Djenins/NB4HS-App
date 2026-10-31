@@ -48,7 +48,7 @@ function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, classNa
           type="button"
           aria-label={t("calendarEventActions") + ": " + block.title}
           onClick={(e) => e.stopPropagation()}
-          className={cn(BTN_RESET, "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--ev-ink-soft)] transition-colors hover:bg-card hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=open]:bg-card", className)}
+          className={cn(BTN_RESET, "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip text-on-tint transition-colors hover:bg-card hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=open]:bg-card", className)}
         >
           <MoreVertical className="h-[18px] w-[18px]" />
         </button>
@@ -75,7 +75,7 @@ function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, classNa
         {rights.remove && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onDelete(block)} className="text-accent">
+            <DropdownMenuItem onSelect={() => onDelete(block)} className="text-tone-danger-ink">
               <Trash2 className="h-4 w-4" />{t("calendarDelete")}
             </DropdownMenuItem>
           </>
@@ -116,10 +116,11 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
       <div
         title={t(style.label) + " · " + block.title + " · " + timeRange}
         className={cn(
-          // transform + border-colour + shadow ease together on hover; the
+          // Border colour and shadow ease together on hover -- the card is
+          // a button, so it raises (shadow-raised), but it never moves. The
           // focus ring lives on the overlay button, not here, so it appears
           // the instant the card is tabbed to.
-          "relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-l-4 shadow-card transition-[transform,border-color,box-shadow] duration-200 ease-out group-hover:-translate-y-px group-hover:shadow-card-hover",
+          "relative flex h-full w-full flex-col overflow-hidden rounded-surface border border-l-4 shadow-card transition-[border-color,box-shadow] duration-base ease-out group-hover:shadow-raised",
           style.cardBg,
           style.cardBorder,
           style.accent,
@@ -133,7 +134,7 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
           type="button"
           aria-label={srLabel}
           onClick={() => onOpen(block)}
-          className={cn(BTN_RESET, "absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary")}
+          className={cn(BTN_RESET, "absolute inset-0 z-0 rounded-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary")}
         />
 
         <div
@@ -146,7 +147,7 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
             <span
               aria-hidden="true"
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-full",
+                "flex shrink-0 items-center justify-center rounded-chip",
                 density === "full" ? cn("h-9 w-9 [@container(min-width:15rem)]:h-11 [@container(min-width:15rem)]:w-11", style.iconBg) : ""
               )}
             >
@@ -157,13 +158,13 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
               <p className={cn(
                 "m-0 min-w-0 font-bold leading-snug text-navy dark:text-card-foreground",
                 density === "full"
-                  ? cn("line-clamp-2 text-[15px] [@container(min-width:15rem)]:text-[17px]", roomy && "text-[17px]")
-                  : "truncate text-[13px]"
+                  ? cn("line-clamp-2 text-body [@container(min-width:15rem)]:text-[17px]", roomy && "text-[17px]")
+                  : "truncate text-meta"
               )}>
                 {block.title}
               </p>
               {density === "full" && subtitle && (
-                <p className="m-0 mt-0.5 truncate text-[13px] font-medium leading-tight text-[var(--ev-ink-soft)] [@container(min-width:15rem)]:text-[15px]">{subtitle}</p>
+                <p className="m-0 mt-0.5 truncate text-meta font-medium leading-tight text-on-tint [@container(min-width:15rem)]:text-body">{subtitle}</p>
               )}
             </div>
 
@@ -175,9 +176,9 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
 
           {density !== "tight" && (
             <p className={cn(
-              "m-0 flex min-w-0 items-center gap-1.5 font-semibold leading-tight",
+              "m-0 flex min-w-0 items-center gap-1.5 font-semibold leading-tight tabular-nums",
               style.chipFg,
-              density === "full" ? "text-[13px] [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-base" : "text-[11.5px]"
+              density === "full" ? "text-meta [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-section" : "text-caption"
             )}>
               <Clock className={cn("shrink-0", density === "full" ? "h-4 w-4 [@container(min-width:15rem)]:h-[18px] [@container(min-width:15rem)]:w-[18px]" : "h-3 w-3")} aria-hidden="true" />
               {/* The time is the one line never cut short: on a full card it
@@ -187,14 +188,14 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
           )}
 
           {density === "full" && location && (
-            <p className="m-0 flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-tight text-[var(--ev-ink-soft)] [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-[15px]">
+            <p className="m-0 flex min-w-0 items-center gap-1.5 text-meta font-medium leading-tight text-on-tint [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-body">
               <MapPin className="h-4 w-4 shrink-0 [@container(min-width:15rem)]:h-[18px] [@container(min-width:15rem)]:w-[18px]" aria-hidden="true" />
               <span className="truncate">{location}</span>
             </p>
           )}
 
           {density === "medium" && subtitle && (
-            <p className="m-0 truncate text-[11.5px] leading-tight text-[var(--ev-ink-soft)]">{subtitle}</p>
+            <p className="m-0 truncate text-caption leading-tight text-on-tint">{subtitle}</p>
           )}
         </div>
 
@@ -205,12 +206,12 @@ export default function EventCard({ block, grid, roomy, t, onOpen, onEdit, onDup
         {density === "full" && (
           <div className="pointer-events-none relative flex shrink-0 items-center justify-between gap-2 bg-[color-mix(in_srgb,var(--card)_55%,transparent)] py-1.5 pl-3 pr-1.5 [@container(min-width:15rem)]:py-2 [@container(min-width:15rem)]:pl-4 [@container(min-width:15rem)]:pr-2">
             {count > 0 ? (
-              <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-[var(--ev-ink-soft)] [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-[15px]">
+              <span className="flex min-w-0 items-center gap-1.5 text-meta font-medium tabular-nums text-on-tint [@container(min-width:15rem)]:gap-2 [@container(min-width:15rem)]:text-body">
                 <Users className="h-4 w-4 shrink-0 [@container(min-width:15rem)]:h-[18px] [@container(min-width:15rem)]:w-[18px]" aria-hidden="true" />
                 <span className="truncate">{plural(t, count, "calendarStudentOne", "calendarStudentMany")}</span>
               </span>
             ) : block.event?.personName && block.event.personName !== subtitle ? (
-              <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-[var(--ev-ink-soft)] [@container(min-width:15rem)]:text-[15px]">
+              <span className="flex min-w-0 items-center gap-1.5 text-meta font-medium text-on-tint [@container(min-width:15rem)]:text-body">
                 <UserRound className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{block.event.personName}</span>
               </span>
