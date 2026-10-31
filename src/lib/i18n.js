@@ -411,6 +411,9 @@ export var STR = {
   srExportNote: { en: "Exports the summary rows shown — not report text.", ht: "Ekspòte liy rezime ki parèt yo — se pa tèks rapò yo.", fr: "Exporte les lignes de synthèse affichées — pas le texte des rapports." },
   srFrom: { en: "From", ht: "Soti", fr: "Du" },
   srTo: { en: "To", ht: "Rive", fr: "Au" },
+  // Staff-only (Staff Reports > All reports): English in every language.
+  srRangeLabel: { en: "Periods", ht: "Periods", fr: "Periods" },
+  srRangeAll: { en: "All periods", ht: "All periods", fr: "All periods" },
   srPeriodStart: { en: "Period start", ht: "Kòmansman peryòd", fr: "Début de période" },
   srPeriodEnd: { en: "Period end", ht: "Fen peryòd", fr: "Fin de période" },
   srPrint: { en: "Print / Save as PDF", ht: "Enprime / Sove an PDF", fr: "Imprimer / Enregistrer en PDF" },

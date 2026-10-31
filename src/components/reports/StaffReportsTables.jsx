@@ -5,7 +5,7 @@
 // every submitted report across periods, searchable, with a CSV export of
 // the summary rows -- report text and comments are not exported.
 import { useEffect, useMemo, useState } from "react";
-import { Download, Search } from "lucide-react";
+import { AlarmClock, CheckCircle2, ClipboardList, Download, Hourglass, Inbox, Percent, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
@@ -13,12 +13,17 @@ import {
   fmtPeriod, localDateIn, programsLabel, summarizeExpectations, toCsv
 } from "../../lib/staffReports.js";
 import { downloadBlob } from "../../lib/utils.js";
-import EmptyState from "../EmptyState.jsx";
-import { SectionCard } from "../SectionCard.jsx";
 import { Button } from "../ui/button.jsx";
-import { REPORT_CONTROL, ReportStatusBadge, TD, TH, fmtStamp, useProgramLabels } from "./ReportParts.jsx";
-
-const SELECT = REPORT_CONTROL + " h-10";
+import { DataTable } from "../ui/data-table.jsx";
+import { EmptyState } from "../ui/empty-state.jsx";
+import { Field, Select } from "../ui/field.jsx";
+import { FilterBar, FilterField } from "../ui/filter-bar.jsx";
+import { KpiCard } from "../ui/kpi-card.jsx";
+import { RangeBar } from "../ui/range-bar.jsx";
+import { SearchInput } from "../ui/search-input.jsx";
+import { SectionCard } from "../ui/section-card.jsx";
+import { Skeleton } from "../ui/skeleton.jsx";
+import { ReportStatusBadge, fmtStamp, useProgramLabels } from "./ReportParts.jsx";
 
 // Names for ids, for display, search and export.
 function useNames() {
@@ -33,73 +38,92 @@ function useNames() {
   }, [data.profiles, programNames, t]);
 }
 
-function Filters({ filters, setFilters, staffIds, names, statuses, t }) {
+// List-page filters: search on its own row, the three selects underneath
+// (collapsed behind "Filters" on a phone).
+function Filters({ idBase, filters, setFilters, staffIds, names, statuses, t }) {
   const set = (k, v) => setFilters((f) => Object.assign({}, f, { [k]: v }));
+  const active = ["program", "staffId", "status"].filter((k) => filters[k]).length;
   return (
-    <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-        <input value={filters.q} onChange={(e) => set("q", e.target.value)} aria-label={t("searchLabel")} placeholder={t("srSearchStaff")} className={SELECT + " pl-9"} />
-      </div>
-      <select aria-label={t("srPrograms")} className={SELECT} value={filters.program} onChange={(e) => set("program", e.target.value)}>
-        <option value="">{t("srAllPrograms")}</option>
-        {Object.keys(names.programs).map((k) => <option key={k} value={k}>{names.programs[k]}</option>)}
-      </select>
-      <select aria-label={t("srStaffMember")} className={SELECT} value={filters.staffId} onChange={(e) => set("staffId", e.target.value)}>
-        <option value="">{t("srAllStaff")}</option>
-        {staffIds.map((id) => <option key={id} value={id}>{names.staff[id] || "—"}</option>)}
-      </select>
-      <select aria-label={t("srStatus")} className={SELECT} value={filters.status} onChange={(e) => set("status", e.target.value)}>
-        <option value="">{t("srAllStatuses")}</option>
-        {statuses.map((s) => <option key={s} value={s}>{t("srStatus_" + s)}</option>)}
-      </select>
-    </div>
+    <FilterBar
+      search={<SearchInput value={filters.q} onChange={(e) => set("q", e.target.value)} onClear={() => set("q", "")} clearLabel={t("clearLabel")} aria-label={t("searchLabel")} placeholder={t("srSearchStaff")} />}
+      activeCount={active}
+      canClear={active > 0 || !!filters.q}
+      onClear={() => setFilters((f) => Object.assign({}, f, EMPTY_FILTERS))}
+      clearLabel={t("clearLabel")}
+      filtersLabel={t("filtersLabel")}
+      gridClassName="sm:grid-cols-3"
+    >
+      <FilterField label={t("srPrograms")} htmlFor={idBase + "-program"}>
+        <Select id={idBase + "-program"} value={filters.program} onChange={(e) => set("program", e.target.value)}>
+          <option value="">{t("srAllPrograms")}</option>
+          {Object.keys(names.programs).map((k) => <option key={k} value={k}>{names.programs[k]}</option>)}
+        </Select>
+      </FilterField>
+      <FilterField label={t("srStaffMember")} htmlFor={idBase + "-staff"}>
+        <Select id={idBase + "-staff"} value={filters.staffId} onChange={(e) => set("staffId", e.target.value)}>
+          <option value="">{t("srAllStaff")}</option>
+          {staffIds.map((id) => <option key={id} value={id}>{names.staff[id] || "—"}</option>)}
+        </Select>
+      </FilterField>
+      <FilterField label={t("srStatus")} htmlFor={idBase + "-status"}>
+        <Select id={idBase + "-status"} value={filters.status} onChange={(e) => set("status", e.target.value)}>
+          <option value="">{t("srAllStatuses")}</option>
+          {statuses.map((st) => <option key={st} value={st}>{t("srStatus_" + st)}</option>)}
+        </Select>
+      </FilterField>
+    </FilterBar>
   );
 }
 
-function ReportsTable({ rows, names, tz, showPeriod, emptyMessage }) {
+// Review-list template: one DataTable, a stacked row per report on phones
+// and tablets, the review action at the end of every row.
+function ReportsTable({ rows, names, tz, showPeriod, loading, empty }) {
   const { lang } = useApp();
   const t = useT();
   const navigate = useNavigate();
-  if (!rows.length) return <EmptyState icon="inbox" message={emptyMessage} />;
+  const action = (r) => {
+    const reviewable = r.status === "submitted" || r.status === "under_review";
+    return r.submittedAt && (r.reportId || r.id) ? (
+      <Button size="sm" variant={reviewable ? "default" : "secondary"} onClick={() => navigate("/staffreports/" + (r.reportId || r.id))}>
+        {t(reviewable ? "srReview" : "srView")}
+      </Button>
+    ) : <span className="text-meta text-muted">{t("srNotSubmitted")}</span>;
+  };
+  const programsOf = (r) => (r.programs && r.programs.length ? names.programsText(r.programs) : "—");
   return (
-    <div className="overflow-auto rounded-xl border border-border">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={TH}>{t("srStaffMember")}</th>
-            <th className={TH}>{t("srPrograms")}</th>
-            {showPeriod && <th className={TH}>{t("srReportingPeriod")}</th>}
-            <th className={TH}>{t("srDue")}</th>
-            <th className={TH}>{t("srSubmitted")}</th>
-            <th className={TH}>{t("srStatus")}</th>
-            <th className={TH}><span className="sr-only">{t("srReviewAction")}</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const reviewable = r.status === "submitted" || r.status === "under_review";
-            return (
-              <tr key={(r.reportId || r.id || "") + r.staffId + r.periodId} className="border-t border-border">
-                <td className={TD + " font-semibold text-card-foreground"}>{names.staff[r.staffId] || "—"}</td>
-                <td className={TD}>{r.programs && r.programs.length ? names.programsText(r.programs) : "—"}</td>
-                {showPeriod && <td className={TD + " whitespace-nowrap"}>{fmtPeriod(r.periodStart, r.periodEnd, lang)}</td>}
-                <td className={TD + " whitespace-nowrap text-muted"}>{fmtDueAt(r.dueAt, tz, lang)}</td>
-                <td className={TD + " whitespace-nowrap text-muted"}>{r.submittedAt ? fmtStamp(r.submittedAt, lang) : "—"}</td>
-                <td className={TD}><ReportStatusBadge status={r.status} overdue={r.overdue} /></td>
-                <td className={TD + " text-right"}>
-                  {r.submittedAt && (r.reportId || r.id) ? (
-                    <Button size="sm" variant={reviewable ? "default" : "secondary"} onClick={() => navigate("/staffreports/" + (r.reportId || r.id))}>
-                      {t(reviewable ? "srReview" : "srView")}
-                    </Button>
-                  ) : <span className="text-xs text-muted">{t("srNotSubmitted")}</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      caption={t("srReportsThisPeriod")}
+      loading={loading}
+      empty={empty}
+      columns={[
+        { key: "staff", header: t("srStaffMember"), cell: (r) => names.staff[r.staffId] || "—", className: "font-semibold" },
+        { key: "programs", header: t("srPrograms"), cell: programsOf },
+        { key: "period", header: t("srReportingPeriod"), hidden: !showPeriod, cell: (r) => fmtPeriod(r.periodStart, r.periodEnd, lang) },
+        { key: "due", header: t("srDue"), cell: (r) => fmtDueAt(r.dueAt, tz, lang), className: "text-muted" },
+        { key: "submitted", header: t("srSubmitted"), cell: (r) => (r.submittedAt ? fmtStamp(r.submittedAt, lang) : "—"), className: "text-muted" },
+        { key: "status", header: t("srStatus"), cell: (r) => <ReportStatusBadge status={r.status} overdue={r.overdue} />, className: "whitespace-nowrap" },
+        { key: "action", header: <span className="sr-only">{t("srReviewAction")}</span>, cell: action, className: "whitespace-nowrap text-right" }
+      ]}
+      rows={rows}
+      getRowId={(r) => (r.reportId || r.id || "") + r.staffId + r.periodId}
+      renderCard={(r) => (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-ui font-semibold text-card-foreground">{names.staff[r.staffId] || "—"}</span>
+              <ReportStatusBadge status={r.status} overdue={r.overdue} />
+            </div>
+            {r.programs && r.programs.length || showPeriod ? (
+              <div className="text-meta text-muted">{[r.programs && r.programs.length ? programsOf(r) : null, showPeriod ? fmtPeriod(r.periodStart, r.periodEnd, lang) : null].filter(Boolean).join(" · ")}</div>
+            ) : null}
+            <div className="text-meta tabular-nums text-muted">
+              {r.submittedAt ? t("srSubmitted") + ": " + fmtStamp(r.submittedAt, lang) : t("srDue") + " " + fmtDueAt(r.dueAt, tz, lang)}
+            </div>
+          </div>
+          <div className="shrink-0">{action(r)}</div>
+        </div>
+      )}
+    />
   );
 }
 
@@ -142,48 +166,53 @@ export function StaffReportsOverview() {
     fetchOverview(periodId).then((r) => { setRows(r); setRowsError(false); }).catch((err) => { console.warn("fetchOverview failed", err); setRowsError(true); });
   }, [periodId]);
 
-  if (loadError) return <SectionCard title={t("srSectionOverview")}><EmptyState icon="inbox" message={t("srLoadError")} /></SectionCard>;
-  if (!periods) return null;
+  if (loadError) return <SectionCard><EmptyState variant="error" title={t("srLoadError")} /></SectionCard>;
+  if (!periods) return <Skeleton className="h-64 w-full" />;
   const period = periods.find((p) => p.id === periodId);
   const scoped = filterReportRows(rows || [], { program: filters.program, staffId: filters.staffId }, names);
   const stats = summarizeExpectations(scoped);
   const list = filterReportRows(scoped, filters, names);
   const staffIds = Array.from(new Set((rows || []).map((r) => r.staffId)));
+  // A tile only takes a tone colour when its number calls for attention.
   const tiles = [
-    ["srKpiExpected", stats.expected, ""], ["srKpiSubmitted", stats.submitted, ""], ["srKpiPending", stats.pending, ""],
-    ["srKpiOverdue", stats.overdue, stats.overdue ? "text-accent" : ""], ["srKpiAwaitingReview", stats.awaitingReview, stats.awaitingReview ? "text-primary" : ""],
-    ["srKpiRevision", stats.revisionRequested, ""], ["srKpiRate", stats.rate === null ? "—" : stats.rate + "%", ""]
+    ["srKpiExpected", stats.expected, ClipboardList, "neutral"],
+    ["srKpiSubmitted", stats.submitted, CheckCircle2, "success"],
+    ["srKpiPending", stats.pending, Hourglass, "neutral"],
+    ["srKpiOverdue", stats.overdue, AlarmClock, stats.overdue ? "danger" : "neutral"],
+    ["srKpiAwaitingReview", stats.awaitingReview, Inbox, stats.awaitingReview ? "info" : "neutral"],
+    ["srKpiRevision", stats.revisionRequested, RotateCcw, stats.revisionRequested ? "warning" : "neutral"],
+    ["srKpiRate", stats.rate === null ? "—" : stats.rate + "%", Percent, "info"]
   ];
 
   return (
-    <div className="grid gap-5">
-      <SectionCard
-        title={t("srSectionOverview")}
-        action={
-          <select aria-label={t("srReportingPeriod")} className={SELECT + " w-auto min-w-[240px]"} value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
+    <div className="grid gap-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <Field className="sm:w-72" label={t("srReportingPeriod")} htmlFor="sr-overview-period">
+          <Select id="sr-overview-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
             {periods.map((p) => <option key={p.id} value={p.id}>{fmtPeriod(p.start, p.end, lang)}</option>)}
-          </select>
-        }
-      >
-        {period && <p className="!mb-4 !mt-0 !text-sm text-muted">{t("srDue")} {fmtDueAt(period.dueAt, tz, lang)}</p>}
-        <dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-          {tiles.map(([label, value, tone]) => (
-            <div key={label} className="rounded-lg bg-background px-4 py-3">
-              <dt className="text-xs font-semibold text-muted">{t(label)}</dt>
-              <dd className={"m-0 mt-1 text-2xl font-bold text-card-foreground " + tone}>{rows ? value : "…"}</dd>
-            </div>
-          ))}
-        </dl>
-      </SectionCard>
+          </Select>
+        </Field>
+        {period && <p className="m-0 text-ui tabular-nums text-muted sm:pb-2.5">{t("srDue")} {fmtDueAt(period.dueAt, tz, lang)}</p>}
+      </div>
 
-      <SectionCard title={t("srReportsThisPeriod")}>
-        <Filters filters={filters} setFilters={setFilters} staffIds={staffIds} names={names}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 2xl:grid-cols-7">
+        {tiles.map(([label, value, Icon, tone]) => (
+          rows ? <KpiCard key={label} label={t(label)} value={value} icon={Icon} tone={tone} /> : <Skeleton key={label} className="h-[104px] w-full" />
+        ))}
+      </div>
+
+      <div>
+        <Filters idBase="sr-overview" filters={filters} setFilters={setFilters} staffIds={staffIds} names={names}
           statuses={["not_started", "draft"].concat(REPORT_STATUSES.slice(1), ["overdue"])} t={t} />
-        {rowsError ? <EmptyState icon="inbox" message={t("srLoadError")} />
-          : rows === null ? null
-          : <ReportsTable rows={list.map((r) => Object.assign({}, r, { periodStart: period && period.start, periodEnd: period && period.end }))}
-              names={names} tz={tz} emptyMessage={rows.length ? t("srNoMatches") : t("srNobodyExpected")} />}
-      </SectionCard>
+        <SectionCard title={t("srReportsThisPeriod")}>
+          {rowsError ? <EmptyState variant="error" compact title={t("srLoadError")} />
+            : <ReportsTable
+                loading={rows === null}
+                rows={list.map((r) => Object.assign({}, r, { periodStart: period && period.start, periodEnd: period && period.end }))}
+                names={names} tz={tz}
+                empty={<EmptyState compact variant={rows && rows.length ? "no-results" : "none"} title={rows && rows.length ? t("srNoMatches") : t("srNobodyExpected")} />} />}
+        </SectionCard>
+      </div>
     </div>
   );
 }
@@ -195,18 +224,20 @@ export function StaffReportsAll() {
   const names = useNames();
   const [reports, setReports] = useState(null);
   const [filters, setFilters] = useState(Object.assign({ from: "", to: "" }, EMPTY_FILTERS));
+  const [range, setRange_] = useState("all");
 
   useEffect(() => {
     fetchReports({ submittedOnly: true }).then(setReports).catch((err) => { console.warn("fetchReports failed", err); setReports([]); });
   }, []);
 
-  if (loadError) return <SectionCard title={t("srSectionAll")}><EmptyState icon="inbox" message={t("srLoadError")} /></SectionCard>;
-  if (!periods || reports === null) return null;
+  if (loadError) return <SectionCard><EmptyState variant="error" title={t("srLoadError")} /></SectionCard>;
+  if (!periods || reports === null) return <Skeleton className="h-64 w-full" />;
 
   const inRange = reports.filter((r) => (!filters.from || r.periodEnd >= filters.from) && (!filters.to || r.periodStart <= filters.to));
   const list = filterReportRows(inRange, filters, names)
     .sort((a, b) => (b.periodStart || "").localeCompare(a.periodStart || "") || (names.staff[a.staffId] || "").localeCompare(names.staff[b.staffId] || ""));
   const staffIds = Array.from(new Set(reports.map((r) => r.staffId)));
+  const setRange = (k, v) => setFilters((f) => Object.assign({}, f, { [k]: v }));
 
   function exportCsv() {
     const header = [t("srStaffMember"), t("srPrograms"), t("srPeriodStart"), t("srPeriodEnd"), t("srDue"), t("srSubmitted"), t("srStatus"), t("srVersion")];
@@ -214,25 +245,29 @@ export function StaffReportsAll() {
       names.staff[r.staffId] || "", names.programsText(r.programs), r.periodStart, r.periodEnd,
       fmtDueAt(r.dueAt, tz, "en"), r.submittedAt || "", t("srStatus_" + r.status), r.version
     ]);
-    downloadBlob("﻿" + toCsv(header, rows), "nb4hs-staff-reports-" + localDateIn(tz) + ".csv", "text/csv;charset=utf-8");
+    downloadBlob("\ufeff" + toCsv(header, rows), "nb4hs-staff-reports-" + localDateIn(tz) + ".csv", "text/csv;charset=utf-8");
   }
 
   return (
-    <SectionCard
-      title={t("srSectionAll")}
-      action={<Button variant="secondary" className="gap-1.5" onClick={exportCsv} disabled={!list.length}><Download className="h-4 w-4" aria-hidden="true" /> {t("srExportCsv")}</Button>}
-    >
-      <Filters filters={filters} setFilters={setFilters} staffIds={staffIds} names={names} statuses={REPORT_STATUSES.slice(1)} t={t} />
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <label className="grid gap-1 text-xs font-semibold text-muted">{t("srFrom")}
-          <input type="date" className={SELECT + " w-auto"} value={filters.from} onChange={(e) => setFilters((f) => Object.assign({}, f, { from: e.target.value }))} />
-        </label>
-        <label className="grid gap-1 text-xs font-semibold text-muted">{t("srTo")}
-          <input type="date" className={SELECT + " w-auto"} value={filters.to} onChange={(e) => setFilters((f) => Object.assign({}, f, { to: e.target.value }))} />
-        </label>
-        <span className="pb-2 text-xs text-muted">{t("srExportNote")}</span>
-      </div>
-      <ReportsTable rows={list} names={names} tz={tz} showPeriod emptyMessage={reports.length ? t("srNoMatches") : t("srNoSubmittedReports")} />
-    </SectionCard>
+    <div>
+      {/* "All periods" is simply no From/To; picking it clears both. */}
+      <RangeBar
+        idBase="sr-all"
+        label={t("srRangeLabel")}
+        value={range}
+        onChange={(v) => { setRange_(v); if (v === "all") setFilters((f) => Object.assign({}, f, { from: "", to: "" })); }}
+        options={[{ value: "all", label: t("srRangeAll") }, { value: "custom", label: t("custom") }]}
+        custom={{ from: filters.from, to: filters.to, onFrom: (v) => setRange("from", v), onTo: (v) => setRange("to", v), fromLabel: t("srFrom"), toLabel: t("srTo") }}
+      />
+      <Filters idBase="sr-all" filters={filters} setFilters={setFilters} staffIds={staffIds} names={names} statuses={REPORT_STATUSES.slice(1)} t={t} />
+      <SectionCard
+        title={t("srSectionAll")}
+        description={t("srExportNote")}
+        action={<Button variant="secondary" className="gap-1.5" onClick={exportCsv} disabled={!list.length}><Download className="h-4 w-4" aria-hidden="true" /> {t("srExportCsv")}</Button>}
+      >
+        <ReportsTable rows={list} names={names} tz={tz} showPeriod
+          empty={<EmptyState compact variant={reports.length ? "no-results" : "none"} title={reports.length ? t("srNoMatches") : t("srNoSubmittedReports")} />} />
+      </SectionCard>
+    </div>
   );
 }

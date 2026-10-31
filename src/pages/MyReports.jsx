@@ -9,27 +9,32 @@
 // read-only report and its review trail once it is not.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, ClipboardPen, FilePlus2, PenLine } from "lucide-react";
+import { CheckCircle2, FilePlus2, PenLine } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   createDraft, currentPeriodGroup, daysUntilDue, fetchMyExpectations, fetchReportHistory, fetchReports,
   fetchSchedules, fmtDueAt, fmtPeriod, localDateIn, reportPermissions
 } from "../lib/staffReports.js";
-import EmptyState from "../components/EmptyState.jsx";
-import { SectionCard } from "../components/SectionCard.jsx";
+import { Alert } from "../components/ui/alert.jsx";
 import { Button } from "../components/ui/button.jsx";
+import { Card } from "../components/ui/card.jsx";
+import { DataTable } from "../components/ui/data-table.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { Skeleton } from "../components/ui/skeleton.jsx";
 import ReportForm from "../components/reports/ReportForm.jsx";
 import ReportAttachments from "../components/reports/ReportAttachments.jsx";
-import { ReportContent, ReportHistory, ReportStatusBadge, TD, TH, fmtStamp, useProgramLabels } from "../components/reports/ReportParts.jsx";
+import { ReportContent, ReportHistory, ReportStatusBadge, fmtStamp, useProgramLabels } from "../components/reports/ReportParts.jsx";
 
 const DEFAULT_TZ = "America/New_York";
 
 function dueHint(dueAt, timeZone, overdue, t) {
   const days = daysUntilDue(dueAt, timeZone);
-  if (overdue) return { text: t("srOverdueHint"), tone: "text-accent" };
+  if (overdue) return { text: t("srOverdueHint"), tone: "font-semibold text-tone-danger-ink" };
   if (days < 0) return { text: t("srPastDeadline"), tone: "text-muted" };
-  if (days === 0) return { text: t("srDueToday"), tone: "text-gold-ink" };
-  if (days === 1) return { text: t("srDueTomorrow"), tone: "text-gold-ink" };
+  if (days === 0) return { text: t("srDueToday"), tone: "font-semibold text-tone-warning-ink" };
+  if (days === 1) return { text: t("srDueTomorrow"), tone: "font-semibold text-tone-warning-ink" };
   return { text: t("srDueInDays").replace("{n}", days), tone: "text-muted" };
 }
 
@@ -49,14 +54,16 @@ function Submitted({ report, periodLabel, programsText, onBack }) {
   const { lang } = useApp();
   const t = useT();
   return (
-    <div className="mx-auto grid max-w-xl gap-4 rounded-xl border border-border bg-card p-6 text-center shadow-card" role="status">
-      <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden="true" />
-      <h1 className="m-0 text-xl font-bold text-card-foreground">{t("srSubmittedTitle")}</h1>
-      <p className="!m-0 !text-sm text-card-foreground">{periodLabel} · {programsText}</p>
-      <p className="!m-0 !text-sm text-muted">{t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
-      <p className="!m-0 !text-sm text-muted">{t("srSubmittedNotified")}</p>
-      <Button className="justify-self-center" onClick={onBack}>{t("srBackToMyReports")}</Button>
-    </div>
+    <Card className="mx-auto grid max-w-xl justify-items-center gap-3 p-6 text-center sm:p-8" role="status">
+      <span className="flex h-12 w-12 items-center justify-center rounded-chip bg-tone-success-chip text-tone-success-ink">
+        <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+      </span>
+      <h1 className="m-0 text-heading text-card-foreground">{t("srSubmittedTitle")}</h1>
+      <p className="m-0 text-body text-card-foreground">{periodLabel} · {programsText}</p>
+      <p className="m-0 text-ui tabular-nums text-muted">{t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
+      <p className="m-0 text-ui text-muted">{t("srSubmittedNotified")}</p>
+      <Button className="mt-2" onClick={onBack}>{t("srBackToMyReports")}</Button>
+    </Card>
   );
 }
 
@@ -64,18 +71,27 @@ function ReportReadOnly({ report, history, periodLabel, programsText, onBack }) 
   const { lang } = useApp();
   const t = useT();
   return (
-    <div className="grid gap-4">
-      <Button variant="ghost" className="justify-self-start gap-1.5 px-2 text-muted" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("srBackToMyReports")}</Button>
-      <div className="rounded-xl border border-border bg-card p-5 shadow-card sm:p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="m-0 text-xl font-bold text-card-foreground">{periodLabel}</h1>
-          <ReportStatusBadge status={report.status} />
-        </div>
-        <p className="!mb-0 !mt-1 !text-sm text-muted">{programsText} · {t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
-        <div className="mt-5"><ReportContent content={report} /></div>
-      </div>
+    <div className="grid gap-6">
+      <PageHeader
+        className="mb-0"
+        back={{ label: t("srBackToMyReports"), onClick: onBack }}
+        title={periodLabel}
+        meta={<><ReportStatusBadge status={report.status} /><span className="text-ui text-muted">{programsText} · {t("srSubmittedAt")}: <span className="tabular-nums">{fmtStamp(report.submittedAt, lang)}</span></span></>}
+      />
+      <SectionCard><ReportContent content={report} /></SectionCard>
       <SectionCard title={t("srAttachments")}><ReportAttachments report={report} editable={false} /></SectionCard>
       <SectionCard title={t("srHistory")}><ReportHistory history={history} /></SectionCard>
+    </div>
+  );
+}
+
+// Loading: the shape of the overview, not a blank page.
+function OverviewSkeleton() {
+  return (
+    <div className="grid gap-6" aria-busy="true">
+      <Skeleton className="h-16 w-full max-w-md" />
+      <Skeleton className="h-56 w-full" />
+      <Skeleton className="h-40 w-full" />
     </div>
   );
 }
@@ -125,16 +141,16 @@ export default function MyReports() {
     }
   }
 
-  if (loadError) return <SectionCard title={t("navMyReports")}><EmptyState icon="inbox" message={t("srLoadError")} /></SectionCard>;
-  if (expectations === null) return null;
+  if (loadError) return <SectionCard><EmptyState variant="error" title={t("srLoadError")} /></SectionCard>;
+  if (expectations === null) return <OverviewSkeleton />;
 
   // ---------- one report ----------
   if (reportId) {
     const report = reports.find((r) => r.id === reportId);
     if (!report) {
       return (
-        <SectionCard title={t("navMyReports")} action={<Button variant="secondary" onClick={back}>{t("srBackToMyReports")}</Button>}>
-          <EmptyState icon="inbox" message={t("srReportNotFound")} />
+        <SectionCard>
+          <EmptyState title={t("srReportNotFound")} action={<Button variant="secondary" onClick={back}>{t("srBackToMyReports")}</Button>} />
         </SectionCard>
       );
     }
@@ -177,85 +193,75 @@ export default function MyReports() {
   const drafts = reports.filter((r) => r.status === "draft" && !owedEarlier.some((e) => e.reportId === r.id));
   const submitted = reports.filter((r) => r.submittedAt)
     .sort((a, b) => (b.periodStart || "").localeCompare(a.periodStart || "") || (b.submittedAt || "").localeCompare(a.submittedAt || ""));
+  // Rows inside a card are divided, not boxed (no card in a card).
   const reportRow = (r, actionLabel) => (
-    <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
+    <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0">
-        <div className="font-semibold text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
-        <div className="text-xs text-muted">{r.programs.length ? programsText(r.programs) : t("srNoProgramsYet")}</div>
+        <div className="text-ui font-semibold tabular-nums text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
+        <div className="text-meta text-muted">{r.programs.length ? programsText(r.programs) : t("srNoProgramsYet")}</div>
       </div>
       <Button size="sm" className="gap-1.5" onClick={() => open(r.id)}><PenLine className="h-4 w-4" aria-hidden="true" /> {actionLabel}</Button>
     </li>
   );
+  const LIST = "m-0 list-none divide-y divide-line-subtle p-0";
 
   return (
-    <div className="grid gap-5">
-      <div className="rounded-xl border border-border bg-card p-5 shadow-card sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary"><ClipboardPen className="h-5 w-5" aria-hidden="true" /></span>
-          <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-xl font-bold text-card-foreground">{t("navMyReports")}</h1>
-            <p className="!mb-0 !mt-1 !text-sm text-muted">{t("srMyReportsIntro")}</p>
-          </div>
-        </div>
+    <div className="grid gap-6">
+      <PageHeader className="mb-0" title={t("navMyReports")} description={t("srMyReportsIntro")} />
 
-        {!group ? (
-          <div className="info-callout mt-5"><p className="!m-0 !text-sm">{t("srNotAssigned")}</p></div>
-        ) : (
-          <>
-            <dl className="m-0 mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-background px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{t(notStartedYet ? "srNextPeriod" : "srCurrentPeriod")}</dt>
-                <dd className="m-0 mt-1 text-base font-bold text-card-foreground">{fmtPeriod(group.start, group.end, lang)}</dd>
+      {!group ? (
+        <Alert tone="info">{t("srNotAssigned")}</Alert>
+      ) : (
+        <SectionCard title={t(notStartedYet ? "srNextPeriod" : "srCurrentPeriod")}>
+          <dl className="m-0 grid gap-3 sm:grid-cols-3">
+            {[
+              [t("srReportingPeriod"), fmtPeriod(group.start, group.end, lang)],
+              [t("srNextDeadline"), fmtDueAt(group.dueAt, tz, lang)],
+              [t("srStatus"), t("srSubmittedCount").replace("{n}", group.rows.filter((r) => r.submittedAt).length).replace("{total}", group.rows.length)]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-control bg-surface-sunken px-4 py-3">
+                <dt className="text-meta font-semibold text-muted">{label}</dt>
+                <dd className="m-0 mt-1 text-section tabular-nums text-card-foreground">{value}</dd>
               </div>
-              <div className="rounded-lg bg-background px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{t("srNextDeadline")}</dt>
-                <dd className="m-0 mt-1 text-base font-bold text-card-foreground">{fmtDueAt(group.dueAt, tz, lang)}</dd>
-              </div>
-              <div className="rounded-lg bg-background px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{t("srStatus")}</dt>
-                <dd className="m-0 mt-1 text-base font-bold text-card-foreground">
-                  {t("srSubmittedCount").replace("{n}", group.rows.filter((r) => r.submittedAt).length).replace("{total}", group.rows.length)}
-                </dd>
-              </div>
-            </dl>
-            {notStartedYet && <p className="!mb-0 !mt-3 !text-sm text-muted">{t("srFirstPeriodStarts").replace("{date}", fmtPeriod(group.start, group.end, lang))}</p>}
-            <ul className="m-0 mt-4 grid list-none gap-2 p-0">
-              {group.rows.map((row) => {
-                const hint = dueHint(row.dueAt, tz, row.overdue, t);
-                return (
-                  <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-card-foreground">{row.programs.length ? programsText(row.programs) : t("srYourReport")}</span>
-                        <ReportStatusBadge status={row.status} overdue={row.overdue} />
-                      </div>
-                      <div className={"mt-0.5 text-xs " + (row.submittedAt ? "text-muted" : hint.tone)}>
-                        {row.submittedAt ? t("srSubmittedAt") + ": " + fmtStamp(row.submittedAt, lang) : hint.text}
-                      </div>
+            ))}
+          </dl>
+          {notStartedYet && <p className="m-0 mt-3 text-ui text-muted">{t("srFirstPeriodStarts").replace("{date}", fmtPeriod(group.start, group.end, lang))}</p>}
+          <ul className={LIST + " mt-4 border-t border-line-subtle"}>
+            {group.rows.map((row) => {
+              const hint = dueHint(row.dueAt, tz, row.overdue, t);
+              return (
+                <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 py-3 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-ui font-semibold text-card-foreground">{row.programs.length ? programsText(row.programs) : t("srYourReport")}</span>
+                      <ReportStatusBadge status={row.status} overdue={row.overdue} />
                     </div>
-                    <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} notStarted={notStartedYet} />
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </div>
+                    <div className={"mt-0.5 text-meta tabular-nums " + (row.submittedAt ? "text-muted" : hint.tone)}>
+                      {row.submittedAt ? t("srSubmittedAt") + ": " + fmtStamp(row.submittedAt, lang) : hint.text}
+                    </div>
+                  </div>
+                  <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} notStarted={notStartedYet} />
+                </li>
+              );
+            })}
+          </ul>
+        </SectionCard>
+      )}
 
       {needsRevision.length > 0 && (
         <SectionCard title={t("srNeedsRevision")}>
-          <ul className="m-0 grid list-none gap-2 p-0">{needsRevision.map((r) => reportRow(r, t("srReviseReport")))}</ul>
+          <ul className={LIST}>{needsRevision.map((r) => reportRow(r, t("srReviseReport")))}</ul>
         </SectionCard>
       )}
 
       {owedEarlier.length > 0 && (
         <SectionCard title={t("srOwedEarlier")}>
-          <ul className="m-0 grid list-none gap-2 p-0">
+          <ul className={LIST}>
             {owedEarlier.map((row) => (
-              <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
+              <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-card-foreground">{fmtPeriod(row.periodStart, row.periodEnd, lang)}</span><ReportStatusBadge status={row.status} overdue /></div>
-                  <div className="text-xs text-muted">{t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
+                  <div className="flex flex-wrap items-center gap-2"><span className="text-ui font-semibold tabular-nums text-card-foreground">{fmtPeriod(row.periodStart, row.periodEnd, lang)}</span><ReportStatusBadge status={row.status} overdue /></div>
+                  <div className="text-meta tabular-nums text-muted">{t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
                 </div>
                 <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} />
               </li>
@@ -266,31 +272,35 @@ export default function MyReports() {
 
       {drafts.length > 0 && (
         <SectionCard title={t("srDrafts")}>
-          <ul className="m-0 grid list-none gap-2 p-0">{drafts.map((r) => reportRow(r, t("srContinueDraft")))}</ul>
+          <ul className={LIST}>{drafts.map((r) => reportRow(r, t("srContinueDraft")))}</ul>
         </SectionCard>
       )}
 
       <SectionCard title={t("srHistory")}>
-        {!submitted.length ? <EmptyState icon="inbox" message={t("srNoSubmittedYet")} /> : (
-          <div className="overflow-auto rounded-xl border border-border">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr><th className={TH}>{t("srReportingPeriod")}</th><th className={TH}>{t("srPrograms")}</th><th className={TH}>{t("srSubmitted")}</th><th className={TH}>{t("srStatus")}</th><th className={TH}><span className="sr-only">{t("srView")}</span></th></tr>
-              </thead>
-              <tbody>
-                {submitted.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className={TD + " whitespace-nowrap"}>{fmtPeriod(r.periodStart, r.periodEnd, lang)}</td>
-                    <td className={TD}>{programsText(r.programs)}</td>
-                    <td className={TD + " whitespace-nowrap text-muted"}>{fmtStamp(r.submittedAt, lang)}</td>
-                    <td className={TD}><ReportStatusBadge status={r.status} /></td>
-                    <td className={TD + " text-right"}><Button size="sm" variant="secondary" onClick={() => open(r.id)}>{t("srView")}</Button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          caption={t("srHistory")}
+          columns={[
+            { key: "period", header: t("srReportingPeriod"), cell: (r) => fmtPeriod(r.periodStart, r.periodEnd, lang), className: "whitespace-nowrap font-semibold" },
+            { key: "programs", header: t("srPrograms"), cell: (r) => programsText(r.programs) },
+            { key: "submitted", header: t("srSubmitted"), cell: (r) => fmtStamp(r.submittedAt, lang), className: "whitespace-nowrap text-muted" },
+            { key: "status", header: t("srStatus"), cell: (r) => <ReportStatusBadge status={r.status} /> },
+            { key: "view", header: <span className="sr-only">{t("srView")}</span>, className: "text-right", cell: (r) => <Button size="sm" variant="secondary" onClick={() => open(r.id)}>{t("srView")}</Button> }
+          ]}
+          rows={submitted}
+          getRowId={(r) => r.id}
+          renderCard={(r) => (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-ui font-semibold tabular-nums text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
+                <div className="text-meta text-muted">{programsText(r.programs)}</div>
+                <div className="text-meta tabular-nums text-muted">{t("srSubmitted")}: {fmtStamp(r.submittedAt, lang)}</div>
+                <div className="mt-1.5"><ReportStatusBadge status={r.status} /></div>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => open(r.id)}>{t("srView")}</Button>
+            </div>
+          )}
+          empty={<EmptyState compact title={t("srNoSubmittedYet")} />}
+        />
       </SectionCard>
     </div>
   );
