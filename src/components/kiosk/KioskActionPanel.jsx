@@ -18,16 +18,16 @@ export default function KioskActionPanel({ title, description, submitLabel, busy
   return (
     <aside
       className={cn(
-        "flex min-h-0 flex-col text-center lg:h-full lg:overflow-y-auto lg:rounded-[18px] lg:border lg:border-border lg:bg-[#F5F8FE] lg:p-5 lg:dark:bg-background xl:p-6",
+        "flex min-h-0 flex-col text-center lg:h-full lg:overflow-y-auto lg:rounded-surface lg:border lg:border-border lg:bg-tone-info-bg lg:p-5 xl:p-6",
         !footer && "sticky bottom-0 z-10 -mx-3 border-t border-border bg-background px-3 pb-3 pt-3 lg:static lg:mx-0 lg:border-t"
       )}
     >
       <div className="hidden lg:block">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tint-success text-success">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tone-success-chip text-tone-success-ink">
           <PanelIcon size={32} strokeWidth={2} aria-hidden="true" />
         </span>
-        <h2 className="mt-4 text-[1.5rem] font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
-        <p className="mt-2 text-[0.98rem] leading-snug text-muted">{description}</p>
+        <h2 className="mt-4 text-touch-heading font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+        <p className="mt-2 text-touch-body leading-snug text-muted">{description}</p>
       </div>
 
       <img

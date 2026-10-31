@@ -15,14 +15,14 @@ import AddressInput from "../AddressInput.jsx";
 
 // `appt-control` is the hook main.css uses to trim these back on short
 // landscape kiosks (1366x768 and friends) without shrinking the type.
-export const APPT_CONTROL = "appt-control block w-full min-h-[56px] rounded-[14px] text-base sm:text-[1.02rem]";
+export const APPT_CONTROL = "appt-control block w-full min-h-[56px] rounded-touch text-touch-body";
 const ICON_PAD = "pl-[52px]";
 
 export function ApptLabel({ htmlFor, required, children, className }) {
   return (
     <label
       htmlFor={htmlFor}
-      className={cn("appt-label mb-1.5 block text-[0.95rem] font-bold text-navy dark:text-[color:var(--text)]", className)}
+      className={cn("appt-label mb-1.5 block text-touch-label font-bold text-navy dark:text-[color:var(--text)]", className)}
     >
       {children}
       {required && <span className="text-accent" aria-hidden="true"> *</span>}
@@ -33,7 +33,7 @@ export function ApptLabel({ htmlFor, required, children, className }) {
 export function ApptFieldError({ id, children }) {
   if (!children) return null;
   return (
-    <p id={id} role="alert" className="appt-error mt-1.5 text-[0.9rem] font-semibold text-accent">
+    <p id={id} role="alert" className="appt-error mt-1.5 text-touch-label font-semibold text-tone-danger-ink">
       {children}
     </p>
   );
@@ -142,7 +142,7 @@ export function ApptTextarea({ name, label, icon: Glyph, placeholder, hint, clas
           className={cn(APPT_CONTROL, "appt-textarea resize-y py-3", Glyph && ICON_PAD)}
         />
       </div>
-      {hint && <p id={hintId} className="appt-hint mt-1.5 text-[0.85rem] leading-snug text-muted">{hint}</p>}
+      {hint && <p id={hintId} className="appt-hint mt-1.5 text-touch-meta leading-snug text-muted">{hint}</p>}
     </div>
   );
 }

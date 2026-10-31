@@ -22,6 +22,11 @@ describe("cn", () => {
     expect(cn("text-sm text-ui")).toBe("text-ui");
     expect(cn("rounded-lg rounded-control")).toBe("rounded-control");
   });
+  it("knows the touch scale is a size, not a colour", () => {
+    expect(cn("text-navy text-touch-hero")).toBe("text-navy text-touch-hero");
+    expect(cn("text-base text-touch-body")).toBe("text-touch-body");
+    expect(cn("rounded-xl rounded-touch")).toBe("rounded-touch");
+  });
 });
 
 describe("statusTone", () => {

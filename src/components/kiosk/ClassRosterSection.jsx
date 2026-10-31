@@ -30,7 +30,7 @@ export default function ClassRosterSection({
           ))}
         </div>
       ) : (
-        <p className="m-0 text-[0.98rem] text-muted">{emptyLabel}</p>
+        <p className="m-0 text-touch-body text-muted">{emptyLabel}</p>
       )}
     </KioskSection>
   );

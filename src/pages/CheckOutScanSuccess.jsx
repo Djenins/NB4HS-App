@@ -26,9 +26,9 @@ export default function CheckOutScanSuccess() {
         </button>
       }
     >
-      {result.name && <p className="m-0 text-[1.2rem] font-bold text-card-foreground">{result.name}</p>}
+      {result.name && <p className="m-0 text-touch-section font-bold text-card-foreground">{result.name}</p>}
       {result.duration && (
-        <p className="m-0 inline-flex items-center gap-2 rounded-[14px] border border-border bg-background px-3.5 py-2 text-left text-[0.95rem] font-semibold leading-snug text-card-foreground sm:rounded-full sm:px-4 sm:py-1.5 sm:text-[1rem]">
+        <p className="m-0 inline-flex items-center gap-2 rounded-touch border border-border bg-surface-sunken px-3.5 py-2 text-left text-touch-label font-semibold leading-snug text-card-foreground sm:rounded-full sm:px-4 sm:py-1.5 sm:text-touch-body">
           <Clock size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
           {t("visitLength")}: {result.duration}
         </p>

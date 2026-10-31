@@ -12,7 +12,7 @@ import { cn } from "../../lib/cn.js";
 
 export default function WhatHappensNext({ title, text, open, onToggle }) {
   return (
-    <aside className="appt-next rounded-[18px] bg-[#F1F6FE] p-4 dark:bg-background sm:p-5">
+    <aside className="appt-next rounded-surface bg-tone-info-bg p-4 sm:p-5">
       {/* Top-aligned while the text wraps to several lines on a phone;
           centred once the panel is a single wide strip on the kiosk. */}
       <div className="flex items-start gap-3 sm:gap-4 lg:items-center">
@@ -20,11 +20,11 @@ export default function WhatHappensNext({ title, text, open, onToggle }) {
           <Info size={22} strokeWidth={2} aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="m-0 text-[1.05rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.15rem]">{title}</p>
+          <p className="m-0 text-touch-lead font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-section">{title}</p>
           <p
             id="appt-req-next-text"
             className={cn(
-              "m-0 mt-1 max-w-[70ch] text-[0.95rem] leading-snug text-muted",
+              "m-0 mt-1 max-w-[70ch] text-touch-label leading-snug text-muted",
               !open && "hidden lg:block"
             )}
           >

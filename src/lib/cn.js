@@ -15,9 +15,13 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["title", "heading", "section", "body", "ui", "meta", "caption", "kpi"] }],
+      "font-size": [{ text: [
+        "title", "heading", "section", "body", "ui", "meta", "caption", "kpi",
+        // Touch scale (kiosk, appointments, sign-in)
+        "touch-hero", "touch-title", "touch-heading", "touch-section", "touch-lead", "touch-body", "touch-label", "touch-meta"
+      ] }],
       shadow: [{ shadow: ["card", "card-hover", "raised", "overlay"] }],
-      rounded: [{ rounded: ["control", "surface", "badge", "chip"] }]
+      rounded: [{ rounded: ["control", "surface", "badge", "chip", "touch"] }]
     }
   }
 });
