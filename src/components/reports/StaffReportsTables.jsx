@@ -92,7 +92,7 @@ function ReportsTable({ rows, names, tz, showPeriod, emptyMessage }) {
                     <Button size="sm" variant={reviewable ? "default" : "secondary"} onClick={() => navigate("/staffreports/" + (r.reportId || r.id))}>
                       {t(reviewable ? "srReview" : "srView")}
                     </Button>
-                  ) : <span className="text-xs text-muted">{t("srNotSubmitted")}</span>}
+                  ) : <span className="text-meta text-muted">{t("srNotSubmitted")}</span>}
                 </td>
               </tr>
             );
@@ -169,7 +169,7 @@ export function StaffReportsOverview() {
         <dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
           {tiles.map(([label, value, tone]) => (
             <div key={label} className="rounded-lg bg-background px-4 py-3">
-              <dt className="text-xs font-semibold text-muted">{t(label)}</dt>
+              <dt className="text-meta font-semibold text-muted">{t(label)}</dt>
               <dd className={"m-0 mt-1 text-2xl font-bold text-card-foreground " + tone}>{rows ? value : "…"}</dd>
             </div>
           ))}
@@ -224,13 +224,13 @@ export function StaffReportsAll() {
     >
       <Filters filters={filters} setFilters={setFilters} staffIds={staffIds} names={names} statuses={REPORT_STATUSES.slice(1)} t={t} />
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <label className="grid gap-1 text-xs font-semibold text-muted">{t("srFrom")}
+        <label className="grid gap-1 text-meta font-semibold text-muted">{t("srFrom")}
           <input type="date" className={SELECT + " w-auto"} value={filters.from} onChange={(e) => setFilters((f) => Object.assign({}, f, { from: e.target.value }))} />
         </label>
-        <label className="grid gap-1 text-xs font-semibold text-muted">{t("srTo")}
+        <label className="grid gap-1 text-meta font-semibold text-muted">{t("srTo")}
           <input type="date" className={SELECT + " w-auto"} value={filters.to} onChange={(e) => setFilters((f) => Object.assign({}, f, { to: e.target.value }))} />
         </label>
-        <span className="pb-2 text-xs text-muted">{t("srExportNote")}</span>
+        <span className="pb-2 text-meta text-muted">{t("srExportNote")}</span>
       </div>
       <ReportsTable rows={list} names={names} tz={tz} showPeriod emptyMessage={reports.length ? t("srNoMatches") : t("srNoSubmittedReports")} />
     </SectionCard>

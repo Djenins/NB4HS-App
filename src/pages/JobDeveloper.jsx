@@ -1,10 +1,11 @@
 // JobDeveloper.jsx -- the job-seeker caseload, on the NB4HS Operate design
 // system (plans/ui-design-system.md) and the module's shared list chrome:
-// PageHeader, a KpiCard row, collapsible SectionCards for the add form and
-// AppointmentsSection, then components/SearchFilterPanel.jsx,
+// PageHeader, a KpiCard row, a collapsible SectionCard for the add form,
+// then components/SearchFilterPanel.jsx,
 // components/ResultsToolbar.jsx (above the results), JobClientListItem
 // (default) or JobClientGridCard, and Pagination inside the results area.
-// Bulk selection works identically in either layout.
+// Bulk selection works identically in either layout. Appointments have
+// their own Workforce section (WorkforceAppointments.jsx).
 //
 // The Follow-Ups Due KPI stays clickable, but it no longer owns a filter of
 // its own: it drives the Follow-Up filter tile, and the tile drives it back.
@@ -24,7 +25,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Briefcase, CalendarClock, ChevronDown, FileCheck2, Plus, RotateCcw, Search as SearchIcon, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { activeJobDevelopers } from "../lib/appointments.js";
 import { buildClient } from "../lib/clients.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetchAllApplications, updateJobClient } from "../lib/clientsData.js";
@@ -34,7 +34,6 @@ import { cn } from "../lib/cn.js";
 import { formatPhone, todayStr } from "../lib/utils.js";
 import { matchesJobClient } from "../lib/workforceFilters.js";
 import { sortJobClients } from "../lib/workforceSorters.js";
-import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import { uploadClientFile } from "../lib/clientsData.js";
@@ -53,6 +52,7 @@ import { KpiCard } from "../components/ui/kpi-card.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 import AddressInput from "../components/AddressInput.jsx";
+import WorkforceNav, { APPOINTMENTS_PATH } from "../components/WorkforceNav.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
@@ -280,7 +280,7 @@ export default function JobDeveloper() {
   const followUps = computeFollowUps(applications, todayStr());
   const followUpsDueCount = Object.keys(followUps).length;
 
-  const [opens, setOpens] = useState({ addJobClient: false, appointments: false });
+  const [opens, setOpens] = useState({ addJobClient: false });
   const [search, setSearch] = useState("");
   const [followUpFilter, setFollowUpFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -296,13 +296,16 @@ export default function JobDeveloper() {
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState(() => new Set());
   const addClientRef = useRef(null);
-  const appointmentsRef = useRef(null);
   const location = useLocation();
-  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
-  // with this state to land directly on a pre-filled, expanded appointments
-  // form instead of a generic client list -- see AppointmentsSection.jsx's
-  // initialClientId prop for the pre-fill half.
-  const scheduleClientId = location.state && location.state.openAppointments ? location.state.appointmentClientId : undefined;
+  const navigate = useNavigate();
+  // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) still lands
+  // here with { openAppointments, appointmentClientId }; pass it on to the
+  // Appointments section, which pre-fills the form for that client.
+  const forwardToAppointments = !!(location.state && location.state.openAppointments);
+  useEffect(() => {
+    if (forwardToAppointments) navigate(APPOINTMENTS_PATH, { replace: true, state: location.state });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const jobClients = data.jobClients || [];
   const cities = Array.from(new Set(jobClients.map(function (c) { return (c.city || "").trim(); }).filter(Boolean))).sort();
@@ -413,15 +416,7 @@ export default function JobDeveloper() {
     addClientRef.current && addClientRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function scrollToAppointments() {
-    setOpen("appointments", true);
-    appointmentsRef.current && appointmentsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  useEffect(() => {
-    if (location.state && location.state.openAppointments) scrollToAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  function goToAppointments() { navigate(APPOINTMENTS_PATH); }
 
   async function removeClient(id) {
     const ok = await requestConfirm(t("removeJobClientConfirm"), { danger: true });
@@ -477,6 +472,7 @@ export default function JobDeveloper() {
 
   return (
     <>
+      <WorkforceNav value="jobdeveloper" />
       <PageHeader
         title={t("jobDeveloperTitle")}
         description={t("jobDeveloperDesc")}
@@ -489,7 +485,7 @@ export default function JobDeveloper() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={scrollToAppointments}>
+                <DropdownMenuItem onSelect={goToAppointments}>
                   <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" /> {t("appointmentsTitle")}
                 </DropdownMenuItem>
                 {selected.size > 0 && (
@@ -523,17 +519,6 @@ export default function JobDeveloper() {
       </div>
 
       <AddJobClientCard forwardRef={addClientRef} collapsed={!opens.addJobClient} onToggle={() => setOpen("addJobClient", !opens.addJobClient)} />
-      <div ref={appointmentsRef} className="scroll-mt-4">
-        <AppointmentsSection
-          open={opens.appointments}
-          onToggle={(v) => setOpen("appointments", v)}
-          meetingWith="job_developer"
-          clientList={jobClients}
-          staffList={activeJobDevelopers(data.profiles)}
-          staffLabelKey="apptJobDeveloperLabel"
-          initialClientId={scheduleClientId}
-        />
-      </div>
 
       {jobClients.length > 0 ? (
         <>

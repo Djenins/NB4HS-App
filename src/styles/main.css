@@ -413,7 +413,7 @@
   .app-shell-top{position:sticky; top:0; z-index:20;}
   header.topbar{
     background:var(--card); color:var(--text); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    border-bottom:3px solid var(--accent); box-shadow:var(--shadow-sm);
+    border-bottom:1px solid var(--border); box-shadow:var(--shadow-sm);
   }
   header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem;}
   header.topbar .brand img{height:46px; width:auto; display:block;}
@@ -666,10 +666,13 @@
      sidebar as its own rounded panel, with the same 16px inset, border and
      shadow. The panel is the scroll container -- the window doesn't scroll
      -- so the topbar stays inside its rounded top edge; sticky children
-     (topbar, ModuleNav) stick to the panel's top instead of the window's. */
+     (topbar, ModuleNav) stick to the panel's top instead of the window's.
+     position:relative makes the panel the containing block for absolute
+     descendants (e.g. the charts' sr-only tables); otherwise they escape
+     the overflow clip and stretch the window's scroll past the shell. */
   .app-shell--floating{background:var(--canvas); height:100dvh;}
   .content-col--floating{
-    height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+    position:relative; height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
     background:var(--bg); border:1px solid var(--sb-border); box-shadow:var(--sb-shadow);
   }
   .content-col > main{max-width:1200px;}

@@ -22,6 +22,7 @@ import { useNavItems } from "../lib/useNavItems.js";
 import { landingItem } from "../lib/workspaces.js";
 import { navPath } from "../lib/nav.js";
 import ModuleNav from "../components/ModuleNav.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import SnapCases from "../components/snap/SnapCases.jsx";
 import SnapContacts from "../components/snap/SnapContacts.jsx";
@@ -112,6 +113,8 @@ export default function Outreach({ program: routeProgram }) {
           </select>
         </div>
       )}
+      {/* The dashboard draws its own header with the range picker. */}
+      {section !== "dashboard" && <PageHeader title={name} description={t(SECTIONS[section].label)} />}
       {options !== null && <ActiveComponent key={program + section + location.key} intent={intent} onNavigate={go} />}
     </OutreachProgramContext.Provider>
   );

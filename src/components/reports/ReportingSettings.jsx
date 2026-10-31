@@ -26,9 +26,9 @@ const OFFSETS = [-7, -5, -3, -2, -1, 0, 1, 2, 3];
 function Field({ id, label, help, children }) {
   return (
     <div className="grid content-start gap-1.5">
-      <label htmlFor={id} className="text-xs font-semibold text-muted">{label}</label>
+      <label htmlFor={id} className="text-meta font-semibold text-card-foreground">{label}</label>
       {children}
-      {help && <p className="!m-0 !text-xs text-muted">{help}</p>}
+      {help && <p className="!m-0 !text-meta text-muted">{help}</p>}
     </div>
   );
 }
@@ -91,7 +91,7 @@ function ScheduleCard({ schedule, onSaved }) {
         </div>
 
         <fieldset className="m-0 min-w-0 border-0 p-0">
-          <legend className="mb-1.5 text-xs font-semibold text-muted">{t("srReminders")}</legend>
+          <legend className="mb-1.5 text-meta font-semibold text-muted">{t("srReminders")}</legend>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             {OFFSETS.map((o) => (
               <label key={o} className="flex items-center gap-1.5 text-sm text-card-foreground">
@@ -102,10 +102,10 @@ function ScheduleCard({ schedule, onSaved }) {
               </label>
             ))}
           </div>
-          <p className="!mb-0 !mt-1.5 !text-xs text-muted">{t("srRemindersHelp")}</p>
+          <p className="!mb-0 !mt-1.5 !text-meta text-muted">{t("srRemindersHelp")}</p>
         </fieldset>
 
-        <div className="info-callout"><p className="!m-0 !text-xs">{t("srWhoReportsRoles")}</p></div>
+        <div className="info-callout"><p className="!m-0 !text-meta">{t("srWhoReportsRoles")}</p></div>
 
         <label className="flex items-center gap-2 text-sm text-card-foreground">
           <input type="checkbox" checked={draft.active} onChange={(e) => set("active", e.target.checked)} /> {t("srScheduleActive")}
@@ -113,7 +113,7 @@ function ScheduleCard({ schedule, onSaved }) {
 
         {preview.length > 0 && (
           <div className="rounded-lg bg-background px-4 py-3">
-            <p className="!m-0 !text-xs font-semibold uppercase tracking-wide text-muted">{t("srSchedulePreview")}</p>
+            <p className="!m-0 !text-caption font-semibold uppercase tracking-wide text-muted">{t("srSchedulePreview")}</p>
             <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-sm text-card-foreground">
               {preview.map((p) => (
                 <li key={p.start}>{fmtPeriod(p.start, p.end, lang)} — {t("srDue")} {fmtDueAt(dueAtFor(draft, p.end).toISOString(), draft.timeZone, lang)}</li>
@@ -121,7 +121,7 @@ function ScheduleCard({ schedule, onSaved }) {
             </ul>
           </div>
         )}
-        <p className="!m-0 !text-xs text-muted">{t("srScheduleChangeNote")}</p>
+        <p className="!m-0 !text-meta text-muted">{t("srScheduleChangeNote")}</p>
         <div className="flex justify-end"><Button type="submit" disabled={busy || !valid}>{t("srSaveSchedule")}</Button></div>
       </form>
     </SectionCard>
@@ -165,7 +165,7 @@ function PeopleCard() {
                 <tr key={p.id} className="border-t border-border">
                   <td className={TD}>
                     <div className="font-semibold text-card-foreground">{p.name || p.email}</div>
-                    <div className="text-xs text-muted">{roleLabel(p.role, lang)}</div>
+                    <div className="text-meta text-muted">{roleLabel(p.role, lang)}</div>
                   </td>
                   <td className={TD}>
                     <select aria-label={t("srReportingRole") + " — " + (p.name || p.email)} className={REPORT_CONTROL + " h-9 w-auto"}
@@ -204,15 +204,15 @@ function EmailCard() {
       <dl className="m-0 grid grid-cols-3 gap-3">
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-lg bg-background px-4 py-3">
-            <dt className="text-xs font-semibold text-muted">{t(label)}</dt>
+            <dt className="text-meta font-semibold text-muted">{t(label)}</dt>
             <dd className={"m-0 mt-1 text-2xl font-bold " + (label === "srEmailFailed" && value ? "text-accent" : "text-card-foreground")}>{value}</dd>
           </div>
         ))}
       </dl>
       {health.lastError ? (
-        <p className="!mb-0 !mt-3 !text-xs text-muted">{t("srEmailLastError")}: {health.lastError}{health.lastErrorAt ? " · " + fmtDueAt(health.lastErrorAt, "America/New_York", lang) : ""}</p>
+        <p className="!mb-0 !mt-3 !text-meta text-muted">{t("srEmailLastError")}: {health.lastError}{health.lastErrorAt ? " · " + fmtDueAt(health.lastErrorAt, "America/New_York", lang) : ""}</p>
       ) : null}
-      <p className="!mb-0 !mt-3 !text-xs text-muted">{t("srEmailPrivacy")}</p>
+      <p className="!mb-0 !mt-3 !text-meta text-muted">{t("srEmailPrivacy")}</p>
     </SectionCard>
   );
 }
