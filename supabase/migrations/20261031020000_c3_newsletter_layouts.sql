@@ -1,9 +1,11 @@
 -- c3 -- newsletter layouts: a newsletter can be built from one of seven
 -- email layouts (single column, F-pattern, zig zag, multi column, inverted
 -- pyramid, hybrid, double column) instead of plain text. Builds on c2.
--- NOT APPLIED to live. Needs a rolled-back dry run of
--- supabase/tests/c3_newsletter_layouts_check.sql against live, then the
--- owner's approval, like every migration (plans/goals.md).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-31 (version 20261031020000) with
+-- the owner's approval, after a rolled-back dry run of
+-- supabase/tests/c3_newsletter_layouts_check.sql passed on live; the checks
+-- passed again against live afterwards. send-outbound version 2 (with
+-- newsletterLayout.js) was deployed the same day.
 --
 -- What it adds:
 --   * newsletters.layout ('plain' as before, or a layout key) and

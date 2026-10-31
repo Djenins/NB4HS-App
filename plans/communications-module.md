@@ -33,7 +33,7 @@ The client profile's Communications tab also gets **Send message**, follow-up cl
 - **Cost:** Resend's free tier was about 3,000 emails a month on 2026-10-26 (`launch-budget.md`). One newsletter to a large list can use most of it.
 - The emails also fixed the organization's name. Every email template said "New Beginnings for Haitian Seniors"; it now says "New Bridges for Haitian Success", as in `PRODUCT.md` and the app.
 
-## Newsletter layouts (`c3_newsletter_layouts`, NOT applied to live)
+## Newsletter layouts (`c3_newsletter_layouts`, on live since 2026-10-31)
 
 Besides plain text, a newsletter can use one of seven email layouts: single column, F-pattern, zig zag, multi column, inverted pyramid, hybrid and double column. Picking a layout fills in starter content shaped like the layout, which staff then replace. The blocks are a main image, headline, introduction, button, a sub-heading, and sections (image, headline, text, link). The editor shows a live preview at desktop and phone widths.
 
@@ -60,4 +60,4 @@ The deployed function keeps working unchanged after the migration, because the n
 5. ~~Dry-run and apply `c2_newsletters` on live.~~ Done 2026-10-31: the dry run passed, the migration was applied with its `schema_migrations` row in one transaction, and the checks passed again on live. The rollback is `supabase/rollback/c2_newsletters_down.sql`.
 6. Native-speaker check of the newsletter footer (`NEWSLETTER_FOOTER` in `send-outbound/handler.ts`) and of the unsubscribe page's Kreyòl and French (`unsub*` in `src/lib/i18n.js`).
 7. **`send-outbound` was deployed to live on 2026-10-31** (version 1, JWT check off, as its notes require) and refuses every call until its secrets are set. No email of any kind leaves until then: set `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL=https://app.nb4hs.org` (otherwise links and unsubscribe links point at the Vercel address), and add the Vault secrets `send_outbound_url` / `send_outbound_secret` so the 5-minute job calls it. Until then client messages and newsletters wait as "queued", which the Messages page reports.
-8. Apply `c3_newsletter_layouts` on live: dry run (`begin;` + migration + `supabase/tests/c3_newsletter_layouts_check.sql`, ending in `C3_CHECKS_PASSED`), apply, then redeploy `send-outbound` with `newsletterLayout.js` alongside `index.ts` and `handler.ts`. Until it's redeployed, layout newsletters would go out as their plain-text version.
+8. ~~Apply `c3_newsletter_layouts` on live and redeploy `send-outbound`.~~ Done 2026-10-31: the dry run passed, the migration was applied with its `schema_migrations` row, the checks passed again on live, and `send-outbound` version 2 (with `newsletterLayout.js`) is deployed.
