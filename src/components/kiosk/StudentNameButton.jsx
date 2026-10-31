@@ -19,7 +19,7 @@ export default function StudentNameButton({ student, busy = false, disabled = fa
       disabled={disabled}
       aria-busy={busy ? "true" : undefined}
       className={cn(
-        "flex min-h-[64px] w-full items-center gap-3 sm:min-h-[76px] rounded-2xl border border-border bg-card px-4 py-3 text-left",
+        "flex min-h-[64px] w-full items-center gap-3 sm:min-h-[76px] rounded-surface border border-border bg-card px-4 py-3 text-left",
         "transition-colors duration-150 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary",
         !disabled && "hover:border-primary hover:bg-primary-tint active:bg-primary-tint",
         busy && "border-primary bg-primary-tint",
@@ -28,14 +28,14 @@ export default function StudentNameButton({ student, busy = false, disabled = fa
     >
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[0.95rem] font-extrabold sm:h-12 sm:w-12 sm:text-[1.05rem]",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-touch-label font-extrabold sm:h-12 sm:w-12 sm:text-touch-body",
           busy ? "bg-primary text-primary-foreground" : "bg-primary-tint text-primary"
         )}
         aria-hidden="true"
       >
         {busy ? <LoaderCircle size={22} strokeWidth={2.4} className="animate-spin" /> : initials(student)}
       </span>
-      <span className="min-w-0 flex-1 text-base font-bold sm:text-[1.1rem] leading-tight text-navy dark:text-[color:var(--text)]">
+      <span className="min-w-0 flex-1 text-touch-body font-bold leading-tight sm:text-touch-section text-navy dark:text-[color:var(--text)]">
         {student.firstName} {student.lastName}
       </span>
     </button>

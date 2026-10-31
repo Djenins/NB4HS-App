@@ -9,8 +9,8 @@ import { cn } from "../../lib/cn.js";
 // competing palette.
 const BADGE_TONES = {
   primary: "bg-primary-tint text-primary",
-  soft: "bg-[#EEF3FC] text-navy dark:text-[color:var(--text)] dark:bg-[#1c2740] dark:text-primary",
-  violet: "bg-violet-tint text-violet-ink"
+  soft: "bg-tone-info-bg text-tone-info-ink",
+  violet: "bg-tone-violet-chip text-tone-violet-ink"
 };
 
 export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, subtitle, children, className }) {
@@ -20,7 +20,7 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
       ref={sectionRef}
       aria-labelledby={id + "-title"}
       className={cn(
-        "rounded-[18px] border border-border bg-card p-4 shadow-card",
+        "rounded-surface border border-border bg-card p-4 shadow-card",
         className
       )}
     >
@@ -29,8 +29,8 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
           <SectionIcon strokeWidth={2} aria-hidden="true" className="h-[19px] w-[19px] sm:h-[21px] sm:w-[21px]" />
         </span>
         <div className="min-w-0">
-          <h2 id={id + "-title"} className="m-0 text-[1.125rem] font-extrabold leading-tight tracking-tight sm:text-[1.35rem] text-navy dark:text-[color:var(--text)]">{title}</h2>
-          {subtitle && <p className="m-0 mt-0.5 text-[0.92rem] leading-snug text-muted">{subtitle}</p>}
+          <h2 id={id + "-title"} className="m-0 text-touch-section font-extrabold leading-tight tracking-tight sm:text-touch-heading text-navy dark:text-[color:var(--text)]">{title}</h2>
+          {subtitle && <p className="m-0 mt-0.5 text-touch-label leading-snug text-muted">{subtitle}</p>}
         </div>
       </div>
       {children}

@@ -15,7 +15,7 @@ import { formatPhone } from "../../lib/utils.js";
 // scale that up to the touch target this visitor-facing page needs (56px on a
 // phone, 62px on the kiosk) and leave room for the leading icon.
 const LOOKUP_INPUT =
-  "w-full min-h-[56px] rounded-[14px] pl-[52px] text-base sm:min-h-[62px] sm:text-[1.05rem]";
+  "w-full min-h-[56px] rounded-touch pl-[52px] text-touch-body sm:min-h-[62px] sm:text-touch-lead";
 
 function LookupField({ name, label, type = "text", required, icon: LeadingIcon, placeholder, autoComplete, error, invalid, describedBy }) {
   const id = "appt-lookup-" + name;
@@ -26,7 +26,7 @@ function LookupField({ name, label, type = "text", required, icon: LeadingIcon, 
   const described = [describedBy, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className="mb-1.5 block text-[0.98rem] font-bold text-navy dark:text-[color:var(--text)]">
+      <label htmlFor={id} className="mb-1.5 block text-touch-body font-bold text-navy dark:text-[color:var(--text)]">
         {label}
         {required && <span className="text-accent" aria-hidden="true"> *</span>}
       </label>
@@ -51,7 +51,7 @@ function LookupField({ name, label, type = "text", required, icon: LeadingIcon, 
         />
       </div>
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 text-[0.92rem] font-semibold text-accent">{error}</p>
+        <p id={errorId} role="alert" className="mt-1.5 text-touch-label font-semibold text-tone-danger-ink">{error}</p>
       )}
     </div>
   );
@@ -70,7 +70,7 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
         error={errors.lastName}
       />
 
-      <p id="appt-lookup-contact-hint" className="mt-4 flex items-start gap-2.5 text-[0.98rem] leading-snug text-muted sm:mt-5">
+      <p id="appt-lookup-contact-hint" className="mt-4 flex items-start gap-2.5 text-touch-body leading-snug text-muted sm:mt-5">
         <Info size={20} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
         {t("apptLookupContactHint")}
       </p>
@@ -91,7 +91,7 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
             single horizontal rule once they stack on a phone. */}
         <div aria-hidden="true" className="flex items-center justify-center gap-3 md:flex-col md:gap-2">
           <span className="h-px flex-1 bg-border md:h-auto md:w-px" />
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-[0.85rem] font-extrabold uppercase tracking-wide text-primary">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-touch-meta font-extrabold uppercase tracking-wide text-primary">
             {t("orLabel")}
           </span>
           <span className="h-px flex-1 bg-border md:h-auto md:w-px" />
@@ -112,9 +112,9 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
         type="submit"
         disabled={busy}
         className={cn(
-          "mt-5 flex w-full items-center justify-center gap-3 rounded-[14px] bg-primary px-5 font-bold text-primary-foreground",
-          "min-h-[60px] text-[1.05rem] sm:min-h-[68px] sm:text-[1.2rem]",
-          "shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150",
+          "mt-5 flex w-full items-center justify-center gap-3 rounded-touch bg-primary px-5 font-bold text-primary-foreground",
+          "min-h-[60px] text-touch-lead sm:min-h-[68px] sm:text-touch-section",
+          "shadow-raised transition-colors duration-fast",
           "hover:bg-primary-dark active:bg-primary-dark",
           "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary",
           busy && "cursor-not-allowed opacity-70"

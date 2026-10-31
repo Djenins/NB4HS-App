@@ -9,6 +9,8 @@ import KioskSelectField from "./KioskSelectField.jsx";
 import { cn } from "../../lib/cn.js";
 
 function OtherInput({ name, t, error }) {
+  // Linked to its message like every other kiosk field (KioskField.jsx).
+  const errorId = error ? "checkin-field-" + name + "-error" : undefined;
   return (
     <div className="mt-2.5">
       <input
@@ -17,9 +19,10 @@ function OtherInput({ name, t, error }) {
         placeholder={t("otherPleaseSpecify")}
         aria-label={t("otherPleaseSpecify")}
         aria-invalid={error ? "true" : undefined}
+        aria-describedby={errorId}
         className={cn(KIOSK_CONTROL, "w-full", error && "field-invalid")}
       />
-      <KioskFieldError>{error}</KioskFieldError>
+      <KioskFieldError id={errorId}>{error}</KioskFieldError>
     </div>
   );
 }
