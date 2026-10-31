@@ -68,17 +68,17 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…20261028030000_t3_receptionist_check_in_only` | **Applied 2026-10-28.** Receptionists lose participant records. A signed-in receptionist needs this branch's app (kiosk-roster fallback) for the student roster |
 | `…20261028040000_t4_staff_report_rules` | **Applied 2026-10-28.** Report period, revision, schedule-lock, attachment and DST rules. Reviewers need this branch's app to see reports in revision |
 | `…20261028050000_t5_notifications_read_only` … `…20261028070000_t7_calendar_privacy` | **Applied 2026-10-28**, after the app (PR #66). Owner decisions from the live security checks; see `security-decisions-2026-10-28.md`. The throttle's off-switch is in that file |
-| `…20261029010000_t8_rate_limit_hardening` | **Not on live.** Fixes four t6 problems found 2026-10-29 (race, signed-in bypass, spoofable fallback IP, no cleanup) and raises the kiosk poll limits. Needs a dry run and approval; see [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md) |
+| `…20261029010000_t8_rate_limit_hardening` | **Applied 2026-10-30**, after the app (PR #70) and a rolled-back dry run on live. Fixes four t6 problems found 2026-10-29 (race, signed-in bypass, spoofable fallback IP, no cleanup) and raises the kiosk poll limits; see [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md) §12 |
 
-**Which files are on live (checked 2026-10-29, read-only):**
-- Live records 70 versions, `20260714145927` … `20261028070000`, each matching a file here. Only `t8` (`20261029010000`) is pending.
+**Which files are on live (checked 2026-10-29, read-only; updated 2026-10-30):**
+- Live records 71 versions, `20260714145927` … `20261029010000`, each matching a file here. None is pending.
 - **What is applied matches the repo.** 864 items compared with a fresh local replay: 212 policies, the RLS flags on 78 tables, 300 grant sets, 144 functions, 97 triggers, 3 cron jobs, 2 buckets, 27 realtime tables and the PostgREST hook. Two functions differ:
   - `assert_system_admin_remains`: the documented bootstrap edit to `p1b` (local only; live never takes that branch).
   - `public_register_case_client`: comments only.
 - **Version fix (`230bfcd`).** Four files carried different version numbers from live: `adult_education_courses`, `case_resources`, `case_client_self_registration` and `staff_availability_booking`. Their SQL matched what live recorded, so they were renamed to live's versions. Before that, `supabase db push` would have run them a second time.
 - **Before any push,** repeat the comparison: list `supabase_migrations.schema_migrations.version` on the project and compare it with this folder's filenames.
 
-**`t1`–`t7` were applied on 2026-10-28** (approved), each in one transaction with its `schema_migrations` row under the file's version, in order, with the app deployed first where it mattered (PRs #64 and #66). The production app has since moved on (PRs #68 and #69, 2026-10-29).
+**`t1`–`t7` were applied on 2026-10-28** (approved), each in one transaction with its `schema_migrations` row under the file's version, in order, with the app deployed first where it mattered (PRs #64 and #66). **`t8` was applied on 2026-10-30** (approved) the same way, after PR #70 was deployed.
 
 **How future migrations should go:**
 1. Dry run with `begin … rollback`.
@@ -122,7 +122,7 @@ Every check here runs against live only as a `begin … rollback` dry run, and o
 | `send-outbound` | every 5 minutes | `invoke_send_outbound()`. Does nothing without the Vault secrets |
 | `snap-task-reminders` | `5 * * * *` after `t1`; `0 11 * * *` before | `send_task_reminders()` after `t1`; `snap_send_task_reminders()` before |
 | `staff-report-reminders` | `7 * * * *` | `staff_reports_tick()` |
-| `api-rate-hits-cleanup` | `*/10 * * * *` | after `t8` only: deletes throttle rows older than an hour |
+| `api-rate-hits-cleanup` | `*/10 * * * *` | since `t8` (2026-10-30): deletes throttle rows older than an hour |
 
 ## 2a. Backups and recovery
 
