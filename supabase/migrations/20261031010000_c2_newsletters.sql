@@ -1,9 +1,10 @@
 -- c2 -- newsletters: one email to many clients, from the Communications
 -- module. Builds on c1_communications (the outbound queue, consent checks,
 -- the communications log).
--- NOT APPLIED to live. Needs a rolled-back dry run of
--- supabase/tests/c2_newsletters_check.sql against live, then the owner's
--- approval, like every migration (plans/goals.md).
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-31 (version 20261031010000) with
+-- the owner's approval, after a rolled-back dry run of
+-- supabase/tests/c2_newsletters_check.sql passed on live; the checks passed
+-- again against live afterwards.
 --
 -- What it adds:
 --   * Permission communications.newsletters.send (sensitive: it reaches every

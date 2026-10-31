@@ -9,7 +9,7 @@ One sidebar entry, **Communications** (`/communications/:section`), with four se
 | Log | `communications.view` | Every client's communications log (the `communications` table the client profile already shows), with filters, open follow-ups counted at the top, and **Mark done / Reopen** on each follow-up |
 | Messages | `communications.messages.send` (or `.view` to read) | Texts and emails to clients, with their queue status. Waiting messages can be cancelled by the sender. A warning appears when messages wait longer than one send cycle, which means the provider isn't connected |
 | Templates | `communications.templates.manage` | Reusable messages per channel, purpose and language (en / ht / fr). `{first_name}` is filled in when the message is sent. Templates are switched off, never deleted |
-| Newsletters | `communications.newsletters.send` (c2, not on live yet) | One email to every consenting client in an audience: all clients, or one program's participants. Drafts can be edited; sent ones can't, but the emails still waiting can be stopped. Each one lists its recipients, sent, waiting, failed and unsubscribed counts |
+| Newsletters | `communications.newsletters.send` | One email to every consenting client in an audience: all clients, or one program's participants. Drafts can be edited; sent ones can't, but the emails still waiting can be stopped. Each one lists its recipients, sent, waiting, failed and unsubscribed counts |
 | Announcements | `communications.announcements.view` / `.post` | Notices to all staff. Posting one sends everyone an in-app notification that links here. Announcements can be pinned, marked Important, given an end date, and archived |
 
 The client profile's Communications tab also gets **Send message**, follow-up closing, and the queue status on each message sent from the app.
@@ -23,7 +23,7 @@ The client profile's Communications tab also gets **Send message**, follow-up cl
 - Direct writes to `communications` are limited to the columns the log form has always written. "Done" and the link to a sent message can only be set by the functions.
 - Grants match who reads the log today (administrator, staff, case manager, job developer). Every account type reads announcements. Administrators and Executive Oversight post. **Custom roles get nothing** until someone adds the permissions under Administration → Roles.
 
-## Newsletters (`c2_newsletters`, NOT applied to live)
+## Newsletters (`c2_newsletters`, on live since 2026-10-31)
 
 - **Who gets one:** clients in the chosen audience whose email address is valid and whose newest consent for email + "program updates" is `granted`. The editor shows that count live, and the Send button uses the same number. At most 5,000 per newsletter. Each recipient also gets an entry in their communications log ("Newsletter: …").
 - **One language per newsletter.** Clients have no preferred-language field, so a newsletter for Kreyòl speakers is a separate newsletter.
@@ -48,5 +48,6 @@ The deployed function keeps working unchanged after the migration, because the n
 2. Decide on Twilio, or leave texting off. Email needs only Resend, which goes live with the staff report emails.
 3. Native-speaker check of the Kreyòl and French footer in client emails (`CLIENT_FOOTER` in `send-outbound/handler.ts`). Templates are written by staff in each language.
 4. Follow-up, not built: replies such as STOP. Twilio blocks texts to numbers that replied STOP and the send then fails, but nothing writes a `revoked` consent row yet. That needs an inbound webhook.
-5. Dry-run `c2_newsletters` on live (`begin;` + migration + `supabase/tests/c2_newsletters_check.sql`, ending in `C2_CHECKS_PASSED`), then approve and apply it. The rollback is `supabase/rollback/c2_newsletters_down.sql`; on the local stack it restored the schema exactly. Redeploy `send-outbound` afterwards so newsletter emails render.
+5. ~~Dry-run and apply `c2_newsletters` on live.~~ Done 2026-10-31: the dry run passed, the migration was applied with its `schema_migrations` row in one transaction, and the checks passed again on live. The rollback is `supabase/rollback/c2_newsletters_down.sql`.
+7. **`send-outbound` has never been deployed to live** (checked 2026-10-31). No email of any kind leaves until it's deployed with its secrets (`CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`) and the Vault secrets `send_outbound_url` / `send_outbound_secret` exist. Until then client messages and newsletters wait as "queued", which the Messages page reports. Deploy it with `--no-verify-jwt` once Resend is set up.
 6. Native-speaker check of the newsletter footer (`NEWSLETTER_FOOTER` in `send-outbound/handler.ts`) and of the unsubscribe page's Kreyòl and French (`unsub*` in `src/lib/i18n.js`).
