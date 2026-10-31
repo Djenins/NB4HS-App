@@ -3,7 +3,7 @@
 //   CRON_SECRET     shared with the Vault secret send_outbound_secret
 //   RESEND_API_KEY  the provider key (sending domain verified in Resend)
 //   EMAIL_FROM      e.g. "NB4HS Reports <reports@nb4hs.org>"
-//   APP_URL         optional; defaults to https://nb4hs-app.vercel.app
+//   APP_URL         optional; defaults to https://app.nb4hs.org
 // For text messages to clients (optional; texts wait in the queue until set):
 //   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
 //   TWILIO_FROM     a Twilio number (+1401...) or Messaging Service SID (MG...)
@@ -25,7 +25,7 @@ Deno.serve(createHandler({
   send: resendSender(apiKey, from),
   sendSms: twilioSender(twilioSid, twilioToken, twilioFrom),
   cronSecret: Deno.env.get("CRON_SECRET") || undefined,
-  appUrl: Deno.env.get("APP_URL") || "https://nb4hs-app.vercel.app",
+  appUrl: Deno.env.get("APP_URL") || "https://app.nb4hs.org",
   providerConfigured: !!apiKey && !!from,
   smsConfigured: !!twilioSid && !!twilioToken && !!twilioFrom
 }));

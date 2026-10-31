@@ -23,7 +23,7 @@
 // email (Resend) or by text (Twilio). Each channel is claimed only when its
 // provider is configured, so texts wait in the queue until Twilio is set up.
 
-import { LAYOUTS, NEWSLETTER_FOOTER, newsletterText, renderNewsletterHtml } from "./newsletterLayout.js";
+import { LAYOUTS, NEWSLETTER_FOOTER, brandHeaderHtml, logoUrl, newsletterText, renderNewsletterHtml } from "./newsletterLayout.js";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -60,7 +60,7 @@ export interface Deps {
 
 export type Lang = "en" | "ht" | "fr";
 
-const DEFAULT_APP = "https://nb4hs-app.vercel.app";
+const DEFAULT_APP = "https://app.nb4hs.org";
 
 export function escapeHtml(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -72,11 +72,12 @@ export function appLink(appUrl: string, path: unknown) {
   return (appUrl || DEFAULT_APP).replace(/\/+$/, "") + p;
 }
 
-function layout(heading: string, lines: string[], button: string, href: string) {
+function layout(heading: string, lines: string[], button: string, href: string, appUrl: string) {
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
-<tr><td><p style="margin:0 0 4px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
+<tr><td>${brandHeaderHtml(logoUrl(appUrl || DEFAULT_APP))}
+<div style="border-top:1px solid #e3e8f0;margin:18px 0 20px"></div>
 <h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(heading)}</h1>
 ${lines.map((l) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.5">${l}</p>`).join("\n")}
 <p style="margin:22px 0 8px"><a href="${escapeHtml(href)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold">${escapeHtml(button)}</a></p>
@@ -104,7 +105,7 @@ export function textToHtml(text: string) {
     .join("\n");
 }
 
-export function renderClientEmail(payload: Record<string, unknown>) {
+export function renderClientEmail(payload: Record<string, unknown>, appUrl?: string) {
   const lang = clientLang(payload.language);
   const subject = String(payload.subject ?? "").trim() || "New Bridges for Haitian Success";
   const body = String(payload.body ?? "").trim();
@@ -113,7 +114,8 @@ export function renderClientEmail(payload: Record<string, unknown>) {
   const html = `<!doctype html><html lang="${lang}"><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
-<tr><td><p style="margin:0 0 16px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
+<tr><td>${brandHeaderHtml(logoUrl(appUrl || DEFAULT_APP))}
+<div style="border-top:1px solid #e3e8f0;margin:18px 0 20px"></div>
 ${textToHtml(body)}
 <p style="margin:20px 0 0;font-size:12px;color:#5b6b82">${escapeHtml(footer)}</p>
 </td></tr></table></td></tr></table></body></html>`;
@@ -148,8 +150,8 @@ export function renderNewsletter(payload: Record<string, unknown>, appUrl: strin
     return {
       subject, headers,
       html: renderNewsletterHtml({
-        layout, content: payload.content, language: lang, subject,
-        footer: { brand: "New Bridges for Haitian Success", why: f.why, address, stopLabel: f.stop, href }
+        layout, content: payload.content, language: lang, subject, logo: logoUrl(appUrl || DEFAULT_APP),
+        footer: { why: f.why, address, stopLabel: f.stop, href }
       }),
       text: `${subject}\n\n${newsletterText(payload.content, layout) || body}\n\n—\n${f.why}\n${address}\n${f.stop}: ${href}`
     };
@@ -157,7 +159,8 @@ export function renderNewsletter(payload: Record<string, unknown>, appUrl: strin
   const html = `<!doctype html><html lang="${lang}"><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
-<tr><td><p style="margin:0 0 16px;font-size:13px;color:#5b6b82">New Bridges for Haitian Success</p>
+<tr><td>${brandHeaderHtml(logoUrl(appUrl || DEFAULT_APP))}
+<div style="border-top:1px solid #e3e8f0;margin:18px 0 20px"></div>
 <h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(subject)}</h1>
 ${textToHtml(body)}
 <p style="margin:24px 0 4px;font-size:12px;color:#5b6b82">${escapeHtml(f.why)}</p>
@@ -183,21 +186,21 @@ export function renderEmail(template: string, payload: Record<string, unknown>, 
       html: layout("New biweekly report", [
         `<strong>${escapeHtml(name)}</strong> submitted their biweekly report for <strong>${escapeHtml(period)}</strong>.`,
         when ? `Submitted ${escapeHtml(when)}.` : ""
-      ].filter(Boolean), "Review report", href),
+      ].filter(Boolean), "Review report", href, appUrl),
       text: `${name} submitted their biweekly report for ${period}.${when ? `\nSubmitted ${when}.` : ""}\n\nReview report: ${href}\n\nSign in to the NB4HS app to see the report. This email does not contain its content.`
     };
   }
   if (template === "staff_report_revision_requested") {
     return {
       subject: "Your NB4HS biweekly report needs a revision",
-      html: layout("Revision requested", [`Your biweekly report for <strong>${escapeHtml(period)}</strong> was sent back for a revision. The reviewer's note is in the app.`], "Open your report", href),
+      html: layout("Revision requested", [`Your biweekly report for <strong>${escapeHtml(period)}</strong> was sent back for a revision. The reviewer's note is in the app.`], "Open your report", href, appUrl),
       text: `Your biweekly report for ${period} was sent back for a revision. The reviewer's note is in the app.\n\nOpen your report: ${href}`
     };
   }
   if (template === "staff_report_acknowledged") {
     return {
       subject: "Your NB4HS biweekly report was acknowledged",
-      html: layout("Report acknowledged", [`Your biweekly report for <strong>${escapeHtml(period)}</strong> was acknowledged.`], "Open your report", href),
+      html: layout("Report acknowledged", [`Your biweekly report for <strong>${escapeHtml(period)}</strong> was acknowledged.`], "Open your report", href, appUrl),
       text: `Your biweekly report for ${period} was acknowledged.\n\nOpen your report: ${href}`
     };
   }
@@ -220,7 +223,7 @@ export function createHandler(deps: Deps) {
       if (!nl) return { ok: false, error: "incomplete newsletter payload" };
       return await deps.send({ to: m.to_address, subject: nl.subject, html: nl.html, text: nl.text, headers: nl.headers });
     }
-    const email = m.template === "client_message" ? renderClientEmail(m.payload || {}) : renderEmail(m.template, m.payload || {}, deps.appUrl);
+    const email = m.template === "client_message" ? renderClientEmail(m.payload || {}, deps.appUrl) : renderEmail(m.template, m.payload || {}, deps.appUrl);
     if (!email) return { ok: false, error: "unknown template " + m.template };
     return await deps.send({ to: m.to_address, subject: email.subject, html: email.html, text: email.text });
   }
