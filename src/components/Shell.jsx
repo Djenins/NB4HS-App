@@ -175,9 +175,6 @@ export default function Shell() {
   // <main>'s usual 1200px reading measure, and (on a landscape screen) a
   // definite height so their centre column can scroll on its own instead of
   // scrolling the whole page. Both come from main--kiosk-form in main.css.
-  // In kiosk mode the form also drops Shell's prototype footer note: the
-  // kiosk frame has its own closing line, and the landing screen already
-  // hides that note in kiosk mode for the same reason.
   const isKioskForm = location.pathname === "/checkin/visitor" || location.pathname === "/checkin/student";
   // The public appointment lookup (AppointmentLookup.jsx) is the other half
   // of that same visitor-facing design: it carries the NB4HS logo, the Back
@@ -309,7 +306,6 @@ export default function Shell() {
               </main>
             )}
 
-            {!clientView && <div className="footer-note no-print">{ORG.name} — {t("prototypeNotice")}</div>}
           </div>
         </div>
       </TooltipProvider>

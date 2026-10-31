@@ -8,6 +8,7 @@ declare
   i int;
   msg text;
   state text;
+  hardened boolean := to_regprocedure('public.api_rate_caller(json)') is not null;
 begin
   if current_setting('request.path', true) is not null and current_setting('request.path', true) <> '' then
     raise exception 'run this outside an API request';
@@ -45,10 +46,12 @@ begin
   if not exists (select 1 from public.api_rate_hits where key = 'request_appointment:198.51.100.8') then
     raise exception 'FAIL: the caller IP was not taken from cf-connecting-ip';
   end if;
-  -- Without Cloudflare's header, the first x-forwarded-for entry.
+  -- Without Cloudflare's header: t6 took the first x-forwarded-for entry;
+  -- t8 takes the last, the proxy's (t8_rate_limit_check.sql covers it).
   perform set_config('request.headers', '{"x-forwarded-for":"192.0.2.44, 10.0.0.1"}', true);
   perform public.api_pre_request();
-  if not exists (select 1 from public.api_rate_hits where key = 'request_appointment:192.0.2.44') then
+  if not exists (select 1 from public.api_rate_hits where key = 'request_appointment:'
+                 || case when hardened then '10.0.0.1' else '192.0.2.44' end) then
     raise exception 'FAIL: the x-forwarded-for fallback is wrong';
   end if;
 
@@ -71,7 +74,13 @@ begin
   perform set_config('request.headers', '{"cf-connecting-ip":"198.51.100.7"}', true);
   update public.api_rate_hits set at = now() where key = 'request_appointment:198.51.100.7';
   insert into public.api_rate_hits (key) select 'request_appointment:198.51.100.7' from generate_series(1, 5);
-  perform set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-0000-0000-000000000000"}', true);
+  -- Since t8 only an active profile skips the count, so use a real one.
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'sub',
+    case when hardened then (select id from public.profiles where active limit 1)
+         else '00000000-0000-0000-0000-000000000000'::uuid end)::text, true);
+  if hardened and nullif(current_setting('request.jwt.claims')::json->>'sub', '') is null then
+    raise exception 'run this on a database with at least one active account';
+  end if;
   perform public.api_pre_request();
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   perform set_config('request.path', '/students', true);

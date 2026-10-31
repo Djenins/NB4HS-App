@@ -1,9 +1,10 @@
 # NB4HS-owned accounts: setup checklist
 
-Today the app runs on personal accounts:
+Today the app runs on personal accounts (checked 2026-10-29, read-only):
 - **Code:** GitHub `Djenins/NB4HS-App`
-- **Hosting:** Vercel, at `nb4hs-app.vercel.app`
-- **Database:** Supabase project `vkbzarlkqzvhsfdmxyyq`
+- **Hosting:** Vercel project `nb4hs-app` in the team `marcdeeh`, at `app.nb4hs.org` and `nb4hs-app.vercel.app`
+- **Database:** Supabase project `vkbzarlkqzvhsfdmxyyq`, in the personal organization "Djenins's Org", on the **Pro** plan
+- **Email:** none yet
 
 For launch, NB4HS should own every account, so the organization keeps access whoever does the development. This is a checklist for NB4HS staff to work through. **Nothing on it has been done.** None of it is a step for a developer to take on a personal account, and no account has been transferred.
 

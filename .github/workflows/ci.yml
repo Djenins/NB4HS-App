@@ -16,6 +16,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Fails on any known advisory in the app's npm dependencies, dev tools
+      # included. Fix by upgrading; if one truly can't be fixed yet, record it
+      # in plans/launch-readiness-2026-10-29.md rather than lowering the level.
+      - run: npm audit --audit-level=low
       - run: npm test
       # The build only needs the variables to exist; the real values live in Vercel.
       - run: npm run build

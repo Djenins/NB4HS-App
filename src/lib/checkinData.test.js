@@ -41,6 +41,13 @@ describe("kiosk data paths", () => {
     expect(student).toMatchObject({ id: "s2", firstName: "Rose", classKey: "esl_am", phone: "" });
   });
 
+  it("fetchKioskVisits and fetchKioskRoster resolve to null on error, so the kiosk keeps its list", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "PT429", message: "Too many requests" } });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(fetchKioskVisits("2026-10-26")).resolves.toBeNull();
+    await expect(fetchKioskRoster()).resolves.toBeNull();
+  });
+
   it("fetchVisitCount degrades to 0 on error", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "nope" } });
     vi.spyOn(console, "warn").mockImplementation(() => {});

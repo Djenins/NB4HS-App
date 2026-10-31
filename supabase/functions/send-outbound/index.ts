@@ -6,7 +6,7 @@
 //   APP_URL         optional; defaults to https://nb4hs-app.vercel.app
 // Deploy with --no-verify-jwt: pg_cron authenticates with CRON_SECRET, not a
 // user session.
-import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { createHandler, resendSender } from "./handler.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;

@@ -158,7 +158,7 @@ export async function deleteCourse(key) {
 
 export async function fetchStudents() {
   const { data, error } = await supabase.from("students").select("*, clients(nb_id)").order("last_name");
-  if (error) { console.warn("fetchStudents failed", error); return []; }
+  if (error) { console.warn("fetchStudents failed", error); return null; }
   return data.map(studentFromRow);
 }
 // Deliberately never forwards `fields.id` (see the same note on visitToRow
@@ -198,7 +198,7 @@ export async function deleteStudent(id) {
 
 export async function fetchVisits() {
   const { data, error } = await supabase.from("visits").select("*").order("time_in", { ascending: false });
-  if (error) { console.warn("fetchVisits failed", error); return []; }
+  if (error) { console.warn("fetchVisits failed", error); return null; }
   return data.map(visitFromRow);
 }
 // Goes through the kiosk_create_visit() RPC rather than a raw INSERT: the
@@ -226,15 +226,18 @@ export async function checkInStudentVisit(studentId, visitDate) {
 // open visits (names only, for tap-to-check-out), today's student check-ins
 // without names (for the already-checked-in guard), the class rosters
 // (names + class), and a bare count for the landing page.
+// The list fetchers resolve to null on failure, not [], so a refused poll
+// (HTTP 429 from the t6 throttle, a network blip) keeps the list on screen
+// instead of emptying the kiosk until the next good answer.
 
 export async function fetchKioskVisits(visitDate) {
   const { data, error } = await supabase.rpc("kiosk_visits", { p_visit_date: visitDate });
-  if (error) { console.warn("fetchKioskVisits failed", error); return []; }
+  if (error) { console.warn("fetchKioskVisits failed", error); return null; }
   return data.map(visitFromRow);
 }
 export async function fetchKioskRoster() {
   const { data, error } = await supabase.rpc("kiosk_roster");
-  if (error) { console.warn("fetchKioskRoster failed", error); return []; }
+  if (error) { console.warn("fetchKioskRoster failed", error); return null; }
   return data.map(studentFromRow);
 }
 export async function fetchVisitCount() {

@@ -372,11 +372,12 @@ All read-only, against `vkbzarlkqzvhsfdmxyyq`. Covers RLS items 1–6 from "P0 �
 
 ## Still open
 
-**REQUIRES OWNER APPROVAL:**
-- **Deploy this branch's app before Nov 2, 2026.** The steps, post-deploy checks and rollback are in [deploy-runbook-pr64.md](deploy-runbook-pr64.md). The database is ahead of production's app: reviewers need the new app to see reports in revision, and signed-in receptionists need it for the student roster. Nobody is affected today, because live has no receptionists or reports.
-- **Decisions from the live security checks:** calendar and appointment scoping (item 2); rate limits on the 13 open functions (item 3); whether to tighten `notifications` updates to `read` only (item 4).
-- **Marking PR #64 ready and merging.**
-- **NB4HS accounts and plans:** ownership transfers and any paid plan.
+**Superseded 2026-10-29 by [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md)**, which rechecked everything here against live (read-only). In short:
+- PR #64 and PR #66 are deployed.
+- The three security decisions were made and applied as `t5`–`t7`. `t8` hardens `t6` and is local only.
+- **New:** live has no staff-report reviewer.
+- The per-role checks now live in that file's acceptance checklist.
+- **Still open:** NB4HS account ownership, backups and email.
 
 **Leads not acted on:**
 - the calendar not showing appointments, tasks or time off

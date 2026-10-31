@@ -20,6 +20,7 @@ import { applyTheme, effectiveClosingTime, getConfig, loadData, saveData, setCon
 import {
   checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudents, fetchVisitCount, fetchVisits, subscribeTable
 } from "../lib/checkinData.js";
+import { checkOutInOrder, keepOnFailure } from "../lib/kioskSync.js";
 import { todayStr } from "../lib/utils.js";
 import {
   fetchAllPlacementCheckins, fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
@@ -179,28 +180,28 @@ export function AppProvider({ children }) {
   // the kiosk's roster for check-in instead. It's only empty when there are
   // no students at all, so it never hides rows from someone who can read them.
   const loadStudents = useCallback(() => (signedIn
-    ? fetchStudents().then((rows) => (rows.length ? rows : fetchKioskRoster()))
+    ? fetchStudents().then((rows) => (rows && rows.length ? rows : fetchKioskRoster()))
     : fetchKioskRoster()), [signedIn]);
 
   useEffect(() => {
     if (authLoading) return undefined;
     let cancelled = false;
-    loadVisits().then((rows) => { if (!cancelled) setVisits(rows); });
-    loadStudents().then((rows) => { if (!cancelled) setStudents(rows); });
+    loadVisits().then((rows) => { if (!cancelled) keepOnFailure(setVisits)(rows); });
+    loadStudents().then((rows) => { if (!cancelled) keepOnFailure(setStudents)(rows); });
     fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); });
     if (!signedIn) fetchVisitCount().then((n) => { if (!cancelled) setKioskVisitCount(n); });
 
     if (!signedIn) {
       const id = setInterval(() => {
-        loadVisits().then((rows) => { if (!cancelled) setVisits(rows); });
-        loadStudents().then((rows) => { if (!cancelled) setStudents(rows); });
+        loadVisits().then((rows) => { if (!cancelled) keepOnFailure(setVisits)(rows); });
+        loadStudents().then((rows) => { if (!cancelled) keepOnFailure(setStudents)(rows); });
         fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); });
       }, KIOSK_REFRESH_MS);
       return () => { cancelled = true; clearInterval(id); };
     }
 
-    const unsubVisits = subscribeTable("visits", () => { loadVisits().then((rows) => { if (!cancelled) setVisits(rows); }); });
-    const unsubStudents = subscribeTable("students", () => { loadStudents().then((rows) => { if (!cancelled) setStudents(rows); }); });
+    const unsubVisits = subscribeTable("visits", () => { loadVisits().then((rows) => { if (!cancelled) keepOnFailure(setVisits)(rows); }); });
+    const unsubStudents = subscribeTable("students", () => { loadStudents().then((rows) => { if (!cancelled) keepOnFailure(setStudents)(rows); }); });
     const unsubClasses = subscribeTable("classes", () => { fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); }); });
     return () => { cancelled = true; unsubVisits(); unsubStudents(); unsubClasses(); };
   }, [authLoading, signedIn, loadVisits, loadStudents]);
@@ -210,14 +211,14 @@ export function AppProvider({ children }) {
   // new row shows up immediately, instead of waiting on the realtime
   // subscription's refetch (which can lag enough that it looks like the UI
   // needs a hard refresh to pick up a just-added student).
-  const refetchStudents = useCallback(() => loadStudents().then((rows) => setStudents(rows)), [loadStudents]);
+  const refetchStudents = useCallback(() => loadStudents().then(keepOnFailure(setStudents)), [loadStudents]);
   // Same idea as refetchStudents above, for CheckOut.jsx's checkOut()/
   // selfCheckOut() -- the realtime subscription is the only other thing that
   // would pick up a just-recorded checkout, and this project's Supabase
   // instance has no tables in its `supabase_realtime` publication, so
   // without this the checked-out visit keeps showing in the kiosk list
   // until something else happens to trigger a refetch.
-  const refetchVisits = useCallback(() => loadVisits().then((rows) => setVisits(rows)), [loadVisits]);
+  const refetchVisits = useCallback(() => loadVisits().then(keepOnFailure(setVisits)), [loadVisits]);
 
   // The merged view every page actually reads: same key names as before
   // (`data.visits`/`data.students`/`data.classes`), just overlaid onto the
@@ -511,6 +512,7 @@ export function AppProvider({ children }) {
   useEffect(() => { visitsRef.current = visits; }, [visits]);
 
   useEffect(() => {
+    let sweeping = false;
     function sweep() {
       const closingTime = effectiveClosingTime(orgSettingsRef.current, getConfig());
       const now = new Date();
@@ -518,10 +520,11 @@ export function AppProvider({ children }) {
         if (v.timeOut) return false;
         return now >= new Date(v.date + "T" + closingTime + ":00");
       });
-      if (!stale.length) return;
-      Promise.all(stale.map((v) => checkOutVisit(v.id).catch(() => null))).then(() => {
-        showToast(stale.length + " " + t("autoCheckoutToast", "en"));
-      });
+      if (!stale.length || sweeping) return;
+      sweeping = true;
+      checkOutInOrder(stale, checkOutVisit)
+        .then((done) => { if (done) showToast(done + " " + t("autoCheckoutToast", "en")); })
+        .finally(() => { sweeping = false; });
     }
     sweep();
     const id = setInterval(sweep, 60000);

@@ -1,9 +1,10 @@
 -- t6 -- throttle the functions anyone can call without signing in (owner
 -- decision, 2026-10-28; launch-audit-2026-10-28.md, live security check 3,
 -- S13 in goals.md).
--- NOT APPLIED to the hosted project yet. Tested on the local stack with
--- supabase/tests/t6_rate_limits_check.sql and through the API. Undo with
--- supabase/rollback/t6_public_rate_limits_down.sql.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-28 (version 20261028060000) after a
+-- rolled-back dry run on live; supabase/tests/t6_rate_limits_check.sql passed
+-- against live afterwards, and the kiosk's own calls were recorded with real
+-- caller IPs. Undo with supabase/rollback/t6_public_rate_limits_down.sql.
 --
 -- PostgREST calls api_pre_request() before every API request
 -- (pgrst.db_pre_request). For a signed-out caller of one of the functions in

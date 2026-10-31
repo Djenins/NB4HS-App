@@ -103,10 +103,18 @@ export function addMonths(dateStr, n) {
   d.setMonth(d.getMonth() + n);
   return dateStrFromDate(d);
 }
+// Browsers ship no Haitian Creole date names (Intl falls back to English, and
+// DATE_LOCALE maps ht to en-US), so the client screens' calendars spelled
+// months and weekdays in English. These are the Kreyòl names, lower-case like
+// French. Only client-facing pages ever see lang "ht" (AppContext).
+var HT_MONTHS = ["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"];
+var HT_WEEKDAYS_SHORT = ["lin", "mad", "mèk", "jed", "van", "sam", "dim"];
+
 export function fmtDateLong(dateStr, lang) {
   if (!dateStr) return "—";
   try {
     var d = new Date(dateStr + "T00:00:00");
+    if (lang === "ht") return d.getDate() + " " + HT_MONTHS[d.getMonth()] + " " + d.getFullYear();
     return d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { year: "numeric", month: "short", day: "numeric" });
   } catch (e) { return dateStr; }
 }
@@ -120,11 +128,13 @@ export function addDays(dateStr, n) {
 }
 export function monthYearLabel(year, month, lang) {
   var d = new Date(year, month, 1);
+  if (lang === "ht") return HT_MONTHS[month] + " " + year;
   return d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { year: "numeric", month: "long" });
 }
 // Locale-correct long month names (January..December), same reference-date
 // trick as weekdayShortLabels below -- used by DatePicker's month <select>.
 export function monthNamesLong(lang) {
+  if (lang === "ht") return HT_MONTHS.slice();
   var out = [];
   for (var m = 0; m < 12; m++) {
     var d = new Date(2024, m, 1);
@@ -137,6 +147,7 @@ export function daysInMonth(year, month) { return new Date(year, month + 1, 0).g
 // strings -- Jan 1 2024 was a Monday, so formatting that reference week in
 // the target locale gives the right labels for free.
 export function weekdayShortLabels(lang) {
+  if (lang === "ht") return HT_WEEKDAYS_SHORT.slice();
   var out = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(2024, 0, 1 + i);

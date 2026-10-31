@@ -1,14 +1,34 @@
 -- Undo t1_cross_program_tasks: the daily SNAP reminder job, the SNAP-only
 -- task policies (as p3d left them) and the old columns come back. Fails if a
 -- task exists outside Outreach (program is null), because the old table
--- can't hold it -- move or delete those first. Reminders sent under t1 are
--- dropped with task_notices_sent; task_reminders_sent was never touched.
+-- can't hold it -- move or delete those first. Also fails if a task records
+-- what it's about (subject_type/subject_id), since those columns go.
+--
+-- Reminders sent under t1 are not sent again:
+-- * each "due" reminder is copied into task_reminders_sent, which the old
+--   daily job checks, so it skips tasks t1 already reminded;
+-- * task_notices_sent is kept as task_notices_sent_rolled_back, so a later
+--   re-apply can restore it: run the t1 migration and
+--   supabase/rollback/t1_reapply_restore_notices.sql in one transaction.
 begin;
+do $$
+begin
+  if exists (select 1 from public.tasks where subject_type is not null or subject_id is not null) then
+    raise exception 't1 rollback refused: some tasks record a subject, which the old table cannot hold';
+  end if;
+end $$;
+insert into public.task_reminders_sent (task_id, due_date, sent_at)
+select t.id, split_part(n.notice_key, ':', 4)::date, n.sent_at
+from public.task_notices_sent n
+join public.tasks t on t.id = split_part(n.notice_key, ':', 2)::uuid
+where n.notice_key like 'due:%'
+  and not exists (select 1 from public.task_reminders_sent r
+                  where r.task_id = t.id and r.due_date = split_part(n.notice_key, ':', 4)::date);
 select cron.schedule('snap-task-reminders', '0 11 * * *', $$select public.snap_send_task_reminders()$$);
 alter publication supabase_realtime drop table public.tasks;
 
 drop function public.send_task_reminders(timestamptz);
-drop table public.task_notices_sent;
+alter table public.task_notices_sent rename to task_notices_sent_rolled_back;
 
 drop policy tasks_select on public.tasks;
 drop policy tasks_insert on public.tasks;

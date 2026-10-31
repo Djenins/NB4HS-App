@@ -1,9 +1,11 @@
 -- t7 -- client names and notes on the calendar and in appointments are for
 -- the staff member responsible and administrators (owner decision,
 -- 2026-10-28; launch-audit-2026-10-28.md, live security check 2).
--- NOT APPLIED to the hosted project yet. Tested on the local stack with
--- supabase/tests/t7_calendar_privacy_check.sql. Undo with
--- supabase/rollback/t7_calendar_privacy_down.sql.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-28 (version 20261028070000) after a
+-- rolled-back dry run on live and after the app that reads
+-- calendar_events_between() was deployed (PR #66);
+-- supabase/tests/t7_calendar_privacy_check.sql passed against live afterwards.
+-- Undo with supabase/rollback/t7_calendar_privacy_down.sql.
 --
 -- Before: anyone with calendar.view (every staff role) read every client
 -- appointment and every calendar event, names and notes included.
