@@ -7,14 +7,20 @@
 // The submit button stays disabled while a request is in flight, and the
 // database refuses a second submission anyway.
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Plus, Send, Trash2 } from "lucide-react";
+import { Plus, Send, Trash2 } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
   ORGANIZATION, OUTCOMES_MAX, REPORT_TEXT_MAX, discardDraft, fetchMyProgramOptions, missingFields, reportPermissions, saveDraft, submitReport
 } from "../../lib/staffReports.js";
 import { fmtTime } from "../../lib/utils.js";
+import { cn } from "../../lib/cn.js";
+import { Alert } from "../ui/alert.jsx";
 import { Button } from "../ui/button.jsx";
-import { REPORT_CONTROL, useProgramLabels } from "./ReportParts.jsx";
+import { Field, Input, Textarea } from "../ui/field.jsx";
+import { IconButton } from "../ui/icon-button.jsx";
+import { PageHeader } from "../ui/page-header.jsx";
+import { SectionCard } from "../ui/section-card.jsx";
+import { ReportFacts, useProgramLabels } from "./ReportParts.jsx";
 import ReportAttachments from "./ReportAttachments.jsx";
 
 const AUTOSAVE_MS = 3000;
@@ -41,16 +47,14 @@ function pickFields(report) {
 function TextArea({ field, value, onChange, invalid, disabled, t }) {
   const id = "report-" + field.key;
   return (
-    <div className="grid gap-1.5">
-      <label htmlFor={id} className={"text-sm font-semibold text-card-foreground" + (field.required ? " required" : "")}>{t(field.label)}</label>
-      {field.help && <p id={id + "-help"} className="!m-0 !text-xs text-muted">{t(field.help)}</p>}
-      <textarea
+    <Field label={t(field.label)} htmlFor={id} hint={field.help ? t(field.help) : null} required={field.required}>
+      <Textarea
         id={id} rows={4} maxLength={REPORT_TEXT_MAX} value={value} disabled={disabled}
-        aria-invalid={invalid || undefined} aria-describedby={field.help ? id + "-help" : undefined}
-        className={REPORT_CONTROL + " min-h-[96px] resize-y py-2 leading-relaxed" + (invalid ? " field-invalid" : "")}
+        aria-invalid={invalid || undefined} aria-describedby={field.help ? id + "-hint" : undefined}
+        className="resize-y text-body"
         onChange={(e) => onChange(e.target.value)}
       />
-    </div>
+    </Field>
   );
 }
 
@@ -61,15 +65,23 @@ function ProgramsField({ value, options, invalid, disabled, onChange }) {
   const { label } = useProgramLabels();
   const shown = options.concat(value.filter((k) => options.indexOf(k) === -1));
   return (
-    <fieldset id="report-programs" tabIndex={-1} className="m-0 grid min-w-0 gap-2 border-0 p-0" aria-invalid={invalid || undefined}>
-      <legend className="required mb-1 text-sm font-semibold text-card-foreground">{t("srFieldPrograms")}</legend>
-      <p className="!m-0 !text-xs text-muted">{t("srHelpPrograms")}</p>
-      <div className={"flex flex-wrap gap-2 rounded-lg" + (invalid ? " field-invalid p-2" : "")}>
+    <fieldset id="report-programs" tabIndex={-1} className="m-0 grid min-w-0 gap-1.5 border-0 p-0" aria-invalid={invalid || undefined} aria-describedby="report-programs-hint">
+      <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">
+        {t("srFieldPrograms")}<span className="ml-0.5 text-tone-danger-ink" aria-hidden="true">*</span>
+      </legend>
+      <p id="report-programs-hint" className="m-0 text-meta text-muted">{t("srHelpPrograms")}</p>
+      <div className={cn("mt-1 flex flex-wrap gap-2 rounded-control", invalid && "border border-tone-danger-border bg-tone-danger-bg p-2")}>
         {shown.map((k) => {
           const on = value.indexOf(k) !== -1;
           return (
-            <label key={k} className={"flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm " + (on ? "border-primary bg-primary-tint text-card-foreground" : "border-border text-card-foreground")}>
-              <input type="checkbox" checked={on} disabled={disabled} onChange={() => onChange(on ? value.filter((x) => x !== k) : value.concat([k]))} />
+            <label
+              key={k}
+              className={cn(
+                "flex min-h-10 cursor-pointer items-center gap-2 rounded-control border px-3 text-ui text-card-foreground transition-colors duration-fast [@media(pointer:coarse)]:min-h-11",
+                on ? "border-primary bg-tone-info-bg" : "border-border bg-card hover:border-line-strong"
+              )}
+            >
+              <input type="checkbox" className="h-4 w-4 accent-primary" checked={on} disabled={disabled} onChange={() => onChange(on ? value.filter((x) => x !== k) : value.concat([k]))} />
               {k === ORGANIZATION ? t("srOrganizationWide") : label([k])}
             </label>
           );
@@ -172,70 +184,77 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
     : dirty ? t("srUnsavedChanges")
     : saveState.at ? t("srSavedAt").replace("{time}", fmtTime(saveState.at)) : "";
 
+  const textField = (f, extraDisabled) => (
+    <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={busy || extraDisabled}
+      invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
+  );
+
+  // Form-page template: PageHeader, SectionCards of Fields, then a footer
+  // that stays in view while the long form scrolls (from sm; on a phone it
+  // would cover a quarter of the screen, so it sits at the end).
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" className="gap-1.5 px-2 text-muted" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("srBackToMyReports")}</Button>
-        <span className={"text-xs " + (saveState.status === "error" ? "font-semibold text-accent" : "text-muted")} role="status" aria-live="polite">{saveText}</span>
-      </div>
+    <form className="grid gap-6" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <PageHeader
+        className="mb-0"
+        back={{ label: t("srBackToMyReports"), onClick: onBack }}
+        title={t(report.status === "revision_requested" ? "srReviseTitle" : "srReportTitle")}
+        meta={
+          <ReportFacts items={[
+            [t("srStaffMember"), session ? session.currentUserName || session.currentUserEmail : ""],
+            [t("srReportingPeriod"), periodLabel],
+            [t("srDue"), dueLabel]
+          ]} />
+        }
+      />
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-card sm:p-6">
-        <h1 className="m-0 text-xl font-bold text-card-foreground">{t(report.status === "revision_requested" ? "srReviseTitle" : "srReportTitle")}</h1>
-        <dl className="m-0 mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-          <div className="flex gap-2"><dt className="text-muted">{t("srStaffMember")}:</dt><dd className="m-0 font-semibold text-card-foreground">{session ? session.currentUserName || session.currentUserEmail : ""}</dd></div>
-          <div className="flex gap-2"><dt className="text-muted">{t("srReportingPeriod")}:</dt><dd className="m-0 font-semibold text-card-foreground">{periodLabel}</dd></div>
-          <div className="flex gap-2"><dt className="text-muted">{t("srDue")}:</dt><dd className="m-0 font-semibold text-card-foreground">{dueLabel}</dd></div>
-        </dl>
+      {revisionComment && (
+        <div role="note">
+          <Alert tone="warning" title={t("srRevisionRequestedBy")}><span className="whitespace-pre-wrap">{revisionComment}</span></Alert>
+        </div>
+      )}
+      <Alert tone="info">{t("srPrivacyNote")}</Alert>
+      {showErrors && missing.length > 0 && (
+        <Alert tone="danger" title={t("srMissingFields")}>
+          {missing.map((f) => t(FIELDS.concat([PROGRAMS_FIELD]).find((x) => x.key === f).label)).join(", ")}
+        </Alert>
+      )}
 
-        {revisionComment && (
-          <div className="mt-4 rounded-lg border border-accent-soft bg-accent-tint px-4 py-3" role="note">
-            <p className="!m-0 !text-xs font-semibold uppercase tracking-wide text-accent">{t("srRevisionRequestedBy")}</p>
-            <p className="!mb-0 !mt-1 whitespace-pre-wrap !text-sm text-card-foreground">{revisionComment}</p>
-          </div>
-        )}
+      <SectionCard>
+        <ProgramsField value={fields.programs} options={programOptions} disabled={busy}
+          invalid={showErrors && missing.indexOf("programs") !== -1} onChange={(v) => set("programs", v)} />
+      </SectionCard>
 
-        <div className="info-callout mt-4"><p className="!m-0 !text-xs">{t("srPrivacyNote")}</p></div>
+      <SectionCard>
+        <div className="grid gap-6">
+          {FIELDS.slice(0, 2).map((f) => textField(f, !perms.canEdit))}
 
-        {showErrors && missing.length > 0 && (
-          <div role="alert" className="mt-4 rounded-lg border border-accent-soft bg-accent-tint px-4 py-3 text-sm text-card-foreground">
-            <strong className="text-accent">{t("srMissingFields")}</strong> {missing.map((f) => t(FIELDS.concat([PROGRAMS_FIELD]).find((x) => x.key === f).label)).join(", ")}
-          </div>
-        )}
-
-        <form className="mt-5 grid gap-5" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-          <ProgramsField value={fields.programs} options={programOptions} disabled={busy}
-            invalid={showErrors && missing.indexOf("programs") !== -1} onChange={(v) => set("programs", v)} />
-          {FIELDS.slice(0, 2).map((f) => (
-            <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={!perms.canEdit || busy}
-              invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
-          ))}
-
-          <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
-            <legend className="mb-1 text-sm font-semibold text-card-foreground">{t("srFieldOutcomes")}</legend>
-            <p className="!m-0 !text-xs text-muted">{t("srHelpOutcomes")}</p>
-            {fields.outcomes.map((o, i) => (
-              <div key={i} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end sm:border-0 sm:p-0">
-                <div className="grid gap-1">
-                  <label htmlFor={"outcome-metric-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeMetric")}</label>
-                  <input id={"outcome-metric-" + i} className={REPORT_CONTROL + " h-10"} value={o.metric} maxLength={200}
-                    placeholder={t("srOutcomeMetricPlaceholder")} onChange={(e) => setOutcome(i, "metric", e.target.value)} disabled={busy} />
-                </div>
-                <div className="grid gap-1">
-                  <label htmlFor={"outcome-value-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeValue")}</label>
-                  <input id={"outcome-value-" + i} className={REPORT_CONTROL + " h-10"} value={o.value} maxLength={60}
-                    placeholder="12" onChange={(e) => setOutcome(i, "value", e.target.value)} disabled={busy} />
-                </div>
-                <div className="grid gap-1">
-                  <label htmlFor={"outcome-notes-" + i} className="text-xs font-semibold text-muted">{t("srOutcomeNotes")}</label>
-                  <input id={"outcome-notes-" + i} className={REPORT_CONTROL + " h-10"} value={o.notes} maxLength={300}
-                    placeholder={t("srOutcomeNotesPlaceholder")} onChange={(e) => setOutcome(i, "notes", e.target.value)} disabled={busy} />
-                </div>
-                <Button type="button" variant="ghost" className="h-10 w-10 justify-self-end text-muted hover:text-accent" aria-label={t("srRemoveOutcome")}
-                  onClick={() => set("outcomes", fields.outcomes.filter((_, j) => j !== i))} disabled={busy}>
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-            ))}
+          <fieldset className="m-0 grid min-w-0 gap-3 border-0 p-0" aria-describedby="report-outcomes-hint">
+            <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">{t("srFieldOutcomes")}</legend>
+            <p id="report-outcomes-hint" className="m-0 -mt-1.5 text-meta text-muted">{t("srHelpOutcomes")}</p>
+            {fields.outcomes.length > 0 && (
+              <ul className="m-0 list-none divide-y divide-line-subtle p-0 sm:divide-y-0">
+                {fields.outcomes.map((o, i) => (
+                  <li key={i} className="grid gap-3 py-3 first:pt-0 sm:grid-cols-[2fr_1fr_2fr_auto] sm:items-end sm:py-1.5">
+                    <Field label={t("srOutcomeMetric")} htmlFor={"outcome-metric-" + i}>
+                      <Input id={"outcome-metric-" + i} value={o.metric} maxLength={200}
+                        placeholder={t("srOutcomeMetricPlaceholder")} onChange={(e) => setOutcome(i, "metric", e.target.value)} disabled={busy} />
+                    </Field>
+                    <Field label={t("srOutcomeValue")} htmlFor={"outcome-value-" + i}>
+                      <Input id={"outcome-value-" + i} className="tabular-nums" value={o.value} maxLength={60}
+                        placeholder="12" onChange={(e) => setOutcome(i, "value", e.target.value)} disabled={busy} />
+                    </Field>
+                    <Field label={t("srOutcomeNotes")} htmlFor={"outcome-notes-" + i}>
+                      <Input id={"outcome-notes-" + i} value={o.notes} maxLength={300}
+                        placeholder={t("srOutcomeNotesPlaceholder")} onChange={(e) => setOutcome(i, "notes", e.target.value)} disabled={busy} />
+                    </Field>
+                    <IconButton type="button" variant="danger" size="lg" label={t("srRemoveOutcome")} className="justify-self-end"
+                      onClick={() => set("outcomes", fields.outcomes.filter((_, j) => j !== i))} disabled={busy}>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            )}
             {fields.outcomes.length < OUTCOMES_MAX && (
               <Button type="button" variant="secondary" size="sm" className="justify-self-start gap-1.5"
                 onClick={() => set("outcomes", fields.outcomes.concat([{ metric: "", value: "", notes: "" }]))} disabled={busy}>
@@ -244,48 +263,40 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
             )}
           </fieldset>
 
-          {FIELDS.slice(2, 3).map((f) => (
-            <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={busy}
-              invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
-          ))}
+          {FIELDS.slice(2, 3).map((f) => textField(f))}
 
-          <div className="grid gap-2">
-            <TextArea field={FIELDS[3]} value={fields.assistanceNeeded} onChange={(v) => set("assistanceNeeded", v)}
-              disabled={busy || (fields.noAssistanceNeeded && !fields.assistanceNeeded)}
-              invalid={showErrors && missing.indexOf("assistanceNeeded") !== -1} t={t} />
-            <label className="flex items-center gap-2 text-sm text-card-foreground">
-              <input type="checkbox" checked={fields.noAssistanceNeeded} disabled={busy} onChange={(e) => set("noAssistanceNeeded", e.target.checked)} />
+          <div className="grid gap-2.5">
+            {textField(FIELDS[3], fields.noAssistanceNeeded && !fields.assistanceNeeded)}
+            <label className="flex min-h-10 items-center gap-2 text-ui text-card-foreground">
+              <input type="checkbox" className="h-4 w-4 accent-primary" checked={fields.noAssistanceNeeded} disabled={busy} onChange={(e) => set("noAssistanceNeeded", e.target.checked)} />
               {t("srNoAssistanceNeeded")}
             </label>
           </div>
 
-          {FIELDS.slice(4).map((f) => (
-            <TextArea key={f.key} field={f} value={fields[f.key]} onChange={(v) => set(f.key, v)} disabled={busy}
-              invalid={showErrors && missing.indexOf(f.key) !== -1} t={t} />
-          ))}
+          {FIELDS.slice(4).map((f) => textField(f))}
+        </div>
+      </SectionCard>
 
-          <fieldset className="m-0 grid min-w-0 gap-2 border-0 p-0">
-            <legend className="mb-1 text-sm font-semibold text-card-foreground">{t("srAttachments")}</legend>
-            <ReportAttachments report={report} editable={!busy} />
-          </fieldset>
+      <SectionCard title={t("srAttachments")}>
+        <ReportAttachments report={report} editable={!busy} />
+      </SectionCard>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              {perms.canDiscard && (
-                <Button type="button" variant="ghost" className="gap-1.5 text-accent hover:bg-tint-danger" onClick={discard} disabled={busy}>
-                  <Trash2 className="h-4 w-4" aria-hidden="true" /> {t("srDiscardDraft")}
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" variant="secondary" onClick={saveNow} disabled={busy || saveState.status === "saving"}>{t("srSaveDraft")}</Button>
-              <Button type="submit" className="gap-1.5" disabled={busy}>
-                <Send className="h-4 w-4" aria-hidden="true" /> {busy ? t("srSubmitting") : t(report.status === "revision_requested" ? "srResubmit" : "srSubmitReport")}
-              </Button>
-            </div>
-          </div>
-        </form>
+      <div className="z-10 -mx-1 flex flex-col-reverse gap-3 rounded-surface border border-border bg-card px-4 py-3 shadow-raised sm:sticky sm:bottom-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          {perms.canDiscard && (
+            <Button type="button" variant="ghost" className="gap-1.5 text-tone-danger-ink hover:bg-tone-danger-bg" onClick={discard} disabled={busy}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> {t("srDiscardDraft")}
+            </Button>
+          )}
+          <span className={cn("text-meta tabular-nums", saveState.status === "error" ? "font-semibold text-tone-danger-ink" : "text-muted")} role="status" aria-live="polite">{saveText}</span>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" variant="secondary" onClick={saveNow} disabled={busy || saveState.status === "saving"}>{t("srSaveDraft")}</Button>
+          <Button type="submit" className="gap-1.5" disabled={busy}>
+            <Send className="h-4 w-4" aria-hidden="true" /> {busy ? t("srSubmitting") : t(report.status === "revision_requested" ? "srResubmit" : "srSubmitReport")}
+          </Button>
+        </div>
       </div>
-    </div>
+    </form>
   );
 }

@@ -89,6 +89,16 @@ const STATUS_TONES = {
   "employer:hiring": "success",
   "employer:inactive": "neutral",
 
+  // Staff reports (My Reports, Staff Reports). Overdue is derived from the
+  // deadline; a revision request asks for work, so it's a warning, not red.
+  "staffReport:not_started": "neutral",
+  "staffReport:draft": "neutral",
+  "staffReport:submitted": "info",
+  "staffReport:under_review": "violet",
+  "staffReport:revision_requested": "warning",
+  "staffReport:acknowledged": "success",
+  "staffReport:overdue": "danger",
+
   // Candidate Matching: match strength and candidate flags
   "match:strong": "success",
   "match:good": "info",

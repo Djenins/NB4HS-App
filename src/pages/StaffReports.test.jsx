@@ -41,6 +41,8 @@ import MyReports from "./MyReports.jsx";
 import StaffReports, { staffReportSectionsFor } from "./StaffReports.jsx";
 
 const en = (key) => translate(key, "en");
+// A label by its text; required labels also carry a visible "*" (ui/field.jsx).
+const labelOf = (key) => new RegExp("^" + en(key).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\*?$");
 const SCHEDULE = {
   id: "s1", name: "Biweekly staff report", active: true, timeZone: "America/New_York", firstPeriodStart: "2026-11-02", periodDays: 14,
   deadlineDaysAfterEnd: 1, deadlineTime: "17:00", graceHours: 0, reminderOffsets: [-3, -1, 0, 1]
@@ -140,7 +142,7 @@ describe("My Reports", () => {
     expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0]);
     await waitFor(() => expect(api.createDraft).toHaveBeenCalledWith("p1", "u-jane"));
-    expect(await screen.findByLabelText(en("srFieldActivities"))).toBeTruthy();
+    expect(await screen.findByLabelText(labelOf("srFieldActivities"))).toBeTruthy();
     vi.useRealTimers();
   });
 
@@ -173,11 +175,11 @@ describe("My Reports", () => {
 
     expect(screen.getByRole("alert").textContent).toContain(en("srFieldPrograms"));
     fireEvent.click(await screen.findByLabelText("Case Management"));
-    fireEvent.change(screen.getByLabelText(en("srFieldActivities")), { target: { value: "Ran two workshops" } });
-    fireEvent.change(screen.getByLabelText(en("srFieldAccomplishments")), { target: { value: "Placed 3 participants" } });
-    fireEvent.change(screen.getByLabelText(en("srFieldChallenges")), { target: { value: "Staffing" } });
-    fireEvent.click(screen.getByLabelText(en("srNoAssistanceNeeded")));
-    fireEvent.change(screen.getByLabelText(en("srFieldNextGoals")), { target: { value: "Two more workshops" } });
+    fireEvent.change(screen.getByLabelText(labelOf("srFieldActivities")), { target: { value: "Ran two workshops" } });
+    fireEvent.change(screen.getByLabelText(labelOf("srFieldAccomplishments")), { target: { value: "Placed 3 participants" } });
+    fireEvent.change(screen.getByLabelText(labelOf("srFieldChallenges")), { target: { value: "Staffing" } });
+    fireEvent.click(screen.getByLabelText(labelOf("srNoAssistanceNeeded")));
+    fireEvent.change(screen.getByLabelText(labelOf("srFieldNextGoals")), { target: { value: "Two more workshops" } });
     fireEvent.click(submit);
 
     await waitFor(() => expect(api.submitReport).toHaveBeenCalledWith("r1"));
@@ -250,7 +252,7 @@ describe("Staff Reports review", () => {
     fireEvent.click(await screen.findByRole("button", { name: en("srRequestRevision") }));
     const send = screen.getByRole("button", { name: en("srSendBack") });
     expect(send.disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText(en("srRevisionComment")), { target: { value: "Please add attendance." } });
+    fireEvent.change(screen.getByLabelText(labelOf("srRevisionComment")), { target: { value: "Please add attendance." } });
     fireEvent.click(send);
     await waitFor(() => expect(api.requestRevision).toHaveBeenCalledWith("r1", "Please add attendance."));
   });
