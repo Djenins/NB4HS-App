@@ -107,7 +107,7 @@ export default function RolePermissionEditor({ role, catalog, initial, onCancel,
       </Card>
 
       <div role="region" aria-label={t("adminStagedChanges")}
-        className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-card px-4 py-3 shadow-overlay">
+        className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-border bg-card px-4 py-3 shadow-overlay">
         <span className="text-ui font-semibold text-card-foreground">
           {changeCount ? (changeCount === 1 ? t("adminOneStaged") : t("adminNStaged").replace("{n}", changeCount)) : t("adminNoChangesYet")}
         </span>
