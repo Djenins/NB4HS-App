@@ -21,7 +21,7 @@ export var NAV_REQUIREMENTS = {
   // Everyone who reads announcements opens Communications; its sections
   // (pages/Communications.jsx) follow the finer permissions.
   communications: [
-    "communications.view", "communications.messages.send", "communications.templates.manage",
+    "communications.view", "communications.messages.send", "communications.templates.manage", "communications.newsletters.send",
     "communications.announcements.view", "communications.announcements.post"
   ],
   calendar: ["calendar.view"],

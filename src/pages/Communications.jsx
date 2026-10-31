@@ -6,26 +6,29 @@
 //   log            communications.view            every client's communications log + follow-ups
 //   messages       communications.messages.send   texts and emails to clients, and their status
 //                  (or .view)
+//   newsletters    communications.newsletters.send one email to every consenting client in an audience
 //   templates      communications.templates.manage reusable client messages
 //   announcements  communications.announcements.view (or .post)  notices to all staff
 //
 // A receptionist, who only reads announcements, lands straight on them.
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
-import { FileText, Megaphone, MessagesSquare, Send } from "lucide-react";
+import { FileText, Megaphone, MessagesSquare, Newspaper, Send } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
 import Announcements from "../components/communications/Announcements.jsx";
 import ClientMessages from "../components/communications/ClientMessages.jsx";
 import CommunicationLog from "../components/communications/CommunicationLog.jsx";
 import MessageTemplates from "../components/communications/MessageTemplates.jsx";
+import Newsletters from "../components/communications/Newsletters.jsx";
 
 const SECTIONS = {
   log: { label: "commsSectionLog", icon: MessagesSquare, Component: CommunicationLog, perms: ["communications.view"] },
   messages: { label: "commsSectionMessages", icon: Send, Component: ClientMessages, perms: ["communications.messages.send", "communications.view"] },
   templates: { label: "commsSectionTemplates", icon: FileText, Component: MessageTemplates, perms: ["communications.templates.manage"] },
+  newsletters: { label: "commsSectionNewsletters", icon: Newspaper, Component: Newsletters, perms: ["communications.newsletters.send"] },
   announcements: { label: "commsSectionAnnouncements", icon: Megaphone, Component: Announcements, perms: ["communications.announcements.view", "communications.announcements.post"] }
 };
-const ORDER = ["log", "messages", "templates", "announcements"];
+const ORDER = ["log", "messages", "newsletters", "templates", "announcements"];
 
 // Which sections these permissions open, in order.
 export function communicationsSectionsFor(can) {

@@ -342,3 +342,81 @@ export function subscribeAnnouncements(onChange) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+// ---------- data: newsletters (c2_newsletters) ----------
+
+export var NEWSLETTER_AUDIENCES = ["all", "case_management", "workforce", "students", "food_distribution", "snap"];
+export var NEWSLETTER_SUBJECT_MAX = 150;
+export var NEWSLETTER_BODY_MAX = 10000;
+
+function newsletterFromRow(row) {
+  return {
+    id: row.id, subject: row.subject, body: row.body, language: row.language, audience: row.audience,
+    status: row.status, recipientCount: row.recipient_count || 0, sentAt: row.sent_at || null,
+    authorName: row.author ? row.author.name || "" : "", createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+
+export async function fetchNewsletters() {
+  const { data, error } = await supabase.from("newsletters").select("*, author:profiles!newsletters_created_by_fkey(name)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map(newsletterFromRow);
+}
+
+// { [newsletterId]: { waiting, sent, failed, cancelled, unsubscribed } }
+export async function fetchNewsletterStats() {
+  const { data, error } = await supabase.rpc("newsletter_stats");
+  if (error) { console.warn("fetchNewsletterStats failed", error); return {}; }
+  const out = {};
+  (data || []).forEach((r) => { out[r.newsletter_id] = { waiting: r.waiting, sent: r.sent, failed: r.failed, cancelled: r.cancelled, unsubscribed: r.unsubscribed }; });
+  return out;
+}
+
+export async function saveNewsletter(id, fields) {
+  const row = { subject: fields.subject.trim(), body: fields.body.trim(), language: fields.language, audience: fields.audience };
+  const query = id ? supabase.from("newsletters").update(row).eq("id", id) : supabase.from("newsletters").insert(row);
+  const { data, error } = await query.select("id").single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function deleteNewsletter(id) {
+  const { error } = await supabase.from("newsletters").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function newsletterAudienceCount(audience) {
+  const { data, error } = await supabase.rpc("newsletter_audience_count", { p_audience: audience });
+  if (error) throw error;
+  return data || 0;
+}
+
+export async function sendNewsletter(id) {
+  const { data, error } = await supabase.rpc("send_newsletter", { p_id: id });
+  if (error) throw error;
+  return data;
+}
+
+export async function cancelNewsletter(id) {
+  const { data, error } = await supabase.rpc("cancel_newsletter", { p_id: id });
+  if (error) throw error;
+  return data || 0;
+}
+
+export function newsletterErrorKey(error) {
+  var hint = error && error.hint;
+  if (hint === "no_mailing_address") return "nlNoAddress";
+  if (hint === "no_recipients") return "nlNoRecipients";
+  if (hint === "too_many") return "nlTooMany";
+  if (hint === "already_sent") return "nlAlreadySent";
+  return "userActionError";
+}
+
+// Public: the unsubscribe page. Resolves to the newsletter's language, or
+// null when the link isn't recognised.
+export async function unsubscribeNewsletter(token) {
+  const { data, error } = await supabase.rpc("unsubscribe_newsletter", { p_token: token });
+  if (error) throw error;
+  return data || null;
+}
