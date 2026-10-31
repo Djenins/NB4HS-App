@@ -398,14 +398,6 @@ function documentFromRow(row) {
     uploadedBy: row.profiles ? row.profiles.name : "", program: row.program
   };
 }
-function communicationFromRow(row) {
-  return {
-    id: row.id, clientId: row.client_id, date: row.contact_date,
-    staffName: row.profiles ? row.profiles.name : "", method: row.method || "", direction: row.direction || "",
-    summary: row.summary || "", followUpRequired: row.follow_up_required
-  };
-}
-
 function customOptionFromRow(row) {
   return { key: row.key, en: row.en, ht: row.ht, fr: row.fr, custom: true };
 }
@@ -933,21 +925,7 @@ export async function deleteClientDocument(id, storagePath) {
   if (error) throw error;
 }
 
-export async function fetchCommunications(clientId) {
-  const { data, error } = await supabase.from("communications").select("*, profiles(name)").eq("client_id", clientId).order("created_at", { ascending: false });
-  if (error) { console.warn("fetchCommunications failed", error); return []; }
-  return data.map(communicationFromRow);
-}
-export async function createCommunication(clientId, fields) {
-  const { data: auth } = await supabase.auth.getUser();
-  const { data, error } = await supabase.from("communications").insert({
-    client_id: clientId, contact_date: fields.date || null, method: fields.method || "",
-    direction: fields.direction || "", summary: fields.summary || "",
-    follow_up_required: !!fields.followUpRequired, created_by: auth.user ? auth.user.id : null
-  }).select("*, profiles(name)").single();
-  if (error) throw error;
-  return communicationFromRow(data);
-}
+// Communications log: lib/communications.js.
 
 // ---------- custom / disabled options (Manage Lists) ----------
 

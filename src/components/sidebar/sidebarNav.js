@@ -21,7 +21,7 @@ var WORKFORCE_PATHS = ["/workforce"];
 
 // Program entries open a workspace with its own section menu (ModuleNav);
 // the sidebar marks them with a chevron.
-var WORKSPACE_KEYS = ["fooddistribution", "students", "casemanagement", "outreach", "workforce"];
+var WORKSPACE_KEYS = ["fooddistribution", "students", "casemanagement", "outreach", "workforce", "communications"];
 
 function entryFor(v, lang) {
   var match = [navPath(v)];

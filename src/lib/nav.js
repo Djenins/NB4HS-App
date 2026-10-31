@@ -66,6 +66,7 @@ export function navLabel(v, lang) {
     myreports: t("navMyReports", lang),
     staffreports: t("navStaffReports", lang),
     search: t("navSearch", lang),
+    communications: t("navCommunications", lang),
     reports: t("navReports", lang),
     fooddistribution: t("navFoodDistribution", lang),
     calendar: t("navCalendar", lang),

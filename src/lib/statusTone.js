@@ -36,6 +36,14 @@ const STATUS_TONES = {
 
   // Client communications log
   "communication:followup": "warning",
+  "communication:followupDone": "success",
+
+  // Messages to clients (the outbound queue); "sent" means the provider accepted it
+  "message:queued": "info",
+  "message:sending": "info",
+  "message:sent": "success",
+  "message:failed": "danger",
+  "message:cancelled": "neutral",
 
   // Outreach follow-up tasks (overdue/dueToday are derived from open + due date)
   "task:overdue": "danger",

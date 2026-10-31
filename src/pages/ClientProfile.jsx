@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Briefcase, CalendarClock, Download, FileText, GraduationCap, MessageCircle, Paperclip, ShoppingBasket,
+  ArrowLeft, Briefcase, CalendarClock, CheckCheck, Download, FileText, GraduationCap, MessageCircle, Paperclip, Send, ShoppingBasket,
   StickyNote, Trash2, UserPlus, UserX, Users
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -31,12 +31,17 @@ import { serviceDisplay } from "../lib/students.js";
 import { findClientByNbId, resolveAppointmentsForClient, resolveEnrollmentsForClient } from "../lib/masterClients.js";
 import { createStudent } from "../lib/checkinData.js";
 import {
-  createCaseClient, createClientDocument, createClientNote, createCommunication, createFoodClient, createJobClient,
-  deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchCommunications, fetchDistributions,
+  createCaseClient, createClientDocument, createClientNote, createFoodClient, createJobClient,
+  deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchDistributions,
   getFileSignedUrl, updateClientRecord, uploadClientFile
 } from "../lib/clientsData.js";
 import { fmtDateLong } from "../lib/utils.js";
+import {
+  fetchClientCommunications, fetchClientMessages, isOpenFollowUp, logCommunication as saveCommunication, setFollowUpDone
+} from "../lib/communications.js";
 import ClientHeader from "../components/ClientHeader.jsx";
+import LogCommunicationDialog, { COMM_DIRECTION_KEY, COMM_METHOD_KEY } from "../components/communications/LogCommunicationDialog.jsx";
+import SendMessageDialog from "../components/communications/SendMessageDialog.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import IntakeFormCard from "../components/IntakeFormCard.jsx";
 import { Alert } from "../components/ui/alert.jsx";
@@ -282,53 +287,6 @@ function UploadDocumentModal({ onSave, onCancel }) {
   );
 }
 
-function LogCommunicationModal({ onSave, onCancel }) {
-  const t = useT();
-  const [saving, run] = useSaving();
-  const [method, setMethod] = useState("phone");
-  const [direction, setDirection] = useState("outbound");
-  const [summary, setSummary] = useState("");
-  const [followUpRequired, setFollowUpRequired] = useState(false);
-  return (
-    <Dialog
-      open
-      onClose={onCancel}
-      title={t("logCommunicationBtn")}
-      size="md"
-      closeLabel={t("closeLabel")}
-      as="form"
-      panelProps={{ onSubmit: (e) => { e.preventDefault(); if (summary.trim()) run(() => onSave({ method, direction, summary, followUpRequired })); } }}
-      footer={<DialogFooter onCancel={onCancel} saving={saving} disabled={!summary.trim()} submitLabel={t("saveLabel")} />}
-    >
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t("communicationMethodLabel")} htmlFor="comm-method">
-            <Select id="comm-method" value={method} onChange={(e) => setMethod(e.target.value)} data-autofocus>
-              <option value="phone">{t("methodPhone")}</option>
-              <option value="email">{t("methodEmail")}</option>
-              <option value="sms">{t("methodSms")}</option>
-              <option value="inperson">{t("methodInPerson")}</option>
-            </Select>
-          </Field>
-          <Field label={t("communicationDirectionLabel")} htmlFor="comm-direction">
-            <Select id="comm-direction" value={direction} onChange={(e) => setDirection(e.target.value)}>
-              <option value="outbound">{t("directionOutbound")}</option>
-              <option value="inbound">{t("directionInbound")}</option>
-            </Select>
-          </Field>
-        </div>
-        <Field label={t("communicationSummaryLabel")} htmlFor="comm-summary" required>
-          <Textarea id="comm-summary" value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={t("phCommunicationSummary")} />
-        </Field>
-        <label className="m-0 flex cursor-pointer items-center gap-2.5 text-ui font-medium text-card-foreground">
-          <input type="checkbox" checked={followUpRequired} onChange={(e) => setFollowUpRequired(e.target.checked)} className="h-4 w-4 cursor-pointer accent-primary" />
-          {t("followUpRequiredLabel")}
-        </label>
-      </div>
-    </Dialog>
-  );
-}
-
 // Documents now live in Supabase Storage (private bucket), not inline
 // base64 -- resolves a short-lived signed URL on click.
 function StorageDownloadLink({ path, fileName, children, className }) {
@@ -378,8 +336,6 @@ function AppointmentsTab({ appointments, lang, onSchedule }) {
 
 const NOTE_TYPE_KEY = { general: "noteTypeGeneral", followup: "noteTypeFollowUp", incident: "noteTypeIncident" };
 const DOCUMENT_CATEGORY_KEY = { identification: "documentCategoryIdentification", resume: "documentCategoryResume", immigration: "documentCategoryImmigration", other: "documentCategoryOther" };
-const COMM_METHOD_KEY = { phone: "methodPhone", email: "methodEmail", sms: "methodSms", inperson: "methodInPerson" };
-const COMM_DIRECTION_KEY = { outbound: "directionOutbound", inbound: "directionInbound" };
 
 function NotesTab({ notes, onAdd }) {
   const t = useT();
@@ -446,28 +402,53 @@ function DocumentsTab({ documents, onDelete, onUpload }) {
   );
 }
 
-function CommunicationsTab({ communications, onLog }) {
+// The client's slice of the Communications log. Messages sent from the app
+// carry their queue status; open follow-ups can be closed here or from the
+// Communications module.
+function CommunicationsTab({ communications, messageStatus, canLog, canSend, onLog, onSend, onToggleFollowUp }) {
   const t = useT();
+  const [busyId, setBusyId] = useState(null);
+  async function toggle(c, done) {
+    setBusyId(c.id);
+    try { await onToggleFollowUp(c, done); } finally { setBusyId(null); }
+  }
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      {canSend ? <Button size="sm" variant="secondary" onClick={onSend}><Send className="h-4 w-4" aria-hidden="true" /> {t("commsSendMessageBtn")}</Button> : null}
+      {canLog ? <Button size="sm" variant="secondary" onClick={onLog}>{t("logCommunicationBtn")}</Button> : null}
+    </div>
+  );
   return (
-    <SectionCard title={t("clientTabCommunications")} action={<Button size="sm" variant="secondary" onClick={onLog}>{t("logCommunicationBtn")}</Button>} flush>
+    <SectionCard title={t("clientTabCommunications")} action={actions} flush>
       {!communications.length ? (
         <EmptyState compact icon={MessageCircle} title={t("noCommunicationsYet")} description={t("clientCommunicationsEmptyHint")} />
       ) : (
         <ul className="m-0 list-none p-0">
-          {communications.map((c) => (
-            <li key={c.id} className={ROW}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-ui font-semibold text-card-foreground">
-                  {t(COMM_METHOD_KEY[c.method] || "methodPhone")} · <span className="tabular-nums">{fmtDateLong(c.date)}</span>
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="neutral">{t("communicationDirectionLabel")}: {t(COMM_DIRECTION_KEY[c.direction] || "directionOutbound")}</Badge>
-                  {c.followUpRequired && <StatusBadge domain="communication" status="followup">{t("followUpRequiredLabel")}</StatusBadge>}
+          {communications.map((c) => {
+            const status = c.outboundMessageId ? messageStatus[c.outboundMessageId] : null;
+            return (
+              <li key={c.id} className={ROW}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-ui font-semibold text-card-foreground">
+                    {t(COMM_METHOD_KEY[c.method] || "methodPhone")} · <span className="tabular-nums">{fmtDateLong(c.date)}</span>
+                    {c.staffName ? <span className="font-normal text-muted"> · {c.staffName}</span> : null}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="neutral">{t("communicationDirectionLabel")}: {t(COMM_DIRECTION_KEY[c.direction] || "directionOutbound")}</Badge>
+                    {status ? <StatusBadge domain="message" status={status}>{t("commsStatus_" + status)}</StatusBadge> : null}
+                    {c.followUpRequired && isOpenFollowUp(c) && <StatusBadge domain="communication" status="followup">{t("followUpRequiredLabel")}</StatusBadge>}
+                    {c.followUpRequired && !isOpenFollowUp(c) && <StatusBadge domain="communication" status="followupDone">{t("commsFollowUpDone")}</StatusBadge>}
+                    {c.followUpRequired && canLog ? (
+                      isOpenFollowUp(c)
+                        ? <Button size="sm" variant="ghost" loading={busyId === c.id} onClick={() => toggle(c, true)}><CheckCheck className="h-4 w-4" aria-hidden="true" /> {t("commsMarkDone")}</Button>
+                        : <Button size="sm" variant="ghost" loading={busyId === c.id} onClick={() => toggle(c, false)}>{t("commsReopen")}</Button>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <p className="m-0 mt-2 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{c.summary}</p>
-            </li>
-          ))}
+                <p className="m-0 mt-2 max-w-[75ch] whitespace-pre-wrap text-body text-card-foreground">{c.summary}</p>
+              </li>
+            );
+          })}
         </ul>
       )}
     </SectionCard>
@@ -706,7 +687,7 @@ function ActivityTab({ enrollments, notes, documents, communications, appointmen
 
 export default function ClientProfile() {
   const { nbId } = useParams();
-  const { data, lang, session, refetchStudents, requestConfirm, showToast } = useApp();
+  const { data, lang, session, can, refetchStudents, requestConfirm, showToast } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
@@ -718,24 +699,43 @@ export default function ClientProfile() {
   const [addingNote, setAddingNote] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [loggingCommunication, setLoggingCommunication] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const canLogCommunication = can("participants.notes.create");
+  const canSendMessage = can("communications.messages.send");
+  const canSeeMessages = canSendMessage || can("communications.view");
   // Notes/documents/communications are fetched per-client on demand now
   // (their own tables -- see plans/wobbly-munching-rose.md) rather than
   // held in global AppContext state.
   const [notes, setNotes] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [communications, setCommunications] = useState([]);
+  // outbound message id -> queue status, for messages sent from the app.
+  const [messageStatus, setMessageStatus] = useState({});
 
   const client = findClientByNbId(nbId, data);
   const clientId = client && client.id;
 
   useEffect(() => {
     let cancelled = false;
-    if (!clientId) { setNotes([]); setDocuments([]); setCommunications([]); return; }
+    if (!clientId) { setNotes([]); setDocuments([]); setCommunications([]); setMessageStatus({}); return; }
     fetchClientNotes(clientId).then((rows) => { if (!cancelled) setNotes(rows); });
     fetchClientDocuments(clientId).then((rows) => { if (!cancelled) setDocuments(rows); });
-    fetchCommunications(clientId).then((rows) => { if (!cancelled) setCommunications(rows); });
+    fetchClientCommunications(clientId).then((rows) => { if (!cancelled) setCommunications(rows); });
+    if (canSeeMessages) loadMessageStatus(clientId, () => cancelled);
     return () => { cancelled = true; };
-  }, [clientId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, canSeeMessages]);
+
+  function loadMessageStatus(id, isCancelled) {
+    return fetchClientMessages(id)
+      .then((rows) => {
+        if (isCancelled && isCancelled()) return;
+        const out = {};
+        rows.forEach((m) => { out[m.id] = m.status; });
+        setMessageStatus(out);
+      })
+      .catch((err) => console.warn("fetchClientMessages failed", err));
+  }
 
   // Back to wherever staff opened the profile from (a program list, the
   // duplicate warning, search); a direct link with no in-app history goes home.
@@ -826,10 +826,29 @@ export default function ClientProfile() {
     }
   }
 
-  async function logCommunication(fields) {
-    const created = await createCommunication(client.id, fields);
+  async function logCommunication(_client, fields) {
+    const created = await saveCommunication(client.id, fields);
     setCommunications((prev) => [created].concat(prev));
     setLoggingCommunication(false);
+  }
+
+  function messageSent(entry) {
+    setCommunications((prev) => [entry].concat(prev));
+    // The RPC's row has no staff name; the refetch brings it.
+    fetchClientCommunications(client.id).then(setCommunications);
+    setSendingMessage(false);
+    showToast(t("commsQueuedToast"));
+    loadMessageStatus(client.id);
+  }
+
+  async function toggleFollowUp(entry, done) {
+    try {
+      await setFollowUpDone(entry.id, done);
+      setCommunications(await fetchClientCommunications(client.id));
+    } catch (err) {
+      console.warn("setFollowUpDone failed", err);
+      showToast(t("userActionError"));
+    }
   }
 
   return (
@@ -853,7 +872,13 @@ export default function ClientProfile() {
         {tab === "appointments" && <AppointmentsTab appointments={appointments} lang={lang} onSchedule={scheduleAppointment} />}
         {tab === "notes" && <NotesTab notes={notes} onAdd={() => setAddingNote(true)} />}
         {tab === "documents" && <DocumentsTab documents={documents} onDelete={deleteDocument} onUpload={() => setUploadingDocument(true)} />}
-        {tab === "communications" && <CommunicationsTab communications={communications} onLog={() => setLoggingCommunication(true)} />}
+        {tab === "communications" && (
+          <CommunicationsTab
+            communications={communications} messageStatus={messageStatus}
+            canLog={canLogCommunication} canSend={canSendMessage}
+            onLog={() => setLoggingCommunication(true)} onSend={() => setSendingMessage(true)} onToggleFollowUp={toggleFollowUp}
+          />
+        )}
         {tab === "intake" && canUseIntakeForm && <IntakeFormCard bare client={client} />}
         {tab === "services" && (
           <ServicesTab
@@ -873,7 +898,8 @@ export default function ClientProfile() {
       {addingToProgram && <AddToProgramModal existingTypes={existingTypes} onEnroll={enrollInProgram} onCancel={() => setAddingToProgram(false)} />}
       {addingNote && <AddNoteModal onSave={addNote} onCancel={() => setAddingNote(false)} />}
       {uploadingDocument && <UploadDocumentModal onSave={uploadDocument} onCancel={() => setUploadingDocument(false)} />}
-      {loggingCommunication && <LogCommunicationModal onSave={logCommunication} onCancel={() => setLoggingCommunication(false)} />}
+      {loggingCommunication && <LogCommunicationDialog client={client} onSave={logCommunication} onCancel={() => setLoggingCommunication(false)} />}
+      {sendingMessage && <SendMessageDialog client={client} onSent={messageSent} onCancel={() => setSendingMessage(false)} />}
     </>
   );
 }

@@ -70,6 +70,7 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Availability = lazy(() => import("./pages/Availability.jsx"));
+const Communications = lazy(() => import("./pages/Communications.jsx"));
 
 // "/" is for staff only: the sign-in page, or straight to their landing page
 // once signed in. Clients never land here -- they get the kiosk link (/kiosk).
@@ -146,6 +147,7 @@ export default function App() {
           <Route path="/register/success" element={<ClientRegisterSuccess />} />
           <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
           <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
+          <Route path="/communications/:section?" element={<RequireRoute routeKey="communications"><Communications /></RequireRoute>} />
           <Route path="/food/:section?" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
           <Route path="/calendar" element={<RequireRoute routeKey="calendar"><CalendarPage /></RequireRoute>} />
           <Route path="/qrcode" element={<RequireRoute routeKey="qrcode"><QRCode /></RequireRoute>} />
