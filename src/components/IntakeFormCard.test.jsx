@@ -13,7 +13,11 @@ let storedIntake = null;
 vi.mock("../lib/clientsData.js", () => ({
   updateClientRecord: (...args) => updateClientRecord(...args),
   saveClientIntake: (...args) => saveClientIntake(...args),
-  fetchClientIntake: async () => storedIntake
+  fetchClientIntake: async () => storedIntake,
+  fetchClientDocuments: async () => [],
+  getFileSignedUrl: vi.fn(),
+  uploadClientFile: vi.fn(),
+  createClientDocument: vi.fn()
 }));
 
 const { default: IntakeFormCard } = await import("./IntakeFormCard.jsx");
