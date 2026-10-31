@@ -411,9 +411,11 @@
     .grid-4{grid-template-columns:repeat(4,1fr);}
   }
   .app-shell-top{position:sticky; top:0; z-index:20;}
+  /* The staff topbar is a quiet hairline bar (batch 3g): it used to carry a
+     3px red rule, but red is for errors only. */
   header.topbar{
     background:var(--card); color:var(--text); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    border-bottom:3px solid var(--accent); box-shadow:var(--shadow-sm);
+    border-bottom:1px solid var(--border);
   }
   header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem;}
   header.topbar .brand img{height:46px; width:auto; display:block;}
@@ -624,11 +626,11 @@
      filled brand colour. */
   :root{
     --sb-bg:rgba(255,255,255,.88); --sb-border:rgba(148,163,184,.22); --sb-divider:rgba(148,163,184,.24);
-    --sb-text:#172554; --sb-muted:#64748B; --sb-icon:#334155;
-    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:#2563EB;
+    --sb-text:#172554; --sb-muted:var(--muted); --sb-icon:#334155;
+    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:var(--primary);
     --sb-field:rgba(241,245,249,.95); --sb-field-border:rgba(148,163,184,.28); --sb-kbd:#ffffff;
     --sb-seg:rgba(241,245,249,.95); --sb-seg-on:#ffffff; --sb-seg-on-text:#155EEF;
-    --sb-tooltip:#0F172A; --sb-tooltip-text:#ffffff;
+    --sb-tooltip:var(--text); --sb-tooltip-text:var(--card);
     --sb-shadow:0 1px 2px rgba(15,23,42,.04), 0 16px 40px -12px rgba(15,23,42,.16);
     /* The canvas behind the floating sidebar and content panel: one step
        below the page colour, so the panel (which keeps --bg) lifts off it. */
@@ -939,7 +941,7 @@
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}
     .content-col > header.topbar{position:static;}
-    header.topbar{border-bottom:2px solid var(--accent); box-shadow:none;}
+    header.topbar{border-bottom:1px solid var(--border); box-shadow:none;}
     body{background:#fff;}
     main, .content-col > main{max-width:100%;}
     .app-shell--floating{height:auto; background:#fff;}

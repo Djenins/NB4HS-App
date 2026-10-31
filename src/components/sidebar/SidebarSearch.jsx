@@ -26,7 +26,7 @@ export default function SidebarSearch({ collapsed, placeholder, onOpen }) {
               aria-label={placeholder}
               aria-haspopup="dialog"
               aria-keyshortcuts="Meta+K Control+K"
-              className={cn(BTN_RESET, EASE, FOCUS_RING, "mx-auto flex h-10 w-10 items-center justify-center rounded-xl text-sb-icon hover:bg-sb-hover hover:text-sb-text")}
+              className={cn(BTN_RESET, EASE, FOCUS_RING, "mx-auto flex h-10 w-10 items-center justify-center rounded-chip text-sb-icon hover:bg-sb-hover hover:text-sb-text")}
             >
               <Search aria-hidden="true" className="h-[19px] w-[19px]" strokeWidth={1.8} />
             </button>
@@ -46,13 +46,13 @@ export default function SidebarSearch({ collapsed, placeholder, onOpen }) {
         aria-keyshortcuts="Meta+K Control+K"
         className={cn(
           BTN_RESET, EASE, FOCUS_RING,
-          "flex h-10 w-full items-center gap-2 rounded-xl border border-sb-field-border bg-sb-field pl-2.5 pr-2 text-left text-[12.5px] text-sb-muted hover:bg-sb-hover"
+          "flex h-10 w-full items-center gap-2 rounded-chip border border-sb-field-border bg-sb-field pl-2.5 pr-2 text-left text-caption text-sb-muted hover:bg-sb-hover"
         )}
       >
         <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-sb-icon" strokeWidth={2} />
         <span className="min-w-0 flex-1 truncate">{placeholder}</span>
         {/* Phones (the drawer) have no ⌘K, so the hint only shows from 768px. */}
-        <kbd aria-hidden="true" className="hidden shrink-0 rounded-md md:inline-block border border-sb-field-border bg-sb-kbd px-1.5 py-0.5 font-sans text-[11px] font-medium text-sb-muted">{shortcut}</kbd>
+        <kbd aria-hidden="true" className="hidden shrink-0 rounded-badge md:inline-block border border-sb-field-border bg-sb-kbd px-1.5 py-0.5 font-sans text-caption font-medium text-sb-muted">{shortcut}</kbd>
       </button>
     </div>
   );

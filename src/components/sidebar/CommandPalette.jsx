@@ -21,7 +21,7 @@ const GROUP_LABEL = { pages: "cmdkGroupPages", students: "cmdkGroupStudents", cl
 const KIND_ICON = { student: GraduationCap, client: UserRound, staff: UsersRound };
 
 function Kbd({ children }) {
-  return <kbd className="rounded border border-border bg-background px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted">{children}</kbd>;
+  return <kbd className="rounded-badge border border-border bg-background px-1.5 py-0.5 font-sans text-caption font-medium text-muted">{children}</kbd>;
 }
 
 export default function CommandPalette({ pages, scopes, placeholder, onClose, t }) {
@@ -68,7 +68,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
   }
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-start justify-center bg-slate-950/30 px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[1200] flex items-start justify-center bg-surface-overlay px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <m.div
         ref={boxRef}
         role="dialog"
@@ -77,7 +77,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
         initial={{ opacity: 0, y: -8, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
-        className="flex max-h-[70vh] w-full max-w-[600px] flex-col overflow-hidden rounded-[20px] border border-border bg-card text-card-foreground shadow-lg"
+        className="flex max-h-[70vh] w-full max-w-[600px] flex-col overflow-hidden rounded-surface border border-border bg-card text-card-foreground shadow-overlay"
       >
         <div className="flex items-center gap-3 border-b border-border px-4">
           <Search aria-hidden="true" className="h-5 w-5 shrink-0 text-muted" strokeWidth={2} />
@@ -96,7 +96,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            className="!h-14 !min-h-0 flex-1 !border-none !bg-transparent !p-0 text-[15px] !text-card-foreground !shadow-none placeholder:!text-muted focus:!outline-none focus:!ring-0"
+            className="!h-14 !min-h-0 flex-1 !border-none !bg-transparent !p-0 text-body !text-card-foreground !shadow-none placeholder:!text-muted focus:!outline-none focus:!ring-0"
           />
           <Kbd>Esc</Kbd>
         </div>
@@ -105,7 +105,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
           {!flat.length && <div className="px-3 py-8 text-center text-sm text-muted">{t("cmdkNoResults")}</div>}
           {groups.map((g) => (
             <div key={g.key} role="group" aria-label={t(GROUP_LABEL[g.key])} className="mb-1 last:mb-0">
-              <div aria-hidden="true" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">{t(GROUP_LABEL[g.key])}</div>
+              <div aria-hidden="true" className="px-3 pb-1 pt-2 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t(GROUP_LABEL[g.key])}</div>
               {g.results.map((r) => {
                 const Icon = r.icon || KIND_ICON[r.kind] || FileText;
                 const isActive = active && active.id === r.id;
@@ -118,9 +118,9 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
                     aria-selected={isActive}
                     onMouseMove={() => { if (!isActive) setActiveIndex(flat.indexOf(r)); }}
                     onClick={() => open(r)}
-                    className={cn("flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2", isActive ? "bg-primary-tint" : "")}
+                    className={cn("flex cursor-pointer items-center gap-3 rounded-control px-3 py-2", isActive ? "bg-primary-tint" : "")}
                   >
-                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", isActive ? "bg-card text-primary" : "bg-background text-muted")}>
+                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-control", isActive ? "bg-card text-primary" : "bg-background text-muted")}>
                       <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
                     </span>
                     <span className="min-w-0 flex-1">

@@ -66,15 +66,17 @@ function useTopbarOffset() {
 }
 
 // Tile colours, in the order sections get them: blue, slate, green, amber,
-// violet, pink, teal, sky. All theme-aware tokens (light + dark in main.css).
+// violet, pink, teal, sky. The first five are the design system's tones (chip
+// + ink); pink, teal and sky have no tone and keep their module-menu tokens.
+// All theme-aware (light + dark in main.css).
 // The active item's tile: a stronger blue than the pale-blue item behind it.
-const ACTIVE_TONE = "bg-[color:var(--border-primary-soft)] text-primary";
+const ACTIVE_TONE = "bg-tone-info-border text-tone-info-ink";
 const TONES = [
-  "bg-primary-tint text-primary",
-  "bg-tint-neutral text-navy dark:text-[color:var(--text)]",
-  "bg-tint-success text-success",
-  "bg-tint-warn text-gold-ink",
-  "bg-violet-tint text-violet-ink",
+  "bg-tone-info-chip text-tone-info-ink",
+  "bg-tone-neutral-chip text-tone-neutral-ink",
+  "bg-tone-success-chip text-tone-success-ink",
+  "bg-tone-warning-chip text-tone-warning-ink",
+  "bg-tone-violet-chip text-tone-violet-ink",
   "bg-pink-tint text-pink-ink",
   "bg-teal-tint text-teal-ink",
   "bg-sky-tint text-sky-ink"
@@ -108,7 +110,7 @@ export default function ModuleNav({ items, value, onChange, label, className }) 
       <nav
         aria-label={label}
         ref={scrollRef}
-        className={cn("no-scrollbar overflow-x-auto rounded-[22px] border border-border bg-card p-1.5 shadow-card lg:p-2.5", className)}
+        className={cn("no-scrollbar overflow-x-auto rounded-surface border border-border bg-card p-1.5 shadow-card lg:p-2.5", className)}
       >
         <ul className="m-0 flex min-w-max list-none gap-0.5 p-0 sm:min-w-0 lg:gap-1.5">
           {items.map((item, i) => {
@@ -128,24 +130,24 @@ export default function ModuleNav({ items, value, onChange, label, className }) 
                   aria-label={item.badge ? item.label + " (" + item.badge + ")" : undefined}
                   className={cn(
                     BTN_RESET,
-                    "group flex min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 transition-colors lg:px-3 duration-150 motion-reduce:transition-none",
+                    "group flex min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-control px-2 py-3 transition-colors duration-fast lg:px-3 motion-reduce:transition-none",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                    active ? "bg-primary-tint" : "hover:bg-background",
+                    active ? "bg-tone-info-bg" : "hover:bg-surface-sunken",
                     disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
                   )}
                 >
-                  <span className={cn("relative flex h-12 w-12 items-center justify-center rounded-[15px] sm:h-[52px] sm:w-[52px]", tone)}>
+                  <span className={cn("relative flex h-12 w-12 items-center justify-center rounded-control sm:h-[52px] sm:w-[52px]", tone)}>
                     <Icon className="h-6 w-6 shrink-0 sm:h-[26px] sm:w-[26px]" strokeWidth={2} aria-hidden="true" />
                     {item.badge ? (
-                      <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-primary px-1.5 text-center text-[11px] font-bold leading-5 text-primary-foreground shadow-sm">
+                      <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-[20px] rounded-chip bg-primary px-1.5 text-center text-caption font-bold leading-5 tabular-nums text-primary-foreground shadow-card">
                         {item.badge > 99 ? "99+" : item.badge}
                       </span>
                     ) : null}
                   </span>
                   <span
                     className={cn(
-                      "whitespace-nowrap text-[13px] leading-tight sm:text-sm",
-                      active ? "font-semibold text-primary" : "font-medium text-[color:var(--ev-ink-soft)] group-hover:text-navy dark:group-hover:text-[color:var(--text)]"
+                      "whitespace-nowrap text-meta leading-tight sm:text-ui",
+                      active ? "font-semibold text-tone-info-ink" : "font-medium text-on-tint group-hover:text-card-foreground"
                     )}
                   >
                     {item.label}

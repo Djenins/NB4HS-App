@@ -21,7 +21,7 @@ function initialsOf(name) {
   return (parts[0].charAt(0) + (parts[1] ? parts[1].charAt(0) : "")).toUpperCase();
 }
 
-const BELL = cn(FOCUS_RING, "h-10 w-10 rounded-xl text-sb-icon hover:bg-sb-hover hover:text-sb-text");
+const BELL = cn(FOCUS_RING, "h-10 w-10 rounded-chip text-sb-icon hover:bg-sb-hover hover:text-sb-text");
 
 export default function SidebarFooter({ collapsed, t }) {
   const { session, logout } = useApp();
@@ -31,7 +31,7 @@ export default function SidebarFooter({ collapsed, t }) {
 
   const avatar = (
     <Avatar className="h-10 w-10 ring-1 ring-sb-border">
-      <AvatarFallback className="bg-sb-active text-[13px] text-sb-active-text">{initialsOf(name)}</AvatarFallback>
+      <AvatarFallback className="bg-sb-active text-meta text-sb-active-text">{initialsOf(name)}</AvatarFallback>
     </Avatar>
   );
 
@@ -61,7 +61,7 @@ export default function SidebarFooter({ collapsed, t }) {
           <Tooltip delayDuration={150}>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <button type="button" aria-label={t("sidebarAccountMenu") + ": " + name} className={cn(BTN_RESET, FOCUS_RING, "rounded-full")}>
+                <button type="button" aria-label={t("sidebarAccountMenu") + ": " + name} className={cn(BTN_RESET, FOCUS_RING, "rounded-chip")}>
                   {avatar}
                 </button>
               </DropdownMenuTrigger>
@@ -82,12 +82,12 @@ export default function SidebarFooter({ collapsed, t }) {
             <button
               type="button"
               aria-label={t("sidebarAccountMenu") + ": " + name}
-              className={cn(BTN_RESET, EASE, FOCUS_RING, "flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 text-left hover:bg-sb-hover")}
+              className={cn(BTN_RESET, EASE, FOCUS_RING, "flex min-w-0 flex-1 items-center gap-3 rounded-control p-1 text-left hover:bg-sb-hover")}
             >
               {avatar}
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-semibold leading-snug text-sb-text">{name}</span>
-                <span className="block truncate text-[12px] leading-snug text-sb-muted">{role}</span>
+                <span className="block truncate text-ui font-semibold leading-snug text-sb-text">{name}</span>
+                <span className="block truncate text-caption leading-snug text-sb-muted">{role}</span>
               </span>
             </button>
           </DropdownMenuTrigger>
