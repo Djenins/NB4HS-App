@@ -31,7 +31,7 @@ import { PageHeader } from "../ui/page-header.jsx";
 import { SectionCard } from "../ui/section-card.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
 import { LANGUAGE_NAMES } from "./SendMessageDialog.jsx";
-import { LayoutFields, LayoutPicker, NewsletterPreview } from "./NewsletterLayoutEditor.jsx";
+import { BlockBuilder, LayoutFields, LayoutPicker, NewsletterPreview } from "./NewsletterLayoutEditor.jsx";
 import { normalizeContent, starterContent } from "../../../supabase/functions/send-outbound/newsletterLayout.js";
 
 const BLANK = { subject: "", body: "", language: "en", audience: "all", layout: "plain", content: null };
@@ -104,7 +104,11 @@ function NewsletterEditor({ newsletter, hasAddress, address, onSaved, onSent, on
   // Sending asks once more, in the footer (a confirm modal would open under this dialog).
   const [confirming, setConfirming] = useState(false);
   const isPlain = fields.layout === "plain";
-  const ready = fields.subject.trim() && (isPlain ? fields.body.trim() : fields.content && fields.content.headline.trim());
+  const isCustom = fields.layout === "custom";
+  const hasContent = isPlain ? !!fields.body.trim()
+    : isCustom ? !!(fields.content && (fields.content.blocks || []).some((b) => (b.text || b.label || b.src || "").trim()))
+    : !!(fields.content && (fields.content.headline || "").trim());
+  const ready = fields.subject.trim() && hasContent;
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +125,10 @@ function NewsletterEditor({ newsletter, hasAddress, address, onSaved, onSent, on
     setError(null);
     setConfirming(false);
     setFields((prev) => {
-      if (key === "plain" || (touched && prev.content)) return Object.assign({}, prev, { layout: key });
+      // Blocks and the fixed layouts hold different shapes of content, so
+      // crossing between them starts from that side's starter content.
+      const sameShape = prev.content && (key === "custom") === Array.isArray(prev.content.blocks);
+      if (key === "plain" || (touched && sameShape)) return Object.assign({}, prev, { layout: key });
       const content = starterContent(key);
       // Coming from plain text, keep what was already written as the intro.
       if (prev.layout === "plain" && prev.body.trim()) content.intro = prev.body.trim();
@@ -202,6 +209,8 @@ function NewsletterEditor({ newsletter, hasAddress, address, onSaved, onSent, on
             hint={<span className="tabular-nums">{fields.body.length} / {NEWSLETTER_BODY_MAX} · {t("nlBodyHint")}</span>}>
             <Textarea id="nl-body" value={fields.body} rows={12} maxLength={NEWSLETTER_BODY_MAX} onChange={(e) => set("body", e.target.value)} />
           </Field>
+        ) : isCustom ? (
+          <BlockBuilder content={fields.content} onChange={setContent} />
         ) : (
           <LayoutFields layout={fields.layout} content={fields.content} onChange={setContent} />
         )}

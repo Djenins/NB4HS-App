@@ -5,20 +5,27 @@
 //
 // Drag and drop: drop an image file onto any image field to upload it, and
 // drag a section by its grip to reorder (the arrow buttons do the same from
-// the keyboard).
+// the keyboard). "Build your own" (BlockBuilder) goes further: drag title,
+// header, text, image and link blocks from a palette into the email, drop
+// them where they belong, and drag them around.
 //
 // The preview renders with newsletterLayout.js -- the same file the
 // send-outbound Edge Function sends with -- in a sandboxed iframe, so it is
 // the email, not an approximation. Grey boxes stand in for pictures not
 // added yet; the real email simply leaves them out.
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
+import {
+  AlignCenter, AlignLeft, ArrowDown, ArrowUp, GripVertical, Heading1, Heading2, Image as ImageIcon, ImagePlus, Link2, Monitor, Pilcrow, Plus,
+  Smartphone, Trash2
+} from "lucide-react";
 import { useT } from "../../context/AppContext.jsx";
 import { NEWSLETTER_IMAGE_TYPES, newsletterImageProblem, uploadNewsletterImage } from "../../lib/communications.js";
-import { LAYOUTS, LAYOUT_KEYS, NEWSLETTER_FOOTER, logoUrl, renderNewsletterHtml } from "../../../supabase/functions/send-outbound/newsletterLayout.js";
+import {
+  BLOCK_TYPES, LAYOUTS, LAYOUT_KEYS, MAX_BLOCKS, NEWSLETTER_FOOTER, logoUrl, newBlock, renderNewsletterHtml
+} from "../../../supabase/functions/send-outbound/newsletterLayout.js";
 import { cn } from "../../lib/cn.js";
 import { BUTTON_RESET, Button } from "../ui/button.jsx";
-import { Field, Input, Textarea } from "../ui/field.jsx";
+import { Field, Input, Select, Textarea } from "../ui/field.jsx";
 import { SegmentedControl } from "../ui/segmented-control.jsx";
 
 export const PICKER_KEYS = ["plain"].concat(LAYOUT_KEYS);
@@ -65,6 +72,12 @@ export function LayoutThumb({ layout }) {
     body = (<g><rect x="6" y="8" width="52" height="26" rx="2" className={PIC} />{headline(40, true)}<Lines x={10} y={47} w={44} n={3} />{button(62, true)}</g>);
   } else if (layout === "hybrid") {
     body = (<g>{hero}{headline(30)}<Lines x={6} y={36} w={52} />{button(44)}<rect x="6" y="54" width="30" height="3" rx="1" className={HEAD} /><Row y={60} /></g>);
+  } else if (layout === "custom") {
+    body = (<g>
+      {[8, 26, 44].map((y) => <rect key={y} x="6" y={y} width="52" height="14" rx="2" className="fill-none stroke-[#93a8f8]" strokeDasharray="2 1.5" />)}
+      <rect x="10" y="12" width="26" height="3" rx="1" className={HEAD} /><Lines x={10} y={30} w={44} /><rect x="10" y="48" width="20" height="6" rx="2" className={PIC} />
+      <circle cx="32" cy="72" r="7" className={BTN} /><rect x="31" y="68" width="2" height="8" rx="1" className="fill-white" /><rect x="28" y="71" width="8" height="2" rx="1" className="fill-white" />
+    </g>);
   } else {
     body = (<g>{hero}{headline(30)}<Lines x={6} y={36} w={52} /><rect x="6" y="48" width="30" height="3" rx="1" className={HEAD} />
       {[6, 33].map((x) => <g key={x}><rect x={x} y="55" width="25" height="14" rx="2" className={PIC} /><Lines x={x} y={72} w={25} /></g>)}</g>);
@@ -333,6 +346,180 @@ export function NewsletterPreview({ layout, content, subject, language, address 
           className={cn("shrink-0 border-0 bg-transparent", width === "phone" ? "h-full w-[375px] max-w-full" : "origin-top")}
           style={width === "desktop" ? { width: DESKTOP_WIDTH, height: pane.h / scale, transform: "scale(" + scale + ")" } : undefined}
         />
+      </div>
+    </div>
+  );
+}
+
+// ---------- Build your own ----------
+
+const BLOCK_ICONS = { title: Heading1, header: Heading2, text: Pilcrow, image: ImageIcon, link: Link2 };
+const NEW_BLOCK = "application/x-nl-new-block";
+const MOVE_BLOCK = "application/x-nl-move-block";
+const hasType = (e, type) => Array.prototype.indexOf.call(e.dataTransfer.types || [], type) !== -1;
+
+function BlockFields({ block, onChange, idBase }) {
+  const t = useT();
+  const set = (name, value) => onChange(Object.assign({}, block, { [name]: value }));
+  if (block.type === "title" || block.type === "header") {
+    return (
+      <Input aria-label={t("nlBlock_" + block.type)} value={block.text} maxLength={150} onChange={(e) => set("text", e.target.value)}
+        className={block.type === "title" ? "text-heading font-bold" : "font-semibold"} />
+    );
+  }
+  if (block.type === "text") {
+    return <Textarea aria-label={t("nlBlock_text")} rows={3} value={block.text} maxLength={3000} onChange={(e) => set("text", e.target.value)} />;
+  }
+  if (block.type === "image") {
+    return (
+      <div className="flex flex-col gap-3">
+        <ImageField id={idBase + "-img"} label={t("nlBlock_image")} value={{ src: block.src, alt: block.alt }} onChange={(v) => onChange(Object.assign({}, block, v))} />
+        <Field label={t("nlImageLink")} htmlFor={idBase + "-url"} hint={t("nlImageLinkHint")}>
+          <Input id={idBase + "-url"} type="url" placeholder="https://" value={block.url} maxLength={1000} onChange={(e) => set("url", e.target.value)} />
+        </Field>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <LinkFields idBase={idBase} labelText={t("nlLinkText")} value={{ label: block.label, url: block.url }} onChange={(v) => onChange(Object.assign({}, block, v))} />
+      <Field label={t("nlLinkStyle")} htmlFor={idBase + "-style"}>
+        <Select id={idBase + "-style"} value={block.style} onChange={(e) => set("style", e.target.value)}>
+          <option value="button">{t("nlLinkStyle_button")}</option>
+          <option value="text">{t("nlLinkStyle_text")}</option>
+        </Select>
+      </Field>
+    </div>
+  );
+}
+
+// The builder: a palette of blocks above the email's block list. Drag a
+// block from the palette and drop it anywhere in the list (a blue line shows
+// where it will land), or click it to add it at the end. Blocks move by
+// their grip, or with the arrows.
+export function BlockBuilder({ content, onChange }) {
+  const t = useT();
+  const blocks = (content && content.blocks) || [];
+  const [dropAt, setDropAt] = useState(null); // index the dragged block would land at
+  const [armed, setArmed] = useState(null);
+  const [moving, setMoving] = useState(null);
+  const full = blocks.length >= MAX_BLOCKS;
+
+  const setBlocks = (next) => onChange(Object.assign({}, content, { blocks: next }));
+  const insert = (type, at) => {
+    if (full) return;
+    const next = blocks.slice();
+    next.splice(at, 0, newBlock(type));
+    setBlocks(next);
+  };
+  const move = (from, to) => {
+    if (from === to || from + 1 === to) return;
+    const next = blocks.slice();
+    const [b] = next.splice(from, 1);
+    next.splice(to > from ? to - 1 : to, 0, b);
+    setBlocks(next);
+  };
+  const reset = () => { setDropAt(null); setArmed(null); setMoving(null); };
+
+  function overBlock(e, i) {
+    if (!hasType(e, NEW_BLOCK) && !hasType(e, MOVE_BLOCK)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = hasType(e, NEW_BLOCK) ? "copy" : "move";
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropAt(e.clientY < r.top + r.height / 2 ? i : i + 1);
+  }
+  function drop(e) {
+    if (dropAt === null) return;
+    e.preventDefault();
+    const type = e.dataTransfer.getData(NEW_BLOCK);
+    if (type && BLOCK_TYPES.indexOf(type) !== -1) insert(type, dropAt);
+    else if (moving !== null) move(moving, dropAt);
+    reset();
+  }
+  const line = <div className="h-1 rounded-full bg-primary" aria-hidden="true" />;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-control border border-border bg-surface-sunken p-3">
+        <p className="m-0 mb-2 text-meta text-muted">{t(full ? "nlBlocksFull" : "nlBlocksPaletteHint")}</p>
+        <div className="flex flex-wrap gap-2">
+          {BLOCK_TYPES.map((type) => {
+            const Icon = BLOCK_ICONS[type];
+            return (
+              <button
+                key={type}
+                type="button"
+                draggable={!full}
+                disabled={full}
+                onDragStart={(e) => { e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData(NEW_BLOCK, type); }}
+                onDragEnd={reset}
+                onClick={() => insert(type, blocks.length)}
+                aria-label={t("nlAddBlock").replace("{block}", t("nlBlock_" + type))}
+                className={cn(BUTTON_RESET, "flex min-w-[84px] cursor-grab flex-col items-center gap-1 rounded-control border border-border bg-card px-3 py-2 text-meta font-semibold text-card-foreground transition-colors duration-fast hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50")}
+              >
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                {t("nlBlock_" + type)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2" onDrop={drop} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropAt(null); }}>
+        {blocks.map((b, i) => {
+          const Icon = BLOCK_ICONS[b.type];
+          const alignable = b.type !== "image";
+          return (
+            <div key={b.id}>
+              {dropAt === i ? line : null}
+              <section
+                aria-label={t("nlBlock_" + b.type) + " " + (i + 1)}
+                draggable={armed === i}
+                onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData(MOVE_BLOCK, b.id); setMoving(i); }}
+                onDragEnd={reset}
+                onDragOver={(e) => overBlock(e, i)}
+                className={cn("mt-2 flex flex-col gap-2.5 rounded-control border border-border bg-card p-3 transition-opacity duration-fast", moving === i && "opacity-50")}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-meta font-semibold text-card-foreground">
+                    <span className="-ml-1 flex h-7 w-6 cursor-grab items-center justify-center rounded text-muted hover:bg-surface-sunken hover:text-card-foreground active:cursor-grabbing"
+                      title={t("nlDragToReorder")} aria-hidden="true" onMouseDown={() => setArmed(i)} onMouseUp={() => setArmed(null)}>
+                      <GripVertical className="h-4 w-4" />
+                    </span>
+                    <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                    {t("nlBlock_" + b.type)}
+                  </span>
+                  <div className="flex gap-0.5">
+                    {alignable ? (
+                      <>
+                        <Button type="button" size="icon" variant="ghost" aria-label={t("nlAlignLeft")} aria-pressed={b.align !== "center"}
+                          className={b.align !== "center" ? "text-primary" : undefined} onClick={() => setBlocks(blocks.map((x, j) => (j === i ? Object.assign({}, x, { align: "left" }) : x)))}>
+                          <AlignLeft className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                        <Button type="button" size="icon" variant="ghost" aria-label={t("nlAlignCenter")} aria-pressed={b.align === "center"}
+                          className={b.align === "center" ? "text-primary" : undefined} onClick={() => setBlocks(blocks.map((x, j) => (j === i ? Object.assign({}, x, { align: "center" }) : x)))}>
+                          <AlignCenter className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </>
+                    ) : null}
+                    <Button type="button" size="icon" variant="ghost" aria-label={t("nlMoveUp")} disabled={i === 0} onClick={() => move(i, i - 1)}><ArrowUp className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" size="icon" variant="ghost" aria-label={t("nlMoveDown")} disabled={i === blocks.length - 1} onClick={() => move(i, i + 2)}><ArrowDown className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" size="icon" variant="ghost" aria-label={t("nlRemoveBlock")} onClick={() => setBlocks(blocks.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" aria-hidden="true" /></Button>
+                  </div>
+                </div>
+                <BlockFields block={b} idBase={"nl-b-" + b.id} onChange={(v) => setBlocks(blocks.map((x, j) => (j === i ? v : x)))} />
+              </section>
+            </div>
+          );
+        })}
+        <div
+          onDragOver={(e) => { if (hasType(e, NEW_BLOCK) || hasType(e, MOVE_BLOCK)) { e.preventDefault(); setDropAt(blocks.length); } }}
+          className={cn("mt-2 flex items-center justify-center rounded-control border-2 border-dashed px-3 text-center text-meta transition-colors duration-fast",
+            blocks.length ? "min-h-[56px]" : "min-h-[140px]",
+            dropAt === blocks.length ? "border-primary bg-primary-tint text-primary" : "border-border text-muted")}
+        >
+          {t(blocks.length ? "nlBlocksDropEnd" : "nlBlocksEmpty")}
+        </div>
       </div>
     </div>
   );

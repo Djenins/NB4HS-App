@@ -42,6 +42,13 @@ Besides plain text, a newsletter can use one of seven email layouts: single colu
 - `newsletters.body` stays the plain-text version, which is also the email's text part. `layout` and `content` travel in each queued email's payload.
 - The rollback leaves the bucket in place, because Supabase only lets the Storage API delete files and buckets. Empty and delete it in the Storage dashboard if needed.
 
+## Build your own (`c4_newsletter_blocks`, on live since 2026-10-31)
+
+A newsletter can also be built from blocks instead of a fixed layout: **Title, Header, Text, Image** (optionally linked) and **Link** (a button or a text link). Staff drag a block from the palette into the email, where a blue line shows where it will land, or click it to add it at the end. They rearrange blocks by dragging the grip or with the arrows, and set alignment per block. The live preview follows every change.
+
+- The layout key is `custom`, with `content = { blocks: [...] }`, at most 40 blocks. It's rendered by the same `newsletterLayout.js` (`blockHtml`), with the same escaping and `https:`-only rules.
+- c4 only widens `newsletters_layout_check` to allow `custom`. Its rollback turns block drafts into plain-text drafts; their body already holds the text version.
+
 ## Sending
 
 `send-outbound` (Edge Function) now claims only the channels it has a provider for:
@@ -61,3 +68,4 @@ The deployed function keeps working unchanged after the migration, because the n
 6. Native-speaker check of the newsletter footer (`NEWSLETTER_FOOTER` in `send-outbound/handler.ts`) and of the unsubscribe page's Kreyòl and French (`unsub*` in `src/lib/i18n.js`).
 7. **`send-outbound` was deployed to live on 2026-10-31** (version 1, JWT check off, as its notes require) and refuses every call until its secrets are set. No email of any kind leaves until then: set `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL=https://app.nb4hs.org` (otherwise links and unsubscribe links point at the Vercel address), and add the Vault secrets `send_outbound_url` / `send_outbound_secret` so the 5-minute job calls it. Until then client messages and newsletters wait as "queued", which the Messages page reports.
 8. ~~Apply `c3_newsletter_layouts` on live and redeploy `send-outbound`.~~ Done 2026-10-31: the dry run passed, the migration was applied with its `schema_migrations` row, the checks passed again on live, and `send-outbound` version 2 (with `newsletterLayout.js`) is deployed.
+9. ~~Apply `c4_newsletter_blocks` on live and redeploy `send-outbound`.~~ Done 2026-10-31: the dry run passed, the migration was applied with its `schema_migrations` row, the checks passed again on live, and `send-outbound` version 4 (block rendering) is deployed.
