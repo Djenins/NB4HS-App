@@ -15,7 +15,7 @@ function Badge({ count, collapsed }) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold leading-none text-navy",
+        "flex h-[18px] min-w-[18px] items-center justify-center rounded-chip bg-gold px-1 text-caption font-bold leading-none text-navy",
         collapsed ? "absolute -right-1 -top-1 ring-2 ring-[color:var(--sb-bg)]" : "ml-auto"
       )}
     >
@@ -39,9 +39,9 @@ export default function SidebarNavItem({ entry, active, collapsed, badge, onNavi
         EASE,
         FOCUS_RING,
         collapsed
-          ? cn("mx-auto h-10 w-10 justify-center rounded-xl", active ? "bg-sb-rail-active text-white" : "text-sb-icon hover:bg-sb-hover hover:text-sb-text")
+          ? cn("mx-auto h-10 w-10 justify-center rounded-chip", active ? "bg-sb-rail-active text-white" : "text-sb-icon hover:bg-sb-hover hover:text-sb-text")
           : cn(
-              "h-9 gap-3 rounded-[10px] px-2.5 text-[14px]",
+              "h-9 gap-3 rounded-control px-2.5 text-ui",
               active ? "bg-sb-active font-semibold text-sb-active-text" : "font-medium text-sb-text hover:bg-sb-hover"
             )
       )}

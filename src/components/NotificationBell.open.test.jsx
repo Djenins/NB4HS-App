@@ -26,7 +26,8 @@ const unread = (id) => ({ id, type: "snap_task_due", title: "Follow-up due", mes
 
 function openBell() {
   render(<MemoryRouter><NotificationBell /></MemoryRouter>);
-  fireEvent.keyDown(screen.getByRole("button", { name: translate("notificationsAriaLabel", "en") }), { key: "Enter" });
+  // The bell's name carries the unread count, e.g. "Notifications (2)".
+  fireEvent.keyDown(screen.getByRole("button", { name: new RegExp("^" + translate("notificationsAriaLabel", "en")) }), { key: "Enter" });
 }
 
 describe("NotificationBell", () => {
@@ -53,5 +54,11 @@ describe("NotificationBell", () => {
     openBell();
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
     expect(markAllNotifsRead).not.toHaveBeenCalled();
+  });
+
+  it("names the unread count on the bell", () => {
+    notifications = [unread("a"), unread("b")];
+    render(<MemoryRouter><NotificationBell /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: translate("notificationsAriaLabel", "en") + " (2)" })).toBeInTheDocument();
   });
 });

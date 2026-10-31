@@ -33,6 +33,7 @@ import { fetchOutreachPrograms } from "../lib/outreachPrograms.js";
 import { searchPlaceholderKey, searchScopes } from "../lib/commandSearch.js";
 import { routeAllowed } from "./RequireRoute.jsx";
 import { cn } from "../lib/cn.js";
+import { IconButton } from "./ui/icon-button.jsx";
 import { TooltipProvider } from "./ui/tooltip.jsx";
 import AppSidebar from "./sidebar/AppSidebar.jsx";
 import CommandPalette from "./sidebar/CommandPalette.jsx";
@@ -262,16 +263,17 @@ export default function Shell() {
             {!clientView && (
               <header className="topbar">
                 {showSidebar && isMobile && (
-                  <button
-                    type="button"
+                  <IconButton
+                    label={t("sidebarOpenMenu")}
+                    variant="secondary"
+                    size="lg"
                     onClick={() => setDrawerOpen(true)}
-                    aria-label={t("sidebarOpenMenu")}
                     aria-haspopup="dialog"
                     aria-expanded={drawerOpen}
-                    className="no-print flex h-10 min-h-0 w-10 shrink-0 transform-none items-center justify-center rounded-xl border border-border bg-card p-0 text-[color:var(--text)] hover:bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="no-print"
                   >
-                    <Menu aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-                  </button>
+                    <Menu aria-hidden="true" strokeWidth={2} />
+                  </IconButton>
                 )}
                 {showSidebar && crumbWorkspace && navLabel(pageKey, lang) ? (
                   <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
@@ -289,7 +291,7 @@ export default function Shell() {
                     <span className={cn("brand-sub no-print", showSidebar && "hidden")}>{t("appTitle")}</span>
                   </div>
                 )}
-                <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
+                <div className="no-print ml-auto flex items-center gap-3">
                   {session && !showSidebar && <NotificationBell />}
                   {!showSidebar && <ThemeToggle compact />}
                 </div>

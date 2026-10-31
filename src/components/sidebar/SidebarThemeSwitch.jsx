@@ -21,7 +21,7 @@ export default function SidebarThemeSwitch({ collapsed, t }) {
             type="button"
             onClick={toggleTheme}
             aria-label={label}
-            className={cn(BTN_RESET, EASE, FOCUS_RING, "mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-sb-field-border bg-sb-field text-sb-active-text hover:bg-sb-hover")}
+            className={cn(BTN_RESET, EASE, FOCUS_RING, "mx-auto flex h-10 w-10 items-center justify-center rounded-chip border border-sb-field-border bg-sb-field text-sb-active-text hover:bg-sb-hover")}
           >
             {isDark ? <Moon aria-hidden="true" className="h-[18px] w-[18px]" /> : <Sun aria-hidden="true" className="h-[18px] w-[18px]" />}
           </button>
@@ -33,11 +33,11 @@ export default function SidebarThemeSwitch({ collapsed, t }) {
 
   const option = (on) => cn(
     BTN_RESET, EASE, FOCUS_RING,
-    "flex h-9 flex-1 items-center justify-center gap-2 rounded-full text-[13px] font-medium",
+    "flex h-9 flex-1 items-center justify-center gap-2 rounded-chip text-meta font-medium",
     on ? "bg-sb-seg-on text-sb-seg-on-text shadow-sm" : "text-sb-muted hover:text-sb-text"
   );
   return (
-    <div role="group" aria-label={t("sidebarThemeGroup")} className="flex gap-1 rounded-full bg-sb-seg p-1">
+    <div role="group" aria-label={t("sidebarThemeGroup")} className="flex gap-1 rounded-chip bg-sb-seg p-1">
       <button type="button" aria-pressed={!isDark} onClick={() => { if (isDark) toggleTheme(); }} className={option(!isDark)}>
         <Sun aria-hidden="true" className="h-4 w-4" /> {t("themeLightOption")}
       </button>
