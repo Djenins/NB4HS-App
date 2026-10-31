@@ -35,7 +35,8 @@ import {
   deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchDistributions,
   getFileSignedUrl, updateClientRecord, uploadClientFile
 } from "../lib/clientsData.js";
-import { fmtDateLong } from "../lib/utils.js";
+import { fmtDateLong, todayStr } from "../lib/utils.js";
+import { fmtSlotTime } from "../lib/availability.js";
 import {
   fetchClientCommunications, fetchClientMessages, isOpenFollowUp, logCommunication as saveCommunication, setFollowUpDone
 } from "../lib/communications.js";
@@ -767,6 +768,33 @@ export default function ClientProfile() {
     ? () => navigate(PROGRAM_META[schedulingProgram.programType].path, { state: { openAppointments: true, appointmentClientId: schedulingProgram.record.id } })
     : undefined;
 
+  // The header's "at a glance" strip, from data this page already holds.
+  const today = todayStr();
+  const nextAppointment = appointments
+    .filter((a) => a.date && a.date >= today && (a.status === "scheduled" || a.status === "requested"))
+    .sort((a, b) => ((a.date || "") + (a.time || "")).localeCompare((b.date || "") + (b.time || "")))[0];
+  const lastContactDate = communications.concat(notes).map((e) => e.date).filter(Boolean).sort().pop();
+  const openFollowUps = communications.filter(isOpenFollowUp).length;
+  const headerFacts = [
+    {
+      icon: Users, tone: "info", label: t("clientTabPrograms"),
+      value: enrollments.length ? enrollments.map((e) => t(PROGRAM_META[e.programType].labelKey)).join(", ") : t("noProgramsShort")
+    },
+    {
+      icon: CalendarClock, tone: nextAppointment ? "violet" : "neutral", label: t("nextAppointmentLabel"),
+      value: nextAppointment ? fmtDateLong(nextAppointment.date) : t("noUpcomingAppointment"),
+      hint: nextAppointment && nextAppointment.time ? fmtSlotTime(nextAppointment.time) + " · " + apptStatusLabel(nextAppointment.status, lang) : null
+    },
+    {
+      icon: MessageCircle, tone: "neutral", label: t("lastContactLabel"),
+      value: lastContactDate ? fmtDateLong(lastContactDate) : t("noContactLogged")
+    },
+    {
+      icon: CheckCheck, tone: openFollowUps ? "warning" : "success", label: t("openFollowUpsLabel"),
+      value: openFollowUps ? String(openFollowUps) : t("noOpenFollowUps")
+    }
+  ];
+
   const TAB_COUNTS = {
     programs: enrollments.length, appointments: appointments.length, notes: notes.length,
     documents: documents.length, communications: communications.length
@@ -854,7 +882,7 @@ export default function ClientProfile() {
   return (
     <>
       <ClientHeader
-        client={client} name={name}
+        client={client} name={name} facts={headerFacts}
         onBack={goBack}
         onEditProfile={() => setEditing(true)}
         onAddToProgram={() => setAddingToProgram(true)}
