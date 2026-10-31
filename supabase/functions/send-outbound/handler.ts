@@ -23,6 +23,8 @@
 // email (Resend) or by text (Twilio). Each channel is claimed only when its
 // provider is configured, so texts wait in the queue until Twilio is set up.
 
+import { LAYOUTS, NEWSLETTER_FOOTER, newsletterText, renderNewsletterHtml } from "./newsletterLayout.js";
+
 // deno-lint-ignore no-explicit-any
 type Any = any;
 
@@ -122,13 +124,8 @@ ${textToHtml(body)}
 // (CAN-SPAM) asks of bulk email -- the organization's mailing address and a
 // working unsubscribe link -- and a List-Unsubscribe header so mail apps
 // show their own unsubscribe button. The link opens a page that asks before
-// unsubscribing, so a mail scanner following it changes nothing.
-// The Kreyòl and French wording needs a native speaker's check.
-const NEWSLETTER_FOOTER: Record<Lang, { why: string; stop: string }> = {
-  en: { why: "You're receiving this because you agreed to receive program updates from New Bridges for Haitian Success.", stop: "Unsubscribe" },
-  ht: { why: "Ou resevwa mesaj sa a paske ou te dakò pou resevwa nouvèl pwogram New Bridges for Haitian Success.", stop: "Dezabòne" },
-  fr: { why: "Vous recevez ce message parce que vous avez accepté de recevoir les actualités des programmes de New Bridges for Haitian Success.", stop: "Se désabonner" }
-};
+// unsubscribing, so a mail scanner following it changes nothing. The
+// footer's wording (NEWSLETTER_FOOTER) lives in newsletterLayout.js.
 
 // The page opens in the newsletter's language (`l`).
 export function unsubscribeLink(appUrl: string, token: unknown, lang?: unknown) {
@@ -143,7 +140,20 @@ export function renderNewsletter(payload: Record<string, unknown>, appUrl: strin
   const address = String(payload.mailing_address ?? "").trim();
   if (!subject || !body || !address || typeof payload.unsubscribe_token !== "string") return null;
   const href = unsubscribeLink(appUrl, payload.unsubscribe_token, lang);
-  const f = NEWSLETTER_FOOTER[lang];
+  const f = (NEWSLETTER_FOOTER as Record<Lang, { why: string; stop: string }>)[lang];
+  const headers = { "List-Unsubscribe": `<${href}>` };
+  // A newsletter built from a layout (c3); "plain" ones keep the text email below.
+  const layout = typeof payload.layout === "string" ? payload.layout : "plain";
+  if (layout !== "plain" && Object.prototype.hasOwnProperty.call(LAYOUTS, layout)) {
+    return {
+      subject, headers,
+      html: renderNewsletterHtml({
+        layout, content: payload.content, language: lang, subject,
+        footer: { brand: "New Bridges for Haitian Success", why: f.why, address, stopLabel: f.stop, href }
+      }),
+      text: `${subject}\n\n${newsletterText(payload.content, layout) || body}\n\n—\n${f.why}\n${address}\n${f.stop}: ${href}`
+    };
+  }
   const html = `<!doctype html><html lang="${lang}"><body style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;color:#0b1f3a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:28px">
@@ -157,7 +167,7 @@ ${textToHtml(body)}
   return {
     subject, html,
     text: `${subject}\n\n${body}\n\n—\n${f.why}\n${address}\n${f.stop}: ${href}`,
-    headers: { "List-Unsubscribe": `<${href}>` }
+    headers
   };
 }
 

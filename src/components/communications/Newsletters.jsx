@@ -31,8 +31,10 @@ import { PageHeader } from "../ui/page-header.jsx";
 import { SectionCard } from "../ui/section-card.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
 import { LANGUAGE_NAMES } from "./SendMessageDialog.jsx";
+import { LayoutFields, LayoutPicker, NewsletterPreview } from "./NewsletterLayoutEditor.jsx";
+import { normalizeContent, starterContent } from "../../../supabase/functions/send-outbound/newsletterLayout.js";
 
-const BLANK = { subject: "", body: "", language: "en", audience: "all" };
+const BLANK = { subject: "", body: "", language: "en", audience: "all", layout: "plain", content: null };
 
 function MailingAddressCard({ address, canEdit, onSaved }) {
   const t = useT();
@@ -85,17 +87,24 @@ function MailingAddressCard({ address, canEdit, onSaved }) {
   );
 }
 
-function NewsletterEditor({ newsletter, hasAddress, onSaved, onSent, onCancel }) {
+function NewsletterEditor({ newsletter, hasAddress, address, onSaved, onSent, onCancel }) {
   const t = useT();
   const [fields, setFields] = useState(newsletter
-    ? { subject: newsletter.subject, body: newsletter.body, language: newsletter.language, audience: newsletter.audience }
+    ? {
+        subject: newsletter.subject, body: newsletter.body, language: newsletter.language, audience: newsletter.audience,
+        layout: newsletter.layout, content: newsletter.content ? normalizeContent(newsletter.content, newsletter.layout) : null
+      }
     : BLANK);
+  // Until someone edits the blocks, picking another layout swaps in that
+  // layout's starter content; after that, their words are kept.
+  const [touched, setTouched] = useState(!!(newsletter && newsletter.content));
   const [count, setCount] = useState(null);
   const [busy, setBusy] = useState(null); // "save" | "send"
   const [error, setError] = useState(null);
   // Sending asks once more, in the footer (a confirm modal would open under this dialog).
   const [confirming, setConfirming] = useState(false);
-  const ready = fields.subject.trim() && fields.body.trim();
+  const isPlain = fields.layout === "plain";
+  const ready = fields.subject.trim() && (isPlain ? fields.body.trim() : fields.content && fields.content.headline.trim());
 
   useEffect(() => {
     let cancelled = false;
@@ -107,6 +116,19 @@ function NewsletterEditor({ newsletter, hasAddress, onSaved, onSent, onCancel })
   }, [fields.audience]);
 
   function set(name, value) { setError(null); setConfirming(false); setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+
+  function chooseLayout(key) {
+    setError(null);
+    setConfirming(false);
+    setFields((prev) => {
+      if (key === "plain" || (touched && prev.content)) return Object.assign({}, prev, { layout: key });
+      const content = starterContent(key);
+      // Coming from plain text, keep what was already written as the intro.
+      if (prev.layout === "plain" && prev.body.trim()) content.intro = prev.body.trim();
+      return Object.assign({}, prev, { layout: key, content });
+    });
+  }
+  function setContent(content) { setTouched(true); set("content", content); }
 
   async function save() {
     setBusy("save");
@@ -132,7 +154,7 @@ function NewsletterEditor({ newsletter, hasAddress, onSaved, onSent, onCancel })
 
   return (
     <Dialog
-      open onClose={onCancel} size="xl" closeLabel={t("closeLabel")}
+      open onClose={onCancel} size={isPlain ? "xl" : "2xl"} closeLabel={t("closeLabel")}
       title={newsletter ? t("nlEditTitle") : t("nlNewTitle")}
       description={t("nlEditorDesc")}
       footer={confirming ? (
@@ -155,7 +177,8 @@ function NewsletterEditor({ newsletter, hasAddress, onSaved, onSent, onCancel })
         </>
       )}
     >
-      <div className="flex flex-col gap-4">
+      <div className={isPlain ? "" : "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"}>
+      <div className="flex min-w-0 flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("nlAudienceLabel")} htmlFor="nl-audience"
             hint={count === null ? t("nlCounting") : t(count === 1 ? "nlAudienceCountOne" : "nlAudienceCount").replace("{n}", count)}>
@@ -173,14 +196,25 @@ function NewsletterEditor({ newsletter, hasAddress, onSaved, onSent, onCancel })
         <Field label={t("commsSubjectLabel")} htmlFor="nl-subject" required>
           <Input id="nl-subject" value={fields.subject} maxLength={NEWSLETTER_SUBJECT_MAX} onChange={(e) => set("subject", e.target.value)} data-autofocus />
         </Field>
-        <Field label={t("commsMessageLabel")} htmlFor="nl-body" required
-          hint={<span className="tabular-nums">{fields.body.length} / {NEWSLETTER_BODY_MAX} · {t("nlBodyHint")}</span>}>
-          <Textarea id="nl-body" value={fields.body} rows={12} maxLength={NEWSLETTER_BODY_MAX} onChange={(e) => set("body", e.target.value)} />
-        </Field>
+        <LayoutPicker value={fields.layout} onChange={chooseLayout} />
+        {isPlain ? (
+          <Field label={t("commsMessageLabel")} htmlFor="nl-body" required
+            hint={<span className="tabular-nums">{fields.body.length} / {NEWSLETTER_BODY_MAX} · {t("nlBodyHint")}</span>}>
+            <Textarea id="nl-body" value={fields.body} rows={12} maxLength={NEWSLETTER_BODY_MAX} onChange={(e) => set("body", e.target.value)} />
+          </Field>
+        ) : (
+          <LayoutFields layout={fields.layout} content={fields.content} onChange={setContent} />
+        )}
         <p className="m-0 flex items-start gap-2 text-meta text-muted">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          {t("nlPrivacyNote")}
+          {t(isPlain ? "nlPrivacyNote" : "nlPrivacyNoteImages")}
         </p>
+      </div>
+      {!isPlain ? (
+        <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
+          <NewsletterPreview layout={fields.layout} content={fields.content} subject={fields.subject} language={fields.language} address={address} />
+        </div>
+      ) : null}
       </div>
     </Dialog>
   );
@@ -265,6 +299,7 @@ export default function Newsletters() {
                       <StatusBadge domain="newsletter" status={n.status}>{t("nlStatus_" + n.status)}</StatusBadge>
                       <Badge variant="neutral">{t("nlAudience_" + n.audience)}</Badge>
                       <Badge variant="neutral">{LANGUAGE_NAMES[n.language]}</Badge>
+                      {n.layout && n.layout !== "plain" ? <Badge variant="info">{t("nlLayout_" + n.layout)}</Badge> : null}
                     </div>
                     <p className="m-0 mt-1 text-meta text-muted">
                       {n.sentAt
@@ -296,6 +331,7 @@ export default function Newsletters() {
         <NewsletterEditor
           newsletter={editing === "new" ? null : editing}
           hasAddress={!!address}
+          address={address}
           onCancel={() => setEditing(null)}
           onSaved={() => { setEditing(null); showToast(t("nlDraftSaved")); load(); }}
           onSent={(n) => { setEditing(null); showToast(t("nlSentToast").replace("{n}", n.recipient_count)); load(); }}

@@ -10,6 +10,7 @@
 // the same append-only rows SNAP records) and writes the log entry itself;
 // the send-outbound Edge Function delivers them once a provider is set up.
 import { supabase } from "./supabase.js";
+import { normalizeContent, newsletterText } from "../../supabase/functions/send-outbound/newsletterLayout.js";
 
 export var LOG_METHODS = ["phone", "email", "sms", "inperson"];
 export var LOG_DIRECTIONS = ["outbound", "inbound"];
@@ -353,7 +354,8 @@ function newsletterFromRow(row) {
   return {
     id: row.id, subject: row.subject, body: row.body, language: row.language, audience: row.audience,
     status: row.status, recipientCount: row.recipient_count || 0, sentAt: row.sent_at || null,
-    authorName: row.author ? row.author.name || "" : "", createdAt: row.created_at, updatedAt: row.updated_at
+    authorName: row.author ? row.author.name || "" : "", createdAt: row.created_at, updatedAt: row.updated_at,
+    layout: row.layout || "plain", content: row.content || null
   };
 }
 
@@ -373,8 +375,15 @@ export async function fetchNewsletterStats() {
   return out;
 }
 
+// A layout newsletter's body is its plain-text version (newsletterText), which
+// is also the email's text part; the layout and its content go alongside.
 export async function saveNewsletter(id, fields) {
-  const row = { subject: fields.subject.trim(), body: fields.body.trim(), language: fields.language, audience: fields.audience };
+  const layout = fields.layout || "plain";
+  const row = {
+    subject: fields.subject.trim(), language: fields.language, audience: fields.audience, layout,
+    body: layout === "plain" ? fields.body.trim() : (newsletterText(fields.content, layout) || fields.subject.trim()),
+    content: layout === "plain" ? null : normalizeContent(fields.content, layout)
+  };
   const query = id ? supabase.from("newsletters").update(row).eq("id", id) : supabase.from("newsletters").insert(row);
   const { data, error } = await query.select("id").single();
   if (error) throw error;
@@ -419,4 +428,26 @@ export async function unsubscribeNewsletter(token) {
   const { data, error } = await supabase.rpc("unsubscribe_newsletter", { p_token: token });
   if (error) throw error;
   return data || null;
+}
+
+// Pictures for layout newsletters (c3): a public bucket, because an email can
+// only show an image at a public address. Never upload client photos or
+// documents here. Resolves to the image's public URL.
+export var NEWSLETTER_IMAGE_BUCKET = "newsletter-images";
+export var NEWSLETTER_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+export var NEWSLETTER_IMAGE_MAX = 2 * 1024 * 1024;
+
+export function newsletterImageProblem(file) {
+  if (!file) return "nlImageMissing";
+  if (NEWSLETTER_IMAGE_TYPES.indexOf(file.type) === -1) return "nlImageType";
+  if (file.size > NEWSLETTER_IMAGE_MAX) return "nlImageSize";
+  return null;
+}
+
+export async function uploadNewsletterImage(file) {
+  const ext = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" }[file.type];
+  const path = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)) + "." + ext;
+  const { error } = await supabase.storage.from(NEWSLETTER_IMAGE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return supabase.storage.from(NEWSLETTER_IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
 }

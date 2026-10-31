@@ -2,7 +2,7 @@
 // focus (an edit form, a confirmation). For looking at a record, prefer
 // Drawer: it keeps the list in view.
 //
-//   <Dialog open onClose title description size="sm|md|lg|xl"
+//   <Dialog open onClose title description size="sm|md|lg|xl|2xl"
 //           footer={<>...buttons</>} closeLabel>
 //     body
 //   </Dialog>
@@ -20,7 +20,7 @@ import { cn } from "../../lib/cn.js";
 import { useModalA11y } from "../../lib/useModalA11y.js";
 import { IconButton } from "./icon-button.jsx";
 
-const SIZE = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" };
+const SIZE = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl", "2xl": "max-w-6xl" };
 
 function DialogPanel({ onClose, title, description, size, footer, closeLabel, children, as: As = "div", panelProps }) {
   const ref = useModalA11y(onClose, true);
