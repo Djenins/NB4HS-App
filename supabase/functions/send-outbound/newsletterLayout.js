@@ -14,6 +14,9 @@
 //   pyramid    hero, headline, intro, button, centred, no sections
 //   hybrid     hero, headline, intro, button, sub-heading, image-left rows
 //   double     hero, headline, intro, sub-heading, 2 columns
+// "custom" (Build your own) is different: its content is a list of blocks
+// staff add and arrange themselves --
+//   { blocks: [{ id, type: title|header|text|image|link, ... }] }
 // A newsletter with no layout ("plain") stays the plain-text email.
 //
 // Emails are tables with inline styles (what mail apps render reliably);
@@ -28,9 +31,42 @@ export var LAYOUTS = {
   multi: { hero: true, cta: true, subheading: true, sections: "grid3", start: 3, max: 9 },
   pyramid: { hero: true, cta: true, subheading: false, sections: "none", start: 0, max: 0 },
   hybrid: { hero: true, cta: true, subheading: true, sections: "rows", start: 2, max: 6 },
-  double: { hero: true, cta: false, subheading: true, sections: "grid2", start: 2, max: 8 }
+  double: { hero: true, cta: false, subheading: true, sections: "grid2", start: 2, max: 8 },
+  custom: { hero: false, cta: false, subheading: false, sections: "blocks", start: 0, max: 0 }
 };
-export var LAYOUT_KEYS = ["single", "f_pattern", "zigzag", "multi", "pyramid", "hybrid", "double"];
+export var LAYOUT_KEYS = ["single", "f_pattern", "zigzag", "multi", "pyramid", "hybrid", "double", "custom"];
+
+// Build your own: the blocks staff can drag in, and how many at most.
+export var BLOCK_TYPES = ["title", "header", "text", "image", "link"];
+export var MAX_BLOCKS = 40;
+
+function blockId() {
+  return "b" + Math.random().toString(36).slice(2, 10);
+}
+
+// A new, empty block of a type (with sample words, so it shows in the preview).
+export function newBlock(type) {
+  var b = { id: blockId(), type: type, align: "left" };
+  if (type === "title") b.text = "Your title";
+  else if (type === "header") b.text = "Section header";
+  else if (type === "text") b.text = "Write your text here.";
+  else if (type === "image") { b.src = ""; b.alt = ""; b.url = ""; }
+  else if (type === "link") { b.label = "Learn more"; b.url = ""; b.style = "button"; }
+  return b;
+}
+
+export function normalizeBlocks(blocks) {
+  return (Array.isArray(blocks) ? blocks : []).filter(function (b) {
+    return b && typeof b === "object" && BLOCK_TYPES.indexOf(b.type) !== -1;
+  }).slice(0, MAX_BLOCKS).map(function (b) {
+    var out = { id: str(b.id, 40) || blockId(), type: b.type, align: b.align === "center" ? "center" : "left" };
+    if (b.type === "title" || b.type === "header") out.text = str(b.text, 150);
+    else if (b.type === "text") out.text = str(b.text, 3000);
+    else if (b.type === "image") { out.src = str(b.src, 1000); out.alt = str(b.alt, 200); out.url = str(b.url, 1000); }
+    else { out.label = str(b.label, 60); out.url = str(b.url, 1000); out.style = b.style === "text" ? "text" : "button"; }
+    return out;
+  });
+}
 
 // The legal footer's wording, per language (send-outbound and the preview).
 // The Kreyòl and French wording needs a native speaker's check.
@@ -94,6 +130,7 @@ function str(v, max) {
 // above. Missing pieces become empty strings; extra sections are dropped.
 export function normalizeContent(content, layout) {
   var c = content && typeof content === "object" ? content : {};
+  if (layout === "custom") return { blocks: normalizeBlocks(c.blocks) };
   var cfg = LAYOUTS[layout] || LAYOUTS.single;
   var hero = c.hero && typeof c.hero === "object" ? c.hero : {};
   var cta = c.cta && typeof c.cta === "object" ? c.cta : {};
@@ -118,6 +155,7 @@ export function normalizeContent(content, layout) {
 // Starter content for a layout: what the editor fills in when someone picks
 // it, shaped like the layout's mock-up. Staff replace every line.
 export function starterContent(layout) {
+  if (layout === "custom") return { blocks: [newBlock("title"), newBlock("text"), newBlock("image"), newBlock("link")] };
   var cfg = LAYOUTS[layout] || LAYOUTS.single;
   var sections = [];
   for (var i = 0; i < cfg.start; i++) {
@@ -139,6 +177,13 @@ export function starterContent(layout) {
 
 // The text/plain part of the email (and what the app stores as the body).
 export function newsletterText(content, layout) {
+  if (layout === "custom") {
+    return normalizeBlocks(content && content.blocks).map(function (b) {
+      if (b.type === "image") return b.alt && safeUrl(b.url, true) ? b.alt + ": " + b.url : "";
+      if (b.type === "link") return b.label && safeUrl(b.url, true) ? b.label + ": " + b.url : "";
+      return b.text;
+    }).filter(Boolean).join("\n\n");
+  }
   var c = normalizeContent(content, layout);
   var cfg = LAYOUTS[layout] || LAYOUTS.single;
   var out = [];
@@ -242,6 +287,33 @@ function grid(sections, opts, perRow) {
   return out;
 }
 
+// ---------- Build your own ----------
+
+function blockHtml(b, opts) {
+  var a = b.align === "center" ? "center" : "left";
+  if (b.type === "title") {
+    return b.text ? row('<h1 style="margin:0;font-size:26px;line-height:1.25;color:' + INK + ';text-align:' + a + '">' + escapeHtml(b.text) + "</h1>", "0 28px 16px") : "";
+  }
+  if (b.type === "header") {
+    return b.text ? row('<h2 style="margin:0;font-size:19px;line-height:1.3;color:' + INK + ';text-align:' + a + '">' + escapeHtml(b.text) + "</h2>", "4px 28px 10px") : "";
+  }
+  if (b.type === "text") {
+    return b.text ? row(paragraphs(b.text, "font-size:15px;line-height:1.55;color:" + INK + ";text-align:" + a), "0 28px 8px") : "";
+  }
+  if (b.type === "image") {
+    var img = image(b.src, b.alt, 200, opts);
+    if (!img) return "";
+    var href = safeUrl(b.url, true);
+    return row(href ? '<a href="' + escapeHtml(href) + '" style="display:block;text-decoration:none">' + img + "</a>" : img, "0 28px 18px");
+  }
+  if (b.type === "link") {
+    var link = { label: b.label, url: b.url };
+    var inner = b.style === "text" ? textLink(link, opts) : button(link, a, opts);
+    return inner ? row('<div style="text-align:' + a + '">' + inner + "</div>", "0 28px 18px") : "";
+  }
+  return "";
+}
+
 // ---------- the whole email ----------
 
 // input.logo: the logo's address (logoUrl()).
@@ -261,6 +333,11 @@ export function renderNewsletterHtml(input, opts) {
   var body = "";
   body += row(brandHeaderHtml(input.logo), "28px 28px 0");
   body += row('<div style="border-top:1px solid ' + LINE + '"></div>', "18px 28px 22px");
+  if (cfg.sections === "blocks") {
+    body += normalizeBlocks(input.content && input.content.blocks).map(function (b) { return blockHtml(b, o); }).join("");
+    body += row("", "0 0 10px");
+    return wrapEmail(body, input, lang, f);
+  }
   if (cfg.hero) {
     var hero = image(c.hero.src, c.hero.alt, 200, o);
     if (hero) body += row(hero, "0 28px 20px");
@@ -282,6 +359,10 @@ export function renderNewsletterHtml(input, opts) {
     else if (cfg.sections === "grid2") body += grid(c.sections, o, 2);
   }
 
+  return wrapEmail(body, input, lang, f);
+}
+
+function wrapEmail(body, input, lang, f) {
   var footer = (f.why ? '<p style="margin:0 0 4px">' + escapeHtml(f.why) + "</p>" : "") +
     (f.address ? '<p style="margin:0 0 4px">' + escapeHtml(f.address) + "</p>" : "") +
     (f.href ? '<p style="margin:0"><a href="' + escapeHtml(f.href) + '" style="color:' + BRAND + '">' + escapeHtml(f.stopLabel || "Unsubscribe") + "</a></p>" : "");

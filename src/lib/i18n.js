@@ -2926,7 +2926,27 @@ export var STR = {
   // Newsletter editor drag and drop (staff screens: English in every language).
   nlImageDropHint: { en: "…or drag an image here", ht: "…or drag an image here", fr: "…or drag an image here" },
   nlImageDropNow: { en: "Drop to upload", ht: "Drop to upload", fr: "Drop to upload" },
-  nlDragToReorder: { en: "Drag to reorder", ht: "Drag to reorder", fr: "Drag to reorder" }
+  nlDragToReorder: { en: "Drag to reorder", ht: "Drag to reorder", fr: "Drag to reorder" },
+  // Newsletter block builder (staff screens: English in every language).
+  nlLayout_custom: { en: "Build your own", ht: "Build your own", fr: "Build your own" },
+  nlBlock_title: { en: "Title", ht: "Title", fr: "Title" },
+  nlBlock_header: { en: "Header", ht: "Header", fr: "Header" },
+  nlBlock_text: { en: "Text", ht: "Text", fr: "Text" },
+  nlBlock_image: { en: "Image", ht: "Image", fr: "Image" },
+  nlBlock_link: { en: "Link", ht: "Link", fr: "Link" },
+  nlAddBlock: { en: "Add {block}", ht: "Add {block}", fr: "Add {block}" },
+  nlRemoveBlock: { en: "Remove block", ht: "Remove block", fr: "Remove block" },
+  nlBlocksPaletteHint: { en: "Drag a block into your email, or click it to add it at the end.", ht: "Drag a block into your email, or click it to add it at the end.", fr: "Drag a block into your email, or click it to add it at the end." },
+  nlBlocksFull: { en: "This newsletter has the most blocks it can hold (40).", ht: "This newsletter has the most blocks it can hold (40).", fr: "This newsletter has the most blocks it can hold (40)." },
+  nlBlocksEmpty: { en: "Drag blocks here to start building your email.", ht: "Drag blocks here to start building your email.", fr: "Drag blocks here to start building your email." },
+  nlBlocksDropEnd: { en: "Drop here to add at the end", ht: "Drop here to add at the end", fr: "Drop here to add at the end" },
+  nlAlignLeft: { en: "Align left", ht: "Align left", fr: "Align left" },
+  nlAlignCenter: { en: "Center", ht: "Center", fr: "Center" },
+  nlImageLink: { en: "Link the image (optional)", ht: "Link the image (optional)", fr: "Link the image (optional)" },
+  nlImageLinkHint: { en: "Where the image goes when someone taps it.", ht: "Where the image goes when someone taps it.", fr: "Where the image goes when someone taps it." },
+  nlLinkStyle: { en: "Show as", ht: "Show as", fr: "Show as" },
+  nlLinkStyle_button: { en: "Button", ht: "Button", fr: "Button" },
+  nlLinkStyle_text: { en: "Text link", ht: "Text link", fr: "Text link" }
 };
 
 // Translations are for clients only: the kiosk (check-in / check-out),
