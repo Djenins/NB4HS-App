@@ -48,7 +48,8 @@ const BTN_RESET = "min-h-0 rounded-none border-0 bg-transparent font-normal tran
 // Shell.jsx hides the sidebar. So measure it rather than hard-coding a
 // number, and re-measure whenever it resizes. Returns 0 on the routes that
 // render no topbar at all (kiosk landing, appointment lookup/request).
-function useTopbarOffset() {
+// Also used by RecordHeader.jsx's compact bar.
+export function useTopbarOffset() {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
