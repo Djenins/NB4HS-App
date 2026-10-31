@@ -3,8 +3,11 @@
 // and provided, NB4HS milestones, the case's follow-ups, case notes and stage
 // history. casePermissions()/closureProblem() mirror the database rules, so
 // the UI explains a block before the server would refuse it.
+//
+// A Dialog (xl) with no footer: fields save as they change, and the stage
+// change keeps its own Save because closing may need a reason and a review.
 import { useEffect, useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, ListPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
@@ -15,30 +18,29 @@ import { optionLabel, optionsFor, programScopeNote } from "../../lib/outreachPro
 import { fetchTasks } from "../../lib/snapTasks.js";
 import { fmtDateLong, fmtTime } from "../../lib/utils.js";
 import NbIdBadge from "../NbIdBadge.jsx";
+import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
-import { useModalA11y } from "../../lib/useModalA11y.js";
-import { SNAP_CONTROL, SnapSelect } from "./SnapField.jsx";
+import { Dialog } from "../ui/dialog.jsx";
+import { Field, Input, Select, Textarea } from "../ui/field.jsx";
+import { StatusBadge } from "../ui/status-badge.jsx";
+import { SnapCheckboxes, SnapSelect } from "./SnapField.jsx";
 import { SnapTaskForm, SnapTaskRows } from "./SnapTaskList.jsx";
 
-const H3 = "m-0 mb-3 text-sm font-bold text-card-foreground";
-const REVIEW_VARIANT = { not_requested: "neutral", requested: "warn", approved: "success", changes_requested: "accent" };
+const H3 = "m-0 text-section font-semibold text-card-foreground";
 
 function CheckGroup({ legend, values, onToggle, disabled }) {
   const { lang } = useApp();
   const { options } = useOutreachProgram();
   return (
-    <fieldset className="m-0 min-w-0 border-0 p-0">
-      <legend className="mb-1.5 text-xs font-semibold text-muted">{legend}</legend>
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {optionsFor(options, "assistance_type", values).map((o) => (
-          <label key={o.key} className="flex items-center gap-1.5 text-sm text-card-foreground">
-            <input type="checkbox" checked={values.indexOf(o.key) !== -1} disabled={disabled} onChange={() => onToggle(o.key)} />
-            {o.labels[lang] || o.labels.en}
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <SnapCheckboxes
+      legend={legend}
+      items={optionsFor(options, "assistance_type", values).map((o) => ({ key: o.key, label: o.labels[lang] || o.labels.en }))}
+      isChecked={(key) => values.indexOf(key) !== -1}
+      onToggle={onToggle}
+      disabled={disabled}
+      wide
+    />
   );
 }
 
@@ -70,8 +72,6 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
     fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {});
   }
   useEffect(loadExtras, [caseRow.id]);
-
-  const boxRef = useModalA11y(onClose);
 
   async function patch(fields) {
     setBusy(true);
@@ -110,82 +110,87 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
     }
   }
 
+  const clientName = (caseRow.firstName + " " + caseRow.lastName).trim();
+  const refreshTasks = () => fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {});
+
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={boxRef} className="modal-box max-h-[90vh] max-w-3xl overflow-auto" role="dialog" aria-modal="true" aria-labelledby="snap-case-title">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="snap-case-title" className="m-0 text-lg font-bold text-card-foreground">{caseRow.caseNumber}</h2>
-              <Badge>{stageLabel(stages, caseRow.stageKey, lang)}</Badge>
-              {caseRow.closedAt && <Badge variant="neutral">{optionLabel(options, "closure_reason", caseRow.closureReason, lang)}</Badge>}
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-card-foreground">
-              {(caseRow.firstName + " " + caseRow.lastName).trim()} <NbIdBadge nbId={caseRow.nbId} />
-              <Link to={"/clients/" + caseRow.nbId} aria-label={t("nbIdLabel") + " " + caseRow.nbId} className="inline-flex items-center text-primary"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></Link>
-            </div>
-            <div className="mt-1 text-xs text-muted">{t("snapCaseOpened")}: {fmtDateLong(caseRow.openedAt, lang)} · {t("snapAssignedTo")}: {caseRow.assignedTo ? nameOf(caseRow.assignedTo) : t("snapUnassigned")}</div>
+    <Dialog
+      open
+      onClose={onClose}
+      size="xl"
+      title={caseRow.caseNumber}
+      description={clientName}
+      closeLabel={t("closeLabel")}
+    >
+      <div className="grid gap-8">
+        <div className="grid gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge domain="outreachCase" status={caseRow.closedAt ? "closed" : "open"}>{stageLabel(stages, caseRow.stageKey, lang)}</StatusBadge>
+            {caseRow.closedAt && <Badge variant="neutral">{optionLabel(options, "closure_reason", caseRow.closureReason, lang)}</Badge>}
+            <NbIdBadge nbId={caseRow.nbId} />
+            <Link to={"/clients/" + caseRow.nbId} className="inline-flex items-center gap-1 rounded-badge text-meta font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2">
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> {t("snapOpenClientProfile")}
+            </Link>
           </div>
-          <button type="button" aria-label={t("closeLabel")} onClick={onClose}
-            className="flex h-9 w-9 min-h-0 items-center justify-center rounded-lg border border-border bg-card p-0 text-muted hover:bg-background">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          <p className="m-0 text-meta tabular-nums text-muted">
+            {t("snapCaseOpened")}: {fmtDateLong(caseRow.openedAt, lang)} · {t("snapAssignedTo")}: {caseRow.assignedTo ? nameOf(caseRow.assignedTo) : t("snapUnassigned")}
+          </p>
+          {scopeNote && <Alert tone="info">{scopeNote}</Alert>}
+          {!perms.canEdit && <Alert tone="info">{t("snapCaseReadOnly")}</Alert>}
 
-        {scopeNote && <div className="info-callout mb-4"><p className="!m-0 !text-xs">{scopeNote}</p></div>}
-        {!perms.canEdit && <p className="!mb-3 !text-xs text-muted">{t("snapCaseReadOnly")}</p>}
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="grid gap-1.5">
-            <label htmlFor="case-stage" className="text-xs font-semibold text-muted">{t("snapCaseStage")}</label>
-            <select id="case-stage" className={SNAP_CONTROL} value={stageDraft} disabled={!perms.canEdit || busy} onChange={(e) => setStageDraft(e.target.value)}>
-              {stages.filter((s) => s.active).map((s) => <option key={s.key} value={s.key}>{s.labels[lang] || s.labels.en}</option>)}
-            </select>
-          </div>
-          {draftStage && draftStage.isTerminal && (
-            <SnapSelect id="case-closure" t={t} label={t("snapClosureReason")} value={reasonDraft}
-              options={optionsFor(options, "closure_reason", [caseRow.closureReason]).map((o) => o.key)}
-              labelFor={(key) => optionLabel(options, "closure_reason", key, lang)}
-              emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={setReasonDraft} />
-          )}
-          <div className="flex items-end">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label={t("snapCaseStage")} htmlFor="case-stage">
+              <Select id="case-stage" value={stageDraft} disabled={!perms.canEdit || busy} onChange={(e) => setStageDraft(e.target.value)}>
+                {stages.filter((st) => st.active).map((st) => <option key={st.key} value={st.key}>{st.labels[lang] || st.labels.en}</option>)}
+              </Select>
+            </Field>
+            {draftStage && draftStage.isTerminal && (
+              <SnapSelect id="case-closure" t={t} label={t("snapClosureReason")} value={reasonDraft}
+                options={optionsFor(options, "closure_reason", [caseRow.closureReason]).map((o) => o.key)}
+                labelFor={(key) => optionLabel(options, "closure_reason", key, lang)}
+                emptyLabel={t("snapNotSet")} disabled={!perms.canEdit || busy} onChange={setReasonDraft} />
+            )}
             {perms.canEdit && stageDirty && (
-              <Button size="sm" disabled={busy || !!problem} onClick={() => patch({ stageKey: stageDraft, closureReason: draftStage && draftStage.isTerminal ? reasonDraft : null })}>{t("saveLabel")}</Button>
+              <div className="flex items-end">
+                <Button loading={busy} disabled={!!problem} onClick={() => patch({ stageKey: stageDraft, closureReason: draftStage && draftStage.isTerminal ? reasonDraft : null })}>{t("saveLabel")}</Button>
+              </div>
+            )}
+            {stageDirty && problem && <p role="alert" className="m-0 text-meta text-tone-danger-ink sm:col-span-2 lg:col-span-3">{t(problem)}</p>}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label={t("snapFollowUpDate")} htmlFor="case-followup">
+              <Input id="case-followup" type="date" value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(e) => patch({ followUpDate: e.target.value })} />
+            </Field>
+            {perms.canReassign && (
+              <Field label={t("snapAssignedTo")} htmlFor="case-assigned">
+                <Select id="case-assigned" value={caseRow.assignedTo || ""} disabled={busy} onChange={(e) => patch({ assignedTo: e.target.value || null })}>
+                  <option value="">{t("snapUnassigned")}</option>
+                  {(data.profiles || []).filter((p) => p.active !== false).map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
+                </Select>
+              </Field>
+            )}
+            {(assisted || referred) && (
+              <div className="grid content-end gap-1 text-meta text-muted">
+                {assisted && <span>{stageLabel(stages, assisted.key, lang)}: <strong className="font-semibold tabular-nums text-card-foreground">{caseRow.applicationAssistedAt ? fmtDateLong(caseRow.applicationAssistedAt, lang) : "—"}</strong></span>}
+                {referred && <span>{stageLabel(stages, referred.key, lang)}: <strong className="font-semibold tabular-nums text-card-foreground">{caseRow.referredToDhsAt ? fmtDateLong(caseRow.referredToDhsAt, lang) : "—"}</strong></span>}
+              </div>
             )}
           </div>
-          {stageDirty && problem && <p role="alert" className="!m-0 !text-xs text-accent sm:col-span-3">{t(problem)}</p>}
 
-          <div className="grid gap-1.5">
-            <label htmlFor="case-followup" className="text-xs font-semibold text-muted">{t("snapFollowUpDate")}</label>
-            <input id="case-followup" type="date" className={SNAP_CONTROL} value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(e) => patch({ followUpDate: e.target.value })} />
-          </div>
-          {perms.canReassign ? (
-            <div className="grid gap-1.5">
-              <label htmlFor="case-assigned" className="text-xs font-semibold text-muted">{t("snapAssignedTo")}</label>
-              <select id="case-assigned" className={SNAP_CONTROL} value={caseRow.assignedTo || ""} disabled={busy} onChange={(e) => patch({ assignedTo: e.target.value || null })}>
-                <option value="">{t("snapUnassigned")}</option>
-                {(data.profiles || []).filter((p) => p.active !== false).map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
-              </select>
-            </div>
-          ) : <div />}
-          <div className="grid content-start gap-1 text-xs text-muted">
-            {assisted && <span>{stageLabel(stages, assisted.key, lang)}: <strong className="text-card-foreground">{caseRow.applicationAssistedAt ? fmtDateLong(caseRow.applicationAssistedAt, lang) : "—"}</strong></span>}
-            {referred && <span>{stageLabel(stages, referred.key, lang)}: <strong className="text-card-foreground">{caseRow.referredToDhsAt ? fmtDateLong(caseRow.referredToDhsAt, lang) : "—"}</strong></span>}
+          <div className="grid gap-5">
+            <CheckGroup legend={t("snapAssistanceRequested")} values={caseRow.assistanceRequested} disabled={!perms.canEdit || busy}
+              onToggle={(code) => patch({ assistanceRequested: toggle(caseRow.assistanceRequested, code) })} />
+            <CheckGroup legend={t("snapAssistanceProvided")} values={caseRow.assistanceProvided} disabled={!perms.canEdit || busy}
+              onToggle={(code) => patch({ assistanceProvided: toggle(caseRow.assistanceProvided, code) })} />
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4">
-          <CheckGroup legend={t("snapAssistanceRequested")} values={caseRow.assistanceRequested} disabled={!perms.canEdit || busy}
-            onToggle={(code) => patch({ assistanceRequested: toggle(caseRow.assistanceRequested, code) })} />
-          <CheckGroup legend={t("snapAssistanceProvided")} values={caseRow.assistanceProvided} disabled={!perms.canEdit || busy}
-            onToggle={(code) => patch({ assistanceProvided: toggle(caseRow.assistanceProvided, code) })} />
-        </div>
-
-        <section className="mt-6" aria-labelledby="case-review">
-          <h3 id="case-review" className={H3}>{t("snapReview")}</h3>
+        <section aria-labelledby="case-review">
+          <h3 id="case-review" className={H3 + " mb-3"}>{t("snapReview")}</h3>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={REVIEW_VARIANT[caseRow.reviewStatus]}>{t("snapReview_" + caseRow.reviewStatus)}</Badge>
-            {caseRow.reviewedBy && <span className="text-xs text-muted">{nameOf(caseRow.reviewedBy)}</span>}
+            <StatusBadge domain="caseReview" status={caseRow.reviewStatus}>{t("snapReview_" + caseRow.reviewStatus)}</StatusBadge>
+            {caseRow.reviewedBy && <span className="text-meta text-muted">{nameOf(caseRow.reviewedBy)}</span>}
             {perms.canEdit && caseRow.reviewStatus !== "requested" && caseRow.reviewStatus !== "approved" && (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => patch({ reviewStatus: "requested" })}>{t("snapRequestReview")}</Button>
             )}
@@ -198,53 +203,52 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
           </div>
         </section>
 
-        <section className="mt-6" aria-labelledby="case-tasks">
+        <section aria-labelledby="case-tasks">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 id="case-tasks" className={H3 + " !mb-0"}>{t("snapCaseTasks")}</h3>
-            {perms.canEdit && !addingTask && <Button size="sm" variant="secondary" onClick={() => setAddingTask(true)}>{t("snapAddTask")}</Button>}
+            <h3 id="case-tasks" className={H3}>{t("snapCaseTasks")}</h3>
+            {perms.canEdit && !addingTask && <Button size="sm" variant="secondary" onClick={() => setAddingTask(true)}><ListPlus className="h-4 w-4" aria-hidden="true" />{t("snapAddTask")}</Button>}
           </div>
           {addingTask && (
             <SnapTaskForm context={{ caseId: caseRow.id, clientId: caseRow.clientId }} onCancel={() => setAddingTask(false)}
-              onSaved={() => { setAddingTask(false); fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {}); }} />
+              onSaved={() => { setAddingTask(false); refreshTasks(); }} />
           )}
-          <SnapTaskRows tasks={tasks} onChanged={() => fetchTasks({ program, caseId: caseRow.id }).then(setTasks).catch(() => {})} />
+          <SnapTaskRows tasks={tasks} onChanged={refreshTasks} />
         </section>
 
-        <section className="mt-6" aria-labelledby="case-notes">
+        <section aria-labelledby="case-notes">
           <h3 id="case-notes" className={H3}>{t("snapCaseNotes")}</h3>
-          <p id="case-notes-help" className="!mb-2 !text-xs text-muted">{t("snapCaseNotesHelp")}</p>
+          <p id="case-notes-help" className="m-0 mb-3 mt-1 text-meta text-muted">{t("snapCaseNotesHelp")}</p>
           {perms.canEdit && (
-            <form onSubmit={addNote} className="mb-3 grid gap-2">
-              <textarea rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
-                onChange={(e) => setNoteText(e.target.value)}
-                className="min-h-0 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" />
-              <div className="flex justify-end"><Button type="submit" size="sm" disabled={busy || !noteText.trim()}>{t("snapAddNote")}</Button></div>
+            <form onSubmit={addNote} className="mb-4 grid gap-2">
+              <Textarea rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
+                onChange={(e) => setNoteText(e.target.value)} />
+              <div className="flex justify-end"><Button type="submit" size="sm" loading={busy} disabled={!noteText.trim()}>{t("snapAddNote")}</Button></div>
             </form>
           )}
           {notes.length ? (
-            <ol className="m-0 list-none space-y-2 p-0">
+            <ol className="m-0 list-none divide-y divide-line-subtle p-0">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-lg border border-border p-3 text-sm">
-                  <div className="text-xs text-muted">{fmtDateLong(n.createdAt.slice(0, 10), lang)} {fmtTime(n.createdAt)} · {nameOf(n.createdBy)}</div>
-                  <p className="!mb-0 mt-1 whitespace-pre-wrap !text-sm text-card-foreground">{n.content}</p>
+                <li key={n.id} className="py-3 first:pt-0 last:pb-0">
+                  <div className="text-meta tabular-nums text-muted">{fmtDateLong(n.createdAt.slice(0, 10), lang)} {fmtTime(n.createdAt)} · {nameOf(n.createdBy)}</div>
+                  <p className="m-0 mt-1 whitespace-pre-wrap text-ui text-card-foreground">{n.content}</p>
                 </li>
               ))}
             </ol>
-          ) : <p className="!mb-0 py-2 text-center !text-sm text-muted">{t("snapNoNotes")}</p>}
+          ) : <p className="m-0 text-meta text-muted">{t("snapNoNotes")}</p>}
         </section>
 
-        <section className="mt-6" aria-labelledby="case-history">
-          <h3 id="case-history" className={H3}>{t("snapStageHistory")}</h3>
-          <ol className="m-0 list-none space-y-1 p-0 text-xs text-muted">
+        <section aria-labelledby="case-history">
+          <h3 id="case-history" className={H3 + " mb-3"}>{t("snapStageHistory")}</h3>
+          <ol className="m-0 grid list-none gap-1.5 p-0 text-meta text-muted">
             {history.map((h) => (
               <li key={h.id}>
-                {fmtDateLong(h.changedAt.slice(0, 10), lang)} {fmtTime(h.changedAt)} · {h.fromStage ? stageLabel(stages, h.fromStage, lang) + " → " : ""}
-                <strong className="text-card-foreground">{stageLabel(stages, h.toStage, lang)}</strong> · {nameOf(h.changedBy)}
+                <span className="tabular-nums">{fmtDateLong(h.changedAt.slice(0, 10), lang)} {fmtTime(h.changedAt)}</span> · {h.fromStage ? stageLabel(stages, h.fromStage, lang) + " → " : ""}
+                <strong className="font-semibold text-card-foreground">{stageLabel(stages, h.toStage, lang)}</strong> · {nameOf(h.changedBy)}
               </li>
             ))}
           </ol>
         </section>
       </div>
-    </div>
+    </Dialog>
   );
 }
