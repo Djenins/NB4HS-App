@@ -8,23 +8,28 @@
 // noise: a permanently empty box teaches nothing the second time it is read.
 // If those fields ever get real columns, they belong in the field grid above
 // like any other -- not as dashed placeholders.
-import { AnimatePresence, m } from "framer-motion";
-import { Copy, MapPin, Pencil, Trash2, Users, X } from "lucide-react";
-import { useEffect, useState } from "react";
+//
+// It is the shared Drawer (header, scrolling body, footer; focus trap and
+// Escape from useModalA11y), with the event kind's tone on its icon disc.
+// What it shows is unchanged: only the fields fetchCalendarEvents() returns.
+// A colleague's event arrives from calendar_events_between() without its
+// person or notes (t7), so those rows read "—" / "No notes" here.
+import { Copy, MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { fmtTimeRange } from "./calendarLayout.js";
 import { blockStyle } from "./kindStyle.js";
-import { BTN_RESET } from "./btnReset.js";
 import { Button } from "../ui/button.jsx";
+import { Drawer } from "../ui/drawer.jsx";
+import { Field, Input, Select } from "../ui/field.jsx";
 import { cn } from "../../lib/cn.js";
-import { useModalA11y } from "../../lib/useModalA11y.js";
 
-const inputClass = "h-10 min-h-0 w-full rounded-lg border border-border bg-background px-3 text-sm text-card-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
-
-function Field({ label, value }) {
+// An uppercase overline label over its value -- the drawer's read-only
+// field. The overline tracking is the calendar's one value, 0.06em.
+function DetailField({ label, value }) {
   return (
     <div>
-      <p className="m-0 text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className="m-0 mt-0.5 text-sm text-card-foreground">{value || "—"}</p>
+      <p className="m-0 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{label}</p>
+      <p className="m-0 mt-0.5 text-ui tabular-nums text-card-foreground">{value || "—"}</p>
     </div>
   );
 }
@@ -32,12 +37,9 @@ function Field({ label, value }) {
 export default function EventDrawer({ block, t, openInEditMode, onClose, onSave, onDelete, onDuplicate }) {
   const [editing, setEditing] = useState(false);
   const [fields, setFields] = useState(null);
+  const idBase = useId();
 
   const open = !!block;
-  // The drawer is a side panel, not a .modal-overlay dialog, but it is just as
-  // modal (aria-modal, a backdrop over the grid) -- same Escape / focus-trap /
-  // focus-return contract as every other dialog.
-  const panelRef = useModalA11y(onClose, open);
   const style = open ? blockStyle(block) : null;
   const Icon = style?.icon;
   const rights = block?.rights || {};
@@ -64,129 +66,125 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
   // per block so switching to a different event while the drawer is
   // already open resets edit state instead of leaking the previous one.
   useEffect(() => {
-    if (!block) return;
+    if (!block) { setEditing(false); return; }
     if (openInEditMode && rights.edit) startEdit();
     else setEditing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block?.key, openInEditMode]);
 
+  const id = (name) => idBase + "-" + name;
+
+  let footer = null;
+  if (block && editing) {
+    footer = (
+      <>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>{t("calendarCancel")}</Button>
+        <Button size="sm" disabled={!canSave} onClick={() => { onSave(block.event.id, fields); setEditing(false); }}>{t("calendarSave")}</Button>
+      </>
+    );
+  } else if (block && block.event) {
+    footer = (rights.edit || rights.duplicate || rights.remove) ? (
+      <>
+        {rights.edit && <Button type="button" variant="outline" size="sm" onClick={startEdit}><Pencil className="h-3.5 w-3.5" aria-hidden="true" />{t("calendarEdit")}</Button>}
+        {rights.duplicate && <Button type="button" variant="outline" size="sm" onClick={() => onDuplicate(block)}><Copy className="h-3.5 w-3.5" aria-hidden="true" />{t("calendarDuplicate")}</Button>}
+        {rights.remove && <Button type="button" variant="danger" size="sm" onClick={() => onDelete(block)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{t("calendarDelete")}</Button>}
+      </>
+    ) : null;
+  } else if (block) {
+    footer = <p className="m-0 mr-auto text-meta text-muted">Recurring class schedule — edited from Manage.</p>;
+  }
+
   return (
-    <AnimatePresence onExitComplete={() => setEditing(false)}>
-      {open && (
-        <>
-          <m.div
-            className="fixed inset-0 z-40 bg-black/30"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <m.div
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card shadow-lg"
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.2 }}
-            ref={panelRef}
-            role="dialog" aria-modal="true" aria-label={t("calendarEventDetails")}
-          >
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div className="flex items-center gap-2">
-                {Icon && <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", style.chipBg, style.chipFg)}><Icon className="h-4 w-4" /></span>}
-                <p className="m-0 text-sm font-bold leading-none text-card-foreground">{t("calendarEventDetails")}</p>
-              </div>
-              <button type="button" onClick={onClose} className={cn(BTN_RESET, "rounded-lg p-1.5 text-muted hover:bg-background hover:text-card-foreground")} aria-label={t("closeLabel")}>
-                <X className="h-4 w-4" />
-              </button>
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={t("calendarEventDetails")}
+      icon={Icon ? <Icon aria-hidden="true" /> : null}
+      iconClassName={style ? cn(style.chipBg, style.chipFg) : undefined}
+      closeLabel={t("closeLabel")}
+      footer={footer}
+    >
+      {block && !editing && (
+        <div className="flex flex-col gap-4">
+          <div className={cn("rounded-control border border-l-[3px] px-4 py-3", style.cardBg, style.cardBorder, style.accent)}>
+            <p className={cn("m-0 flex items-center gap-1.5 text-caption font-bold uppercase tracking-[0.06em]", style.chipFg)}>
+              {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}{t(style.label)}
+            </p>
+            <p className="m-0 mt-1 text-heading leading-tight text-card-foreground">{block.title}</p>
+            {block.subtitle && <p className="m-0 mt-0.5 text-ui font-medium text-on-tint">{block.subtitle}</p>}
+            <p className="m-0 mt-0.5 text-ui font-medium tabular-nums text-on-tint">{fmtTimeRange(block.startTime, block.endTime)}</p>
+            {block.location && (
+              <p className="m-0 mt-1 flex items-center gap-1.5 text-ui font-medium text-on-tint">
+                <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />{block.location}
+              </p>
+            )}
+            {/* Live enrolled-student count for the classes in this
+                block -- see Calendar.jsx. Absent, not zero, for kinds
+                that have no roster. */}
+            {block.count > 0 && (
+              <p className="m-0 mt-1.5 flex items-center gap-1.5 text-ui font-semibold tabular-nums text-card-foreground">
+                <Users className="h-4 w-4 shrink-0 text-on-tint" aria-hidden="true" />
+                {block.count} <span className="font-medium text-on-tint">{t("calendarEnrolled")}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <DetailField label={t("calendarPersonName")} value={block.event?.personName} />
+              <DetailField label={t("calendarStaffMember")} value={block.event?.createdByName} />
             </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-line-subtle pt-3">
+              <DetailField label={t("calendarCategory")} value={t(style.label)} />
+              <DetailField label={t("calendarStatus")} value={t("calendarConfirmed")} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-line-subtle pt-3">
+              <DetailField label={t("calendarDate")} value={block.event?.date} />
+              <DetailField label={t("calendarStartTime")} value={fmtTimeRange(block.startTime, block.endTime)} />
+            </div>
+          </div>
 
-            {block && !editing && (
-              <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
-                <div className={cn("rounded-xl border border-l-[3px] px-4 py-3", style.cardBg, style.cardBorder, style.accent)}>
-                  <p className={cn("m-0 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide", style.chipFg)}>
-                    {Icon && <Icon className="h-3.5 w-3.5" />}{t(style.label)}
-                  </p>
-                  <p className="m-0 mt-1 text-lg font-bold leading-tight text-card-foreground">{block.title}</p>
-                  {block.subtitle && <p className="m-0 mt-0.5 text-sm font-medium text-muted">{block.subtitle}</p>}
-                  <p className="m-0 mt-0.5 text-sm font-medium text-muted">{fmtTimeRange(block.startTime, block.endTime)}</p>
-                  {block.location && (
-                    <p className="m-0 mt-1 flex items-center gap-1.5 text-sm font-medium text-[var(--ev-ink-soft)]">
-                      <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />{block.location}
-                    </p>
-                  )}
-                  {/* Live enrolled-student count for the classes in this
-                      block -- see Calendar.jsx. Absent, not zero, for kinds
-                      that have no roster. */}
-                  {block.count > 0 && (
-                    <p className="m-0 mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
-                      <Users className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                      {block.count} <span className="font-medium text-muted">{t("calendarEnrolled")}</span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label={t("calendarPersonName")} value={block.event?.personName} />
-                    <Field label={t("calendarStaffMember")} value={block.event?.createdByName} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
-                    <Field label={t("calendarCategory")} value={t(style.label)} />
-                    <Field label={t("calendarStatus")} value={t("calendarConfirmed")} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
-                    <Field label={t("calendarDate")} value={block.event?.date} />
-                    <Field label={t("calendarStartTime")} value={fmtTimeRange(block.startTime, block.endTime)} />
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-3">
-                  <p className="m-0 text-xs font-semibold uppercase tracking-wide text-muted">{t("calendarNotes")}</p>
-                  <p className="m-0 mt-0.5 text-sm text-card-foreground">{block.event?.notes || t("calendarNoNotes")}</p>
-                </div>
-              </div>
-            )}
-
-            {block && editing && (
-              <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEventTitle")} *</label><input className={inputClass} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} /></div>
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarPersonName")}</label><input className={inputClass} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} /></div>
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarDate")} *</label><input type="date" className={inputClass} value={fields.date} onChange={(e) => setField("date", e.target.value)} /></div>
-                {fields.type === "appointment" && (
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarAvailability")}</label>
-                    <select className={inputClass} value={fields.availability} onChange={(e) => setField("availability", e.target.value)}>
-                      <option value="busy">{t("calendarBusy")}</option>
-                      <option value="available">{t("calendarAvailable")}</option>
-                    </select>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarStartTime")} *</label><input type="time" className={inputClass} value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} /></div>
-                  <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarEndTime")}</label><input type="time" className={inputClass} value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} /></div>
-                </div>
-<div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("classLocationLabel")}</label><input className={inputClass} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} /></div>
-                <div><label className="mb-1 block text-xs font-semibold text-card-foreground">{t("calendarNotes")}</label><input className={inputClass} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} /></div>
-              </div>
-            )}
-
-            {block && (
-              <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
-                {editing ? (
-                  <>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>{t("calendarCancel")}</Button>
-                    <Button size="sm" disabled={!canSave} onClick={() => { onSave(block.event.id, fields); setEditing(false); }}>{t("calendarSave")}</Button>
-                  </>
-                ) : block.event ? (
-                  <>
-                    {rights.edit && <Button type="button" variant="outline" size="sm" onClick={startEdit}><Pencil className="mr-1.5 h-3.5 w-3.5" />{t("calendarEdit")}</Button>}
-                    {rights.duplicate && <Button type="button" variant="outline" size="sm" onClick={() => onDuplicate(block)}><Copy className="mr-1.5 h-3.5 w-3.5" />{t("calendarDuplicate")}</Button>}
-                    {rights.remove && <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(block)}><Trash2 className="mr-1.5 h-3.5 w-3.5" />{t("calendarDelete")}</Button>}
-                  </>
-                ) : (
-                  <p className="m-0 text-xs text-muted">Recurring class schedule — edited from Manage.</p>
-                )}
-              </div>
-            )}
-          </m.div>
-        </>
+          <div className="border-t border-line-subtle pt-3">
+            <DetailField label={t("calendarNotes")} value={block.event?.notes || t("calendarNoNotes")} />
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+
+      {block && editing && (
+        <div className="flex flex-col gap-4">
+          <Field label={t("calendarEventTitle")} required htmlFor={id("title")}>
+            <Input id={id("title")} value={fields.title} onChange={(e) => setField("title", e.target.value)} placeholder={t("phEventTitle")} />
+          </Field>
+          <Field label={t("calendarPersonName")} htmlFor={id("person")}>
+            <Input id={id("person")} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} />
+          </Field>
+          <Field label={t("calendarDate")} required htmlFor={id("date")}>
+            <Input id={id("date")} type="date" value={fields.date} onChange={(e) => setField("date", e.target.value)} />
+          </Field>
+          {fields.type === "appointment" && (
+            <Field label={t("calendarAvailability")} htmlFor={id("availability")}>
+              <Select id={id("availability")} value={fields.availability} onChange={(e) => setField("availability", e.target.value)}>
+                <option value="busy">{t("calendarBusy")}</option>
+                <option value="available">{t("calendarAvailable")}</option>
+              </Select>
+            </Field>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("calendarStartTime")} required htmlFor={id("start")}>
+              <Input id={id("start")} type="time" value={fields.startTime} onChange={(e) => setField("startTime", e.target.value)} />
+            </Field>
+            <Field label={t("calendarEndTime")} htmlFor={id("end")}>
+              <Input id={id("end")} type="time" value={fields.endTime} onChange={(e) => setField("endTime", e.target.value)} />
+            </Field>
+          </div>
+          <Field label={t("classLocationLabel")} htmlFor={id("location")}>
+            <Input id={id("location")} maxLength={80} value={fields.location} onChange={(e) => setField("location", e.target.value)} placeholder={t("phEventLocation")} />
+          </Field>
+          <Field label={t("calendarNotes")} htmlFor={id("notes")}>
+            <Input id={id("notes")} value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder={t("phEventNotes")} />
+          </Field>
+        </div>
+      )}
+    </Drawer>
   );
 }

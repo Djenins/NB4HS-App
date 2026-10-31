@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/calendar/EventCard.jsx"
+        ],
+        "createdAt": "2026-10-31T00:45:45.387Z",
+        "reason": "DESIGN.md: the calendar event card's left kind accent is the calendar's own device and stays there"
+      }
+    ]
+  }
+}
