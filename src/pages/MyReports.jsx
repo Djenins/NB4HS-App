@@ -181,7 +181,7 @@ export default function MyReports() {
     <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
       <div className="min-w-0">
         <div className="font-semibold text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</div>
-        <div className="text-xs text-muted">{r.programs.length ? programsText(r.programs) : t("srNoProgramsYet")}</div>
+        <div className="text-meta text-muted">{r.programs.length ? programsText(r.programs) : t("srNoProgramsYet")}</div>
       </div>
       <Button size="sm" className="gap-1.5" onClick={() => open(r.id)}><PenLine className="h-4 w-4" aria-hidden="true" /> {actionLabel}</Button>
     </li>
@@ -229,7 +229,7 @@ export default function MyReports() {
                         <span className="font-semibold text-card-foreground">{row.programs.length ? programsText(row.programs) : t("srYourReport")}</span>
                         <ReportStatusBadge status={row.status} overdue={row.overdue} />
                       </div>
-                      <div className={"mt-0.5 text-xs " + (row.submittedAt ? "text-muted" : hint.tone)}>
+                      <div className={"mt-0.5 text-meta " + (row.submittedAt ? "text-muted" : hint.tone)}>
                         {row.submittedAt ? t("srSubmittedAt") + ": " + fmtStamp(row.submittedAt, lang) : hint.text}
                       </div>
                     </div>
@@ -255,7 +255,7 @@ export default function MyReports() {
               <li key={row.periodId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-card-foreground">{fmtPeriod(row.periodStart, row.periodEnd, lang)}</span><ReportStatusBadge status={row.status} overdue /></div>
-                  <div className="text-xs text-muted">{t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
+                  <div className="text-meta text-muted">{t("srDue")} {fmtDueAt(row.dueAt, tz, lang)}</div>
                 </div>
                 <ActionFor row={row} onCreate={create} onOpen={open} busy={busy} t={t} />
               </li>

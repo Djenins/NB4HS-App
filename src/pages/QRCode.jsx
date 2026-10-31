@@ -86,7 +86,7 @@ export default function QRCode() {
               <Printer className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
                 <div className="text-sm font-semibold text-card-foreground">{t("qrDesc").split(".")[0]}.</div>
-                <div className="mt-0.5 text-xs text-muted">{t("qrScanDesc")}</div>
+                <div className="mt-0.5 text-meta text-muted">{t("qrScanDesc")}</div>
               </div>
             </div>
           </CardContent>

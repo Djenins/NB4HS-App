@@ -40,6 +40,7 @@ import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 // Turns a { key, en } constant list into the option shape the filter tiles
 // take, with the "all" entry first.
@@ -191,6 +192,7 @@ export default function JobOpenings() {
 
   return (
     <>
+      <WorkforceNav value="jobopenings" />
       <PageHeader title={t("jobOpeningsTitle")} description={t("jobOpeningsDesc")} actions={addButton} />
 
       {openings.length === 0 ? (

@@ -11,7 +11,7 @@
 // into its own module menu (see SECTIONS below).
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Download, Home, LayoutGrid, ShoppingBasket, Trash2 } from "lucide-react";
+import { BarChart3, ChevronDown, Download, Filter, Home, LayoutGrid, Plus, Ruler, ShoppingBasket, ShoppingCart, Trash2, Upload, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientMatchesSearch, downloadFoodClientTemplate,
@@ -31,8 +31,13 @@ import FoodClientCard from "../components/FoodClientCard.jsx";
 import Icon from "../components/Icon.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
 import Pagination from "../components/Pagination.jsx";
-import StatCard from "../components/StatCard.jsx";
 import { Button } from "../components/ui/button.jsx";
+import { Card } from "../components/ui/card.jsx";
+import { FilterChips } from "../components/ui/filter-chips.jsx";
+import { KpiCard } from "../components/ui/kpi-card.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
+import { cn } from "../lib/cn.js";
 import AddressInput from "../components/AddressInput.jsx";
 
 const HOUSEHOLD_SIZES = ["1", "2", "3", "4", "5", "6+"];
@@ -41,6 +46,28 @@ const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", ho
 const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 const EXPORT_PRESETS = ["today", "week", "month", "quarter", "year", "custom"];
 const EXPORT_PRESET_LABEL_KEY = { today: "today", week: "thisWeek", month: "thisMonth", quarter: "thisQuarter", year: "thisYear", custom: "custom" };
+
+// A collapsible card for the add/import forms above the household list:
+// native <details> (keyboard and screen reader behaviour for free) on the
+// card surface, with a chevron that turns when it opens.
+function Disclosure({ open, onToggle, icon: DisclosureIcon, title, children }) {
+  return (
+    <details
+      className="group mb-4 overflow-hidden rounded-surface border border-border bg-card shadow-card"
+      open={open}
+      onToggle={(e) => onToggle(e.currentTarget.open)}
+    >
+      <summary className="flex min-h-[64px] cursor-pointer list-none items-center gap-3 px-5 py-3 text-section font-semibold text-card-foreground transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 group-open:border-b group-open:border-border sm:px-6 [&::-webkit-details-marker]:hidden">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-chip bg-primary-tint text-primary">
+          <DisclosureIcon className="h-[18px] w-[18px]" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">{title}</span>
+        <ChevronDown className="h-5 w-5 shrink-0 text-muted transition-transform duration-fast group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+      </summary>
+      <div className="px-5 py-5 sm:px-6">{children}</div>
+    </details>
+  );
+}
 
 function AddHouseholdDetails({ open, onToggle }) {
   const { data, showToast } = useApp();
@@ -82,14 +109,8 @@ function AddHouseholdDetails({ open, onToggle }) {
   }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>
-        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="icon-badge round"><Icon name="user" /></span>
-          {t("addFoodClientTitle")}
-        </span>
-      </summary>
-      <div className="details-body">
+    <Disclosure open={open} onToggle={onToggle} icon={Plus} title={t("addFoodClientTitle")}>
+      <div>
         <div className="form-section">
           <div className="form-section-head-row">
             <div className="icon-badge round"><Icon name="user" /></div>
@@ -175,13 +196,13 @@ function AddHouseholdDetails({ open, onToggle }) {
                 </div>
               </div>
             </div>
-            <p className="muted" style={{ fontSize: ".85rem" }}>{t("stateAlwaysRI")}</p>
+            <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>
           </div>
         </div>
 
-        <div className="pill-row" style={{ marginTop: 4, justifyContent: "flex-end" }}>
-          <button className="btn-secondary" onClick={() => setFields(EMPTY_NEW_CLIENT)}>{t("clearLabel")}</button>
-          <button className="btn-primary" onClick={submit}><Icon name="plus" /> {t("addFoodClientBtn")}</button>
+        <div className="mt-1 flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={() => setFields(EMPTY_NEW_CLIENT)}>{t("clearLabel")}</Button>
+          <Button onClick={submit}><Plus className="h-4 w-4" aria-hidden="true" />{t("addFoodClientBtn")}</Button>
         </div>
       </div>
       {dupMatches && (
@@ -193,7 +214,7 @@ function AddHouseholdDetails({ open, onToggle }) {
           onCancel={() => { setDupMatches(null); setPendingClient(null); }}
         />
       )}
-    </details>
+    </Disclosure>
   );
 }
 
@@ -222,26 +243,21 @@ function ImportHouseholdsDetails({ open, onToggle }) {
   }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>
-        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="icon-badge round"><Icon name="cloudupload" /></span>
-          {t("importHouseholdsTitle")}
-        </span>
-      </summary>
-      <div className="details-body">
-        <p className="muted">{t("importHouseholdsDesc")}</p>
-        <div className="pill-row"><button className="btn-secondary" onClick={downloadFoodClientTemplate}><Icon name="download" /> {t("downloadHouseholdTemplate")}</button></div>
-        <div className="grid grid-2" style={{ alignItems: "center" }}>
-          <div className="field" style={{ marginBottom: 0 }}><input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" /></div>
-          <button className="btn-primary" onClick={handleImportClick}><Icon name="upload" /> {t("importBtn")}</button>
-        </div>
+    <Disclosure open={open} onToggle={onToggle} icon={Upload} title={t("importHouseholdsTitle")}>
+      <p className="m-0 max-w-[65ch] text-body text-muted">{t("importHouseholdsDesc")}</p>
+      <div className="mt-4">
+        <Button variant="secondary" onClick={downloadFoodClientTemplate}><Download className="h-4 w-4" aria-hidden="true" />{t("downloadHouseholdTemplate")}</Button>
       </div>
-    </details>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <label htmlFor="food-import-file" className="sr-only">{t("importHouseholdsTitle")}</label>
+        <input id="food-import-file" ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="min-h-0 min-w-0 flex-1 text-ui text-card-foreground file:mr-3 file:h-10 file:cursor-pointer file:rounded-control file:border file:border-solid file:border-secondary-border file:bg-card file:px-4 file:text-ui file:font-semibold file:text-navy hover:file:bg-primary-tint" />
+        <Button onClick={handleImportClick}><Upload className="h-4 w-4" aria-hidden="true" />{t("importBtn")}</Button>
+      </div>
+    </Disclosure>
   );
 }
 
-function ExportDataDetails({ open, onToggle }) {
+function ExportData() {
   const { data, showToast } = useApp();
   const t = useT();
   const [preset, setPreset] = useState("month");
@@ -257,42 +273,33 @@ function ExportDataDetails({ open, onToggle }) {
   function exportLogExcel() { exportFoodDistributionExcel(foodClients, range); showToast(t("exportExcel") + " ✓"); }
 
   return (
-    <details className="card" open={open} onToggle={(e) => onToggle(e.target.open)}>
-      <summary>
-        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="icon-badge round"><Icon name="download" /></span>
-          {t("exportDataTitle")}
-        </span>
-      </summary>
-      <div className="details-body">
-        <h3 style={{ marginTop: 0 }}>{t("exportRosterTitle")}</h3>
-        <p className="muted">{t("exportRosterDesc")}</p>
-        <div className="pill-row">
-          <button className="btn-secondary" onClick={exportRosterCSV}><Icon name="download" /> {t("exportCSV")}</button>
-          <button className="btn-secondary" onClick={exportRosterExcel}><Icon name="download" /> {t("exportExcel")}</button>
+    <div className="grid gap-6">
+      <SectionCard title={t("exportRosterTitle")} description={t("exportRosterDesc")}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={exportRosterCSV}><Download className="h-4 w-4" aria-hidden="true" />{t("exportCSV")}</Button>
+          <Button variant="secondary" onClick={exportRosterExcel}><Download className="h-4 w-4" aria-hidden="true" />{t("exportExcel")}</Button>
         </div>
+      </SectionCard>
 
-        <h3>{t("exportDistributionLogTitle")}</h3>
-        <p className="muted">{t("exportDistributionLogDesc")}</p>
-        <div className="pill-row">
-          {EXPORT_PRESETS.map((p) => (
-            <button key={p} className={"pill" + (preset === p ? " active" : "")} onClick={() => setPreset(p)}>
-              {t(EXPORT_PRESET_LABEL_KEY[p])}
-            </button>
-          ))}
-        </div>
+      <SectionCard title={t("exportDistributionLogTitle")} description={t("exportDistributionLogDesc")}>
+        <FilterChips
+          label={t("exportDistributionLogTitle")}
+          value={preset}
+          onChange={setPreset}
+          options={EXPORT_PRESETS.map((p) => ({ value: p, label: t(EXPORT_PRESET_LABEL_KEY[p]) }))}
+        />
         {preset === "custom" && (
-          <div className="grid grid-2" style={{ marginTop: 10 }}>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="field"><label htmlFor="food-export-from">{t("filterDateFrom")}</label><DatePicker id="food-export-from" value={customFrom} onChange={setCustomFrom} /></div>
             <div className="field"><label htmlFor="food-export-to">{t("filterDateTo")}</label><DatePicker id="food-export-to" value={customTo} onChange={setCustomTo} /></div>
           </div>
         )}
-        <div className="pill-row" style={{ marginTop: 14 }}>
-          <button className="btn-secondary" onClick={exportLogCSV}><Icon name="download" /> {t("exportCSV")}</button>
-          <button className="btn-secondary" onClick={exportLogExcel}><Icon name="download" /> {t("exportExcel")}</button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={exportLogCSV}><Download className="h-4 w-4" aria-hidden="true" />{t("exportCSV")}</Button>
+          <Button variant="secondary" onClick={exportLogExcel}><Download className="h-4 w-4" aria-hidden="true" />{t("exportExcel")}</Button>
         </div>
-      </div>
-    </details>
+      </SectionCard>
+    </div>
   );
 }
 
@@ -322,19 +329,18 @@ function FoodDashboard({ foodClients, onNavigate }) {
 
   return (
     <>
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <StatCard icon="users" variant="violet" num={foodClients.length} label={t("totalHouseholdsLabel")} />
-        <StatCard icon="cart" variant="success" num={pickupsThisMonth} label={t("pickupsThisMonthLabel")} />
-        <StatCard icon="reports" num={dists.length} label={t("totalPickupsLabel")} />
-        <StatCard icon="calendar" variant="warn" num={avgHouseholdSize} label={t("avgHouseholdSizeLabel")} />
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label={t("totalHouseholdsLabel")} value={foodClients.length} icon={Users} tone="violet" onClick={() => onNavigate("households")} />
+        <KpiCard label={t("pickupsThisMonthLabel")} value={pickupsThisMonth} icon={ShoppingCart} tone="success" onClick={() => onNavigate("distributions")} />
+        <KpiCard label={t("totalPickupsLabel")} value={dists.length} icon={BarChart3} tone="info" />
+        <KpiCard label={t("avgHouseholdSizeLabel")} value={avgHouseholdSize} icon={Ruler} tone="warning" />
       </div>
-      <div className="card">
-        <div className="flex-between">
-          <h3 style={{ margin: 0 }}>{t("foodRecentPickupsTitle")}</h3>
-          <button className="btn-secondary btn-sm" onClick={() => onNavigate("distributions")}>{t("foodViewAllPickups")}</button>
-        </div>
+      <SectionCard
+        title={t("foodRecentPickupsTitle")}
+        action={<Button variant="secondary" size="sm" onClick={() => onNavigate("distributions")}>{t("foodViewAllPickups")}</Button>}
+      >
         {recent.length ? (
-          <div className="table-wrap" style={{ marginTop: 12 }}>
+          <div className="table-wrap">
             <table>
               <thead><tr><th>{t("date")}</th><th>{t("nameLabel")}</th><th>{t("itemsLabel")}</th><th>{t("quantityLabel")}</th></tr></thead>
               <tbody>
@@ -355,7 +361,7 @@ function FoodDashboard({ foodClients, onNavigate }) {
         ) : (
           <EmptyState icon="fooddistribution" message={t("foodNoPickupsYet")} />
         )}
-      </div>
+      </SectionCard>
     </>
   );
 }
@@ -375,17 +381,15 @@ function DistributionLog({ foodClients }) {
   const paged = paginateList(rows, page, pageSize);
 
   return (
-    <div className="card">
-      <h3 style={{ marginTop: 0 }}>{t("exportDistributionLogTitle")}</h3>
-      <div className="pill-row">
-        {LOG_PRESETS.map((p) => (
-          <button key={p} className={"pill" + (preset === p ? " active" : "")} onClick={() => { setPreset(p); setPage(1); }}>
-            {t(EXPORT_PRESET_LABEL_KEY[p])}
-          </button>
-        ))}
-      </div>
+    <SectionCard title={t("exportDistributionLogTitle")}>
+      <FilterChips
+        label={t("exportDistributionLogTitle")}
+        value={preset}
+        onChange={(p) => { setPreset(p); setPage(1); }}
+        options={LOG_PRESETS.map((p) => ({ value: p, label: t(EXPORT_PRESET_LABEL_KEY[p]) }))}
+      />
       {paged.items.length ? (
-        <div className="table-wrap">
+        <div className="table-wrap mt-4">
           <table>
             <thead><tr><th>{t("date")}</th><th>{t("nameLabel")}</th><th>{t("householdSizeLabel")}</th><th>{t("itemsLabel")}</th><th>{t("quantityLabel")}</th></tr></thead>
             <tbody>
@@ -412,7 +416,7 @@ function DistributionLog({ foodClients }) {
         onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelPickups")}
         onChange={(delta) => setPage(paged.page + delta)}
       />
-    </div>
+    </SectionCard>
   );
 }
 
@@ -471,7 +475,7 @@ function FoodHouseholds({ foodClients }) {
       <AddHouseholdDetails open={opens.addHousehold} onToggle={(v) => setOpen("addHousehold", v)} />
       <ImportHouseholdsDetails open={opens.importHouseholds} onToggle={(v) => setOpen("importHouseholds", v)} />
 
-      <div className="card">
+      <Card className="p-4 sm:p-5">
         <div className="student-search-bar" style={{ position: "relative" }}>
           <div className="field-icon-wrap" style={{ flex: 1, minWidth: 220 }}>
             <Icon name="search" />
@@ -481,9 +485,10 @@ function FoodHouseholds({ foodClients }) {
             />
           </div>
           <div style={{ position: "relative" }}>
-            <button type="button" className="btn-secondary" onClick={() => setFiltersOpen((v) => !v)}>
-              <Icon name="filter" /> {t("filtersLabel")} <Icon name="chevrondn" />
-            </button>
+            <Button variant="secondary" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}>
+              <Filter className="h-4 w-4" aria-hidden="true" />{t("filtersLabel")}{sizeFilter ? " (1)" : ""}
+              <ChevronDown className={cn("h-4 w-4 transition-transform duration-fast", filtersOpen && "rotate-180")} aria-hidden="true" />
+            </Button>
             {filtersOpen && (
               <div className="date-picker-panel" style={{ right: 0, left: "auto", width: 220 }}>
                 <div className="field">
@@ -497,9 +502,9 @@ function FoodHouseholds({ foodClients }) {
                   </select>
                 </div>
                 {sizeFilter && (
-                  <button type="button" className="btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => { setSizeFilter(""); setPage(1); }}>
+                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => { setSizeFilter(""); setPage(1); }}>
                     {t("clearFilters")}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -507,7 +512,7 @@ function FoodHouseholds({ foodClients }) {
         </div>
 
         <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>
-          <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}><Trash2 className="h-3.5 w-3.5" />{t("deleteSelectedLabel")}</Button>
+          <Button variant="destructive" size="sm" className="gap-1.5" onClick={removeSelected}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{t("deleteSelectedLabel")}</Button>
         </BulkActionsBar>
 
         {paged.items.length ? (
@@ -547,7 +552,7 @@ function FoodHouseholds({ foodClients }) {
           onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("itemLabelHouseholds")}
           onChange={(delta) => setPage(paged.page + delta)}
         />
-      </div>
+      </Card>
     </>
   );
 }
@@ -585,18 +590,12 @@ export default function FoodDistribution() {
         value={section}
         onChange={go}
       />
-      <div className="page-header">
-        <div className="icon-badge"><Icon name="fooddistribution" className="icon-lg" /></div>
-        <div>
-          <h1>{t("foodDistributionTitle")}</h1>
-          <p className="muted">{t("foodDistributionDesc")}</p>
-        </div>
-      </div>
+      <PageHeader title={t("foodDistributionTitle")} description={t("foodDistributionDesc")} />
 
       {section === "dashboard" && <FoodDashboard foodClients={foodClients} onNavigate={go} />}
       {section === "households" && <FoodHouseholds foodClients={foodClients} />}
       {section === "distributions" && <DistributionLog foodClients={foodClients} />}
-      {section === "export" && <ExportDataDetails open onToggle={() => {}} />}
+      {section === "export" && <ExportData />}
     </>
   );
 }

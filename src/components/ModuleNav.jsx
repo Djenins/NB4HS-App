@@ -96,6 +96,9 @@ export default function ModuleNav({ items, value, onChange, label, className }) 
     else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right - strip.clientWidth;
   }, [value]);
 
+  // A strip with one item switches nothing; the page's own header names it.
+  if (items.length < 2) return null;
+
   return (
     // The sticky element is this wrapper, not the card, so it can paint a
     // page-coloured backdrop over the gap the card would otherwise leave for

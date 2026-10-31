@@ -13,12 +13,18 @@
 // an actual data wipe.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Boxes, Briefcase, Building2, CheckCircle2, Circle, Clock, ListChecks, ShieldCheck, UserRound, Users } from "lucide-react";
+import { Boxes, Briefcase, Building2, CheckCircle2, Clock, ListChecks, Power, PowerOff, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { setWorkforceRoleAccess } from "../lib/clientsData.js";
 import { saveAppSetting } from "../lib/permissionAdmin.js";
 import { effectiveClosingTime } from "../lib/storage.js";
 import { useNavItems } from "../lib/useNavItems.js";
+import { cn } from "../lib/cn.js";
+import { Badge } from "../components/ui/badge.jsx";
+import { Button } from "../components/ui/button.jsx";
+import { Field, Input } from "../components/ui/field.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
+import { SectionCard } from "../components/ui/section-card.jsx";
 
 // The 4 non-administrator roles the Workforce Development toggle applies to
 // -- administrator always has access (see lib/nav.js), so it isn't one of
@@ -60,11 +66,11 @@ export default function Settings() {
   }
 
   const rolePermissionRows = [
-    [t("roleAdmin"), t("roleAdminDesc"), <Users className="icon" />, "accent"],
-    [t("roleStaff"), t("roleStaffDesc"), <UserRound className="icon" />, "violet"],
-    [t("roleReceptionist"), t("roleReceptionistDesc"), <Building2 className="icon" />, "success"],
-    [t("roleCaseManager"), t("roleCaseManagerDesc"), <Briefcase className="icon" />, "warn"],
-    [t("roleJobDeveloper"), t("roleJobDeveloperDesc"), <Briefcase className="icon" />, ""]
+    [t("roleAdmin"), t("roleAdminDesc"), Users, "danger"],
+    [t("roleStaff"), t("roleStaffDesc"), UserRound, "violet"],
+    [t("roleReceptionist"), t("roleReceptionistDesc"), Building2, "success"],
+    [t("roleCaseManager"), t("roleCaseManagerDesc"), Briefcase, "warning"],
+    [t("roleJobDeveloper"), t("roleJobDeveloperDesc"), Briefcase, "info"]
   ];
 
   // Saved for everyone when you may change organization settings; this
@@ -94,95 +100,110 @@ export default function Settings() {
 
   return (
     <>
-      <div>
-        <h1>{t("settingsTitle")}</h1>
-        <p className="muted" style={{ marginTop: -8 }}>{t("settingsSubtitle")}</p>
+      <PageHeader title={t("settingsTitle")} description={t("settingsSubtitle")} />
+
+      <div className="flex flex-col gap-6">
+        <SectionCard title={<SectionTitle icon={Clock}>{t("closingTimeLabel")}</SectionTitle>} description={t("closingTimeDesc")}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 text-ui text-card-foreground">
+            {["closingTimeBulletOnLoad", "closingTimeBulletEveryMinute"].map((k) => (
+              <li key={k} className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 text-tone-success-ink" aria-hidden="true" />
+                <span>{t(k)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-5 flex flex-wrap items-end gap-3">
+            <Field label={t("closingTimeLabel")} htmlFor="settings-closing-time" className="w-full max-w-[220px]">
+              <Input id="settings-closing-time" type="time" className="tabular-nums" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} />
+            </Field>
+            <Button onClick={saveClosingTime} loading={savingClosing}>{t("saveUrl")}</Button>
+          </div>
+          <p className="m-0 mt-3 text-meta text-muted">{t(can("admin.settings.manage") ? "closingTimeForEveryone" : "closingTimeThisDevice")}</p>
+        </SectionCard>
+
+        <SectionCard title={<SectionTitle icon={ShieldCheck}>{t("rolePermissions")}</SectionTitle>}>
+          <ul className="m-0 list-none divide-y divide-line-subtle p-0">
+            {rolePermissionRows.map(([label, desc, RoleIcon, tone]) => (
+              <li key={label} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-chip", TONE_DISC[tone])}>
+                  <RoleIcon className="h-[18px] w-[18px]" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="m-0 text-ui font-semibold text-card-foreground">{label}</p>
+                  <p className="m-0 mt-0.5 text-meta text-muted">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        <SectionCard title={<SectionTitle icon={Briefcase}>{t("workforceAccessSettingsTitle")}</SectionTitle>} description={t("workforceAccessSettingsDesc")}>
+          <ul className="m-0 list-none divide-y divide-line-subtle p-0">
+            <li className="flex min-h-[52px] flex-wrap items-center justify-between gap-3 py-2 first:pt-0">
+              <span className="text-ui font-semibold text-card-foreground">{t("roleAdmin")}</span>
+              <Badge variant="info">{t("alwaysHasAccessLabel")}</Badge>
+            </li>
+            {WORKFORCE_TOGGLE_ROLES.map(({ key, labelKey }) => {
+              const enabled = isWorkforceEnabled(key);
+              return (
+                <li key={key} className="flex min-h-[52px] flex-wrap items-center justify-between gap-3 py-2 last:pb-0">
+                  <span className="text-ui font-semibold text-card-foreground">{t(labelKey)}</span>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={enabled ? "success" : "neutral"} dot>{enabled ? t("activeLabel") : t("inactiveLabel")}</Badge>
+                    <Button
+                      size="sm"
+                      variant={enabled ? "ghost" : "secondary"}
+                      aria-label={t(enabled ? "adminTurnOff" : "adminTurnOn") + " — " + t(labelKey)}
+                      onClick={() => toggleWorkforceAccess(key, !enabled).catch(() => {})}
+                    >
+                      {enabled ? <PowerOff className="h-4 w-4" aria-hidden="true" /> : <Power className="h-4 w-4" aria-hidden="true" />}
+                      {t(enabled ? "adminTurnOff" : "adminTurnOn")}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </SectionCard>
+
+        {related.length ? (
+          <SectionCard title={t("settingsRelatedTitle")}>
+            <ul className="m-0 list-none divide-y divide-line-subtle p-0">
+              {related.map((r) => (
+                <li key={r.to} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-chip", TONE_DISC.info)}>
+                    <r.icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <Link to={r.to} className="text-ui font-semibold text-primary hover:underline">{t(r.label)}</Link>
+                    <p className="m-0 mt-0.5 text-meta text-muted">{t(r.desc)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        ) : null}
       </div>
-
-      <div className="card">
-        <div className="form-section" style={{ padding: 0, border: "none" }}>
-          <div className="form-section-head-row">
-            <div className="icon-badge"><Clock className="icon" /></div>
-            <div className="form-section-head">
-              <h3>{t("closingTimeLabel")}</h3>
-              <p>{t("closingTimeDesc")}</p>
-            </div>
-          </div>
-          <div className="form-section-body">
-            <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletOnLoad")}</span></div>
-            <div className="tip-row"><CheckCircle2 className="icon" /> <span>{t("closingTimeBulletEveryMinute")}</span></div>
-            <div className="field" style={{ maxWidth: 220, marginTop: 16 }}>
-              <input type="time" aria-label={t("closingTimeLabel")} value={closingTime} onChange={(e) => setClosingTime(e.target.value)} />
-            </div>
-            <button className="btn-primary" onClick={saveClosingTime} disabled={savingClosing}>{t("saveUrl")}</button>
-            <p className="muted" style={{ fontSize: ".82rem", marginTop: 10 }}>{t(can("admin.settings.manage") ? "closingTimeForEveryone" : "closingTimeThisDevice")}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
-          <div className="icon-badge"><ShieldCheck className="icon" /></div>
-          <div>
-            <h3 style={{ margin: 0 }}>{t("rolePermissions")}</h3>
-          </div>
-        </div>
-        {rolePermissionRows.map(([label, desc, icon, variant]) => (
-          <div className="role-row" key={label}>
-            <div className={"icon-badge round" + (variant ? " " + variant : "")}>{icon}</div>
-            <div className="role-row-body">
-              <strong>{label}</strong>
-              <p>{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
-          <div className="icon-badge"><Briefcase className="icon" /></div>
-          <div>
-            <h3 style={{ margin: 0 }}>{t("workforceAccessSettingsTitle")}</h3>
-            <p className="muted" style={{ margin: "4px 0 0", fontSize: ".88rem" }}>{t("workforceAccessSettingsDesc")}</p>
-          </div>
-        </div>
-        <div className="kv">
-          <span>{t("roleAdmin")}</span>
-          <span className="badge badge-in">{t("alwaysHasAccessLabel")}</span>
-        </div>
-        {WORKFORCE_TOGGLE_ROLES.map(({ key, labelKey }) => {
-          const enabled = isWorkforceEnabled(key);
-          return (
-            <div className="kv" key={key}>
-              <span>{t(labelKey)}</span>
-              <button
-                type="button"
-                className={"btn-icon status-toggle" + (enabled ? " status-toggle-on" : " status-toggle-off")}
-                onClick={() => toggleWorkforceAccess(key, !enabled)}
-              >
-                {enabled ? <CheckCircle2 className="icon" /> : <Circle className="icon" />}
-                {enabled ? t("activeLabel") : t("inactiveLabel")}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {related.length ? (
-        <div className="card">
-          <h3 style={{ margin: "0 0 8px" }}>{t("settingsRelatedTitle")}</h3>
-          {related.map((r) => (
-            <div className="role-row" key={r.to}>
-              <div className="icon-badge round"><r.icon className="icon" /></div>
-              <div className="role-row-body">
-                <Link to={r.to}><strong>{t(r.label)}</strong></Link>
-                <p>{t(r.desc)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
     </>
+  );
+}
+
+const TONE_DISC = {
+  info: "bg-tone-info-chip text-tone-info-ink",
+  success: "bg-tone-success-chip text-tone-success-ink",
+  warning: "bg-tone-warning-chip text-tone-warning-ink",
+  danger: "bg-tone-danger-chip text-tone-danger-ink",
+  violet: "bg-tone-violet-chip text-tone-violet-ink"
+};
+
+// A section title with its icon disc, the same 36px disc the role rows use.
+function SectionTitle({ icon: SectionIcon, children }) {
+  return (
+    <span className="flex items-center gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-chip bg-primary-tint text-primary">
+        <SectionIcon className="h-[18px] w-[18px]" aria-hidden="true" />
+      </span>
+      {children}
+    </span>
   );
 }

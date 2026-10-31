@@ -44,6 +44,7 @@ import { IconButton } from "../components/ui/icon-button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 import AddressInput from "../components/AddressInput.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 const EMPTY_NEW_EMPLOYER = {
   businessName: "", industry: "", website: "", street: "", city: "", zip: "",
@@ -399,6 +400,7 @@ export default function Employers() {
 
   return (
     <>
+      <WorkforceNav value="employers" />
       <PageHeader
         title={t("employersTitle")}
         description={t("employersDesc")}
