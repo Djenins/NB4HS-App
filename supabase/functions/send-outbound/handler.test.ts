@@ -206,3 +206,34 @@ Deno.test("Resend gets the List-Unsubscribe header when there is one", async () 
   assertEquals(seen[0].headers, { "List-Unsubscribe": "<x>" });
   assertEquals(seen[1].headers, undefined);
 });
+
+Deno.test("layout newsletters render their sections, escape, and keep the legal footer", () => {
+  const content = {
+    hero: { src: "https://cdn.example/hero.png", alt: "Class" },
+    headline: "Fall <classes>", intro: "Starts Monday.", cta: { label: "Sign up", url: "https://app.nb4hs.org/register" },
+    subheading: "Also new",
+    sections: [
+      { title: "ESL", text: "Mornings", link: { label: "Details", url: "javascript:alert(1)" }, src: "http://insecure/x.png" },
+      { title: "Computers", text: "Afternoons", link: { label: "Details", url: "https://example.org/c" } },
+      { title: "Citizenship", text: "Evenings" }
+    ]
+  };
+  const e = renderNewsletter({ subject: "News", body: "fallback", language: "fr", layout: "multi", content,
+    unsubscribe_token: TOKEN, mailing_address: "123 Main St, Providence, RI" }, "https://app.nb4hs.org")!;
+  assert(e.html.includes("Fall &lt;classes&gt;"));
+  assert(e.html.includes('src="https://cdn.example/hero.png"'));
+  assert(e.html.includes('href="https://app.nb4hs.org/register"'));
+  assert(!e.html.includes("javascript:"));
+  assert(!e.html.includes("http://insecure"));
+  assert(e.html.includes("Also new") && e.html.includes("Citizenship"));
+  assert(e.html.includes("123 Main St, Providence, RI"));
+  assert(e.html.includes("Se désabonner"));
+  assert(e.text.includes("Sign up: https://app.nb4hs.org/register"));
+  assert(e.text.includes("Details: https://example.org/c"));
+  assertEquals(e.headers["List-Unsubscribe"], "<https://app.nb4hs.org/unsubscribe?t=" + TOKEN + "&l=fr>");
+});
+
+Deno.test("an unknown layout falls back to the plain email", () => {
+  const e = renderNewsletter({ subject: "S", body: "Plain body", layout: "fancy", content: {}, unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://a")!;
+  assert(e.html.includes("Plain body"));
+});
