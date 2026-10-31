@@ -144,6 +144,8 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
   });
   it("leaves English and French to the browser", () => {
     expect(fmtDateLong("2026-11-02", "en")).toBe("Nov 2, 2026");
+    // A full timestamp (a document's created_at) shows the local day, not "Invalid Date".
+    expect(fmtDateLong(new Date(2026, 10, 2, 21, 30).toISOString(), "en")).toBe("Nov 2, 2026");
     expect(monthNamesLong("fr")[10]).toBe("novembre");
     expect(weekdayShortLabels("en")[0]).toBe("Mon");
   });

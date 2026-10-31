@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, CalendarClock, CalendarDays, Download, FileText, Mail, MapPin, MessageSquarePlus, MoreHorizontal,
-  Paperclip, Pencil, Phone, Plus, StickyNote, Trash2, UploadCloud, UserX, X
+  Paperclip, Pencil, Phone, Plus, ShieldCheck, StickyNote, Trash2, UploadCloud, UserX, X
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
@@ -29,13 +29,11 @@ import {
   createApplication, createClientDocument, createClientNote, deleteApplication, deleteClientDocument,
   fetchApplications, fetchClientDocuments, fetchClientNotes, getFileSignedUrl, updateJobClient, uploadClientFile
 } from "../lib/clientsData.js";
-import { avatarColorFor } from "../lib/avatarTone.js";
-import { formatAddress, formatPhone, fmtDateLong, initialsOf } from "../lib/utils.js";
+import { formatAddress, formatPhone, fmtDateLong, initialsOf, todayStr } from "../lib/utils.js";
 import CircularGauge from "../components/CircularGauge.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import JobPipelineTracker from "../components/JobPipelineTracker.jsx";
 import NbIdBadge from "../components/NbIdBadge.jsx";
-import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card } from "../components/ui/card.jsx";
 import { DataTable } from "../components/ui/data-table.jsx";
@@ -52,6 +50,7 @@ import { SectionCard } from "../components/ui/section-card.jsx";
 import { StatusBadge } from "../components/ui/status-badge.jsx";
 import { TabPanel, Tabs } from "../components/ui/tabs.jsx";
 import AddressInput from "../components/AddressInput.jsx";
+import RecordHeader, { ContactItem } from "../components/RecordHeader.jsx";
 
 const TAB_KEYS = ["overview", "applications", "interviews", "services", "documents", "notes", "history"];
 const TAB_LABEL = {
@@ -301,74 +300,75 @@ function UploadDocumentModal({ onSave, onCancel }) {
   );
 }
 
-function ContactItem({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="m-0 min-w-0 break-words">{children}</dd>
-    </div>
-  );
-}
-
-// Identity header -- ClientHeader's anatomy for a Job Developer record:
-// back link, avatar, name as the page h1, NB ID + status, contact line,
-// two visible actions and the rest under More.
-function JobClientHeader({ record, name, onBack, onAddApplication, onEditPersonal, onAddNote, onUploadDocument }) {
+// Identity header -- the shared RecordHeader for a Job Developer record:
+// back link, avatar, name as the page h1, NB ID + status, contact line, the
+// "at a glance" facts, two visible actions and the rest under More.
+function JobClientHeader({ record, name, facts, onBack, onAddApplication, onEditPersonal, onAddNote, onUploadDocument }) {
   const t = useT();
-  return (
-    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0">
-        <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          {t("navJobDeveloper")}
-        </Button>
-        <div className="flex items-start gap-4">
-          <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
-            <AvatarFallback className={avatarColorFor(name) + " text-section"}>{initialsOf(record)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <h1 className="m-0 text-heading font-bold text-card-foreground [text-wrap:balance]">{name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {record.nbId ? <NbIdBadge nbId={record.nbId} /> : null}
-              <StatusBadge domain="client" status="active">{t("statusActive")}</StatusBadge>
-            </div>
-            <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
-              <ContactItem icon={Phone} label={t("phone")}><span className="tabular-nums">{formatPhone(record.phone) || "—"}</span></ContactItem>
-              <ContactItem icon={Mail} label={t("email")}>{record.email || "—"}</ContactItem>
-              <ContactItem icon={MapPin} label={t("address")}>{formatAddress(record) || "—"}</ContactItem>
-              <ContactItem icon={CalendarDays} label={t("intakeDateLabel")}>
-                <span>{t("intakeDateLabel")}: <span className="tabular-nums">{fmtDateLong(record.intakeDate)}</span></span>
-              </ContactItem>
-            </dl>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Button onClick={onAddApplication}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> {t("addApplicationBtn")}
-        </Button>
-        <Button variant="secondary" onClick={onEditPersonal}>
-          <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <IconButton label={t("moreActionsBtn")} variant="secondary" size="lg">
-              <MoreHorizontal aria-hidden="true" />
-            </IconButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[14rem]">
-            <DropdownMenuItem onSelect={onAddNote}>
-              <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onUploadDocument}>
-              <UploadCloud className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+  function moreMenu(size) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <IconButton label={t("moreActionsBtn")} variant="secondary" size={size}>
+            <MoreHorizontal aria-hidden="true" />
+          </IconButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[14rem]">
+          <DropdownMenuItem onSelect={onAddNote}>
+            <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onUploadDocument}>
+            <UploadCloud className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <RecordHeader
+      name={name}
+      initials={initialsOf(record)}
+      onBack={onBack}
+      backLabel={t("navJobDeveloper")}
+      facts={facts}
+      badges={
+        <>
+          {record.nbId ? <NbIdBadge nbId={record.nbId} /> : null}
+          <StatusBadge domain="client" status="active">{t("statusActive")}</StatusBadge>
+        </>
+      }
+      contact={
+        <>
+          <ContactItem icon={Phone} label={t("phone")}><span className="tabular-nums">{formatPhone(record.phone) || "—"}</span></ContactItem>
+          <ContactItem icon={Mail} label={t("email")}>{record.email || "—"}</ContactItem>
+          <ContactItem icon={MapPin} label={t("address")}>{formatAddress(record) || "—"}</ContactItem>
+          <ContactItem icon={CalendarDays} label={t("intakeDateLabel")}>
+            <span>{t("intakeDateLabel")}: <span className="tabular-nums">{fmtDateLong(record.intakeDate)}</span></span>
+          </ContactItem>
+        </>
+      }
+      actions={
+        <>
+          <Button onClick={onAddApplication}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> {t("addApplicationBtn")}
+          </Button>
+          <Button variant="secondary" onClick={onEditPersonal}>
+            <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
+          </Button>
+          {moreMenu("lg")}
+        </>
+      }
+      compactActions={
+        <>
+          <Button size="sm" onClick={onAddApplication}>
+            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">{t("addApplicationBtn")}</span>
+          </Button>
+          {moreMenu("sm")}
+        </>
+      }
+    />
   );
 }
 
@@ -499,6 +499,29 @@ export default function JobClientProfile() {
     .filter((i) => i.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 
+  // The header's "at a glance" strip.
+  const today = todayStr();
+  const nextInterview = interviews
+    .filter((a) => a.interviewDate >= today)
+    .sort((a, b) => a.interviewDate.localeCompare(b.interviewDate))[0];
+  const workAuth = WORK_AUTH_STATUSES.find((s) => s.key === record.workAuthorization);
+  const workAuthExpired = !!(record.workAuthorizationExpiration && record.workAuthorizationExpiration < today);
+  const hasResume = !!(record.hasResume && record.resumeStoragePath);
+  const headerFacts = [
+    { icon: Briefcase, tone: applications.length ? "info" : "neutral", label: t("applicationsTabLabel"), value: String(applications.length) },
+    {
+      icon: CalendarClock, tone: nextInterview ? "violet" : "neutral", label: t("nextInterviewLabel"),
+      value: nextInterview ? fmtDateLong(nextInterview.interviewDate) : t("noUpcomingInterview"),
+      hint: nextInterview ? nextInterview.company : null
+    },
+    {
+      icon: ShieldCheck, tone: !workAuth ? "neutral" : workAuthExpired ? "danger" : "success", label: t("workAuthorizationLabel"),
+      value: workAuth ? workAuth.en : t("notSetLabel"),
+      hint: workAuth && record.workAuthorizationExpiration ? t("expirationDateLabel") + ": " + fmtDateLong(record.workAuthorizationExpiration) : null
+    },
+    { icon: FileText, tone: hasResume ? "success" : "warning", label: t("resumeLabel2"), value: hasResume ? t("resumeOnFile") : t("resumeMissing") }
+  ];
+
   const TAB_COUNTS = {
     applications: applications.length, interviews: interviews.length, services: servicesProvided.length,
     documents: documents.length, notes: notes.length
@@ -559,7 +582,7 @@ export default function JobClientProfile() {
   return (
     <>
       <JobClientHeader
-        record={record} name={name}
+        record={record} name={name} facts={headerFacts}
         onBack={() => navigate("/workforce/participants")}
         onAddApplication={() => setAddingApplication(true)}
         onEditPersonal={() => setEditingPersonal(true)}

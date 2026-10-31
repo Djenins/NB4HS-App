@@ -110,10 +110,13 @@ export function addMonths(dateStr, n) {
 var HT_MONTHS = ["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"];
 var HT_WEEKDAYS_SHORT = ["lin", "mad", "mèk", "jed", "van", "sam", "dim"];
 
+// Takes a bare YYYY-MM-DD (read as a local calendar day) or a full timestamp
+// such as a row's created_at (shown as the day it falls on locally).
 export function fmtDateLong(dateStr, lang) {
   if (!dateStr) return "—";
   try {
-    var d = new Date(dateStr + "T00:00:00");
+    var d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr + "T00:00:00" : dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
     if (lang === "ht") return d.getDate() + " " + HT_MONTHS[d.getMonth()] + " " + d.getFullYear();
     return d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { year: "numeric", month: "short", day: "numeric" });
   } catch (e) { return dateStr; }
