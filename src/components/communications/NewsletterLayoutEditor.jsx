@@ -3,15 +3,19 @@
 // drawing of each layout, the form for the layout's blocks (hero image,
 // headline, intro, button, sub-heading, sections) and the live preview.
 //
+// Drag and drop: drop an image file onto any image field to upload it, and
+// drag a section by its grip to reorder (the arrow buttons do the same from
+// the keyboard).
+//
 // The preview renders with newsletterLayout.js -- the same file the
 // send-outbound Edge Function sends with -- in a sandboxed iframe, so it is
 // the email, not an approximation. Grey boxes stand in for pictures not
 // added yet; the real email simply leaves them out.
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
 import { useT } from "../../context/AppContext.jsx";
 import { NEWSLETTER_IMAGE_TYPES, newsletterImageProblem, uploadNewsletterImage } from "../../lib/communications.js";
-import { LAYOUTS, LAYOUT_KEYS, NEWSLETTER_FOOTER, renderNewsletterHtml } from "../../../supabase/functions/send-outbound/newsletterLayout.js";
+import { LAYOUTS, LAYOUT_KEYS, NEWSLETTER_FOOTER, logoUrl, renderNewsletterHtml } from "../../../supabase/functions/send-outbound/newsletterLayout.js";
 import { cn } from "../../lib/cn.js";
 import { BUTTON_RESET, Button } from "../ui/button.jsx";
 import { Field, Input, Textarea } from "../ui/field.jsx";
@@ -105,11 +109,25 @@ function ImageField({ id, label, value, onChange }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
+  const [dropping, setDropping] = useState(false);
 
-  async function pick(e) {
+  function pick(e) {
     const file = e.target.files && e.target.files[0];
     e.target.value = "";
-    if (!file) return;
+    if (file) upload(file);
+  }
+  // Only file drags light the zone up; a section being dragged passes over.
+  const hasFiles = (e) => Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1;
+  function onDrop(e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDropping(false);
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) upload(file);
+  }
+
+  async function upload(file) {
     const p = newsletterImageProblem(file);
     if (p) { setProblem(p); return; }
     setProblem(null);
@@ -122,7 +140,13 @@ function ImageField({ id, label, value, onChange }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-meta font-semibold text-card-foreground">{label}</span>
-      <div className="flex flex-wrap items-start gap-3">
+      <div
+        className={cn("flex flex-wrap items-start gap-3 rounded-control border border-dashed p-2.5 transition-colors duration-fast",
+          dropping ? "border-primary bg-primary-tint" : "border-border")}
+        onDragOver={(e) => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDropping(true); } }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropping(false); }}
+        onDrop={onDrop}
+      >
         {value.src ? <img src={value.src} alt="" className="h-16 w-24 rounded-control border border-border object-cover" /> : null}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
@@ -132,6 +156,7 @@ function ImageField({ id, label, value, onChange }) {
             </Button>
             {value.src ? <Button type="button" size="sm" variant="ghost" onClick={() => onChange({ src: "", alt: "" })}>{t("nlImageRemove")}</Button> : null}
           </div>
+          {!value.src ? <span className="text-meta text-muted">{t(dropping ? "nlImageDropNow" : "nlImageDropHint")}</span> : null}
           {value.src ? (
             <Input aria-label={t("nlImageAlt")} placeholder={t("nlImageAlt")} value={value.alt} maxLength={200}
               onChange={(e) => onChange(Object.assign({}, value, { alt: e.target.value }))} />
@@ -172,6 +197,21 @@ export function LayoutFields({ layout, content, onChange }) {
     next.splice(i + d, 0, s);
     set("sections", next);
   };
+  // Dragging starts only from a section's grip, so text in its fields can
+  // still be selected with the mouse.
+  const [armed, setArmed] = useState(null);
+  const [dragFrom, setDragFrom] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+  const isSectionDrag = (e) => Array.prototype.indexOf.call(e.dataTransfer.types || [], "application/x-nl-section") !== -1;
+  function dropSection(to) {
+    if (dragFrom !== null && dragFrom !== to) {
+      const next = content.sections.slice();
+      const [s] = next.splice(dragFrom, 1);
+      next.splice(to, 0, s);
+      set("sections", next);
+    }
+    setDragFrom(null); setDragOver(null); setArmed(null);
+  }
   const addSection = () => set("sections", content.sections.concat([{ src: "", alt: "", title: "", text: "", link: { label: "", url: "" } }]));
   const sectionCount = Math.min(content.sections.length, cfg.max);
 
@@ -197,10 +237,30 @@ export function LayoutFields({ layout, content, onChange }) {
             {t("nlSections")} <span className="font-normal tabular-nums text-muted">{sectionCount} / {cfg.max}</span>
           </p>
           {content.sections.slice(0, cfg.max).map((s, i) => (
-            <fieldset key={i} className="m-0 flex flex-col gap-3 rounded-control border border-border bg-surface-sunken p-3">
+            <fieldset
+              key={i}
+              draggable={armed === i}
+              onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-nl-section", String(i)); setDragFrom(i); }}
+              onDragEnd={() => { setDragFrom(null); setDragOver(null); setArmed(null); }}
+              onDragOver={(e) => { if (isSectionDrag(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(i); } }}
+              onDrop={(e) => { if (isSectionDrag(e)) { e.preventDefault(); dropSection(i); } }}
+              className={cn("m-0 flex flex-col gap-3 rounded-control border bg-surface-sunken p-3 transition-[border-color,opacity] duration-fast",
+                dragOver === i && dragFrom !== i ? "border-primary ring-2" : "border-border", dragFrom === i && "opacity-50")}
+            >
               <legend className="sr-only">{t("nlSectionN").replace("{n}", i + 1)}</legend>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-meta font-semibold text-card-foreground">{t("nlSectionN").replace("{n}", i + 1)}</span>
+                <span className="flex items-center gap-1.5 text-meta font-semibold text-card-foreground">
+                  <span
+                    className="-ml-1 flex h-7 w-6 cursor-grab items-center justify-center rounded text-muted hover:bg-card hover:text-card-foreground active:cursor-grabbing"
+                    title={t("nlDragToReorder")}
+                    aria-hidden="true"
+                    onMouseDown={() => setArmed(i)}
+                    onMouseUp={() => setArmed(null)}
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </span>
+                  {t("nlSectionN").replace("{n}", i + 1)}
+                </span>
                 <div className="flex gap-1">
                   <Button type="button" size="icon" variant="ghost" aria-label={t("nlMoveUp")} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp className="h-4 w-4" aria-hidden="true" /></Button>
                   <Button type="button" size="icon" variant="ghost" aria-label={t("nlMoveDown")} disabled={i === sectionCount - 1} onClick={() => move(i, 1)}><ArrowDown className="h-4 w-4" aria-hidden="true" /></Button>
@@ -253,8 +313,8 @@ export function NewsletterPreview({ layout, content, subject, language, address 
   const scale = width === "desktop" ? Math.min(1, pane.w / DESKTOP_WIDTH) : 1;
   const f = NEWSLETTER_FOOTER[language] || NEWSLETTER_FOOTER.en;
   const html = renderNewsletterHtml({
-    layout, content, subject, language,
-    footer: { brand: "New Bridges for Haitian Success", why: f.why, address: address || t("nlPreviewAddress"), stopLabel: f.stop, href: "#" }
+    layout, content, subject, language, logo: logoUrl(window.location.origin),
+    footer: { why: f.why, address: address || t("nlPreviewAddress"), stopLabel: f.stop, href: "#" }
   }, { placeholders: true });
   return (
     <div className="flex min-h-0 flex-col gap-2">
@@ -267,7 +327,9 @@ export function NewsletterPreview({ layout, content, subject, language, address 
         <iframe
           title={t("nlPreviewLabel")}
           srcDoc={html}
-          sandbox=""
+          // Same origin so its images load like the page's; scripts, forms,
+          // pop-ups and navigation stay blocked by the sandbox.
+          sandbox="allow-same-origin"
           className={cn("shrink-0 border-0 bg-transparent", width === "phone" ? "h-full w-[375px] max-w-full" : "origin-top")}
           style={width === "desktop" ? { width: DESKTOP_WIDTH, height: pane.h / scale, transform: "scale(" + scale + ")" } : undefined}
         />

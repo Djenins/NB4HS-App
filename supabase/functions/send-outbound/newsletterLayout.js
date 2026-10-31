@@ -40,6 +40,28 @@ export var NEWSLETTER_FOOTER = {
   fr: { why: "Vous recevez ce message parce que vous avez accepté de recevoir les actualités des programmes de New Bridges for Haitian Success.", stop: "Se désabonner" }
 };
 
+// The brand header every NB4HS email opens with: the logo (served by the app
+// at a fixed address, public/assets/email/nb4hs-logo.png) and the name.
+export var BRAND_NAME = "New Bridges for Haitian Success";
+export var LOGO_PATH = "/assets/email/nb4hs-logo.png";
+var BRAND_NAVY = "#253b80";
+
+export function logoUrl(appUrl) {
+  return String(appUrl || "https://app.nb4hs.org").replace(/\/+$/, "") + LOGO_PATH;
+}
+
+// Centred logo (240px wide) over the name in bold. Without a usable logo
+// address only the name shows.
+export function brandHeaderHtml(logo) {
+  var url = safeUrl(logo);
+  return (url
+    ? '<img src="' + escapeHtml(url) + '" alt="' + BRAND_NAME + '" width="240" ' +
+      'style="display:block;width:240px;max-width:100%;height:auto;border:0;margin:0 auto 10px">'
+    : "") +
+    '<p style="margin:0;font-size:20px;line-height:1.3;font-weight:bold;color:' + BRAND_NAVY + ';text-align:center;font-family:Arial,Helvetica,sans-serif">' +
+    BRAND_NAME + "</p>";
+}
+
 var INK = "#0b1f3a";
 var MUTED = "#5b6b82";
 var BRAND = "#1d4ed8";
@@ -222,8 +244,9 @@ function grid(sections, opts, perRow) {
 
 // ---------- the whole email ----------
 
-// footer: { brand, why, address, stopLabel, href } -- the legal footer the
-// Edge Function supplies (mailing address + unsubscribe link).
+// input.logo: the logo's address (logoUrl()).
+// footer: { why, address, stopLabel, href } -- the legal footer the Edge
+// Function supplies (mailing address + unsubscribe link).
 // opts.placeholders: draw grey boxes where images are missing (preview only).
 export function renderNewsletterHtml(input, opts) {
   var o = opts || {};
@@ -236,7 +259,8 @@ export function renderNewsletterHtml(input, opts) {
   var align = centered ? "center" : "left";
 
   var body = "";
-  body += row('<p style="margin:0;font-size:13px;color:' + MUTED + ';text-align:' + align + '">' + escapeHtml(f.brand || "") + "</p>", "24px 28px 16px");
+  body += row(brandHeaderHtml(input.logo), "28px 28px 0");
+  body += row('<div style="border-top:1px solid ' + LINE + '"></div>', "18px 28px 22px");
   if (cfg.hero) {
     var hero = image(c.hero.src, c.hero.alt, 200, o);
     if (hero) body += row(hero, "0 28px 20px");

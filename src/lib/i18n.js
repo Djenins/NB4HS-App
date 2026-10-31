@@ -2922,7 +2922,11 @@ export var STR = {
   nlPreviewDesktop: { en: "Desktop", ht: "Desktop", fr: "Desktop" },
   nlPreviewPhone: { en: "Phone", ht: "Phone", fr: "Phone" },
   nlPreviewAddress: { en: "[Organization mailing address]", ht: "[Organization mailing address]", fr: "[Organization mailing address]" },
-  nlPrivacyNoteImages: { en: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission.", ht: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission.", fr: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission." }
+  nlPrivacyNoteImages: { en: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission.", ht: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission.", fr: "Every recipient gets the same newsletter, and images are public to anyone with the link. Never include anything about a specific client, or photos of clients without their written permission." },
+  // Newsletter editor drag and drop (staff screens: English in every language).
+  nlImageDropHint: { en: "…or drag an image here", ht: "…or drag an image here", fr: "…or drag an image here" },
+  nlImageDropNow: { en: "Drop to upload", ht: "Drop to upload", fr: "Drop to upload" },
+  nlDragToReorder: { en: "Drag to reorder", ht: "Drag to reorder", fr: "Drag to reorder" }
 };
 
 // Translations are for clients only: the kiosk (check-in / check-out),

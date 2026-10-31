@@ -91,7 +91,7 @@ Deno.test("links never leave the app", () => {
   assertEquals(appLink("https://app.example", "/myreports/r1"), "https://app.example/myreports/r1");
   assertEquals(appLink("https://app.example", "https://evil.example/x"), "https://app.example/");
   assertEquals(appLink("https://app.example", "//evil.example"), "https://app.example/");
-  assertEquals(appLink("", "/x"), "https://nb4hs-app.vercel.app/x");
+  assertEquals(appLink("", "/x"), "https://app.nb4hs.org/x");
   assertEquals(escapeHtml(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
 });
 
@@ -236,4 +236,18 @@ Deno.test("layout newsletters render their sections, escape, and keep the legal 
 Deno.test("an unknown layout falls back to the plain email", () => {
   const e = renderNewsletter({ subject: "S", body: "Plain body", layout: "fancy", content: {}, unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://a")!;
   assert(e.html.includes("Plain body"));
+});
+
+Deno.test("every email opens with the logo and the organization's name", () => {
+  const logo = 'src="https://app.example/assets/email/nb4hs-logo.png"';
+  const name = ">New Bridges for Haitian Success</p>";
+  const report = renderEmail("staff_report_acknowledged", { period: "P", link: "/myreports/r1" }, "https://app.example/")!;
+  const client = renderClientEmail({ body: "Hello" }, "https://app.example");
+  const plain = renderNewsletter({ subject: "S", body: "B", unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://app.example")!;
+  const layoutNl = renderNewsletter({ subject: "S", body: "B", layout: "pyramid", content: { headline: "H" }, unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://app.example")!;
+  for (const e of [report, client!, plain, layoutNl]) {
+    assert(e.html.includes(logo), "logo missing");
+    assert(e.html.includes(name), "name missing");
+    assert(e.html.includes("font-size:20px;line-height:1.3;font-weight:bold"), "name not enlarged");
+  }
 });
