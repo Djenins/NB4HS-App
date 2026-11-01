@@ -161,11 +161,11 @@ Each problem was confirmed on the local stack before the fix.
 
 ## 7. Blockers, most severe first
 
-1. **No staff-report reviewer on live (P0, before Mon Nov 2).** Five people can submit; nobody can review, and submit notices go to nobody. *Fix (owner):* Administration → Users → give the director the **Executive Oversight** role. That's a data change on live, not a migration. Then check `select count(*) from staff_report_reviewer_ids()` is 1 or more.
+1. **No staff-report reviewer on live (P0, before Mon Nov 2).** Five people can submit; nobody can review, and submit notices go to nobody. *Fix (owner):* Administration → Users → give the director the **Executive Oversight** role. That's a data change on live, not a migration. Then check `select count(*) from staff_report_reviewer_ids()` is 1 or more. **Owner decision, 2026-10-30:** no one gets the role for now. It will go to `admin@nb4hs.org` once that account is in use, so submitted reports reach nobody until then.
 2. **Report email isn't set up (P1).** Staff see in-app notices only. This is acceptable for launch if staff are told; otherwise follow `deploy-and-operations.md` §1.
 3. **Accounts are personal (P1).** GitHub, Vercel (team `marcdeeh`) and Supabase ("Djenins's Org") all belong to individuals. One departure locks NB4HS out. See `nb4hs-accounts-checklist.md`.
 4. **Backups unverified (P1).** Pro has daily backups, but retention and point-in-time recovery weren't checked, storage buckets aren't covered, and a restore has never been tried.
-5. **t6 weaknesses on live (P2)** until `t8` is applied: concurrency overshoot, the signed-in bypass, the spoofable fallback (low on Supabase, where Cloudflare's header is present), no cleanup, and the kiosk ceiling of ten pages per site.
+5. ~~**t6 weaknesses on live (P2)** until `t8` is applied~~ **Fixed 2026-10-30 (§12):** concurrency overshoot, the signed-in bypass, the spoofable fallback (low on Supabase, where Cloudflare's header is present), no cleanup, and the kiosk ceiling of ten pages per site.
 6. **Password-reset mail on the built-in mailer (P2).** It has a low hourly limit; custom SMTP is in `deploy-and-operations.md` §1.
 7. **The legacy permission fallback (P3).** A failed `my_permissions()` call opens account-type pages; RLS still guards the data (goal 10).
 8. **Smaller items (P3):** the "No one is checked in" flash on check-out; no "new schedule" screen; the calendar gaps; and the plain `nb4hs-app.vercel.app` address isn't in Auth's redirect list (staff should use `app.nb4hs.org`).
@@ -173,7 +173,7 @@ Each problem was confirmed on the local stack before the fix.
 ## 8. Production deploy and rollback (current)
 
 - **Deploys:** merging to `main` builds and promotes a production deployment on Vercel (`nb4hs-app`, team `marcdeeh`), served at `app.nb4hs.org` and `nb4hs-app.vercel.app`. Build variables: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; `VITE_AUTH_MODEL` stays unset.
-- **App rollback:** Vercel → Deployments → the previous READY production deployment → Instant Rollback. Today that's PR #68's `dpl_EYnL9HHJrmL7GJfE464iFnCf21Mo`. After an instant rollback, Vercel stops promoting new builds automatically until you promote one (`vercel promote …` or Undo Rollback). On the Hobby plan, only the immediately previous deployment can be the target. To make a rollback permanent, revert the merge on `main` with a PR.
+- **App rollback:** Vercel → Deployments → the previous READY production deployment → Instant Rollback. Since PR #70's deploy (2026-10-30), that's PR #69's `dpl_Af3xomKbEAsVCzra7QavrwdFmZYp`. After an instant rollback, Vercel stops promoting new builds automatically until you promote one (`vercel promote …` or Undo Rollback). On the Hobby plan, only the immediately previous deployment can be the target. To make a rollback permanent, revert the merge on `main` with a PR.
 - **This branch is app-compatible with live as it is.** It needs no migration to deploy: `t8` is optional and independent, and the app works with or without it.
 - **Database rollback:** only for a database problem, with approval; see `deploy-and-operations.md` §2, "Rolling a migration back", for what each script can't undo.
 
@@ -232,3 +232,16 @@ None of these were done here.
 | **Staff reports** | Code works end to end locally. **Live can't use it until someone is a reviewer**, and email copies are off. |
 | **Operations** | Weakest area: personal ownership, an unverified backup and restore, no email, no error monitoring. |
 | **Overall** | **Soft-launch ready once blocker 1 is fixed** and staff know reports are in-app only. Ownership, backups and email should follow within weeks, not months. |
+
+## 12. Done on 2026-10-30 (approved)
+
+Each step below was approved separately by the owner.
+
+| Step | Result |
+|---|---|
+| **1. Reviewer role** | **Not done, by decision.** No one gets Executive Oversight for now; it will go to `admin@nb4hs.org` once that account is in use. Until then submitted reports reach nobody (blocker 1). |
+| **2. Merge PR #70** | Merged as `b0e5b69`. Production deployment `dpl_GSuTGiRBZ3VRFYa7TMbJyjeM1mj7`, READY, serving `index-CfzI0PSY.js` on `app.nb4hs.org`. Checked there: the kiosk landing; `/appointments/request` in Kreyòl (`lang=ht`, Kreyòl month names, past days disabled, each day named by its full date); `/appointments/lookup`; a signed-in dashboard with no "prototype" notice; no console errors. **Rollback target:** PR #69's `dpl_Af3xomKbEAsVCzra7QavrwdFmZYp`. |
+| **3. Apply `t8`** | **Dry run:** `begin; <t8>; <t8_rate_limit_check>; rollback;` raised `T8_CHECKS_PASSED`. Live was unchanged afterwards: 70 versions, kiosk limits 1,200, no cleanup job, index, `api_rate_caller` or test accounts. **Applied** as one transaction with its `schema_migrations` row (`20261029010000`, `t8_rate_limit_hardening`). **After:** `t8_rate_limit_check` and `t6_rate_limits_check` both pass against live. Through the API, signed out: `kiosk_roster` POST 200, GET 405, and the call was recorded under a real caller IP. Live now records **71** versions and the cron job `api-rate-hits-cleanup` (`*/10 * * * *`). |
+| **4. Redeploy `admin-users`** | Version 3, `verify_jwt` on as before. The only change is supabase-js 2.49.1 → 2.118.0 in `index.ts`. Checked with a signed-in administrator's token: an unknown action returns 400 `unknown_action` (sign-in check passed through the new client), and a malformed body returns 400 `bad_request`. Nothing was invited or reset. |
+
+**Still open from §10:** email (5), backups (6), account ownership (7), the optional redirect URL (8), and the staff-account checks in §9.
