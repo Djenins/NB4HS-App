@@ -39,8 +39,10 @@ function digits(s) {
   return (s || "").replace(/\D/g, "");
 }
 
-function clientMatches(c, q, qDigits) {
-  var hay = (fullName(c) + " " + (c.email || "") + " " + (c.nbId || "")).toLowerCase();
+// legacyIds: current nbId -> the NB-##### ID the person had before
+// re-numbering (from the master clients list), so an old ID still finds them.
+function clientMatches(c, q, qDigits, legacyIds) {
+  var hay = (fullName(c) + " " + (c.email || "") + " " + (c.nbId || "") + " " + (legacyIds[c.nbId] || "")).toLowerCase();
   if (hay.indexOf(q) !== -1) return true;
   return qDigits.length >= 3 && digits(c.phone).indexOf(qDigits) !== -1;
 }
@@ -74,7 +76,9 @@ export function buildResults(opts) {
     }
     if (scopes.clients) {
       var qDigits = digits(q);
-      groups.push({ key: "clients", results: (data.caseClients || []).filter(function (c) { return clientMatches(c, q, qDigits); }).slice(0, RESULT_LIMIT).map(function (c) {
+      var legacyIds = {};
+      (data.clients || []).forEach(function (m) { if (m.legacyNbId) legacyIds[m.nbId] = m.legacyNbId; });
+      groups.push({ key: "clients", results: (data.caseClients || []).filter(function (c) { return clientMatches(c, q, qDigits, legacyIds); }).slice(0, RESULT_LIMIT).map(function (c) {
         return {
           id: "client:" + c.id, kind: "client", title: fullName(c),
           subtitle: [c.nbId, c.phone].filter(Boolean).join(" · "),

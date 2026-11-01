@@ -19,6 +19,7 @@ import { IconButton } from "../components/ui/icon-button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 import { Switch } from "../components/ui/switch.jsx";
+import DatePicker from "../components/DatePicker.jsx";
 
 function ClassManageCard({ c }) {
   const { data, lang, requestConfirm, showToast } = useApp();
@@ -181,10 +182,10 @@ function GrantsManageCard() {
               <Input id="grant-funder" placeholder="e.g. RI Department of Labor and Training" value={funder} onChange={(e) => setFunder(e.target.value)} />
             </Field>
             <Field label="Period start" htmlFor="grant-start">
-              <Input id="grant-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+              <div className="ds-control"><DatePicker id="grant-start" value={periodStart} max={periodEnd || undefined} onChange={setPeriodStart} /></div>
             </Field>
             <Field label="Period end" htmlFor="grant-end">
-              <Input id="grant-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+              <div className="ds-control"><DatePicker id="grant-end" value={periodEnd} min={periodStart || undefined} onChange={setPeriodEnd} /></div>
             </Field>
           </div>
           <div><Button type="submit"><Plus className="h-4 w-4" aria-hidden="true" />Add grant</Button></div>

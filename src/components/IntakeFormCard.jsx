@@ -14,14 +14,15 @@ import { useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
-  AlertTriangle, Briefcase, Camera, Check, ChevronDown, Download, FileText, FileSignature,
-  Home, MapPin, PenLine, Phone, Plus, Printer, Save, ShieldCheck, Users, UsersRound,
+  Check, ChevronDown, Download, FileSignature, PenLine, Plus, Printer, Save, Trash2,
 } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { Card, CardTitle } from "./ui/card.jsx";
+import { ConfirmDialog } from "./ui/confirm-dialog.jsx";
 import { Dialog } from "./ui/dialog.jsx";
 import { BUTTON_RESET, Button } from "./ui/button.jsx";
 import { Field, Input } from "./ui/field.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
 import { cn } from "../lib/cn.js";
 import {
@@ -29,6 +30,7 @@ import {
   saveClientIntake, updateClientRecord, uploadClientFile,
 } from "../lib/clientsData.js";
 import AddressInput from "./AddressInput.jsx";
+import DatePicker from "./DatePicker.jsx";
 import SignaturePad from "./SignaturePad.jsx";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
@@ -143,6 +145,15 @@ function optionLabel(t, opt) {
 // control, and the print/PDF export clones the DOM as-is.
 function IntakeField({ label, value, onChange, type, placeholder, className, inputMode, onAddressSelect }) {
   const id = useId();
+  const t = useT();
+  // Dates use the app's own calendar, not the browser's native picker.
+  if (type === "date") {
+    return (
+      <Field label={label} htmlFor={id} className={className}>
+        <div className="ds-control"><DatePicker id={id} value={value} onChange={onChange} placeholder={placeholder || t("intakePhSelectDate")} /></div>
+      </Field>
+    );
+  }
   // The street field passes onAddressSelect and gets address suggestions.
   const Control = onAddressSelect ? AddressInput : Input;
   const addressProps = onAddressSelect ? { as: Input, onAddressSelect } : {};
@@ -169,8 +180,10 @@ function InlineField({ label, value, onChange, placeholder, className }) {
 // option. main.css leaves fieldset's UA border alone, hence border-0.
 const FIELDSET = "m-0 min-w-0 border-0 p-0";
 const LEGEND = "mb-2 p-0 text-meta font-semibold text-card-foreground";
-const OPTION = "m-0 flex min-h-8 cursor-pointer items-center gap-2 text-ui font-medium text-card-foreground";
-const OPTION_INPUT = "h-4 w-4 shrink-0 cursor-pointer accent-primary";
+const OPTION = "m-0 flex min-h-8 cursor-pointer items-center gap-2 text-ui font-medium text-card-foreground [@media(pointer:coarse)]:min-h-11";
+// m-0: the browser's default radio/checkbox margin (3px 3px 0 5px) sat the
+// box low against its text and indented it from the question label.
+const OPTION_INPUT = "m-0 h-4 w-4 shrink-0 cursor-pointer accent-primary";
 
 function RadioGroup({ label, name, value, onChange, options, className, vertical }) {
   const t = useT();
@@ -191,7 +204,9 @@ function RadioGroup({ label, name, value, onChange, options, className, vertical
 
 function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
   const t = useT();
-  const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
+  // Three columns only where the card is wide: below lg the cards stack
+  // full width, from lg they sit two-up until 2xl.
+  const colsClass = cols === 1 ? "" : cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 2xl:grid-cols-3";
   return (
     <fieldset className={cn(FIELDSET, className)}>
       {label ? <legend className={LEGEND}>{label}</legend> : null}
@@ -207,23 +222,28 @@ function CheckboxGroup({ label, values, onToggle, options, className, cols }) {
   );
 }
 
-// Section -- one numbered SectionCard per part of the paper form: the
-// number chip + icon keep the paper form's numbering easy to follow.
-function Section({ number, icon: Icon, title, children, className }) {
+// Section -- one SectionCard per part of the paper form, headed like the
+// reference design: a "Step 01" overline, a large title and one plain line
+// saying what the part covers. The step number keeps the paper form's
+// numbering easy to follow.
+// overflow-visible: SectionCard clips by default, which would cut off the
+// date fields' calendar popup at the card's edge.
+function Section({ number, title, description, children, className }) {
+  const t = useT();
   return (
     <SectionCard
-      className={className}
+      className={cn("overflow-visible", className)}
       title={
-        <span className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-chip bg-primary text-meta font-bold text-primary-foreground tabular-nums">
-            {number}
+        <span className="block">
+          <span className="block text-caption font-semibold uppercase tracking-[0.14em] text-primary tabular-nums">
+            {t("intakeStepLabel").replace("{n}", String(number).padStart(2, "0"))}
           </span>
-          <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-          {title}
+          <span className="mt-1.5 block text-title font-bold text-card-foreground">{title}</span>
         </span>
       }
+      description={description ? <span className="mt-1 block text-body text-muted">{description}</span> : null}
     >
-      <div className="space-y-5">{children}</div>
+      <div className="space-y-5 pt-2">{children}</div>
     </SectionCard>
   );
 }
@@ -344,10 +364,10 @@ function SignIntakeDialog({ open, initialName, onCancel, onSign }) {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("intakeQClientName")} htmlFor={nameId} required>
-            <Input id={nameId} value={name} onChange={(e) => { setName(e.target.value); setError(""); }} autoComplete="off" />
+            <Input placeholder={t("phFullName")} id={nameId} value={name} onChange={(e) => { setName(e.target.value); setError(""); }} autoComplete="off" />
           </Field>
           <Field label={t("intakeQClientDate")} htmlFor={dateId}>
-            <Input id={dateId} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="ds-control"><DatePicker id={dateId} value={date} onChange={setDate} /></div>
           </Field>
         </div>
         {error ? <p role="alert" className="m-0 text-meta font-semibold text-tone-danger-ink">{error}</p> : null}
@@ -422,9 +442,9 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [savedAt, setSavedAt] = useState(client && client.intakeFormSavedAt ? client.intakeFormSavedAt : null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [exporting, setExporting] = useState(false);
   const [stored, setStored] = useState(null);
   const [signing, setSigning] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const [savingSigned, setSavingSigned] = useState(false);
   const [signedStatus, setSignedStatus] = useState("");
   const [signedDocs, setSignedDocs] = useState([]);
@@ -475,6 +495,10 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     edited.current = true;
     setF((prev) => Object.assign({}, prev, { children: prev.children.concat([Object.assign({}, EMPTY_CHILD)]) }));
   }
+  function removeChild(i) {
+    edited.current = true;
+    setF((prev) => Object.assign({}, prev, { children: prev.children.filter((_, j) => j !== i) }));
+  }
 
   // downloadFilledForm -- prints the form as it actually looks on screen
   // (same section cards/badges/layout), not a plain label:value dump. React
@@ -505,6 +529,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       el.setAttribute("disabled", "disabled");
     });
     clone.querySelectorAll("[data-html2canvas-ignore]").forEach((n) => n.remove());
+    clone.querySelectorAll("[data-print-header]").forEach((n) => n.removeAttribute("hidden"));
 
     const headHtml = Array.from(document.querySelectorAll("head style, head link[rel='stylesheet']"))
       .map((n) => n.outerHTML)
@@ -525,28 +550,27 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
     win.print();
   }
 
-  // exportAsPdf -- screenshots the filled form (as it looks on screen right
-  // now) with html2canvas and drops that image into a jsPDF document, sliced
-  // across A4 pages. Different from downloadFilledForm above: that one opens
-  // the OS print dialog so staff can print or "Save as PDF" manually; this
-  // one generates and downloads an actual .pdf file directly, no dialog.
-  //
-  // buildPdf is shared with the signed copy, which passes `light` so the
-  // record on file is always the light theme, whatever the screen shows.
-  async function buildPdf(light) {
+  // buildPdf -- the signed copy filed in the client's documents: screenshots
+  // the filled form with html2canvas and drops that image into a jsPDF
+  // document, sliced across A4 pages. Always the light theme, whatever the
+  // screen shows, since this is the record on file. (Staff who want their own
+  // PDF use downloadFilledForm above and "Save as PDF" in the print dialog.)
+  async function buildPdf() {
     const source = printRef.current;
     if (!source) return null;
     const { html2canvas, jsPDF } = await loadPdfLibs();
-    const bg = light ? "#ffffff" : (getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff");
     const canvas = await html2canvas(source, {
-      scale: 2, backgroundColor: bg, useCORS: true,
-      onclone: light ? (doc) => doc.documentElement.setAttribute("data-theme", "light") : undefined,
+      scale: 2, backgroundColor: "#ffffff", useCORS: true,
+      onclone: (doc) => {
+        doc.querySelectorAll("[data-print-header]").forEach((n) => n.removeAttribute("hidden"));
+        doc.documentElement.setAttribute("data-theme", "light");
+      },
     });
-    // The signed copy is stored, so it goes in as one JPEG (a few hundred KB)
-    // rather than a lossless PNG of the whole page (tens of MB); the alias
-    // keeps jsPDF from embedding the image again on every page.
-    const format = light ? "JPEG" : "PNG";
-    const imgData = light ? canvas.toDataURL("image/jpeg", 0.85) : canvas.toDataURL("image/png");
+    // Stored, so it goes in as one JPEG (a few hundred KB) rather than a
+    // lossless PNG of the whole page (tens of MB); the alias keeps jsPDF from
+    // embedding the image again on every page.
+    const format = "JPEG";
+    const imgData = canvas.toDataURL("image/jpeg", 0.85);
 
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -565,18 +589,6 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       heightLeft -= pageHeight;
     }
     return pdf;
-  }
-
-  async function exportAsPdf() {
-    setExporting(true);
-    try {
-      const pdf = await buildPdf(false);
-      if (pdf) pdf.save(t("intakePdfFilePrefix") + " - " + (f.fullName || t("intakeUnnamedClient")) + ".pdf");
-    } catch (err) {
-      console.warn("exportAsPdf failed", err);
-    } finally {
-      setExporting(false);
-    }
   }
 
   // The client has signed: put the signature, printed name and date on the
@@ -604,7 +616,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       setSavedAt(when);
       const img = printRef.current && printRef.current.querySelector("img[data-signature]");
       if (img && img.decode) await img.decode().catch(() => {});
-      const pdf = await buildPdf(true);
+      const pdf = await buildPdf();
       if (!pdf) throw new Error("form not rendered");
       const day = form.clientDate || todayIso();
       const label = t("intakeSignedFilePrefix") + " - " + (form.clientName || form.fullName || t("intakeUnnamedClient")) + " - " + day + ".pdf";
@@ -664,7 +676,21 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       {showContent && (
         <div className={bare ? "space-y-5" : "mt-5 space-y-5"}>
           <div ref={printRef} className="space-y-5">
-          <SectionCard>
+          {/* Only in the printed/exported copy: who the form is for and when
+              the intake happened, so a stack of printouts reads at a glance. */}
+          <div data-print-header hidden className="rounded-surface border border-border bg-card px-6 py-5">
+            <div className="text-meta font-semibold uppercase tracking-wide text-muted">{t("intakeFormTitle")}</div>
+            <div className="mt-1 text-title font-bold text-card-foreground">
+              {f.fullName || (client && [client.firstName, client.lastName].filter(Boolean).join(" ")) || t("intakeUnnamedClient")}
+            </div>
+            <div className="mt-2 text-lg text-card-foreground">
+              <span className="font-semibold">{t("intakeQIntakeDate")}:</span>{" "}
+              {f.intakeDate
+                ? new Date(f.intakeDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                : t("intakeDateNotRecorded")}
+            </div>
+          </div>
+          <SectionCard className="overflow-visible">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <IntakeField label={t("intakeQIntakeDate")} type="date" value={f.intakeDate} onChange={(v) => set("intakeDate", v)} />
               <IntakeField label={t("intakeQUsEntryDate")} type="date" value={f.usEntryDate} onChange={(v) => set("usEntryDate", v)} />
@@ -674,20 +700,20 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
             {/* Left column: 1 Personal, 2 Emergency Contact, 5 Barrier, 6 Referral, 8 Housing */}
             <div className="space-y-5">
-              <Section number={1} icon={MapPin} title={t("intakeSecPersonal")}>
+              <Section number={1} title={t("intakeSecPersonal")} description={t("intakeSecPersonalDesc")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <IntakeField label={t("intakeQFullName")} placeholder={t("intakePhFullName")} value={f.fullName} onChange={(v) => set("fullName", v)} />
                   <IntakeField label={t("intakeQDob")} type="date" value={f.dob} onChange={(v) => set("dob", v)} />
                 </div>
                 <RadioGroup label={t("intakeQGender")} name="gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Male", "Female"]} />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)}
-                    onAddressSelect={(a) => { set("address", a.street); if (a.city) set("city", a.city); if (a.state) set("state", a.state); if (a.zip) set("zip", a.zip); }} />
+                <IntakeField label={t("intakeQAddress")} placeholder={t("intakePhStreet")} value={f.address} onChange={(v) => set("address", v)}
+                  onAddressSelect={(a) => { set("address", a.street); if (a.city) set("city", a.city); if (a.state) set("state", a.state); if (a.zip) set("zip", a.zip); }} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)]">
                   <IntakeField label={t("intakeQCity")} placeholder={t("intakeEgPrefix") + " Providence"} value={f.city} onChange={(v) => set("city", v)} />
                   <IntakeField label={t("intakeQState")} placeholder="RI" value={f.state} onChange={(v) => set("state", v)} />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <IntakeField label={t("intakeQZip")} placeholder={t("intakeEgPrefix") + " 02903"} value={f.zip} onChange={(v) => set("zip", v)} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.phone} onChange={(v) => set("phone", v)} />
                   <IntakeField label={t("intakeQEmail")} placeholder="name@example.com" value={f.email} onChange={(v) => set("email", v)} />
                 </div>
@@ -699,7 +725,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 </div>
               </Section>
 
-              <Section number={2} icon={Phone} title={t("intakeSecEmergency")}>
+              <Section number={2} title={t("intakeSecEmergency")} description={t("intakeSecEmergencyDesc")}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <IntakeField label={t("intakeQName")} placeholder={t("intakePhFullNameShort")} value={f.ecName} onChange={(v) => set("ecName", v)} />
                   <IntakeField label={t("intakeQTelephone")} placeholder="(555) 123-4567" value={f.ecPhone} onChange={(v) => set("ecPhone", v)} />
@@ -708,15 +734,15 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 <RadioGroup label={t("intakeQNeedTranslator")} name="needTranslator" value={f.needTranslator} onChange={(v) => set("needTranslator", v)} options={["YES", "NO"]} />
               </Section>
 
-              <Section number={5} icon={AlertTriangle} title={t("intakeSecBarrier")}>
+              <Section number={5} title={t("intakeSecBarrier")} description={t("intakeSecBarrierDesc")}>
                 <CheckboxGroup values={f.barriers} onToggle={(o) => toggleIn("barriers", o)} options={BARRIER_OPTIONS} />
               </Section>
 
-              <Section number={6} icon={Users} title={t("intakeSecReferral")}>
+              <Section number={6} title={t("intakeSecReferral")} description={t("intakeSecReferralDesc")}>
                 <CheckboxGroup values={f.referrals} onToggle={(o) => toggleIn("referrals", o)} options={REFERRAL_OPTIONS} />
               </Section>
 
-              <Section number={8} icon={Home} title={t("intakeSecHousing")}>
+              <Section number={8} title={t("intakeSecHousing")} description={t("intakeSecHousingDesc")}>
                 <CheckboxGroup label={t("intakeQHousingType")} values={f.housingType} onToggle={(o) => toggleIn("housingType", o)} options={HOUSING_OPTIONS} cols={3} />
                 <InlineField label={t("intakeQBedrooms")} value={f.bedroomsNeeded} onChange={(v) => set("bedroomsNeeded", v)} placeholder={t("intakeEgPrefix") + " 2"} />
                 <InlineField label={t("intakeQLocation")} value={f.preferredLocation} onChange={(v) => set("preferredLocation", v)} placeholder={t("intakeEgPrefix") + " Providence, Warwick, Cranston"} />
@@ -727,8 +753,8 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
 
             {/* Right column: 3 Employment, 4 Additional Details, 7 Family Composition */}
             <div className="space-y-5">
-              <Section number={3} icon={Briefcase} title={t("intakeSecEmployment")}>
-                <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
+              <Section number={3} title={t("intakeSecEmployment")} description={t("intakeSecEmploymentDesc")}>
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                   <IntakeField label={t("intakeQSsn")} placeholder="XXX-XX-XXXX" value={f.ssn} onChange={(v) => set("ssn", v)} />
                   <RadioGroup label={t("intakeQWorking")} name="working" value={f.working} onChange={(v) => set("working", v)} options={["YES", "NO"]} />
                 </div>
@@ -737,9 +763,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                   <IntakeField label={t("intakeQPendingCaseDetail")} placeholder={t("intakePhPendingCase")} value={f.immigrationStatusOther} onChange={(v) => set("immigrationStatusOther", v)} />
                 )}
                 <IntakeField label={t("intakeQJobLookingFor")} placeholder={t("intakePhJob")} value={f.jobLookingFor} onChange={(v) => set("jobLookingFor", v)} />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <RadioGroup label={t("intakeQJobType")} name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
-                </div>
+                <RadioGroup label={t("intakeQJobType")} name="jobType" value={f.jobType} onChange={(v) => set("jobType", v)} options={["Full time", "Part Time"]} />
                 <IntakeField label={t("intakeQSkills")} placeholder={t("intakePhSkills")} value={f.skills} onChange={(v) => set("skills", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <RadioGroup label={t("intakeQOwnCar")} name="ownCar" value={f.ownCar} onChange={(v) => set("ownCar", v)} options={["YES", "NO"]} />
@@ -747,7 +771,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 </div>
               </Section>
 
-              <Section number={4} icon={FileText} title={t("intakeSecAdditional")}>
+              <Section number={4} title={t("intakeSecAdditional")} description={t("intakeSecAdditionalDesc")}>
                 <RadioGroup label={t("intakeQMaritalStatus")} name="maritalStatus" value={f.maritalStatus} onChange={(v) => set("maritalStatus", v)} options={["Married", "Single", "Divorced", "Separated", "Widowed"]} />
                 <IntakeField label={t("intakeQIdentityVerification")} placeholder={t("intakePhIdentity")} value={f.identityVerification} onChange={(v) => set("identityVerification", v)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -760,19 +784,24 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
                 {f.mentalHealthCondition === "Other" && <IntakeField label={t("intakeQMentalHealthOther")} placeholder={t("intakePhSpecify")} value={f.mentalHealthOther} onChange={(v) => set("mentalHealthOther", v)} />}
               </Section>
 
-              <Section number={7} icon={UsersRound} title={t("intakeSecFamily")}>
+              <Section number={7} title={t("intakeSecFamily")} description={t("intakeSecFamilyDesc")}>
                 <IntakeField label={t("intakeQNumChildren")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 3"} value={f.numChildren} onChange={(v) => set("numChildren", v)} className="max-w-xs" />
                 {f.children.map((c, i) => (
                   <div key={i} className="overflow-hidden rounded-control border border-border">
-                    <div className="border-b border-border bg-surface-sunken px-4 py-2 text-ui font-semibold text-card-foreground">{t("intakeChildLabel")} <span className="tabular-nums">{i + 1}</span></div>
+                    <div className="flex items-center justify-between gap-2 border-b border-border bg-surface-sunken py-1 pl-4 pr-2 text-ui font-semibold text-card-foreground">
+                      <span>{t("intakeChildLabel")} <span className="tabular-nums">{i + 1}</span></span>
+                      <IconButton variant="danger" size="sm" label={t("intakeRemoveChild").replace("{n}", i + 1)} onClick={() => removeChild(i)}>
+                        <Trash2 aria-hidden="true" />
+                      </IconButton>
+                    </div>
                     <div className="space-y-4 p-4">
                       <IntakeField label={t("intakeQName")} placeholder={t("intakePhChildName")} value={c.name} onChange={(v) => setChild(i, "name", v)} />
-                      <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                         <IntakeField label={t("intakeQAge")} type="text" inputMode="numeric" placeholder={t("intakeEgPrefix") + " 8"} value={c.age} onChange={(v) => setChild(i, "age", v)} />
                         <RadioGroup label={t("intakeQGender")} name={"childGender" + i} value={c.gender} onChange={(v) => setChild(i, "gender", v)} options={["Male", "Female"]} />
                       </div>
                       <IntakeField label={t("intakeQSchool")} placeholder={t("intakeEgPrefix") + " Roosevelt Elementary"} value={c.school} onChange={(v) => setChild(i, "school", v)} />
-                      <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                         <IntakeField label={t("intakeQGrade")} placeholder={t("intakePhGrade")} value={c.grade} onChange={(v) => setChild(i, "grade", v)} />
                         <RadioGroup label={t("intakeQCustody")} name={"childCustody" + i} value={c.custody} onChange={(v) => setChild(i, "custody", v)} options={["YES", "NO"]} />
                       </div>
@@ -789,7 +818,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             </div>
           </div>
 
-          <Section number={9} icon={ShieldCheck} title={t("intakeSecAuthorization")}>
+          <Section number={9} title={t("intakeSecAuthorization")} description={t("intakeSecAuthorizationDesc")}>
             <RadioGroup label={t("intakeQAuthorizeRelease")} name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <IntakeField label={t("intakeQClientName")} placeholder={t("intakePhTypeName")} value={f.clientName} onChange={(v) => set("clientName", v)} />
@@ -813,25 +842,23 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             <Button onClick={downloadFilledForm} variant="secondary">
               <Printer className="h-4 w-4" aria-hidden="true" /> {t("intakeDownloadFilledBtn")}
             </Button>
-            <Button onClick={exportAsPdf} loading={exporting} variant="secondary">
-              <Camera className="h-4 w-4" aria-hidden="true" /> {t("intakeExportPdfBtn")}
-            </Button>
             {client && client.id && f.clientSignatureImage ? (
               <Button onClick={() => saveSignedCopy(f)} loading={savingSigned} variant="secondary">
                 <FileSignature className="h-4 w-4" aria-hidden="true" /> {t("intakeSaveSignedCopyBtn")}
               </Button>
             ) : null}
-            <Button onClick={clearForm} variant="ghost">
-              {t("intakeClearFormBtn")}
-            </Button>
             {client && client.id ? (
               <span
                 aria-live="polite"
-                className={cn("flex items-center gap-1.5 text-ui font-semibold sm:ml-auto", saveError ? "text-tone-danger-ink" : "text-tone-success-ink")}
+                className={cn("flex items-center gap-1.5 text-ui font-semibold", saveError ? "text-tone-danger-ink" : "text-tone-success-ink")}
               >
                 {saveError ? saveError : savedAt ? (<><Check className="h-4 w-4" aria-hidden="true" /> {formatSavedAt(savedAt, t)}</>) : null}
               </span>
             ) : null}
+            {/* Destructive, so it sits apart from the other actions and asks first. */}
+            <Button onClick={() => setConfirmingClear(true)} variant="danger" className="sm:ml-auto">
+              {t("intakeClearFormBtn")}
+            </Button>
           </div>
           {signedStatus ? (
             <p aria-live="polite" className={cn("m-0 flex items-center gap-1.5 text-ui font-semibold", signedStatus === "error" ? "text-tone-danger-ink" : "text-tone-success-ink")}>
@@ -839,6 +866,16 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             </p>
           ) : null}
           {client && client.id ? <SignedCopies docs={signedDocs} /> : null}
+          <ConfirmDialog
+            open={confirmingClear}
+            onClose={() => setConfirmingClear(false)}
+            onConfirm={() => { clearForm(); setConfirmingClear(false); }}
+            title={t("intakeClearConfirmTitle")}
+            description={t("intakeClearConfirmBody")}
+            confirmLabel={t("intakeClearFormBtn")}
+            cancelLabel={t("cancelLabel")}
+            danger
+          />
           <SignIntakeDialog
             key={signing ? "open" : "closed"}
             open={signing}

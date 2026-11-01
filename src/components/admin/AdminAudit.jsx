@@ -21,6 +21,7 @@ import { FilterBar, FilterField } from "../ui/filter-bar.jsx";
 import { PageHeader } from "../ui/page-header.jsx";
 import { Skeleton } from "../ui/skeleton.jsx";
 import { fmtWhen } from "./adminShared.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 const ACTION_TONE = { insert: "success", update: "info", delete: "danger", invite: "violet", revoke_sessions: "warning", password_reset: "neutral" };
 const ACTIONS = ["insert", "update", "delete", "invite", "revoke_sessions", "password_reset"];
@@ -133,10 +134,10 @@ export default function AdminAudit() {
           </Select>
         </FilterField>
         <FilterField label={t("adminAuditFrom")} htmlFor="audit-from">
-          <Input id="audit-from" type="date" value={filters.from} max={filters.to || undefined} onChange={set("from")} />
+          <div className="ds-control"><DatePicker id="audit-from" value={filters.from} max={filters.to || undefined} onChange={(v) => set("from")({ target: { value: v } })} /></div>
         </FilterField>
         <FilterField label={t("adminAuditTo")} htmlFor="audit-to">
-          <Input id="audit-to" type="date" value={filters.to} min={filters.from || undefined} onChange={set("to")} />
+          <div className="ds-control"><DatePicker id="audit-to" value={filters.to} min={filters.from || undefined} onChange={(v) => set("to")({ target: { value: v } })} /></div>
         </FilterField>
       </FilterBar>
 

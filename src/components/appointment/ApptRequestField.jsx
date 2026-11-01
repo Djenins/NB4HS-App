@@ -152,14 +152,17 @@ export function ApptTextarea({ name, label, icon: Glyph, placeholder, hint, clas
 // same component, same hidden "YYYY-MM-DD" input the page already read at
 // submit time, same "-- Please select --" empty label. Only the trigger's
 // touch scale changes, via .appt-request in main.css.
-export function ApptDateField({ name, label, required = false, error = "", className }) {
+// pastOnly: a date that has already happened (date of birth): past days
+// allowed, nothing after today.
+export function ApptDateField({ name, label, required = false, error = "", className, pastOnly = false }) {
   const id = "appt-req-" + name;
   const errorId = error ? id + "-error" : undefined;
   return (
     <div className={cn("min-w-0", className)}>
       <ApptLabel htmlFor={id} required={required}>{label}</ApptLabel>
-      {/* No past days: request_appointment refuses them. */}
-      <DatePicker id={id} name={name} required={required} invalid={!!error} min={todayStr()} />
+      {/* Appointment dates: no past days, request_appointment refuses them. */}
+      <DatePicker id={id} name={name} required={required} invalid={!!error}
+        min={pastOnly ? undefined : todayStr()} max={pastOnly ? todayStr() : undefined} />
       <ApptFieldError id={errorId}>{error}</ApptFieldError>
     </div>
   );

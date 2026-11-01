@@ -1,5 +1,5 @@
-// DatePicker.jsx -- a small popover calendar (Today/Tomorrow quick-picks +
-// month grid) that replaces native <input type="date"> app-wide, per a
+// DatePicker.jsx -- a small popover calendar (month and year menus, arrows,
+// and a Sunday-first grid of the month's days) that replaces native <input type="date"> app-wide, per a
 // reference design the client shared. Deliberately scoped to single-date
 // selection only -- every date field in this app (intake date, DOB, work
 // permit expiration, appointment date, report from/to) picks one date, not
@@ -18,13 +18,12 @@
 //     via FormData at submit time, same as the native input did -- a hidden
 //     <input type="hidden" name={name}> is kept in sync internally. Used by
 //     FormField.jsx's type="date" case (ApptRequest.jsx).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
+import { buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
-import { IconButton } from "./ui/icon-button.jsx";
 
-export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min }) {
+export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min, max, disabled }) {
   const { lang } = useApp();
   const t = useT();
   const isControlled = value !== undefined && typeof onChange === "function";
@@ -34,11 +33,39 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(current || todayStr());
   const containerRef = useRef(null);
+  const panelRef = useRef(null);
+  // Opens upward when the calendar won't fit below the field but does fit
+  // above it.
+  const [dropUp, setDropUp] = useState(false);
   const today = todayStr();
 
   useEffect(() => {
     if (open) setViewDate(current || todayStr());
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Measured before paint, so the panel never flashes on the wrong side.
+  // "Room" is bounded by the nearest ancestor that clips (a dialog's
+  // scrolling body, an overflow-hidden card) or else the window.
+  useLayoutEffect(() => {
+    if (!open || !containerRef.current || !panelRef.current) { setDropUp(false); return; }
+    const field = containerRef.current.getBoundingClientRect();
+    const needed = panelRef.current.offsetHeight + 8;
+    let top = 0, bottom = window.innerHeight;
+    for (let el = containerRef.current.parentElement; el && el !== document.body; el = el.parentElement) {
+      const o = getComputedStyle(el);
+      if (/(auto|scroll|hidden|clip)/.test(o.overflowY + " " + o.overflow)) {
+        const r = el.getBoundingClientRect();
+        top = Math.max(top, r.top); bottom = Math.min(bottom, r.bottom);
+        break;
+      }
+    }
+    const below = bottom - field.bottom, above = field.top - top;
+    const up = below < needed && above >= needed;
+    setDropUp(up);
+    // Fits on neither side (a short dialog): open below and scroll the
+    // dialog or page just enough to show the whole calendar.
+    if (below < needed && !up) panelRef.current.scrollIntoView({ block: "nearest" });
   }, [open]);
 
   useEffect(() => {
@@ -52,6 +79,10 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  // min/max ("YYYY-MM-DD", optional) bound the pickable days; strings
+  // compare in date order.
+  const outOfRange = (ds) => (!!min && ds < min) || (!!max && ds > max);
 
   function commit(v) {
     if (isControlled) onChange(v); else setInternalValue(v);
@@ -68,13 +99,11 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
     setViewDate(d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()));
   }
 
-  const cells = buildMonthGrid(viewYear, viewMonth);
+  // Drop the trailing week(s) that hold only next month's days.
+  const grid = buildMonthGrid(viewYear, viewMonth);
+  const cells = grid.slice(0, Math.ceil((grid.findIndex((c) => c.inMonth) + daysInMonth(viewYear, viewMonth)) / 7) * 7);
   const weekdays = weekdayShortLabels(lang);
   const monthNames = monthNamesLong(lang);
-  const currentDate = current ? new Date(current + "T00:00:00") : null;
-  const selectedDay = currentDate && currentDate.getFullYear() === viewYear && currentDate.getMonth() === viewMonth ? currentDate.getDate() : "";
-  const dayCount = daysInMonth(viewYear, viewMonth);
-  const dayOptions = Array.from({ length: dayCount }, (_, i) => i + 1);
   const thisRealYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 111 }, (_, i) => thisRealYear + 10 - i);
 
@@ -86,9 +115,6 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
     const d = new Date(viewYear, m, Math.min(viewD.getDate(), daysInMonth(viewYear, m)));
     setViewDate(d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()));
   }
-  function setDay(day) {
-    commit(viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(day));
-  }
 
   return (
     <div className={"date-picker" + (invalid ? " field-invalid" : "")} ref={containerRef}>
@@ -96,78 +122,65 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
         type="button"
         id={id}
         className="date-picker-trigger"
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
         <Icon name="calendar" />
-        <span className={current ? "" : "muted"}>{current ? fmtDateLong(current, lang) : (placeholder || t("pleaseSelect"))}</span>
+        <span className={current ? "" : "muted"}>{current ? fmtDateLong(current, lang) : (placeholder || t("selectDate"))}</span>
       </button>
       {name && <input type="hidden" name={name} value={current} readOnly required={required} />}
 
       {open && (
-        <div className="date-picker-panel" role="dialog" aria-label={t("pleaseSelect")}>
-          <div className="date-picker-quick">
-            <button type="button" className="date-picker-quick-btn" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
-            <button type="button" className="date-picker-quick-btn" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
-          </div>
-          <div className="date-picker-nav">
-            <IconButton size="sm" label={t("prevPage")} onClick={() => shiftMonth(-1)}>
-              <Icon name="chevronrt" className="icon-flip-x" />
-            </IconButton>
-            <select
-              className="date-picker-select"
-              aria-label={t("monthLabel")}
-              value={viewMonth}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            >
-              {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select
-              className="date-picker-select"
-              aria-label={t("yearLabel")}
-              value={viewYear}
-              onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            >
-              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <IconButton size="sm" label={t("nextPage")} onClick={() => shiftMonth(1)}>
-              <Icon name="chevronrt" />
-            </IconButton>
-          </div>
-          <div className="date-picker-day-select">
-            <label>
-              {t("dayLabel")}
+        <div ref={panelRef} className={"date-picker-panel" + (dropUp ? " drop-up" : "")} role="dialog" aria-label={t("pleaseSelect")}>
+          <div className="date-picker-head">
+            <div className="date-picker-titles">
               <select
-                aria-label={t("dayLabel")}
-                value={selectedDay}
-                onChange={(e) => setDay(parseInt(e.target.value, 10))}
+                className="date-picker-select"
+                aria-label={t("monthLabel")}
+                value={viewMonth}
+                onChange={(e) => setMonth(parseInt(e.target.value, 10))}
               >
-                <option value="" disabled>{t("pleaseSelect")}</option>
-                {dayOptions.map((d) => (
-                  <option key={d} value={d} disabled={!!min && viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(d) < min}>{d}</option>
-                ))}
+                {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-            </label>
+              <select
+                className="date-picker-select"
+                aria-label={t("yearLabel")}
+                value={viewYear}
+                onChange={(e) => setYear(parseInt(e.target.value, 10))}
+              >
+                {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div className="date-picker-arrows">
+              <button type="button" className="date-picker-arrow" aria-label={t("prevPage")} title={t("prevPage")} onClick={() => shiftMonth(-1)}>
+                <Icon name="chevronrt" className="icon-flip-x" />
+              </button>
+              <button type="button" className="date-picker-arrow" aria-label={t("nextPage")} title={t("nextPage")} onClick={() => shiftMonth(1)}>
+                <Icon name="chevronrt" />
+              </button>
+            </div>
           </div>
           <div className="date-picker-weekdays">
             {weekdays.map((w, i) => <span key={i}>{w}</span>)}
           </div>
           <div className="date-picker-grid">
             {cells.map((c) => {
+              // Only this month's days are shown; the others keep their place.
+              if (!c.inMonth) return <span key={c.dateStr} aria-hidden="true" />;
               const isSelected = !!current && c.dateStr === current;
               const isToday = c.dateStr === today;
-              // "YYYY-MM-DD" strings compare in date order.
-              const tooEarly = !!min && c.dateStr < min;
+              const blocked = outOfRange(c.dateStr);
               return (
                 <button
                   type="button"
                   key={c.dateStr}
-                  className={"date-picker-day" + (c.inMonth ? "" : " outside") + (isSelected ? " selected" : "") + (isToday ? " today" : "")}
+                  className={"date-picker-day" + (isSelected ? " selected" : "") + (isToday ? " today" : "")}
                   onClick={() => commit(c.dateStr)}
                   aria-pressed={isSelected}
                   aria-label={fmtDateLong(c.dateStr, lang)}
-                  disabled={tooEarly}
+                  disabled={blocked}
                 >
                   {c.day}
                 </button>

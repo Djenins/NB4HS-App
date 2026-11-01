@@ -48,7 +48,7 @@ function TextArea({ field, value, onChange, invalid, disabled, t }) {
   const id = "report-" + field.key;
   return (
     <Field label={t(field.label)} htmlFor={id} hint={field.help ? t(field.help) : null} required={field.required}>
-      <Textarea
+      <Textarea placeholder={t("phReportAnswer")}
         id={id} rows={4} maxLength={REPORT_TEXT_MAX} value={value} disabled={disabled}
         aria-invalid={invalid || undefined} aria-describedby={field.help ? id + "-hint" : undefined}
         className="resize-y text-body"

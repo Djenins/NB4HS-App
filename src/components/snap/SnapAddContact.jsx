@@ -14,7 +14,7 @@ import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { findPossibleDuplicates } from "../../lib/masterClients.js";
 import { CONTACT_LANGUAGES, CONTACT_METHODS, OUTREACH_SOURCES, createOutreachContact, searchClients } from "../../lib/outreachContacts.js";
-import { formatPhone } from "../../lib/utils.js";
+import { formatPhone, phoneError } from "../../lib/utils.js";
 import DuplicateClientWarning from "../DuplicateClientWarning.jsx";
 import NbIdBadge from "../NbIdBadge.jsx";
 import { Button } from "../ui/button.jsx";
@@ -66,7 +66,8 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
     e.preventDefault();
     const next = {};
     if (!fields.firstName.trim() || !fields.lastName.trim()) next.name = t("snapNameRequired");
-    if (!fields.phone.trim() && !fields.email.trim()) next.reach = t("snapContactNeedsWay");
+    const phoneProblem = phoneError(fields.phone);
+    if (phoneProblem) next.phone = t(phoneProblem);
     setErrors(next);
     if (Object.keys(next).length) return;
     const matches = findPossibleDuplicates(fields, data.clients || []);
@@ -142,14 +143,14 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
             <div className="grid gap-4 sm:grid-cols-2">
               <SnapInput id="snap-first" label={t("firstName")} value={fields.firstName} onChange={set("firstName")} required invalid={!!errors.name && !fields.firstName.trim()} />
               <SnapInput id="snap-last" label={t("lastName")} value={fields.lastName} onChange={set("lastName")} required invalid={!!errors.name && !fields.lastName.trim()} />
-              <SnapInput id="snap-phone" type="tel" label={t("phoneLabel")} value={fields.phone} onChange={(v) => set("phone")(formatPhone(v))} invalid={!!errors.reach} />
-              <SnapInput id="snap-email" type="email" label={t("emailLabel")} value={fields.email} onChange={set("email")} invalid={!!errors.reach} />
+              <SnapInput id="snap-phone" type="tel" label={t("phoneLabel")} value={fields.phone} onChange={(v) => set("phone")(formatPhone(v))} required invalid={!!errors.phone} />
+              <SnapInput id="snap-email" type="email" label={t("emailLabel")} value={fields.email} onChange={set("email")} />
               <SnapSelect id="snap-lang" t={t} label={t("snapPreferredLanguage")} value={fields.preferredLanguage} options={CONTACT_LANGUAGES} labelPrefix="snapLang_" emptyLabel={t("snapNotSet")} onChange={set("preferredLanguage")} />
               <SnapSelect id="snap-method" t={t} label={t("snapPreferredMethod")} value={fields.preferredContactMethod} options={CONTACT_METHODS} labelPrefix="snapMethod_" emptyLabel={t("snapNotSet")} onChange={set("preferredContactMethod")} />
               <SnapSelect id="snap-source" t={t} label={t("snapOutreachSource")} value={fields.outreachSource} options={OUTREACH_SOURCES} labelPrefix="snapSource_" emptyLabel={t("snapNotSet")} onChange={set("outreachSource")} />
             </div>
-            {(errors.name || errors.reach) && (
-              <p role="alert" className="m-0 mt-4 text-ui text-tone-danger-ink">{errors.name || errors.reach}</p>
+            {(errors.name || errors.phone) && (
+              <p role="alert" className="m-0 mt-4 text-ui text-tone-danger-ink">{errors.name || errors.phone}</p>
             )}
           </form>
         )}

@@ -187,7 +187,7 @@ export default function SnapContactDetail({ contact, onChanged, onClose }) {
             <SnapSelect id="snapd-dir" t={t} label={t("snapDirection")} value={entry.direction} options={INTERACTION_DIRECTIONS} labelPrefix="snapDir_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { direction: v }))} />
             <SnapSelect id="snapd-outcome" t={t} label={t("snapOutcome")} value={entry.outcome} options={INTERACTION_OUTCOMES} labelPrefix="snapOutcome_" emptyLabel={t("snapNotSet")} onChange={(v) => setEntry((x) => Object.assign({}, x, { outcome: v }))} />
             <Field className="sm:col-span-3" label={t("snapSummary")} htmlFor="snapd-summary" hint={t("snapSummaryHint")}>
-              <Textarea
+              <Textarea placeholder={t("phActivitySummary")}
                 id="snapd-summary" rows={2} maxLength={SUMMARY_MAX} value={entry.summary}
                 aria-describedby="snapd-summary-hint"
                 className="min-h-[72px]"

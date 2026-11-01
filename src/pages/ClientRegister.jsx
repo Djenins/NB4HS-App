@@ -21,7 +21,7 @@ import { cn } from "../lib/cn.js";
 import { todayStr } from "../lib/utils.js";
 import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import ApptRequestCard from "../components/appointment/ApptRequestCard.jsx";
-import { ApptField, ApptSelect } from "../components/appointment/ApptRequestField.jsx";
+import { ApptDateField, ApptField, ApptSelect } from "../components/appointment/ApptRequestField.jsx";
 import AppointmentSubmitButton from "../components/appointment/AppointmentSubmitButton.jsx";
 import WhatHappensNext from "../components/appointment/WhatHappensNext.jsx";
 import YourInformationSection from "../components/appointment/YourInformationSection.jsx";
@@ -123,7 +123,7 @@ export default function ClientRegister() {
                 onToggle={() => toggleSection("info")}
               >
                 <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
-                  <ApptField name="dob" label={t("dobLabel")} type="date" error={errors.dob} autoComplete="bday" />
+                  <ApptDateField name="dob" label={t("dobLabel")} error={errors.dob} pastOnly />
                   <ApptSelect name="immigrationStatus" label={t("immigrationStatusLabel")} defaultValue="">
                     <option value="">{t("pleaseSelect")}</option>
                     {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key, lang)}</option>)}

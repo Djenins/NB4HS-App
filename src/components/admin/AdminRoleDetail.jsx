@@ -52,10 +52,10 @@ function EditRoleDialog({ open, onClose, role, onSaved }) {
       }>
       <div className="grid gap-4">
         <Field label={t("adminRoleNameLabel")} htmlFor="edit-role-name" required>
-          <Input id="edit-role-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} data-autofocus />
+          <Input placeholder={t("phRoleName")} id="edit-role-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} data-autofocus />
         </Field>
         <Field label={t("adminDescriptionLabel")} htmlFor="edit-role-desc">
-          <Textarea id="edit-role-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
+          <Textarea placeholder={t("phRoleDesc")} id="edit-role-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
         </Field>
       </div>
     </Dialog>

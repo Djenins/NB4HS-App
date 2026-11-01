@@ -104,10 +104,10 @@ export default function InviteDialog({ open, onClose, existingEmails, onInvited 
     >
       <div className="grid gap-4">
         <Field label={t("fullNameLabel")} htmlFor="invite-name" error={errors.name} required>
-          <Input id="invite-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={120} aria-invalid={!!errors.name} data-autofocus />
+          <Input placeholder={t("phFullName")} id="invite-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={120} aria-invalid={!!errors.name} data-autofocus />
         </Field>
         <Field label={t("emailAddressCol")} htmlFor="invite-email" error={errors.email} required>
-          <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" aria-invalid={!!errors.email} />
+          <Input placeholder={t("phEmail")} id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" aria-invalid={!!errors.email} />
         </Field>
         <Field label={t("adminAccountTypeLabel")} htmlFor="invite-role" hint={t("adminAccountTypeHint")}>
           <Select id="invite-role" value={role} onChange={(e) => setRole(e.target.value)}>

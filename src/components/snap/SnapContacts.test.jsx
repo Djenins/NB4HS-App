@@ -82,7 +82,7 @@ describe("SnapContacts", () => {
     expect(await screen.findByRole("button", { name: en("snapAlreadyContact") })).toBeInTheDocument();
   });
 
-  it("requires a name and a way to reach them, then warns about a likely duplicate", async () => {
+  it("requires a name and a phone number, then warns about a likely duplicate", async () => {
     renderAs("worker", "w-me");
     await screen.findAllByText("Jean Pierre");
     fireEvent.click(screen.getByRole("button", { name: en("snapAddContact") }));
@@ -94,9 +94,9 @@ describe("SnapContacts", () => {
     fireEvent.change(screen.getByRole("textbox", { name: en("firstName") }), { target: { value: "Marie" } });
     fireEvent.change(screen.getByRole("textbox", { name: en("lastName") }), { target: { value: "Joseph" } });
     fireEvent.click(within(dialog).getByRole("button", { name: en("snapAddContact") }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(en("snapContactNeedsWay"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(en("phoneRequired"));
 
-    fireEvent.change(screen.getByLabelText(en("phoneLabel")), { target: { value: "401-555-0100" } });
+    fireEvent.change(screen.getByRole("textbox", { name: en("phoneLabel") }), { target: { value: "401-555-0100" } });
     fireEvent.click(within(dialog).getByRole("button", { name: en("snapAddContact") }));
     expect(await screen.findByText(en("duplicateWarningTitle"))).toBeInTheDocument();
     expect(api.createOutreachContact).not.toHaveBeenCalled();

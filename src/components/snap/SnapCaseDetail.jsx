@@ -26,6 +26,7 @@ import { Field, Input, Select, Textarea } from "../ui/field.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
 import { SnapCheckboxes, SnapSelect } from "./SnapField.jsx";
 import { SnapTaskForm, SnapTaskRows } from "./SnapTaskList.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 const H3 = "m-0 text-section font-semibold text-card-foreground";
 
@@ -160,7 +161,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label={t("snapFollowUpDate")} htmlFor="case-followup">
-              <Input id="case-followup" type="date" value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(e) => patch({ followUpDate: e.target.value })} />
+              <div className="ds-control"><DatePicker id="case-followup" value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(v) => patch({ followUpDate: v })} /></div>
             </Field>
             {perms.canReassign && (
               <Field label={t("snapAssignedTo")} htmlFor="case-assigned">
@@ -220,7 +221,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
           <p id="case-notes-help" className="m-0 mb-3 mt-1 text-meta text-muted">{t("snapCaseNotesHelp")}</p>
           {perms.canEdit && (
             <form onSubmit={addNote} className="mb-4 grid gap-2">
-              <Textarea rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
+              <Textarea placeholder={t("phNoteContent")} rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
                 onChange={(e) => setNoteText(e.target.value)} />
               <div className="flex justify-end"><Button type="submit" size="sm" loading={busy} disabled={!noteText.trim()}>{t("snapAddNote")}</Button></div>
             </form>

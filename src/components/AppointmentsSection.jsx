@@ -129,7 +129,9 @@ export default function AppointmentsSection({ open, onToggle, meetingWith, clien
       title={t("appointmentsTitle")}
       description={t("appointmentsDesc")}
       flush={!open}
-      className="mb-5"
+      // SectionCard clips by default; the date field's calendar popup has to
+      // hang past the card's bottom edge.
+      className="mb-5 overflow-visible"
       action={
         <IconButton
           variant="secondary"

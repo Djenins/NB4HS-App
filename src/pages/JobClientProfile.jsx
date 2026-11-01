@@ -29,7 +29,7 @@ import {
   createApplication, createClientDocument, createClientNote, deleteApplication, deleteClientDocument,
   fetchApplications, fetchClientDocuments, fetchClientNotes, getFileSignedUrl, updateJobClient, uploadClientFile
 } from "../lib/clientsData.js";
-import { formatAddress, formatPhone, fmtDateLong, initialsOf, todayStr } from "../lib/utils.js";
+import { fmtDateLong, formatAddress, formatPhone, initialsOf, phoneError, todayStr } from "../lib/utils.js";
 import CircularGauge from "../components/CircularGauge.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import JobPipelineTracker from "../components/JobPipelineTracker.jsx";
@@ -153,14 +153,20 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
     phone: record.phone || "", email: record.email || "", street: record.street || "", city: record.city || "", zip: record.zip || "",
     transportation: record.transportation || "", preferredLanguage: record.preferredLanguage || "", secondaryLanguage: record.secondaryLanguage || ""
   });
+  const [phoneErr, setPhoneErr] = useState("");
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
-  function text(name, labelKey, phKey, extra) {
+  function submit() {
+    const problem = phoneError(fields.phone);
+    setPhoneErr(problem);
+    if (!problem) run(() => onSave(fields));
+  }
+  function text(name, labelKey, phKey, extra, fieldProps) {
     // The street field suggests addresses and fills city/zip from the pick.
     const addr = name === "street" ? { as: Input, onAddressSelect: (a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip })) } : null;
     const Control = addr ? AddressInput : Input;
     const id = "job-personal-" + name;
     return (
-      <Field label={t(labelKey)} htmlFor={id}>
+      <Field label={t(labelKey)} htmlFor={id} {...fieldProps}>
         <Control {...addr} id={id} value={fields[name]} onChange={(e) => setField(name, e.target.value)} placeholder={t(phKey)} autoComplete="off" {...extra} />
       </Field>
     );
@@ -174,11 +180,11 @@ function PersonalInfoModal({ record, onSave, onCancel }) {
       size="lg"
       closeLabel={t("closeLabel")}
       as="form"
-      panelProps={{ onSubmit: (e) => { e.preventDefault(); run(() => onSave(fields)); } }}
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); submit(); } }}
       footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={t("saveLabel")} />}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {text("phone", "phone", "phPhone", { type: "tel", "data-autofocus": true })}
+        {text("phone", "phone", "phPhone", { type: "tel", "data-autofocus": true, "aria-invalid": !!phoneErr || undefined }, { required: true, error: phoneErr ? t(phoneErr) : null })}
         {text("email", "email", "phEmail", { type: "email" })}
         {text("street", "address", "phAddress")}
         {text("city", "city", "phCity")}
@@ -710,7 +716,7 @@ export default function JobClientProfile() {
                   </ul>
                 )}
                 <Field label={t("addSkillLabel")} htmlFor="job-add-skill" hint={t("addSkillPlaceholder")}>
-                  <Input
+                  <Input placeholder={t("addSkillPlaceholder")}
                     id="job-add-skill"
                     value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}

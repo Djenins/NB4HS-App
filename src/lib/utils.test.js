@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  csvEscape, escapeHtml, formatAddress, formatPhone, fmtDuration, fmtTime,
-  genStudentId, initialsOf, minutesBetween, pad2, parseCSVText, slugify
+  byIntakeDate, csvEscape, escapeHtml, formatAddress, formatPhone, fmtDuration, fmtTime,
+  genStudentId, initialsOf, minutesBetween, pad2, parseCSVText, phoneError, slugify
 } from "./utils.js";
 
 describe("pad2", () => {
@@ -138,7 +138,7 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
   const { fmtDateLong, monthNamesLong, monthYearLabel, weekdayShortLabels } = await import("./utils.js");
   it("names months and weekdays in Kreyòl", () => {
     expect(monthNamesLong("ht")).toEqual(["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"]);
-    expect(weekdayShortLabels("ht")).toEqual(["lin", "mad", "mèk", "jed", "van", "sam", "dim"]);
+    expect(weekdayShortLabels("ht")).toEqual(["dim", "lin", "mad", "mèk", "jed", "van", "sam"]);
     expect(fmtDateLong("2026-11-02", "ht")).toBe("2 novanm 2026");
     expect(monthYearLabel(2026, 9, "ht")).toBe("oktòb 2026");
   });
@@ -147,6 +147,24 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
     // A full timestamp (a document's created_at) shows the local day, not "Invalid Date".
     expect(fmtDateLong(new Date(2026, 10, 2, 21, 30).toISOString(), "en")).toBe("Nov 2, 2026");
     expect(monthNamesLong("fr")[10]).toBe("novembre");
-    expect(weekdayShortLabels("en")[0]).toBe("Mon");
+    expect(weekdayShortLabels("en")[0]).toBe("Sun");
   });
 });
+
+describe("phoneError", () => {
+  it("requires a number", () => {
+    expect(phoneError("")).toBe("phoneRequired");
+    expect(phoneError("   ")).toBe("phoneRequired");
+    expect(phoneError(undefined)).toBe("phoneRequired");
+  });
+  it("rejects text that isn't a phone number", () => { expect(phoneError("call me")).toBe("invalidPhone"); });
+  it("accepts a formatted number", () => { expect(phoneError("(401) 555-0100")).toBe(""); });
+});
+
+describe("byIntakeDate", () => {
+  it("orders by intake date, oldest first, with undated rows last", () => {
+    const rows = [{ n: "none" }, { n: "b", intakeDate: "2021-05-01" }, { n: "a", intakeDate: "2019-03-04" }];
+    expect(rows.slice().sort(byIntakeDate).map((r) => r.n)).toEqual(["a", "b", "none"]);
+  });
+});
+

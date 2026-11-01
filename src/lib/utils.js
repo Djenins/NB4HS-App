@@ -40,17 +40,14 @@ export function genStudentId(n) {
   var padded = ("00000" + n).slice(-5);
   return "NB-" + padded;
 }
-// Unified master-client id, same "NB-#####" format as genStudentId() but
-// backed by its own counter (data.nextClientNumber, see masterClients.js) --
-// deliberately NOT the same sequence as student ids. Students and unified
-// clients are different arrays (data.students vs data.clients) looked up
-// independently by their own id field, so a student and a client can validly
-// share the same NB-##### text without ever colliding in a lookup. Unifying
-// the two counters into one global id space is a future, deliberate choice,
-// not implied by sharing this format.
-export function genClientId(n) {
-  var padded = ("00000" + n).slice(-5);
-  return "NB-" + padded;
+// Client IDs (NB26-0001) are made by the database from the intake date's
+// year: see supabase/migrations/20261101092314_i2_client_id_join_year.sql.
+// Imports create rows in this order so the numbers within a year follow the
+// order people joined; rows with no intake date go last.
+export function byIntakeDate(a, b) {
+  var x = (a && a.intakeDate) || "", y = (b && b.intakeDate) || "";
+  if (!x || !y) return x ? -1 : y ? 1 : 0;
+  return x < y ? -1 : x > y ? 1 : 0;
 }
 export function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 export function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
@@ -108,7 +105,7 @@ export function addMonths(dateStr, n) {
 // months and weekdays in English. These are the Kreyòl names, lower-case like
 // French. Only client-facing pages ever see lang "ht" (AppContext).
 var HT_MONTHS = ["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"];
-var HT_WEEKDAYS_SHORT = ["lin", "mad", "mèk", "jed", "van", "sam", "dim"];
+var HT_WEEKDAYS_SHORT = ["dim", "lin", "mad", "mèk", "jed", "van", "sam"];
 
 // Takes a bare YYYY-MM-DD (read as a local calendar day) or a full timestamp
 // such as a row's created_at (shown as the day it falls on locally).
@@ -153,16 +150,16 @@ export function weekdayShortLabels(lang) {
   if (lang === "ht") return HT_WEEKDAYS_SHORT.slice();
   var out = [];
   for (var i = 0; i < 7; i++) {
-    var d = new Date(2024, 0, 1 + i);
+    var d = new Date(2023, 11, 31 + i); // Sun 31 Dec 2023, so the week starts on Sunday
     out.push(d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { weekday: "short" }));
   }
   return out;
 }
-// 6 weeks x 7 days (Monday-first), including enough leading/trailing days
-// from adjacent months to fill the grid.
+// 6 weeks x 7 days (Sunday-first, as US calendars are), including enough
+// leading/trailing days from adjacent months to fill the grid.
 export function buildMonthGrid(year, month) {
   var firstOfMonth = new Date(year, month, 1);
-  var firstWeekday = (firstOfMonth.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+  var firstWeekday = firstOfMonth.getDay(); // 0=Sun .. 6=Sat
   var start = new Date(year, month, 1 - firstWeekday);
   var cells = [];
   for (var i = 0; i < 42; i++) {
@@ -227,6 +224,16 @@ export function initialsOf(rec) {
 // Formats/normalizes any phone-ish string to (000) 000-0000 as digits are
 // typed or displayed -- used both live in onChange handlers and for display
 // of stored values (some of which may be raw digits from CSV import/seed data).
+// Phone is required on every person record staff create or edit (clients,
+// job clients, students, SNAP contacts). Returns the i18n key of the
+// problem, or "" when the number is fine.
+export var PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
+export function phoneError(value) {
+  var v = String(value || "").trim();
+  if (!v) return "phoneRequired";
+  return PHONE_RE.test(v) ? "" : "invalidPhone";
+}
+
 export function formatPhone(value) {
   var digits = String(value || "").replace(/\D/g, "").slice(0, 10);
   if (!digits) return "";

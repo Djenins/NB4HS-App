@@ -65,10 +65,10 @@ export function NewRoleDialog({ open, onClose, roles, copyFrom, onCreated }) {
       }>
       <div className="grid gap-4">
         <Field label={t("adminRoleNameLabel")} htmlFor="role-name" error={error} required>
-          <Input id="role-name" value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={80} aria-invalid={!!error} data-autofocus />
+          <Input placeholder={t("phRoleName")} id="role-name" value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={80} aria-invalid={!!error} data-autofocus />
         </Field>
         <Field label={t("adminDescriptionLabel")} htmlFor="role-desc">
-          <Textarea id="role-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
+          <Textarea placeholder={t("phRoleDesc")} id="role-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
         </Field>
         <Field label={t("adminStartFrom")} htmlFor="role-source" hint={t("adminStartFromHint")}>
           <Select id="role-source" value={source} onChange={(e) => setSource(e.target.value)}>

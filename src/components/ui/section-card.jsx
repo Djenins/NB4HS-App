@@ -11,8 +11,12 @@ export function SectionCard({ title, description, action, footer, flush, classNa
   return (
     <Card className={cn("overflow-hidden", className)} {...rest}>
       {title || action ? (
-        <div className={cn("flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6", hasBody ? "pb-3" : "pb-5")}>
-          <div className="min-w-0">
+        // A lone title centres on the action; with a description under it the
+        // action lines up with the top instead of floating mid-paragraph.
+        <div className={cn("flex flex-wrap justify-between gap-3 px-5 pt-5 sm:px-6", description ? "items-start" : "items-center", hasBody ? "pb-3" : "pb-5")}>
+          {/* flex-1 + a 16rem basis: a long description wraps inside this
+              column instead of pushing the action onto its own line. */}
+          <div className="min-w-0 flex-1 basis-64">
             {title ? <h2 className="m-0 text-section font-semibold text-card-foreground">{title}</h2> : null}
             {description ? <p className="m-0 mt-0.5 text-meta text-muted">{description}</p> : null}
           </div>

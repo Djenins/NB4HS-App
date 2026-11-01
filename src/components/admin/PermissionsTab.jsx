@@ -24,6 +24,7 @@ import { Field, Input, Select } from "../ui/field.jsx";
 import { IconButton } from "../ui/icon-button.jsx";
 import { Skeleton } from "../ui/skeleton.jsx";
 import { ChangeList, ReviewChangesDialog, SCOPE_LABEL, SensitivityBadge, fmtWhen } from "./adminShared.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 // The origin marker: shape and text together, never colour alone.
 function Origin({ state, staged }) {
@@ -84,7 +85,7 @@ function OverrideDialog({ request, onClose, onStage }) {
           </Field>
         ) : null}
         <Field label={t("adminUntilLabel")} htmlFor="override-until" hint={t("adminUntilHint")}>
-          <Input id="override-until" type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setUntil(e.target.value)} />
+          <div className="ds-control"><DatePicker id="override-until" value={until} min={new Date().toISOString().slice(0, 10)} onChange={setUntil} /></div>
         </Field>
       </div>
     </Dialog>

@@ -22,6 +22,7 @@ import { Button } from "../ui/button.jsx";
 import { Drawer } from "../ui/drawer.jsx";
 import { Field, Input, Select } from "../ui/field.jsx";
 import { cn } from "../../lib/cn.js";
+import DatePicker from "../DatePicker.jsx";
 
 // An uppercase overline label over its value -- the drawer's read-only
 // field. The overline tracking is the calendar's one value, 0.06em.
@@ -159,7 +160,7 @@ export default function EventDrawer({ block, t, openInEditMode, onClose, onSave,
             <Input id={id("person")} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} />
           </Field>
           <Field label={t("calendarDate")} required htmlFor={id("date")}>
-            <Input id={id("date")} type="date" value={fields.date} onChange={(e) => setField("date", e.target.value)} />
+            <div className="ds-control"><DatePicker id={id("date")} value={fields.date} onChange={(v) => setField("date", v)} /></div>
           </Field>
           {fields.type === "appointment" && (
             <Field label={t("calendarAvailability")} htmlFor={id("availability")}>

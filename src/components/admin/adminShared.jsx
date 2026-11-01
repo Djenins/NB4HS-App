@@ -113,7 +113,7 @@ export function ReasonDialog({ open, onClose, onConfirm, title, description, con
         required={required}
         className={children ? "mt-4" : undefined}
       >
-        <Textarea
+        <Textarea placeholder={t("phReason")}
           id="admin-reason"
           value={reason}
           onChange={(e) => { setReason(e.target.value); if (error) setError(""); }}
@@ -178,12 +178,12 @@ export function ReviewChangesDialog({ open, onClose, onConfirm, title, descripti
           <Alert tone="warning" title={t("adminHighRiskTitle")}>{t("adminHighRiskBody")}</Alert>
         ) : null}
         <Field label={t("adminReasonLabel")} htmlFor="review-reason" hint={t("adminReasonHint")} error={reasonError} required>
-          <Textarea id="review-reason" value={reason} maxLength={1000} aria-invalid={!!reasonError}
+          <Textarea placeholder={t("phReason")} id="review-reason" value={reason} maxLength={1000} aria-invalid={!!reasonError}
             onChange={(e) => { setReason(e.target.value); if (reasonError) setReasonError(""); }} />
         </Field>
         {highRisk ? (
           <Field label={t("adminTypeToConfirm").replace("{phrase}", confirmPhrase)} htmlFor="review-confirm">
-            <Input id="review-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} />
+            <Input placeholder={confirmPhrase} id="review-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} />
           </Field>
         ) : null}
       </div>

@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { t as translate } from "../lib/i18n.js";
 
-vi.mock("../context/AppContext.jsx", () => ({ useT: () => (key) => translate(key, "ht") }));
+vi.mock("../context/AppContext.jsx", () => ({ useT: () => (key) => translate(key, "ht"), useApp: () => ({ lang: "ht" }) }));
 vi.mock("../lib/pdfLibs.js", () => ({ loadPdfLibs: vi.fn() }));
 const updateClientRecord = vi.fn(async () => ({}));
 const saveClientIntake = vi.fn(async () => "2026-10-26T18:00:00Z");
@@ -63,5 +63,14 @@ describe("IntakeFormCard in Kreyòl", () => {
     render(<IntakeFormCard bare client={{ id: "c2", firstName: "Jean", lastName: "Pierre" }} />);
     await waitFor(() => expect(screen.getAllByRole("radio", { name: "Gason" })[0]).toBeChecked());
     storedIntake = null;
+  });
+
+  it("removes the child that was added by mistake, keeping the others", () => {
+    render(<IntakeFormCard bare client={{ id: "c3", firstName: "Ana", lastName: "Paul" }} />);
+    const names = () => screen.getAllByPlaceholderText(translate("intakePhChildName", "ht"));
+    fireEvent.change(names()[0], { target: { value: "Lena" } });
+    fireEvent.change(names()[1], { target: { value: "Mistake" } });
+    fireEvent.click(screen.getByRole("button", { name: translate("intakeRemoveChild", "ht").replace("{n}", 2) }));
+    expect(names().map((el) => el.value)).toEqual(["Lena"]);
   });
 });

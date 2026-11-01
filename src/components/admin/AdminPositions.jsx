@@ -53,10 +53,10 @@ function PositionDialog({ open, onClose, position, onSaved }) {
       }>
       <div className="grid gap-4">
         <Field label={t("adminPositionNameLabel")} htmlFor="position-name" error={error} required>
-          <Input id="position-name" value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={80} aria-invalid={!!error} data-autofocus />
+          <Input placeholder={t("phPositionName")} id="position-name" value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={80} aria-invalid={!!error} data-autofocus />
         </Field>
         <Field label={t("adminDescriptionLabel")} htmlFor="position-desc">
-          <Textarea id="position-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
+          <Textarea placeholder={t("phPositionDesc")} id="position-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
         </Field>
       </div>
     </Dialog>

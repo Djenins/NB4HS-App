@@ -22,6 +22,7 @@ import { EmptyState } from "../ui/empty-state.jsx";
 import { Field, Input, Select } from "../ui/field.jsx";
 import { IconButton } from "../ui/icon-button.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 // The row's status for the `task` statusTone domain, or null for an open
 // task that isn't due yet.
@@ -96,7 +97,7 @@ function TaskRow({ task, onChanged, showClient }) {
       {perms.canEdit && completing && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <Field className="min-w-[200px] flex-1" label={t("snapTaskCompletionNotes")} htmlFor={"task-notes-" + task.id}>
-            <Input id={"task-notes-" + task.id} maxLength={TASK_TEXT_MAX} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Input placeholder={t("phCompletionNotes")} id={"task-notes-" + task.id} maxLength={TASK_TEXT_MAX} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
           <Button size="sm" loading={busy} onClick={() => save({ status: "done", completionNotes: notes })}>
             {!busy && <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}{t("snapTaskDone")}
@@ -156,10 +157,10 @@ export function SnapTaskForm({ context, onSaved, onCancel }) {
   return (
     <form onSubmit={submit} className="mb-4 grid gap-3 rounded-control border border-border bg-surface-sunken p-4 sm:grid-cols-4">
       <Field className="sm:col-span-4" label={t("snapTaskTitle")} htmlFor="task-title" required>
-        <Input id="task-title" autoComplete="off" value={fields.title} onChange={(e) => set("title")(e.target.value)} />
+        <Input placeholder={t("phTaskTitle")} id="task-title" autoComplete="off" value={fields.title} onChange={(e) => set("title")(e.target.value)} />
       </Field>
       <Field label={t("snapTaskDue")} htmlFor="task-due">
-        <Input id="task-due" type="date" value={fields.dueDate} onChange={(e) => set("dueDate")(e.target.value)} />
+        <div className="ds-control"><DatePicker id="task-due" value={fields.dueDate} onChange={set("dueDate")} /></div>
       </Field>
       <Field label={t("snapTaskPriority")} htmlFor="task-priority">
         <Select id="task-priority" value={fields.priority} onChange={(e) => set("priority")(e.target.value)}>

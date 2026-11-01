@@ -15,6 +15,7 @@ import { fmtDateLong } from "../lib/utils.js";
 import { cn } from "../lib/cn.js";
 import { Button } from "./ui/button.jsx";
 import { Input } from "./ui/field.jsx";
+import DatePicker from "./DatePicker.jsx";
 
 function RescheduleForm({ appt, onDone }) {
   const t = useT();
@@ -30,7 +31,7 @@ function RescheduleForm({ appt, onDone }) {
   return (
     <div className="mt-2 space-y-2 rounded-control border border-border bg-surface-sunken p-2" onClick={(e) => e.stopPropagation()}>
       <div className="grid grid-cols-2 gap-2">
-        <Input type="date" aria-label={t("calendarDate")} value={date} onChange={(e) => setDate(e.target.value)} className="h-8 px-2 text-meta" />
+        <div className="ds-control ds-control-sm" role="group" aria-label={t("calendarDate")}><DatePicker value={date} onChange={setDate} /></div>
         <Input type="time" aria-label={t("calendarStartTime")} value={time} onChange={(e) => setTime(e.target.value)} className="h-8 px-2 text-meta" />
       </div>
       <div className="flex gap-1.5">
