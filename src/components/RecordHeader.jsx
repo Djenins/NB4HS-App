@@ -139,7 +139,7 @@ export default function RecordHeader({ name, initials, onBack, backLabel, badges
           // !gap-px: main.css's legacy `.grid{gap:16px}` wins on phones.
           <dl
             className={cn(
-              "m-0 mt-5 grid grid-cols-2 !gap-px overflow-hidden rounded-surface border border-border bg-line-subtle shadow-card",
+              "m-0 mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-surface border border-border bg-line-subtle shadow-card",
               shownFacts.length >= 4 ? "lg:grid-cols-4" : shownFacts.length === 3 ? "lg:grid-cols-3" : ""
             )}
           >

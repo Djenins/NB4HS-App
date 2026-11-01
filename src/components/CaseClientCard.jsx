@@ -92,7 +92,9 @@ export function caseClientColumns({ t, lang, onOpen, onRemove }) {
   return [
     { key: "name", header: t("nameLabel"), cell: (c) => <NameButton client={c} onOpen={() => onOpen(c)} t={t} /> },
     { key: "phone", header: t("phoneLabel"), className: "whitespace-nowrap", cell: (c) => formatPhone(c.phone) || "—" },
-    { key: "email", header: t("emailLabel"), className: "break-all", cell: (c) => c.email || "—" },
+    // break-all let a squeezed column wrap the address a letter per line;
+    // a capped, truncated line keeps the column readable, title has the rest.
+    { key: "email", header: t("emailLabel"), cell: (c) => (c.email ? <span className="block max-w-[15rem] truncate" title={c.email}>{c.email}</span> : "—") },
     { key: "address", header: t("address"), cell: (c) => formatAddress(c) || "—" },
     { key: "immigration", header: t("immigrationStatusLabel"), cell: (c) => <ImmigrationBadge status={c.immigrationStatus} lang={lang} /> },
     { key: "intake", header: t("intakeDateLabel"), className: "whitespace-nowrap", cell: (c) => fmtDateLong(c.intakeDate) || "—" },

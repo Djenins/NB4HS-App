@@ -10,7 +10,7 @@
     --navy:#1F2A6D; --navy-dark:#172052;
     --accent:#D61F26; --accent-dark:#9A161B;
     --success:#1a7f37; --gold:#D99E32; --gold-dark:#BF7821;
-    --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
+    --bg:#F8FAFC; --card:#ffffff; --text:#0F172A; --muted:#5B6879; --border:#E5E7EB;
     --secondary-border:#CBD5E1;
     --radius:18px;
     /* Subtle tints for icon badges / highlighted backgrounds -- same hues, low saturation */
@@ -90,8 +90,9 @@
     /* Lines: subtle for repeated internal rules (table rows, the calendar
        grid), default for edges, strong for hover/emphasis. */
     --border-subtle:#EEF1F7; --border-strong:#B7C0D1;
-    /* Secondary text that sits on a tone tint rather than on a card: --muted
-       drops under AA on the tints, this clears 5:1 on all of them. */
+    /* Secondary text on a tone tint. --muted now clears AA on the sunken
+       surface and every tint as well (4.8:1 on the weakest, primary-tint);
+       this stays its own token so tinted callouts can diverge later. */
     --text-on-tint:#5B6879;
 
     /* Tones: the calendar's per-kind recipe, generalised. Every status, category
@@ -277,7 +278,6 @@
   .field-invalid{border-color:var(--accent) !important; background:var(--accent-tint);}
   .field{margin-bottom:16px;}
   .required:after{content:" *"; color:var(--accent);}
-  .grid{display:grid; gap:16px;}
   /* The staff topbar is a quiet hairline bar (batch 3g): it used to carry a
      3px red rule, but red is for errors only. */
   header.topbar{
@@ -364,7 +364,7 @@
   :root{
     --sb-bg:rgba(255,255,255,.88); --sb-border:rgba(148,163,184,.22); --sb-divider:rgba(148,163,184,.24);
     --sb-text:#172554; --sb-muted:var(--muted); --sb-icon:#334155;
-    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:var(--primary);
+    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#1D4ED8; --sb-rail-active:var(--primary);
     --sb-field:rgba(241,245,249,.95); --sb-field-border:rgba(148,163,184,.28); --sb-kbd:#ffffff;
     --sb-seg:rgba(241,245,249,.95); --sb-seg-on:#ffffff; --sb-seg-on-text:#155EEF;
     --sb-tooltip:var(--text); --sb-tooltip-text:var(--card);

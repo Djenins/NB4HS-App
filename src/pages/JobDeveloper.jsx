@@ -543,8 +543,8 @@ export default function JobDeveloper() {
 
           {paged.items.length > 0 && (
             <>
-              <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-ui font-medium text-card-foreground">
-                <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+              <label className="mb-1 flex min-h-11 w-fit cursor-pointer items-center gap-2.5 text-ui font-medium text-card-foreground">
+                <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="h-5 w-5 shrink-0 cursor-pointer accent-primary" />
                 {t("selectAllLabel")}
               </label>
               <BulkActionsBar count={selected.size} onClear={() => setSelected(new Set())}>

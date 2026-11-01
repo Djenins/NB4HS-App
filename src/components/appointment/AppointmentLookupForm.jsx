@@ -84,7 +84,7 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
             single horizontal rule once they stack on a phone. */}
         <div aria-hidden="true" className="flex items-center justify-center gap-3 md:flex-col md:gap-2">
           <span className="h-px flex-1 bg-border md:h-auto md:w-px" />
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-touch-meta font-extrabold uppercase tracking-wide text-primary">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-touch-meta font-extrabold uppercase tracking-wide text-tone-info-ink">
             {t("orLabel")}
           </span>
           <span className="h-px flex-1 bg-border md:h-auto md:w-px" />

@@ -247,7 +247,7 @@ export default function CheckOut() {
               <History className="h-5 w-5 text-primary" aria-hidden="true" />
               <h2 id="checkout-recent-title" className="m-0 text-touch-section font-extrabold tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-section">{t("recentCheckOutsTitle")}</h2>
             </div>
-            <GuardedLink to="/search" routeKey="search" className="text-touch-meta font-semibold text-primary hover:underline">{t("viewAllLabel")}</GuardedLink>
+            <GuardedLink to="/search" routeKey="search" className="-my-3 inline-flex min-h-11 items-center text-touch-meta font-semibold text-primary hover:underline">{t("viewAllLabel")}</GuardedLink>
           </div>
           {recentCheckouts.length ? (
             <div className="overflow-x-auto rounded-control border border-border">
