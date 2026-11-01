@@ -4,7 +4,7 @@
 // the `isKioskLanding` check there) instead of sitting inside the plain
 // boxed card the rest of the app's screens use.
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CalendarCheck, GraduationCap, Headset, Heart, LogOut, User, UserPlus } from "lucide-react";
+import { ArrowRight, CalendarCheck, ChevronRight, GraduationCap, Headset, Heart, LogOut, User, UserPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
 import { ORG } from "../lib/constants.js";
@@ -51,6 +51,30 @@ function RoleCard({ icon, iconClass, title, services, buttonLabel, buttonClass, 
   );
 }
 
+// Phone only (below sm): one row of the single list panel -- a small icon in
+// a soft tone circle, title and description, a chevron; the whole row is the
+// button. From sm up the page keeps the card layout above.
+function ChoiceRow({ icon: Icon, iconClass, title, description, onClick }) {
+  return (
+    <li className="m-0">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-h-[64px] w-full items-center gap-3.5 border-0 bg-transparent px-4 py-3 text-left font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+      >
+        <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", iconClass)}>
+          <Icon strokeWidth={2} aria-hidden="true" className="h-[22px] w-[22px]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block break-words text-touch-section font-extrabold leading-snug text-navy dark:text-[color:var(--text)]">{title}</span>
+          <span className="mt-0.5 block break-words text-touch-meta leading-snug text-muted">{description}</span>
+        </span>
+        <ChevronRight strokeWidth={2.4} aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />
+      </button>
+    </li>
+  );
+}
+
 export default function CheckIn() {
   const { kiosk } = useApp();
   const t = useT();
@@ -64,8 +88,8 @@ export default function CheckIn() {
   const compact = !kiosk;
 
   return (
-    <div className={cn("kiosk-landing relative flex w-full flex-col overflow-hidden bg-background", compact ? "min-h-0" : "h-screen")}>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className={cn("kiosk-landing relative flex w-full flex-col overflow-hidden bg-background", compact ? "min-h-0" : "h-screen supports-[height:100dvh]:h-[100dvh]")}>
+      <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block">
         <div
           className="absolute left-1/2 top-[-10%] h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-60"
           style={{ background: "radial-gradient(closest-side, var(--primary-tint), transparent)" }}
@@ -84,14 +108,56 @@ export default function CheckIn() {
         tabIndex={-1}
         className={cn(
           "relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-y-auto px-4 sm:px-6",
-          compact ? "pb-8 pt-6" : "py-5"
+          compact ? "pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 sm:pt-6" : "pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:pt-5"
         )}
       >
         {/* m-auto rather than justify-center on <main>: it centres the content
             when there's room, and lets it start at the top (scrollable) when
             there isn't -- justify-center pushed the heading and first card
             above the scroll area on phones and short kiosk screens. */}
-        <div className="my-auto flex w-full flex-col items-center">
+        {/* Phone: a compact, left-aligned welcome and one list of every
+            choice, each row tapping straight through. */}
+        <div className="w-full sm:hidden">
+          <h1 className="m-0 text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
+          <p className="m-0 mt-1 text-touch-body text-muted">{t("landingChooseHowWeHelp")}</p>
+
+          <ul className="m-0 mt-5 list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
+            <ChoiceRow icon={GraduationCap} iconClass="bg-tone-info-chip text-tone-info-ink"
+              title={t("iAmStudent").replace(/\s*\(.*\)$/, "")} description={t("landingStudentServices")}
+              onClick={() => navigate("/checkin/student")} />
+            <ChoiceRow icon={User} iconClass="bg-tone-warning-chip text-tone-warning-ink"
+              title={t("iAmVisitor").replace(/\s*\(.*\)$/, "")} description={t("landingVisitorServices")}
+              onClick={() => navigate("/checkin/visitor")} />
+            <ChoiceRow icon={UserPlus} iconClass="bg-tone-success-chip text-tone-success-ink"
+              title={t("registerKioskTitle")} description={t("registerKioskServices")}
+              onClick={() => navigate("/register")} />
+            <ChoiceRow icon={LogOut} iconClass="bg-tone-neutral-chip text-tone-neutral-ink"
+              title={t("iAmDone")} description={t("landingCheckOutServices")}
+              onClick={() => navigate("/checkout")} />
+            <ChoiceRow icon={CalendarCheck} iconClass="bg-tone-violet-chip text-tone-violet-ink"
+              title={t("requestApptLandingBtn")} description={t("requestApptCardDesc")}
+              onClick={() => navigate("/appointments/request")} />
+          </ul>
+
+          <p className="m-0 mt-4 text-touch-meta text-muted">
+            {t("alreadyRequestedApptLabel")}{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/appointments/lookup")}
+              className="-my-3 inline-flex min-h-0 items-center gap-1 border-0 bg-transparent px-0 py-3 font-bold text-primary transform-none hover:underline"
+            >
+              {t("apptLookupLink")} <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          </p>
+
+          <p className="m-0 mt-5 flex items-center justify-center gap-2 text-center text-touch-meta text-muted">
+            <Headset size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
+            <span><span className="font-semibold text-navy dark:text-[color:var(--text)]">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
+          </p>
+        </div>
+
+        {/* sm and up: the kiosk card layout, unchanged. */}
+        <div className="my-auto hidden w-full flex-col items-center sm:flex">
         <h1 className={cn("mb-[0.55em] max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-touch-heading sm:text-touch-title" : "text-touch-heading sm:text-touch-hero")}>
           {t("landingWelcomeTo")} {ORG.name}
         </h1>
@@ -179,7 +245,7 @@ export default function CheckIn() {
           </button>
         </p>
 
-        {/* In kiosk mode on a phone this moves into the footer below. */}
+        {/* Phones show this note under their list instead. */}
         <div className={cn("flex-col items-center gap-1.5 text-center", compact ? "mt-6 flex" : "mt-5 hidden sm:flex")}>
           <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-10 w-10")}>
             <Headset size={compact ? 16 : 18} strokeWidth={2} aria-hidden="true" />
@@ -191,18 +257,8 @@ export default function CheckIn() {
       </main>
 
       {kiosk && (
-        <footer className="relative z-10 flex shrink-0 items-center justify-between gap-3 bg-navy px-4 py-2.5 text-white sm:px-10 sm:py-3">
-          {/* Phone: the "Need help?" note takes the footer instead of the logo,
-              which the top bar already shows. */}
-          <div className="flex items-center gap-3 sm:hidden">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
-              <Headset size={18} strokeWidth={2} aria-hidden="true" />
-            </span>
-            <p className="m-0 text-touch-meta">
-              <span className="font-bold">{t("landingNeedHelp")}</span>{" "}
-              <span className="text-white/85">{t("landingAskStaff")}</span>
-            </p>
-          </div>
+        <footer className="relative z-10 hidden shrink-0 items-center justify-between gap-3 bg-navy px-4 py-2.5 text-white sm:flex sm:px-10 sm:py-3">
+          {/* Phones show the "Need help?" note in the page instead. */}
           <div className="hidden items-center gap-2.5 sm:flex">
             <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-0.5" />
             <span className="text-touch-meta font-bold">{ORG.shortName}</span>
