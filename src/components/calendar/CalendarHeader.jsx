@@ -25,7 +25,7 @@ export default function CalendarHeader({
     <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:items-center xl:gap-4">
       <div className="flex min-w-0 items-center gap-2.5 xl:justify-self-start">
         <CalendarDays className="h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
-        <h1 className="m-0 truncate text-title text-navy dark:text-card-foreground">
+        <h1 className="m-0 truncate text-title font-extrabold text-navy dark:text-card-foreground">
           {title}
         </h1>
       </div>

@@ -159,7 +159,7 @@ function InlineField({ label, value, onChange, placeholder, className }) {
   const id = useId();
   return (
     <div className={cn("flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4", className)}>
-      <label htmlFor={id} className="m-0 text-meta font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
+      <label htmlFor={id} className="block m-0 text-meta font-semibold text-card-foreground sm:max-w-[60%]">{label}</label>
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="sm:w-48 sm:shrink-0" />
     </div>
   );

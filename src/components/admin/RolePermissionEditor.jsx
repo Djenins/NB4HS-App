@@ -30,7 +30,7 @@ function Node({ node, depth, draft, onToggle, onScope }) {
             const id = "rp-" + p.key.replace(/\./g, "-");
             return (
               <li key={p.key} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <label htmlFor={id} className="flex min-w-0 cursor-pointer items-center gap-2.5 text-ui text-card-foreground">
+                <label htmlFor={id} className="mb-1.5 font-semibold flex min-w-0 cursor-pointer items-center gap-2.5 text-ui text-card-foreground">
                   <input id={id} type="checkbox" className="h-4 w-4 cursor-pointer accent-primary" checked={on} onChange={() => onToggle(p)} />
                   <span>{p.label}</span>
                   <SensitivityBadge sensitivity={p.sensitivity} />

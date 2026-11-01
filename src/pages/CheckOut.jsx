@@ -14,8 +14,10 @@ import { useApp, useT } from "../context/AppContext.jsx";
 import { serviceDisplay } from "../lib/students.js";
 import { fmtDateLong, fmtDuration, fmtTime, formatPhone, initialsOf, minutesBetween, todayStr } from "../lib/utils.js";
 import { checkOutVisit } from "../lib/checkinData.js";
+import { cn } from "../lib/cn.js";
 import { avatarColorFor } from "../components/StudentCard.jsx";
 import { EmptyState } from "../components/ui/empty-state.jsx";
+import { TOUCH_FILL } from "../components/ui/field.jsx";
 import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import GuardedLink from "../components/GuardedLink.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
@@ -23,8 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/toolti
 
 const RECENT_CHECKOUTS_LIMIT = 3;
 // Kiosk-scale buttons, matching the confirmation screens' (KioskResult.jsx).
-const PRIMARY_BTN = "flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-touch bg-primary px-5 text-touch-body font-bold text-primary-foreground shadow-card transform-none transition-colors hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
-const SECONDARY_BTN = "flex min-h-[48px] items-center gap-2 rounded-touch border border-border bg-card px-4 text-touch-body font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)]";
+const PRIMARY_BTN = "flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-touch bg-primary px-5 py-3 text-touch-body font-bold text-primary-foreground shadow-card transform-none transition-colors hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+const SECONDARY_BTN = "flex min-h-[48px] items-center gap-2 rounded-touch border border-border bg-card px-4 py-3 text-touch-body font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)]";
 const KIOSK_SEARCH_THRESHOLD = 6; // kiosk shows its name search past this many open visits
 
 // Short "1h 22m" duration format for the Recent Check-Outs table -- separate
@@ -110,7 +112,7 @@ export default function CheckOut() {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t("searchNameOrPhone")}
                 aria-label={t("searchNameOrPhone")}
-                className="block min-h-[56px] w-full rounded-touch pl-[52px] text-touch-body sm:text-touch-lead"
+                className={cn(TOUCH_FILL, "block min-h-[56px] rounded-touch pl-[52px] text-touch-body sm:text-touch-lead")}
               />
             </div>
           )}
@@ -186,7 +188,7 @@ export default function CheckOut() {
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("searchNameOrPhone")}
               aria-label={t("searchNameOrPhone")}
-              className="block min-h-[56px] w-full rounded-touch pl-[52px] pr-12 text-touch-body sm:text-touch-lead"
+              className={cn(TOUCH_FILL, "block min-h-[56px] rounded-touch pl-[52px] pr-12 text-touch-body sm:text-touch-lead")}
             />
             {q ? (
               <button
@@ -253,7 +255,7 @@ export default function CheckOut() {
                 <thead>
                   <tr>
                     {["clientLabel", "phoneLabel", "service", "timeIn", "timeOut", "visitLength"].map((k) => (
-                      <th key={k} className="sticky top-0 border-b border-border bg-surface-sunken px-4 py-3 text-left text-meta font-semibold text-muted">{t(k)}</th>
+                      <th key={k} className="sticky top-0 z-[1] border-b border-border bg-surface-sunken px-4 py-3 text-left text-meta font-semibold uppercase tracking-[0.03em] text-muted">{t(k)}</th>
                     ))}
                   </tr>
                 </thead>
@@ -261,7 +263,7 @@ export default function CheckOut() {
                   {recentCheckouts.map((v) => {
                     const name = v.firstName + " " + v.lastName;
                     return (
-                      <tr key={v.id} className="border-b border-line-subtle last:border-b-0">
+                      <tr key={v.id} className="border-b border-line-subtle transition-colors last:border-b-0 hover:bg-background">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className={avatarColorFor(name)}>{initialsOf(v)}</AvatarFallback></Avatar>

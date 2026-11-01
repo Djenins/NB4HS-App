@@ -26,7 +26,7 @@ export default function KioskActionPanel({ title, description, submitLabel, busy
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tone-success-chip text-tone-success-ink">
           <PanelIcon size={32} strokeWidth={2} aria-hidden="true" />
         </span>
-        <h2 className="mt-4 text-touch-heading font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
+        <h2 className="mt-4 mb-[0.55em] text-touch-heading font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
         <p className="mt-2 text-touch-body leading-snug text-muted">{description}</p>
       </div>
 

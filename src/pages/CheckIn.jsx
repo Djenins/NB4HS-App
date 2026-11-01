@@ -92,7 +92,7 @@ export default function CheckIn() {
             there isn't -- justify-center pushed the heading and first card
             above the scroll area on phones and short kiosk screens. */}
         <div className="my-auto flex w-full flex-col items-center">
-        <h1 className={cn("max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-touch-heading sm:text-touch-title" : "text-touch-heading sm:text-touch-hero")}>
+        <h1 className={cn("mb-[0.55em] max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-touch-heading sm:text-touch-title" : "text-touch-heading sm:text-touch-hero")}>
           {t("landingWelcomeTo")} {ORG.name}
         </h1>
         <p className={cn("text-center text-touch-body text-muted", compact ? "mt-1.5" : "mt-1.5 sm:mt-2 sm:text-touch-lead")}>{t("landingHowCanWeHelp")}</p>
@@ -184,7 +184,7 @@ export default function CheckIn() {
           <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-10 w-10")}>
             <Headset size={compact ? 16 : 18} strokeWidth={2} aria-hidden="true" />
           </span>
-          <h3 className={cn("font-bold text-navy dark:text-[color:var(--text)]", compact ? "text-touch-meta" : "text-touch-body")}>{t("landingNeedHelp")}</h3>
+          <h3 className={cn("mb-[0.55em] font-bold text-navy dark:text-[color:var(--text)]", compact ? "text-touch-meta" : "text-touch-body")}>{t("landingNeedHelp")}</h3>
           <p className="text-touch-meta text-muted">{t("landingAskStaff")}</p>
         </div>
         </div>

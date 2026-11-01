@@ -39,7 +39,7 @@ export function SnapCheckboxes({ legend, items, isChecked, onToggle, disabled, w
       <legend className="mb-2 p-0 text-meta font-semibold text-card-foreground">{legend}</legend>
       <div className={cn("grid gap-x-4 gap-y-2 sm:grid-cols-2", wide && "lg:grid-cols-3")}>
         {items.map((it) => (
-          <label key={it.key} className="flex items-start gap-2 text-ui text-card-foreground">
+          <label key={it.key} className="mb-1.5 font-semibold flex items-start gap-2 text-ui text-card-foreground">
             <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
               checked={isChecked(it.key)} disabled={disabled} onChange={() => onToggle(it.key)} />
             {it.label}

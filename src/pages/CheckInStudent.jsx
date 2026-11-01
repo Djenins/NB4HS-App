@@ -137,7 +137,7 @@ export default function CheckInStudent() {
               <button
                 type="button"
                 onClick={() => navigate("/checkin/visitor")}
-                className="mt-6 flex min-h-[64px] w-full items-center justify-center gap-2 rounded-touch border-2 border-primary bg-card px-3 text-center text-touch-label font-bold leading-snug text-primary transition-colors hover:bg-primary-tint active:bg-primary-tint focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary xl:gap-2.5 xl:px-4 xl:text-touch-body"
+                className="mt-6 flex min-h-[64px] w-full items-center justify-center gap-2 rounded-touch border-2 border-primary bg-card px-3 py-3 text-center text-touch-label font-bold leading-snug text-primary transition-colors hover:bg-primary-tint active:bg-primary-tint focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary xl:gap-2.5 xl:px-4 xl:text-touch-body"
               >
                 <UserRoundSearch size={20} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
                 <span className="min-w-0">

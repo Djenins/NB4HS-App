@@ -224,7 +224,7 @@ export default function StaffLogin() {
                 <Lock className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
               </div>
               <div className="mt-3 text-touch-meta font-bold text-primary">{t("staffLoginTitle")}</div>
-              <h1 className="mt-1 text-touch-title font-extrabold text-card-foreground">
+              <h1 className="mt-1 mb-[0.55em] text-touch-title font-extrabold text-card-foreground">
                 {mode === "login" ? t("welcomeBackHeading") : t("forgotPasswordHeading")}
               </h1>
               <p className="mt-2 text-touch-body text-muted">{mode === "login" ? t("staffLoginSubtitle") : t("forgotPasswordSubtitle")}</p>
@@ -252,7 +252,7 @@ export default function StaffLogin() {
 
                     <div className="mb-4">
                       <div className="mb-2 flex items-center justify-between">
-                        <label className="required block text-touch-label font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
+                        <label className="mb-1.5 required block text-touch-label font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
                         <button
                           type="button"
                           className={BUTTON_RESET + " text-touch-meta font-semibold text-primary hover:underline"}

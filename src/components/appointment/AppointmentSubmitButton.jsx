@@ -15,7 +15,7 @@ export default function AppointmentSubmitButton({ label, busyLabel, busy = false
       disabled={busy}
       aria-busy={busy ? "true" : undefined}
       className={cn(
-        "appt-submit flex w-full items-center justify-center gap-3 rounded-touch bg-primary px-5 font-bold text-primary-foreground",
+        "appt-submit flex w-full items-center justify-center gap-3 rounded-touch bg-primary px-5 py-3 font-bold text-primary-foreground",
         "min-h-[60px] text-touch-section sm:min-h-[66px] sm:text-touch-section",
         "shadow-raised transition-colors duration-fast",
         "hover:bg-primary-dark active:bg-primary-dark active:scale-[0.995]",

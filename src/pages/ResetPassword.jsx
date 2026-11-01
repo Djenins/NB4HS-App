@@ -65,7 +65,7 @@ export default function ResetPassword() {
             <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded-control bg-white/90 object-contain p-1" />
             <span className="text-touch-meta font-bold text-primary">{ORG.name}</span>
           </div>
-          <h1 className="mt-3 text-touch-title font-extrabold text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>
+          <h1 className="mt-3 mb-[0.55em] text-touch-title font-extrabold text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>
           <p className="mt-2 text-touch-body text-muted">{t(ARRIVED_BY_INVITE ? "setPasswordSubtitle" : "resetPasswordSubtitle")}</p>
         </div>
 

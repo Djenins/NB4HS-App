@@ -77,7 +77,7 @@ function ProgramsField({ value, options, invalid, disabled, onChange }) {
             <label
               key={k}
               className={cn(
-                "flex min-h-10 cursor-pointer items-center gap-2 rounded-control border px-3 text-ui text-card-foreground transition-colors duration-fast [@media(pointer:coarse)]:min-h-11",
+                "mb-1.5 flex min-h-10 cursor-pointer items-center gap-2 rounded-control border px-3 text-ui font-semibold text-card-foreground transition-colors duration-fast [@media(pointer:coarse)]:min-h-11",
                 on ? "border-primary bg-tone-info-bg" : "border-border bg-card hover:border-line-strong"
               )}
             >
@@ -267,7 +267,7 @@ export default function ReportForm({ report, periodLabel, dueLabel, revisionComm
 
           <div className="grid gap-2.5">
             {textField(FIELDS[3], fields.noAssistanceNeeded && !fields.assistanceNeeded)}
-            <label className="flex min-h-10 items-center gap-2 text-ui text-card-foreground">
+            <label className="mb-1.5 font-semibold flex min-h-10 items-center gap-2 text-ui text-card-foreground">
               <input type="checkbox" className="h-4 w-4 accent-primary" checked={fields.noAssistanceNeeded} disabled={busy} onChange={(e) => set("noAssistanceNeeded", e.target.checked)} />
               {t("srNoAssistanceNeeded")}
             </label>

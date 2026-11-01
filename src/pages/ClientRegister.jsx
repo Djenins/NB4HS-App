@@ -166,7 +166,7 @@ export default function ClientRegister() {
                         <label
                           key={s.key}
                           className={cn(
-                            "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[14px] border px-4 text-[1rem] font-semibold transition-colors",
+                            "mb-1.5 flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[14px] border px-4 text-[1rem] font-semibold transition-colors",
                             on ? "border-primary bg-primary-tint text-primary" : "border-border bg-card text-card-foreground hover:border-primary"
                           )}
                         >

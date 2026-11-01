@@ -35,7 +35,7 @@ export default function KioskTopBar({ onBack }) {
         <button
           type="button"
           onClick={onBack}
-          className="flex min-h-[48px] shrink-0 items-center gap-2 rounded-touch border border-border bg-card px-3 text-touch-body font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)] sm:px-5"
+          className="flex min-h-[48px] shrink-0 items-center gap-2 rounded-touch border border-border bg-card px-3 py-3 text-touch-body font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)] sm:px-5"
         >
           <ArrowLeft size={20} strokeWidth={2.4} aria-hidden="true" className="text-primary" />
           {t("back")}
