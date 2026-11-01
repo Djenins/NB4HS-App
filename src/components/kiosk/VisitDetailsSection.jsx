@@ -32,7 +32,7 @@ export default function VisitDetailsSection({
 }) {
   return (
     <KioskSection id={id} sectionRef={sectionRef} icon={ClipboardList} tone="violet" title={t("sectionVisitDetails")}>
-      <div className="grid gap-x-4 gap-y-2.5 lg:grid-cols-2">
+      <div className="grid gap-x-4 gap-y-2.5 [@container(min-width:32rem)]:grid-cols-2">
         <KioskSelectField
           name="service" id="service-select" label={t("reasonForVisit")} required
           value={service} onChange={onServiceChange} error={errors.service}

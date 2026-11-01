@@ -144,7 +144,10 @@ export default function CheckInVisitor() {
             helpText={t("landingAskStaff")}
           />
 
-          <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1.5">
+          {/* A size container: the sections below pick their columns from this
+              column's width, not the window's, so the staff sidebar can't
+              squeeze four fields into one row. */}
+          <div className="flex min-h-0 flex-col gap-3 [container-type:inline-size] lg:overflow-y-auto lg:pr-1.5">
             <VisitorInformationSection
               id="kiosk-step-visitor" sectionRef={sectionRefs.visitor}
               t={t} errors={errors} dateValue={dateValue} timeValue={timeValue}

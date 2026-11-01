@@ -9,19 +9,19 @@ import KioskSection from "./KioskSection.jsx";
 export default function VisitorInformationSection({ id, sectionRef, t, errors, dateValue, timeValue }) {
   return (
     <KioskSection id={id} sectionRef={sectionRef} icon={UserRound} tone="primary" title={t("sectionVisitorInfo")}>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 xl:grid-cols-[1.2fr_0.8fr_1fr_1fr]">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 [@container(min-width:46rem)]:grid-cols-[1.2fr_0.8fr_1fr_1fr]">
         <KioskField name="date" label={t("date")} icon={Calendar} value={dateValue} disabled readOnly />
         <KioskField name="timeIn" label={t("timeIn")} icon={Clock} value={timeValue} disabled readOnly />
         <KioskField
           name="firstName" label={t("firstName")} required placeholder={t("phFirstName")}
-          error={errors.firstName} className="col-span-2 sm:col-span-1"
+          error={errors.firstName} className="col-span-2 [@container(min-width:28rem)]:col-span-1"
         />
         <KioskField
           name="lastName" label={t("lastName")} required placeholder={t("phLastName")}
-          error={errors.lastName} className="col-span-2 sm:col-span-1"
+          error={errors.lastName} className="col-span-2 [@container(min-width:28rem)]:col-span-1"
         />
       </div>
-      <div className="mt-2.5 grid gap-x-4 gap-y-2.5 sm:grid-cols-2">
+      <div className="mt-2.5 grid gap-x-4 gap-y-2.5 [@container(min-width:28rem)]:grid-cols-2">
         <KioskField
           name="phone" label={t("phone")} type="tel" required icon={Phone}
           placeholder={t("phPhone")} error={errors.phone}
