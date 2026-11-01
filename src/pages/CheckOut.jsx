@@ -15,7 +15,7 @@ import { serviceDisplay } from "../lib/students.js";
 import { fmtDateLong, fmtDuration, fmtTime, formatPhone, initialsOf, minutesBetween, todayStr } from "../lib/utils.js";
 import { checkOutVisit } from "../lib/checkinData.js";
 import { avatarColorFor } from "../components/StudentCard.jsx";
-import EmptyState from "../components/EmptyState.jsx";
+import { EmptyState } from "../components/ui/empty-state.jsx";
 import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import GuardedLink from "../components/GuardedLink.jsx";
 import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
@@ -142,7 +142,7 @@ export default function CheckOut() {
             </div>
           ) : (
             <div className="mt-5 rounded-surface border border-dashed border-border bg-surface-sunken">
-              <EmptyState icon="search" message={q ? t("noOneFound") : t("checkOutKioskEmpty")} />
+              <EmptyState compact variant={q ? "no-results" : "none"} title={q ? t("noOneFound") : t("checkOutKioskEmpty")} />
             </div>
           )}
         </div>
@@ -234,7 +234,7 @@ export default function CheckOut() {
             </div>
           ) : (
             <div className="rounded-surface border border-dashed border-border bg-surface-sunken">
-              <EmptyState icon="search" message={q ? t("noOneFound") : t("checkOutKioskEmpty")} />
+              <EmptyState compact variant={q ? "no-results" : "none"} title={q ? t("noOneFound") : t("checkOutKioskEmpty")} />
             </div>
           )}
         </section>
@@ -283,7 +283,7 @@ export default function CheckOut() {
             </div>
           ) : (
             <div className="rounded-surface border border-dashed border-border bg-surface-sunken">
-              <EmptyState icon="search" message={t("noOneFound")} />
+              <EmptyState compact variant="no-results" title={t("noOneFound")} />
             </div>
           )}
         </section>

@@ -6,6 +6,7 @@
 // instead, for tight spaces (the collapsed icon-rail sidebar).
 import { useApp, useT } from "../context/AppContext.jsx";
 import Icon from "./Icon.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
 
 export default function ThemeToggle({ compact }) {
   const { config, toggleTheme } = useApp();
@@ -14,16 +15,13 @@ export default function ThemeToggle({ compact }) {
 
   if (compact) {
     return (
-      <button
-        type="button"
-        className="btn-icon"
+      <IconButton
         id="btn-theme-toggle"
-        aria-label={isDark ? t("switchToLightMode") : t("switchToDarkMode")}
-        title={isDark ? t("switchToLightMode") : t("switchToDarkMode")}
+        label={isDark ? t("switchToLightMode") : t("switchToDarkMode")}
         onClick={toggleTheme}
       >
         <Icon name={isDark ? "sun" : "moon"} />
-      </button>
+      </IconButton>
     );
   }
 

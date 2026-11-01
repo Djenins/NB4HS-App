@@ -1,10 +1,10 @@
-// useModalA11y.js -- the keyboard/focus contract every .modal-overlay dialog
+// useModalA11y.js -- the keyboard/focus contract every modal dialog
 // needs, in one place instead of hand-rolled per modal (it used to live only
 // in Assessments.jsx; ~15 other modals had no Escape or focus handling).
 //
 //   const boxRef = useModalA11y(onClose);          // modal mounted = open
 //   const boxRef = useModalA11y(onClose, isOpen);  // modal rendered inline
-//   <div className="modal-box" ref={boxRef} role="dialog" aria-modal="true">
+//   <div ref={boxRef} role="dialog" aria-modal="true">   (ui/dialog.jsx does this)
 //
 // What it does while active:
 //   - moves focus into the dialog -- to a [data-autofocus] element if there is

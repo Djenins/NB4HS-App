@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
 
 export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min }) {
   const { lang } = useApp();
@@ -107,13 +108,13 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
       {open && (
         <div className="date-picker-panel" role="dialog" aria-label={t("pleaseSelect")}>
           <div className="date-picker-quick">
-            <button type="button" className="pill" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
-            <button type="button" className="pill" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
+            <button type="button" className="date-picker-quick-btn" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
+            <button type="button" className="date-picker-quick-btn" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
           </div>
           <div className="date-picker-nav">
-            <button type="button" className="btn-icon" aria-label={t("prevPage")} onClick={() => shiftMonth(-1)}>
+            <IconButton size="sm" label={t("prevPage")} onClick={() => shiftMonth(-1)}>
               <Icon name="chevronrt" className="icon-flip-x" />
-            </button>
+            </IconButton>
             <select
               className="date-picker-select"
               aria-label={t("monthLabel")}
@@ -130,9 +131,9 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
             >
               {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
-            <button type="button" className="btn-icon" aria-label={t("nextPage")} onClick={() => shiftMonth(1)}>
+            <IconButton size="sm" label={t("nextPage")} onClick={() => shiftMonth(1)}>
               <Icon name="chevronrt" />
-            </button>
+            </IconButton>
           </div>
           <div className="date-picker-day-select">
             <label>

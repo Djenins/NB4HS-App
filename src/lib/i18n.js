@@ -1607,6 +1607,7 @@ export var STR = {
   saveLabel: { en: "Save", ht: "Anrejistre", fr: "Enregistrer" },
   cancelLabel: { en: "Cancel", ht: "Anile", fr: "Annuler" },
   confirmLabel: { en: "Confirm", ht: "Konfime", fr: "Confirmer" },
+  confirmTitle: { en: "Are you sure?", ht: "Èske ou sèten?", fr: "Voulez-vous vraiment continuer ?" },
   studentSearchPlaceholder: { en: "Search by name, phone, or NB- ID…", ht: "Chèche pa non, telefòn, oswa ID NB-…", fr: "Rechercher par nom, téléphone ou ID NB-…" },
   totalEnrolledLabel: { en: "Total enrolled", ht: "Total enskri", fr: "Total inscrit" },
   noSearchResults: { en: "No students match your search.", ht: "Pa gen elèv ki matche ak rechèch ou a.", fr: "Aucun étudiant ne correspond à votre recherche." },
