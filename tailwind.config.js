@@ -89,6 +89,7 @@ export default {
         control: "var(--radius-control)",
         surface: "var(--radius-surface)",
         badge: "var(--radius-badge)",
+        touch: "var(--radius-touch)",
         chip: "9999px"
       },
       boxShadow: {
@@ -109,7 +110,17 @@ export default {
         ui: ["var(--fs-ui)", { lineHeight: "1.45" }],
         meta: ["var(--fs-meta)", { lineHeight: "1.4" }],
         caption: ["var(--fs-caption)", { lineHeight: "1.3" }],
-        kpi: ["var(--fs-kpi)", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "700" }]
+        kpi: ["var(--fs-kpi)", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "700" }],
+        // Touch scale for the kiosk, appointment and sign-in screens (3h).
+        // Size and line height only; the screens set their own weight and tracking.
+        "touch-hero": ["var(--fs-touch-hero)", { lineHeight: "1.15" }],
+        "touch-title": ["var(--fs-touch-title)", { lineHeight: "1.2" }],
+        "touch-heading": ["var(--fs-touch-heading)", { lineHeight: "1.25" }],
+        "touch-section": ["var(--fs-touch-section)", { lineHeight: "1.3" }],
+        "touch-lead": ["var(--fs-touch-lead)", { lineHeight: "1.45" }],
+        "touch-body": ["var(--fs-touch-body)", { lineHeight: "1.5" }],
+        "touch-label": ["var(--fs-touch-label)", { lineHeight: "1.4" }],
+        "touch-meta": ["var(--fs-touch-meta)", { lineHeight: "1.4" }]
       },
       transitionDuration: { fast: "var(--duration-fast)", base: "var(--duration-base)" },
       transitionTimingFunction: { out: "var(--ease-out)" }

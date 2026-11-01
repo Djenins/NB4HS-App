@@ -14,7 +14,7 @@ export default function ApptRequestCard({ id, icon: CardIcon, title, description
   return (
     <section
       aria-labelledby={id + "-title"}
-      className="appt-card flex flex-col rounded-[18px] border border-border bg-card p-4 shadow-card sm:p-5 xl:p-6"
+      className="appt-card flex flex-col rounded-surface border border-border bg-card p-4 shadow-card sm:p-5 xl:p-6"
     >
       <div className="appt-card-head flex items-start gap-3 sm:gap-4">
         <span className="appt-card-badge flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-12 sm:w-12">
@@ -23,11 +23,11 @@ export default function ApptRequestCard({ id, icon: CardIcon, title, description
         <div className="min-w-0 flex-1">
           <h2
             id={id + "-title"}
-            className="appt-card-title m-0 text-[1.0625rem] font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-[1.3rem]"
+            className="appt-card-title m-0 text-touch-section font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-heading"
           >
             {title}
           </h2>
-          <p className="appt-card-desc m-0 mt-1 text-[0.92rem] leading-snug text-muted sm:text-[0.95rem]">{description}</p>
+          <p className="appt-card-desc m-0 mt-1 text-touch-label leading-snug text-muted sm:text-touch-label">{description}</p>
         </div>
         {/* Kiosk columns are always expanded, so the toggle only exists at
             phone/tablet widths -- where it's a full-height 44px target. */}

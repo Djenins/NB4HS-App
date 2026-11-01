@@ -54,13 +54,13 @@ export default function SlotPicker({ staffId, staffName, t, lang, error }) {
       <ApptLabel required>{t("apptSlotPickerLabel")}</ApptLabel>
 
       {slots === null ? (
-        <p className="m-0 flex items-center gap-2 rounded-[14px] border border-border bg-background px-4 py-3.5 text-[0.95rem] text-muted">
+        <p className="m-0 flex items-center gap-2 rounded-touch border border-border bg-surface-sunken px-4 py-3.5 text-touch-label text-muted">
           <Loader2 size={18} className="animate-spin text-primary" aria-hidden="true" />{t("apptSlotLoading")}
         </p>
       ) : loadFailed ? (
-        <p role="alert" className="m-0 rounded-[14px] border border-accent-soft bg-accent-tint px-4 py-3 text-[0.95rem] font-semibold text-accent">{t("apptSlotError")}</p>
+        <p role="alert" className="m-0 rounded-touch border border-tone-danger-border bg-tone-danger-bg px-4 py-3 text-touch-label font-semibold text-tone-danger-ink">{t("apptSlotError")}</p>
       ) : !days.length ? (
-        <p className="m-0 rounded-[14px] border border-border bg-background px-4 py-3 text-[0.95rem] leading-snug text-muted">
+        <p className="m-0 rounded-touch border border-border bg-surface-sunken px-4 py-3 text-touch-label leading-snug text-muted">
           {t("apptSlotNone").replace("{name}", staffName || "")}
         </p>
       ) : (
@@ -78,18 +78,18 @@ export default function SlotPicker({ staffId, staffName, t, lang, error }) {
                   aria-label={fmtDateLong(d, lang)}
                   onClick={() => { setDay(d); setTime(""); }}
                   className={cn(
-                    "flex min-h-[60px] min-w-[64px] shrink-0 flex-col items-center justify-center rounded-[14px] border-2 px-2 font-bold leading-tight transform-none transition-colors",
+                    "flex min-h-[60px] min-w-[64px] shrink-0 flex-col items-center justify-center rounded-touch border-2 px-2 font-bold leading-tight transform-none transition-colors",
                     on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-navy hover:border-primary dark:text-[color:var(--text)]"
                   )}
                 >
-                  <span className="text-[0.8rem] uppercase tracking-wide">{c.weekday}</span>
-                  <span className="text-[1.05rem]">{c.date}</span>
+                  <span className="text-touch-meta uppercase tracking-wide">{c.weekday}</span>
+                  <span className="text-touch-lead">{c.date}</span>
                 </button>
               );
             })}
           </div>
 
-          <p className="m-0 mb-2 mt-3 flex items-center gap-1.5 text-[0.95rem] font-semibold text-navy dark:text-[color:var(--text)]">
+          <p className="m-0 mb-2 mt-3 flex items-center gap-1.5 text-touch-label font-semibold text-navy dark:text-[color:var(--text)]">
             <CalendarCheck size={18} strokeWidth={2} aria-hidden="true" className="text-primary" />
             {t("apptSlotTimesFor").replace("{date}", fmtDateLong(day, lang))}
           </p>
@@ -104,7 +104,7 @@ export default function SlotPicker({ staffId, staffName, t, lang, error }) {
                   aria-checked={on}
                   onClick={() => setTime(tm)}
                   className={cn(
-                    "flex min-h-[48px] items-center justify-center gap-1.5 rounded-[12px] border-2 px-2 text-[0.95rem] font-bold tabular-nums transform-none transition-colors",
+                    "flex min-h-[48px] items-center justify-center gap-1.5 rounded-touch border-2 px-2 text-touch-label font-bold tabular-nums transform-none transition-colors",
                     on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-navy hover:border-primary dark:text-[color:var(--text)]"
                   )}
                 >

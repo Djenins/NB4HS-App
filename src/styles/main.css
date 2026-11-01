@@ -152,6 +152,16 @@
     --fs-heading:1.25rem; --fs-section:1rem; --fs-body:0.9375rem;
     --fs-ui:0.875rem; --fs-meta:0.8125rem; --fs-caption:0.75rem; --fs-kpi:1.5rem;
 
+    /* Touch scale (batch 3h): the kiosk, appointment and sign-in screens,
+       used with a finger from arm's length. Same tokens as the staff UI,
+       one size up: body 16-18px, titles up to 36px, nothing under 14px.
+       Touch controls are 52px+ tall, so they get a 14px radius -- still
+       under the 16px surface they sit on. */
+    --fs-touch-hero:2.25rem; --fs-touch-title:1.75rem; --fs-touch-heading:1.375rem;
+    --fs-touch-section:1.125rem; --fs-touch-lead:1.125rem; --fs-touch-body:1rem;
+    --fs-touch-label:0.9375rem; --fs-touch-meta:0.875rem;
+    --radius-touch:14px;
+
     /* Motion */
     --duration-fast:150ms; --duration-base:200ms; --ease-out:cubic-bezier(.2,.8,.2,1);
   }
