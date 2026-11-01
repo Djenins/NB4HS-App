@@ -625,3 +625,7 @@
       scroll-behavior:auto !important;
     }
   }
+  /* BarList fills grow from the left once, when the list first paints. */
+  @keyframes bar-list-grow{from{transform:scaleX(0);}}
+  .bar-list-fill{transform-origin:left center; animation:bar-list-grow .7s cubic-bezier(.2,.8,.2,1) both;}
+  @media (prefers-reduced-motion: reduce){ .bar-list-fill{animation:none;} }

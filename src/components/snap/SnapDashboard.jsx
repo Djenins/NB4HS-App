@@ -20,7 +20,7 @@ import { cn } from "../../lib/cn.js";
 import { programName, programScopeNote } from "../../lib/outreachPrograms.js";
 import { addDays, completionRate, fetchOutreachDashboard, fetchRecentActivity, fetchTasks, taskBuckets } from "../../lib/snapTasks.js";
 import { fmtDateLong, fmtTime, todayStr } from "../../lib/utils.js";
-import BarList from "../BarList.jsx";
+import { BreakdownCard } from "../BreakdownCard.jsx";
 import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button, BUTTON_RESET } from "../ui/button.jsx";
@@ -35,21 +35,6 @@ import { StatusBadge } from "../ui/status-badge.jsx";
 import { SnapTaskRows } from "./SnapTaskList.jsx";
 
 const RANGES = [7, 30, 90];
-
-// Placeholder shaped like a BarList while the dashboard aggregate loads.
-function BarListSkeleton() {
-  return (
-    <div className="grid gap-3">
-      {["w-full", "w-4/5", "w-3/5", "w-2/5"].map((w) => (
-        <div key={w} className="flex items-center gap-3">
-          <Skeleton className="h-4 w-24 shrink-0" />
-          <Skeleton className={cn("h-6", w)} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 
 export default function SnapDashboard({ onNavigate }) {
   const { data, lang, session } = useApp();
@@ -151,18 +136,18 @@ export default function SnapDashboard({ onNavigate }) {
 
       {!loadError && (
         <div className="grid gap-5 lg:grid-cols-12">
-          <SectionCard className="lg:col-span-6" title={t("snapChartActivity")}>
-            {metrics ? <BarList items={bars(m.activity_by_week, (r) => fmtDateLong(r.week, lang))} /> : <BarListSkeleton />}
-          </SectionCard>
-          <SectionCard className="lg:col-span-6" title={t("snapChartByType")}>
-            {metrics ? <BarList items={bars(m.activity_by_type, (r) => t("snapType_" + r.key))} /> : <BarListSkeleton />}
-          </SectionCard>
-          <SectionCard className="lg:col-span-6" title={t("snapChartBySource")}>
-            {metrics ? <BarList items={bars(m.contacts_by_source, (r) => t("snapSource_" + r.key))} /> : <BarListSkeleton />}
-          </SectionCard>
-          <SectionCard className="lg:col-span-6" title={t("snapChartByStage")}>
-            {metrics ? <BarList items={bars((m.cases_by_stage || []).filter((r) => Number(r.count) > 0), (r) => stageLabel(stages, r.key, lang))} /> : <BarListSkeleton />}
-          </SectionCard>
+          <BreakdownCard className="lg:col-span-6" loading={!metrics} items={bars(m.activity_by_week, (r) => fmtDateLong(r.week, lang))}
+            title={t("snapBdWeekTitle")} description={t("snapBdWeekSub")} columnLabel={t("snapBdWeekCol")} countLabel={t("snapBdActivitiesCol")}
+            unit={{ one: t("snapBdActivityOne"), many: t("snapBdActivityMany") }} group={{ one: t("snapBdWeekOne"), many: t("snapBdWeekMany") }} />
+          <BreakdownCard className="lg:col-span-6" loading={!metrics} items={bars(m.activity_by_type, (r) => t("snapType_" + r.key))}
+            title={t("snapBdTypeTitle")} description={t("snapBdTypeSub")} columnLabel={t("snapBdTypeCol")} countLabel={t("snapBdActivitiesCol")}
+            unit={{ one: t("snapBdActivityOne"), many: t("snapBdActivityMany") }} group={{ one: t("snapBdTypeOne"), many: t("snapBdTypeMany") }} />
+          <BreakdownCard className="lg:col-span-6" loading={!metrics} items={bars(m.contacts_by_source, (r) => t("snapSource_" + r.key))}
+            title={t("snapBdSourceTitle")} description={t("snapBdSourceSub")} columnLabel={t("snapBdSourceCol")} countLabel={t("snapBdContactsCol")}
+            unit={{ one: t("snapBdContactOne"), many: t("snapBdContactMany") }} group={{ one: t("snapBdSourceOne"), many: t("snapBdSourceMany") }} />
+          <BreakdownCard className="lg:col-span-6" loading={!metrics} items={bars((m.cases_by_stage || []).filter((r) => Number(r.count) > 0), (r) => stageLabel(stages, r.key, lang))}
+            title={t("snapBdStageTitle")} description={t("snapBdStageSub")} columnLabel={t("snapBdStageCol")} countLabel={t("snapBdCasesCol")}
+            unit={{ one: t("snapBdCaseOne"), many: t("snapBdCaseMany") }} group={{ one: t("snapBdStageOne"), many: t("snapBdStageMany") }} />
         </div>
       )}
 
