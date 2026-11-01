@@ -32,7 +32,9 @@ export async function deleteClientFile(path) {
 
 function masterFromRow(row) {
   return {
-    id: row.id, nbId: row.nb_id, firstName: row.first_name || "", lastName: row.last_name || "",
+    // legacyNbId: the NB-##### ID from before i1_client_id_format, kept so
+    // old links and searches still find the person.
+    id: row.id, nbId: row.nb_id, legacyNbId: row.legacy_nb_id || "", firstName: row.first_name || "", lastName: row.last_name || "",
     phone: row.phone || "", email: row.email || "", dob: row.dob || "", street: row.street || "",
     city: row.city || "", zip: row.zip || "", state: row.state || "RI", intakeDate: row.intake_date || "",
     status: row.status, createdAt: row.created_at, updatedAt: row.updated_at,

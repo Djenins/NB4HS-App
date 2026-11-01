@@ -27,7 +27,7 @@ import { studentAssessmentStatus } from "../lib/assessments.js";
 import { cn } from "../lib/cn.js";
 import { findPossibleDuplicates } from "../lib/masterClients.js";
 import { statusTone } from "../lib/statusTone.js";
-import { addMonths, fmtDateLong, formatAddress, formatPhone, initialsOf, slugify, todayStr } from "../lib/utils.js";
+import { addMonths, byIntakeDate, fmtDateLong, formatAddress, formatPhone, initialsOf, phoneError, slugify, todayStr } from "../lib/utils.js";
 import {
   createCourse, createStudentWithClient, deleteCourse, deleteStudent, fetchCourses, subscribeTable, updateClass, updateStudent
 } from "../lib/checkinData.js";
@@ -524,6 +524,7 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
     email: student.email || "", street: student.street || "", city: student.city || "", zip: student.zip || "",
     pretestReading: student.pretestReading || "", posttestReading: student.posttestReading || ""
   }));
+  const [phoneErr, setPhoneErr] = useState("");
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
 
   if (editing) {
@@ -531,20 +532,20 @@ function WaitingListRow({ student, classes, editing, onMove, onEditStart, onEdit
     return (
       <div className="py-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Field label={t("firstName")} htmlFor={fid("firstName")}><Input id={fid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} /></Field>
-          <Field label={t("lastName")} htmlFor={fid("lastName")}><Input id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} /></Field>
-          <Field label={t("phone")} htmlFor={fid("phone")}><Input id={fid("phone")} type="tel" value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} /></Field>
-          <Field label={t("email")} htmlFor={fid("email")}><Input id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} /></Field>
-          <Field label={t("address")} htmlFor={fid("street")}><AddressInput as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} /></Field>
-          <Field label={t("city")} htmlFor={fid("city")}><Input id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} /></Field>
-          <Field label={t("zip")} htmlFor={fid("zip")}><Input id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></Field>
+          <Field label={t("firstName")} htmlFor={fid("firstName")}><Input placeholder={t("phFirstName")} id={fid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} /></Field>
+          <Field label={t("lastName")} htmlFor={fid("lastName")}><Input placeholder={t("phLastName")} id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} /></Field>
+          <Field label={t("phone")} htmlFor={fid("phone")} required error={phoneErr ? t(phoneErr) : null}><Input placeholder={t("phPhone")} id={fid("phone")} type="tel" aria-invalid={!!phoneErr || undefined} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} /></Field>
+          <Field label={t("email")} htmlFor={fid("email")}><Input placeholder={t("phEmail")} id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} /></Field>
+          <Field label={t("address")} htmlFor={fid("street")}><AddressInput placeholder={t("streetAddressPlaceholder")} as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} /></Field>
+          <Field label={t("city")} htmlFor={fid("city")}><Input placeholder={t("phCity")} id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} /></Field>
+          <Field label={t("zip")} htmlFor={fid("zip")}><Input placeholder={t("phZip")} id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("pretestReadingLabel")} htmlFor={fid("pre")}><Input id={fid("pre")} type="number" className="tabular-nums" value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} /></Field>
-            <Field label={t("posttestReadingLabel")} htmlFor={fid("post")}><Input id={fid("post")} type="number" className="tabular-nums" value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} /></Field>
+            <Field label={t("pretestReadingLabel")} htmlFor={fid("pre")}><Input placeholder={t("phTestScore")} id={fid("pre")} type="number" className="tabular-nums" value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} /></Field>
+            <Field label={t("posttestReadingLabel")} htmlFor={fid("post")}><Input placeholder={t("phTestScore")} id={fid("post")} type="number" className="tabular-nums" value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} /></Field>
           </div>
         </div>
         <div className="mt-3 flex gap-2">
-          <Button size="sm" onClick={() => onSave(fields)}>{t("saveLabel")}</Button>
+          <Button size="sm" onClick={() => { const problem = phoneError(fields.phone); setPhoneErr(problem); if (!problem) onSave(fields); }}>{t("saveLabel")}</Button>
           <Button size="sm" variant="secondary" onClick={onEditCancel}>{t("cancelLabel")}</Button>
         </div>
       </div>
@@ -780,8 +781,10 @@ function EnrollStudentPanel() {
   }
 
   function submit() {
-    if (!fields.firstName.trim() || !fields.lastName.trim()) {
-      setErrors(["firstName", "lastName"].filter((f) => !fields[f].trim()));
+    const errs = ["firstName", "lastName"].filter((f) => !fields[f].trim());
+    if (phoneError(fields.phone)) errs.push("phone");
+    if (errs.length) {
+      setErrors(errs);
       showToast(t("fixErrors"));
       return;
     }
@@ -799,6 +802,7 @@ function EnrollStudentPanel() {
 
   const firstInvalid = errors.indexOf("firstName") !== -1;
   const lastInvalid = errors.indexOf("lastName") !== -1;
+  const phoneInvalid = errors.indexOf("phone") !== -1;
 
   return (
     <SectionCard title={t("enrollStudentTitle")} description={t("enrollStudentDesc")}>
@@ -809,8 +813,8 @@ function EnrollStudentPanel() {
         <Field label={t("lastName")} htmlFor="enroll-last-name" required error={lastInvalid ? t("fieldRequired") : null}>
           <Input id="enroll-last-name" value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} placeholder={t("enterLastNamePlaceholder")} aria-invalid={lastInvalid || undefined} aria-describedby={lastInvalid ? "enroll-last-name-error" : undefined} />
         </Field>
-        <Field label={t("phone")} htmlFor="enroll-phone">
-          <Input id="enroll-phone" type="tel" className="tabular-nums" value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
+        <Field label={t("phone")} htmlFor="enroll-phone" required error={phoneInvalid ? t(phoneError(fields.phone) || "invalidPhone") : null}>
+          <Input id="enroll-phone" type="tel" className="tabular-nums" aria-invalid={phoneInvalid || undefined} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
         </Field>
         <Field label={t("email")} htmlFor="enroll-email">
           <Input id="enroll-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} placeholder={t("phEmail")} />
@@ -819,10 +823,10 @@ function EnrollStudentPanel() {
           <AddressInput as={Input} id="enroll-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} placeholder={t("streetAddressPlaceholder")} />
         </Field>
         <Field label={t("city")} htmlFor="enroll-city">
-          <Input id="enroll-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+          <Input placeholder={t("phCity")} id="enroll-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
         </Field>
         <Field label={t("zip")} htmlFor="enroll-zip" hint={t("stateAlwaysRI")}>
-          <Input id="enroll-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+          <Input placeholder={t("phZip")} id="enroll-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
         </Field>
       </div>
       <Button className="mt-5" onClick={submit}>{t("enrollBtn")}</Button>
@@ -851,7 +855,7 @@ function UploadStudentsPanel() {
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported row to the best existing master-client match or
     // create a new one, same as Case Management's CSV import.
-    for (const row of result.added) {
+    for (const row of result.added.slice().sort(byIntakeDate)) {
       const matches = findPossibleDuplicates(row, data.clients || []);
       await createStudentWithClient(row, row, matches.length ? matches[0].client.id : null);
     }

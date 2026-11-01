@@ -17,7 +17,7 @@
 // system.md §2.4): back + entity header (ClientHeader) -> Tabs -> one
 // TabPanel of SectionCards. Every edit is a ui Dialog form.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, CalendarClock, CheckCheck, Download, FileText, GraduationCap, MessageCircle, Paperclip, Send, ShoppingBasket,
   StickyNote, Trash2, UserPlus, UserX, Users
@@ -35,7 +35,7 @@ import {
   deleteClientDocument, fetchClientDocuments, fetchClientNotes, fetchDistributions,
   getFileSignedUrl, updateClientRecord, uploadClientFile
 } from "../lib/clientsData.js";
-import { fmtDateLong, todayStr } from "../lib/utils.js";
+import { fmtDateLong, phoneError, todayStr } from "../lib/utils.js";
 import { fmtSlotTime } from "../lib/availability.js";
 import {
   fetchClientCommunications, fetchClientMessages, isOpenFollowUp, logCommunication as saveCommunication, setFollowUpDone
@@ -107,7 +107,13 @@ function EditProfileModal({ client, onSave, onCancel }) {
     firstName: client.firstName || "", lastName: client.lastName || "", phone: client.phone || "", email: client.email || "",
     dob: client.dob || "", street: client.street || "", city: client.city || "", zip: client.zip || "", intakeDate: client.intakeDate || ""
   });
+  const [phoneErr, setPhoneErr] = useState("");
   function setField(name, value) { setFields((prev) => Object.assign({}, prev, { [name]: value })); }
+  function submit() {
+    const problem = phoneError(fields.phone);
+    setPhoneErr(problem);
+    if (!problem) run(() => onSave(fields));
+  }
 
   return (
     <Dialog
@@ -117,33 +123,33 @@ function EditProfileModal({ client, onSave, onCancel }) {
       size="lg"
       closeLabel={t("closeLabel")}
       as="form"
-      panelProps={{ onSubmit: (e) => { e.preventDefault(); run(() => onSave(fields)); } }}
+      panelProps={{ onSubmit: (e) => { e.preventDefault(); submit(); } }}
       footer={<DialogFooter onCancel={onCancel} saving={saving} submitLabel={t("saveLabel")} />}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t("firstName")} htmlFor="edit-first-name">
-          <Input id="edit-first-name" value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} autoComplete="off" data-autofocus />
+          <Input placeholder={t("phFirstName")} id="edit-first-name" value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} autoComplete="off" data-autofocus />
         </Field>
         <Field label={t("lastName")} htmlFor="edit-last-name">
-          <Input id="edit-last-name" value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} autoComplete="off" />
+          <Input placeholder={t("phLastName")} id="edit-last-name" value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} autoComplete="off" />
         </Field>
-        <Field label={t("phone")} htmlFor="edit-phone">
-          <Input id="edit-phone" type="tel" value={fields.phone} onChange={(e) => setField("phone", e.target.value)} autoComplete="off" />
+        <Field label={t("phone")} htmlFor="edit-phone" required error={phoneErr ? t(phoneErr) : null}>
+          <Input placeholder={t("phPhone")} id="edit-phone" type="tel" value={fields.phone} onChange={(e) => setField("phone", e.target.value)} autoComplete="off" aria-invalid={!!phoneErr || undefined} />
         </Field>
         <Field label={t("email")} htmlFor="edit-email">
-          <Input id="edit-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} autoComplete="off" />
+          <Input placeholder={t("phEmail")} id="edit-email" type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} autoComplete="off" />
         </Field>
         <Field label={t("dobLabel")} htmlFor="edit-dob">
           <DatePicker id="edit-dob" value={fields.dob} onChange={(v) => setField("dob", v)} />
         </Field>
         <Field label={t("address")} htmlFor="edit-street">
-          <AddressInput as={Input} id="edit-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+          <AddressInput placeholder={t("streetAddressPlaceholder")} as={Input} id="edit-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
         </Field>
         <Field label={t("city")} htmlFor="edit-city">
-          <Input id="edit-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} autoComplete="off" />
+          <Input placeholder={t("phCity")} id="edit-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} autoComplete="off" />
         </Field>
         <Field label={t("zip")} htmlFor="edit-zip">
-          <Input id="edit-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} autoComplete="off" />
+          <Input placeholder={t("phZip")} id="edit-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} autoComplete="off" />
         </Field>
       </div>
     </Dialog>
@@ -746,6 +752,10 @@ export default function ClientProfile() {
   }
 
   if (!client) {
+    // An old NB-##### link (bookmark, printout, earlier message): send it on
+    // to the same person's current ID.
+    const renumbered = (data.clients || []).find((c) => c.legacyNbId && c.legacyNbId === nbId);
+    if (renumbered) return <Navigate to={"/clients/" + renumbered.nbId} replace />;
     return (
       <Card>
         <EmptyState

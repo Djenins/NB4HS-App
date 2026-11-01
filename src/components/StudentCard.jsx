@@ -12,7 +12,7 @@
 import { useId, useState } from "react";
 import { LogOut, Pencil, X } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
-import { formatPhone, initialsOf } from "../lib/utils.js";
+import { formatPhone, initialsOf, phoneError } from "../lib/utils.js";
 import NbIdBadge from "./NbIdBadge.jsx";
 import { Avatar, AvatarFallback } from "./ui/avatar.jsx";
 import { BUTTON_RESET, Button } from "./ui/button.jsx";
@@ -39,8 +39,11 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
   function setField(name, value) {
     setFields((prev) => Object.assign({}, prev, { [name]: value }));
   }
+  const [phoneErr, setPhoneErr] = useState("");
   function save() {
-    onSave(fields);
+    const problem = phoneError(fields.phone);
+    setPhoneErr(problem);
+    if (!problem) onSave(fields);
   }
 
   if (editing) {
@@ -49,32 +52,32 @@ export default function StudentCard({ student, classes, editing, onMove, onEditS
       <Card className="space-y-3 p-3.5">
         <div className="text-ui font-semibold text-card-foreground">{t("editStudentTitle")}</div>
         <Field label={t("firstName")} htmlFor={fid("firstName")}>
-          <Input id={fid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+          <Input placeholder={t("phFirstName")} id={fid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
         </Field>
         <Field label={t("lastName")} htmlFor={fid("lastName")}>
-          <Input id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+          <Input placeholder={t("phLastName")} id={fid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
         </Field>
-        <Field label={t("phone")} htmlFor={fid("phone")}>
-          <Input id={fid("phone")} type="tel" value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
+        <Field label={t("phone")} htmlFor={fid("phone")} required error={phoneErr ? t(phoneErr) : null}>
+          <Input placeholder={t("phPhone")} id={fid("phone")} type="tel" aria-invalid={!!phoneErr || undefined} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} />
         </Field>
         <Field label={t("email")} htmlFor={fid("email")}>
-          <Input id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
+          <Input placeholder={t("phEmail")} id={fid("email")} type="email" value={fields.email} onChange={(e) => setField("email", e.target.value)} />
         </Field>
         <Field label={t("address")} htmlFor={fid("street")}>
-          <AddressInput as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+          <AddressInput placeholder={t("streetAddressPlaceholder")} as={Input} id={fid("street")} value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
         </Field>
         <Field label={t("city")} htmlFor={fid("city")}>
-          <Input id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+          <Input placeholder={t("phCity")} id={fid("city")} value={fields.city} onChange={(e) => setField("city", e.target.value)} />
         </Field>
         <Field label={t("zip")} htmlFor={fid("zip")}>
-          <Input id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+          <Input placeholder={t("phZip")} id={fid("zip")} inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-2">
           <Field label={t("pretestReadingLabel")} htmlFor={fid("pre")}>
-            <Input id={fid("pre")} type="number" className="tabular-nums" value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} />
+            <Input placeholder={t("phTestScore")} id={fid("pre")} type="number" className="tabular-nums" value={fields.pretestReading} onChange={(e) => setField("pretestReading", e.target.value)} />
           </Field>
           <Field label={t("posttestReadingLabel")} htmlFor={fid("post")}>
-            <Input id={fid("post")} type="number" className="tabular-nums" value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} />
+            <Input placeholder={t("phTestScore")} id={fid("post")} type="number" className="tabular-nums" value={fields.posttestReading} onChange={(e) => setField("posttestReading", e.target.value)} />
           </Field>
         </div>
         <div className="flex gap-2 pt-1">

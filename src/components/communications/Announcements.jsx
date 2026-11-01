@@ -61,10 +61,10 @@ function AnnouncementDialog({ announcement, onSave, onCancel }) {
     >
       <div className="flex flex-col gap-4">
         <Field label={t("commsAnnouncementTitleLabel")} htmlFor="ann-title" required>
-          <Input id="ann-title" value={fields.title} maxLength={ANNOUNCEMENT_TITLE_MAX} onChange={(e) => set("title", e.target.value)} data-autofocus />
+          <Input placeholder={t("phAnnouncementTitle")} id="ann-title" value={fields.title} maxLength={ANNOUNCEMENT_TITLE_MAX} onChange={(e) => set("title", e.target.value)} data-autofocus />
         </Field>
         <Field label={t("commsMessageLabel")} htmlFor="ann-body" required hint={<span className="tabular-nums">{fields.body.length} / {ANNOUNCEMENT_BODY_MAX}</span>}>
-          <Textarea id="ann-body" value={fields.body} rows={6} maxLength={ANNOUNCEMENT_BODY_MAX} onChange={(e) => set("body", e.target.value)} />
+          <Textarea placeholder={t("phAnnouncementBody")} id="ann-body" value={fields.body} rows={6} maxLength={ANNOUNCEMENT_BODY_MAX} onChange={(e) => set("body", e.target.value)} />
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SegmentedControl label={t("commsPriorityLabel")} value={fields.priority} onChange={(v) => set("priority", v)}

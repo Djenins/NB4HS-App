@@ -40,17 +40,14 @@ export function genStudentId(n) {
   var padded = ("00000" + n).slice(-5);
   return "NB-" + padded;
 }
-// Unified master-client id, same "NB-#####" format as genStudentId() but
-// backed by its own counter (data.nextClientNumber, see masterClients.js) --
-// deliberately NOT the same sequence as student ids. Students and unified
-// clients are different arrays (data.students vs data.clients) looked up
-// independently by their own id field, so a student and a client can validly
-// share the same NB-##### text without ever colliding in a lookup. Unifying
-// the two counters into one global id space is a future, deliberate choice,
-// not implied by sharing this format.
-export function genClientId(n) {
-  var padded = ("00000" + n).slice(-5);
-  return "NB-" + padded;
+// Client IDs (NB26-0001) are made by the database from the intake date's
+// year: see supabase/migrations/20261101092314_i2_client_id_join_year.sql.
+// Imports create rows in this order so the numbers within a year follow the
+// order people joined; rows with no intake date go last.
+export function byIntakeDate(a, b) {
+  var x = (a && a.intakeDate) || "", y = (b && b.intakeDate) || "";
+  if (!x || !y) return x ? -1 : y ? 1 : 0;
+  return x < y ? -1 : x > y ? 1 : 0;
 }
 export function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 export function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
@@ -227,6 +224,16 @@ export function initialsOf(rec) {
 // Formats/normalizes any phone-ish string to (000) 000-0000 as digits are
 // typed or displayed -- used both live in onChange handlers and for display
 // of stored values (some of which may be raw digits from CSV import/seed data).
+// Phone is required on every person record staff create or edit (clients,
+// job clients, students, SNAP contacts). Returns the i18n key of the
+// problem, or "" when the number is fine.
+export var PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
+export function phoneError(value) {
+  var v = String(value || "").trim();
+  if (!v) return "phoneRequired";
+  return PHONE_RE.test(v) ? "" : "invalidPhone";
+}
+
 export function formatPhone(value) {
   var digits = String(value || "").replace(/\D/g, "").slice(0, 10);
   if (!digits) return "";

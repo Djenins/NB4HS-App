@@ -57,7 +57,7 @@ function TemplateDialog({ template, onSave, onCancel }) {
     >
       <div className="flex flex-col gap-4">
         <Field label={t("commsTemplateNameLabel")} htmlFor="tpl-name" hint={t("commsTemplateNameHint")} required>
-          <Input id="tpl-name" value={fields.name} maxLength={80} onChange={(e) => set("name", e.target.value)} data-autofocus />
+          <Input placeholder={t("phTemplateName")} id="tpl-name" value={fields.name} maxLength={80} onChange={(e) => set("name", e.target.value)} data-autofocus />
         </Field>
         <SegmentedControl label={t("commsChannelLabel")} value={fields.channel} onChange={(v) => set("channel", v)}
           options={MESSAGE_CHANNELS.map((c) => ({ value: c, label: t(CHANNEL_KEY[c]) }))} />
@@ -75,7 +75,7 @@ function TemplateDialog({ template, onSave, onCancel }) {
         </div>
         {fields.channel === "email" ? (
           <Field label={t("commsSubjectLabel")} htmlFor="tpl-subject" required>
-            <Input id="tpl-subject" value={fields.subject} maxLength={SUBJECT_MAX} onChange={(e) => set("subject", e.target.value)} />
+            <Input placeholder={t("phSubject")} id="tpl-subject" value={fields.subject} maxLength={SUBJECT_MAX} onChange={(e) => set("subject", e.target.value)} />
           </Field>
         ) : null}
         <Field
@@ -83,7 +83,7 @@ function TemplateDialog({ template, onSave, onCancel }) {
           hint={<span className="tabular-nums">{fields.body.length} / {limit}{fields.channel === "sms" && fields.body ? " · " + t("commsSmsParts").replace("{n}", smsSegments(fields.body)) : ""} · {t("commsFirstNameHint")}</span>}
           error={fields.body.length > limit ? t("commsProblemTooLong") : null}
         >
-          <Textarea id="tpl-body" value={fields.body} rows={fields.channel === "sms" ? 4 : 8} onChange={(e) => set("body", e.target.value)} />
+          <Textarea placeholder={t("phMessageBody")} id="tpl-body" value={fields.body} rows={fields.channel === "sms" ? 4 : 8} onChange={(e) => set("body", e.target.value)} />
         </Field>
         <label className="m-0 flex cursor-pointer items-center gap-2.5 text-ui font-medium text-card-foreground">
           <input type="checkbox" checked={fields.active} onChange={(e) => set("active", e.target.checked)} className="h-4 w-4 cursor-pointer accent-primary" />

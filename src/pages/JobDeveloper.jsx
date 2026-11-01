@@ -31,7 +31,7 @@ import { countApplicationsWithInterview, createJobClient, deleteJobClient, fetch
 import { BARRIERS_TO_EMPLOYMENT, EMPLOYMENT_STATUSES, JOB_PIPELINE_STAGES, WORK_AUTH_STATUSES, computeFollowUps } from "../lib/jobProfile.js";
 import { paginateList } from "../lib/pagination.js";
 import { cn } from "../lib/cn.js";
-import { formatPhone, todayStr } from "../lib/utils.js";
+import { formatPhone, phoneError, todayStr } from "../lib/utils.js";
 import { matchesJobClient } from "../lib/workforceFilters.js";
 import { sortJobClients } from "../lib/workforceSorters.js";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
@@ -55,7 +55,6 @@ import AddressInput from "../components/AddressInput.jsx";
 import WorkforceNav, { APPOINTMENTS_PATH } from "../components/WorkforceNav.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", intakeDate: "", street: "", city: "", zip: "", workPermit: "no", workPermitExpiration: "", hasResume: "no" };
-const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 
 // A SectionCard whose body can be collapsed (the same pattern as
 // CaseManagement.jsx). The toggle is a real button with aria-expanded in
@@ -152,7 +151,7 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
 
   function submit() {
     const errs = ["firstName", "lastName"].filter((f) => !fields[f].trim());
-    if (fields.phone.trim() && !PHONE_RE.test(fields.phone.trim())) errs.push("phone");
+    if (phoneError(fields.phone)) errs.push("phone");
     if (errs.length) {
       setErrors(errs);
       showToast(t("fixErrors"));
@@ -183,12 +182,12 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("firstName")} htmlFor="new-job-client-first-name" required>
-              <Input id="new-job-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+              <Input placeholder={t("phFirstName")} id="new-job-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
             </Field>
             <Field label={t("lastName")} htmlFor="new-job-client-last-name" required>
-              <Input id="new-job-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+              <Input placeholder={t("phLastName")} id="new-job-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
             </Field>
-            <Field label={t("phone")} htmlFor="new-job-client-phone">
+            <Field label={t("phone")} htmlFor="new-job-client-phone" required error={invalid("phone") ? t(phoneError(fields.phone) || "invalidPhone") : null}>
               <Input id="new-job-client-phone" type="tel" aria-invalid={invalid("phone")} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
             </Field>
             <Field label={t("email")} htmlFor="new-job-client-email">
@@ -203,13 +202,13 @@ function AddJobClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field label={t("address")} htmlFor="new-job-client-street" className="sm:col-span-2 xl:col-span-1">
-              <AddressInput as={Input} id="new-job-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+              <AddressInput placeholder={t("streetAddressPlaceholder")} as={Input} id="new-job-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
             </Field>
             <Field label={t("city")} htmlFor="new-job-client-city">
-              <Input id="new-job-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+              <Input placeholder={t("phCity")} id="new-job-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
             </Field>
             <Field label={t("zip")} htmlFor="new-job-client-zip">
-              <Input id="new-job-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+              <Input placeholder={t("phZip")} id="new-job-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
             </Field>
           </div>
           <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>

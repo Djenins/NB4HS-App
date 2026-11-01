@@ -57,4 +57,14 @@ describe("buildResults", () => {
     const [clients] = buildResults({ query: "555-0101", scopes: { students: false, clients: true, staff: false, profiles: false }, data, pages });
     expect(clients.results[0]).toMatchObject({ to: "/case-management" });
   });
+
+  it("finds a client by the old NB-##### ID they had before re-numbering", () => {
+    const old = {
+      clients: [{ id: "m9", nbId: "NB26-0009", legacyNbId: "NB-00046" }],
+      caseClients: [{ id: "c9", nbId: "NB26-0009", firstName: "Nadia", lastName: "N", phone: "", email: "" }]
+    };
+    const [clients] = buildResults({ query: "nb-00046", scopes: { students: false, clients: true, staff: false }, data: old, pages });
+    expect(clients.results[0]).toMatchObject({ to: "/clients/NB26-0009" });
+  });
 });
+

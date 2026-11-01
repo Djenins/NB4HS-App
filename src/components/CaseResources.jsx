@@ -82,7 +82,7 @@ function ResourceForm({ initial, onSaved, onCancel }) {
       <CardContent className="space-y-3 pt-0">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field id="resource-name" label={t("resourceNameLabel")} required>
-            <input
+            <input placeholder={t("phResourceName")}
               id="resource-name"
               type="text"
               value={fields.name}
@@ -96,13 +96,13 @@ function ResourceForm({ initial, onSaved, onCancel }) {
               {RESOURCE_CATEGORIES.map((k) => <option key={k} value={k}>{categoryLabel(t, k)}</option>)}
             </select>
           </Field>
-          <Field id="resource-contactName" label={t("resourceContactLabel")}>{input("contactName")}</Field>
+          <Field id="resource-contactName" label={t("resourceContactLabel")}>{input("contactName", { placeholder: t("phContactName") })}</Field>
           <Field id="resource-phone" label={t("phoneLabel")}>{input("phone", { placeholder: "(401) 123-4567" })}</Field>
           <Field id="resource-email" label={t("emailLabel")}>{input("email", { placeholder: "name@example.com" })}</Field>
           <Field id="resource-website" label={t("resourceWebsiteLabel")}>{input("website", { placeholder: "https://" })}</Field>
         </div>
         <Field id="resource-address" label={t("address")}>
-          <AddressInput
+          <AddressInput placeholder={t("streetAddressPlaceholder")}
             id="resource-address"
             type="text"
             value={fields.address}

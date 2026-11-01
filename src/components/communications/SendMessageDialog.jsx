@@ -198,7 +198,7 @@ export default function SendMessageDialog({ client: fixedClient, onSent, onCance
 
         {fields.channel === "email" ? (
           <Field label={t("commsSubjectLabel")} htmlFor="msg-subject" required>
-            <Input id="msg-subject" value={fields.subject} maxLength={SUBJECT_MAX} onChange={(e) => set("subject", e.target.value)} />
+            <Input placeholder={t("phSubject")} id="msg-subject" value={fields.subject} maxLength={SUBJECT_MAX} onChange={(e) => set("subject", e.target.value)} />
           </Field>
         ) : null}
 
@@ -215,7 +215,7 @@ export default function SendMessageDialog({ client: fixedClient, onSent, onCance
           }
           error={preview.length > limit ? t("commsProblemTooLong") : null}
         >
-          <Textarea id="msg-body" value={fields.body} rows={fields.channel === "sms" ? 4 : 7} onChange={(e) => set("body", e.target.value)} />
+          <Textarea placeholder={t("phMessageBody")} id="msg-body" value={fields.body} rows={fields.channel === "sms" ? 4 : 7} onChange={(e) => set("body", e.target.value)} />
         </Field>
 
         {client && fields.body.indexOf("{first_name}") !== -1 ? (

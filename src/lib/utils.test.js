@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  csvEscape, escapeHtml, formatAddress, formatPhone, fmtDuration, fmtTime,
-  genStudentId, initialsOf, minutesBetween, pad2, parseCSVText, slugify
+  byIntakeDate, csvEscape, escapeHtml, formatAddress, formatPhone, fmtDuration, fmtTime,
+  genStudentId, initialsOf, minutesBetween, pad2, parseCSVText, phoneError, slugify
 } from "./utils.js";
 
 describe("pad2", () => {
@@ -150,3 +150,21 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
     expect(weekdayShortLabels("en")[0]).toBe("Mon");
   });
 });
+
+describe("phoneError", () => {
+  it("requires a number", () => {
+    expect(phoneError("")).toBe("phoneRequired");
+    expect(phoneError("   ")).toBe("phoneRequired");
+    expect(phoneError(undefined)).toBe("phoneRequired");
+  });
+  it("rejects text that isn't a phone number", () => { expect(phoneError("call me")).toBe("invalidPhone"); });
+  it("accepts a formatted number", () => { expect(phoneError("(401) 555-0100")).toBe(""); });
+});
+
+describe("byIntakeDate", () => {
+  it("orders by intake date, oldest first, with undated rows last", () => {
+    const rows = [{ n: "none" }, { n: "b", intakeDate: "2021-05-01" }, { n: "a", intakeDate: "2019-03-04" }];
+    expect(rows.slice().sort(byIntakeDate).map((r) => r.n)).toEqual(["a", "b", "none"]);
+  });
+});
+

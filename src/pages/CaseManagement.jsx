@@ -24,7 +24,7 @@ import { createCaseClient, deleteCaseClient } from "../lib/clientsData.js";
 import { paginateList } from "../lib/pagination.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
 import { cn } from "../lib/cn.js";
-import { formatPhone, todayStr } from "../lib/utils.js";
+import { byIntakeDate, formatPhone, phoneError, todayStr } from "../lib/utils.js";
 import AddressInput from "../components/AddressInput.jsx";
 import AppointmentsSection from "../components/AppointmentsSection.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
@@ -48,7 +48,6 @@ import { SearchInput } from "../components/ui/search-input.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
 
 const EMPTY_NEW_CLIENT = { firstName: "", lastName: "", phone: "", email: "", immigrationStatus: "", intakeDate: "", dob: "", street: "", city: "", zip: "" };
-const PHONE_RE = /^[0-9()\-\s.+]{7,20}$/;
 
 // A SectionCard whose body can be collapsed. The toggle is a real button
 // with aria-expanded in the card's action slot; collapsed, only the header
@@ -121,7 +120,7 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
 
   function submit() {
     const errs = ["firstName", "lastName"].filter((f) => !fields[f].trim());
-    if (fields.phone.trim() && !PHONE_RE.test(fields.phone.trim())) errs.push("phone");
+    if (phoneError(fields.phone)) errs.push("phone");
     if (errs.length) {
       setErrors(errs);
       showToast(t("fixErrors"));
@@ -161,12 +160,12 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionPersonalDetails")} desc={t("sectionPersonalDetailsDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("firstName")} htmlFor="new-client-first-name" required>
-              <Input id="new-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
+              <Input placeholder={t("phFirstName")} id="new-client-first-name" aria-invalid={invalid("firstName")} value={fields.firstName} onChange={(e) => setField("firstName", e.target.value)} />
             </Field>
             <Field label={t("lastName")} htmlFor="new-client-last-name" required>
-              <Input id="new-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+              <Input placeholder={t("phLastName")} id="new-client-last-name" aria-invalid={invalid("lastName")} value={fields.lastName} onChange={(e) => setField("lastName", e.target.value)} />
             </Field>
-            <Field label={t("phone")} htmlFor="new-client-phone">
+            <Field label={t("phone")} htmlFor="new-client-phone" required error={invalid("phone") ? t(phoneError(fields.phone) || "invalidPhone") : null}>
               <Input id="new-client-phone" type="tel" aria-invalid={invalid("phone")} value={fields.phone} onChange={(e) => setField("phone", formatPhone(e.target.value))} placeholder={t("phPhone")} />
             </Field>
             <Field label={t("email")} htmlFor="new-client-email">
@@ -184,13 +183,13 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
         <FormSection title={t("sectionAddress")} desc={t("sectionAddressDesc")}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field label={t("address")} htmlFor="new-client-street" className="sm:col-span-2 xl:col-span-1">
-              <AddressInput as={Input} id="new-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
+              <AddressInput placeholder={t("streetAddressPlaceholder")} as={Input} id="new-client-street" value={fields.street} onChange={(e) => setField("street", e.target.value)} onAddressSelect={(a) => setFields((prev) => Object.assign({}, prev, { street: a.street, city: a.city || prev.city, zip: a.zip || prev.zip }))} />
             </Field>
             <Field label={t("city")} htmlFor="new-client-city">
-              <Input id="new-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
+              <Input placeholder={t("phCity")} id="new-client-city" value={fields.city} onChange={(e) => setField("city", e.target.value)} />
             </Field>
             <Field label={t("zip")} htmlFor="new-client-zip">
-              <Input id="new-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
+              <Input placeholder={t("phZip")} id="new-client-zip" inputMode="numeric" value={fields.zip} onChange={(e) => setField("zip", e.target.value)} />
             </Field>
           </div>
           <p className="m-0 text-meta text-muted">{t("stateAlwaysRI")}</p>
@@ -235,7 +234,7 @@ function ImportClientsCard({ collapsed, onToggle, onImported }) {
     // attach each imported row to the best existing master-client match
     // (same matcher the interactive add-client flow uses) or create a new
     // one, mirroring the one-time migration's approach.
-    for (const row of result.added) {
+    for (const row of result.added.slice().sort(byIntakeDate)) {
       const matches = findPossibleDuplicates(row, data.clients || []);
       await createCaseClient(row, row, matches.length ? matches[0].client.id : null);
     }
@@ -518,6 +517,7 @@ export default function CaseManagement() {
   const navigate = useNavigate();
   const canUseIntakeForm = !!session && (session.role === "administrator" || session.role === "case_manager");
   const [importedCount, setImportedCount] = useState(0);
+  const [intakeCollapsed, setIntakeCollapsed] = useState(false);
 
   const visible = SECTIONS.filter((s) => s.key !== "intakes" || canUseIntakeForm);
   // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
@@ -541,7 +541,7 @@ export default function CaseManagement() {
       {section === "dashboard" && <CaseDashboard importedCount={importedCount} onNavigate={go} canUseIntakeForm={canUseIntakeForm} />}
       {section === "clients" && <CaseClients onImported={(n) => setImportedCount((c) => c + n)} />}
       {section === "resources" && <CaseResources />}
-      {section === "intakes" && <IntakeFormCard collapsed={false} onToggle={() => {}} />}
+      {section === "intakes" && <IntakeFormCard collapsed={intakeCollapsed} onToggle={() => setIntakeCollapsed((c) => !c)} />}
       {section === "appointments" && (
         <AppointmentsSection
           open

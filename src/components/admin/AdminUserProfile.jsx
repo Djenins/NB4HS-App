@@ -80,7 +80,7 @@ function ProfileTab({ account, isSelf, onChanged }) {
         <CardContent className="grid gap-4">
           <Field label={t("fullNameLabel")} htmlFor="profile-name">
             <div className="flex gap-2">
-              <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!canEditName} maxLength={120} />
+              <Input placeholder={t("phFullName")} id="profile-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!canEditName} maxLength={120} />
               {canEditName ? <Button variant="secondary" onClick={saveName} loading={saving} disabled={!name.trim() || name.trim() === account.name}>{t("saveLabel")}</Button> : null}
             </div>
           </Field>
@@ -235,7 +235,7 @@ function AddRoleDialog({ open, onClose, account, catalog, onAdded }) {
           <Input id="add-role-expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
         </Field>
         <Field label={t("adminReasonOptionalLabel")} htmlFor="add-role-reason" hint={t("adminReasonHint")}>
-          <Input id="add-role-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} />
+          <Input placeholder={t("phReasonOptional")} id="add-role-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} />
         </Field>
       </div>
     </Dialog>

@@ -32,7 +32,7 @@ import { createFoodClient, deleteFoodClient, fetchAllDistributions, subscribeCli
 import { paginateList } from "../lib/pagination.js";
 import { inRange, rangeForPreset } from "../lib/reports_data.js";
 import { readRowsFromFile, sortStudentsList } from "../lib/students.js";
-import { fmtDateLong, formatPhone, todayStr } from "../lib/utils.js";
+import { byIntakeDate, fmtDateLong, formatPhone, todayStr } from "../lib/utils.js";
 import AddressInput from "../components/AddressInput.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
@@ -251,7 +251,7 @@ function ImportHouseholdsCard({ collapsed, onToggle }) {
     // Bulk import has no UI for a per-row duplicate review -- silently
     // attach each imported household to the best existing master-client
     // match or create a new one, same as Case Management/Students imports.
-    for (const row of result.added) {
+    for (const row of result.added.slice().sort(byIntakeDate)) {
       const matches = findPossibleDuplicates(row, data.clients || []);
       await createFoodClient(row, row, matches.length ? matches[0].client.id : null);
     }

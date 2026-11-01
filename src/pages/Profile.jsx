@@ -73,7 +73,7 @@ export default function Profile() {
           <CardContent>
             <form className="grid gap-4" onSubmit={saveProfile} noValidate>
               <Field label={t("fullNameLabel")} htmlFor="profile-own-name" required>
-                <Input id="profile-own-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} autoComplete="name" />
+                <Input placeholder={t("phFullName")} id="profile-own-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} autoComplete="name" />
               </Field>
               <Field label={t("profileLanguage")} htmlFor="profile-lang" hint={t("profileLanguageHint")}>
                 <Select id="profile-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
@@ -100,11 +100,11 @@ export default function Profile() {
           <CardContent>
             <form className="grid gap-4" onSubmit={savePassword} noValidate>
               <Field label={t("newPasswordLabel")} htmlFor="profile-new-password" error={pwError}>
-                <Input id="profile-new-password" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setPwError(""); }}
+                <Input placeholder={t("phNewPassword")} id="profile-new-password" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setPwError(""); }}
                   autoComplete="new-password" aria-invalid={!!pwError} />
               </Field>
               <Field label={t("confirmPasswordLabel")} htmlFor="profile-confirm-password">
-                <Input id="profile-confirm-password" type="password" value={confirm} onChange={(e) => { setConfirm(e.target.value); setPwError(""); }}
+                <Input placeholder={t("phConfirmPassword")} id="profile-confirm-password" type="password" value={confirm} onChange={(e) => { setConfirm(e.target.value); setPwError(""); }}
                   autoComplete="new-password" />
               </Field>
               <div><Button type="submit" variant="secondary" loading={savingPw} disabled={!password}>{t("profileChangePassword")}</Button></div>

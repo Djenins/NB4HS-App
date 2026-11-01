@@ -156,7 +156,7 @@ export default function ReportReview({ reportId }) {
                 <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); act(); }}>
                   <Field label={t(mode === "revision" ? "srRevisionComment" : "srAckComment")} htmlFor="review-comment"
                     hint={t("srCommentVisibleToAuthor")} required={mode === "revision"}>
-                    <Textarea id="review-comment" rows={5} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)}
+                    <Textarea placeholder={t("phReviewComment")} id="review-comment" rows={5} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)}
                       aria-describedby="review-comment-hint" className="resize-y" required={mode === "revision"} autoFocus />
                   </Field>
                   <div className="flex flex-wrap justify-end gap-2">

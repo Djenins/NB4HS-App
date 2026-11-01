@@ -528,7 +528,7 @@
     padding:16px; animation:modal-pop-in .14s ease-out;
   }
   .date-picker-quick{display:flex; gap:8px; margin-bottom:14px;}
-  .date-picker-quick-btn{min-height:40px; padding:6px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.85rem; cursor:pointer; transition:border-color .1s ease;}
+  .date-picker-quick-btn{min-height:40px; padding:6px 14px; border-radius:var(--radius-control); border:1px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.85rem; cursor:pointer; transition:border-color .1s ease;}
   .date-picker-quick-btn:hover{border-color:var(--border-strong);}
   .date-picker-quick-btn:disabled{opacity:.5; cursor:not-allowed;}
   @media (pointer: coarse){ .date-picker-quick-btn{min-height:44px;} }

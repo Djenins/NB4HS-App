@@ -220,7 +220,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
           <p id="case-notes-help" className="m-0 mb-3 mt-1 text-meta text-muted">{t("snapCaseNotesHelp")}</p>
           {perms.canEdit && (
             <form onSubmit={addNote} className="mb-4 grid gap-2">
-              <Textarea rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
+              <Textarea placeholder={t("phNoteContent")} rows={3} maxLength={NOTE_MAX} value={noteText} aria-label={t("snapAddNote")} aria-describedby="case-notes-help"
                 onChange={(e) => setNoteText(e.target.value)} />
               <div className="flex justify-end"><Button type="submit" size="sm" loading={busy} disabled={!noteText.trim()}>{t("snapAddNote")}</Button></div>
             </form>

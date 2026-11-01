@@ -1,29 +1,60 @@
 // ReportingSettings.jsx -- Staff Reports' configuration section, for holders
 // of staff_reports.schedule.manage. Three cards: who reviews (first, with a
 // warning while nobody does, since then every submission goes unread), the
-// biweekly schedule (with a preview of the next deadlines computed the same
-// way the database does, and its Save kept in view), and the health of the
+// biweekly schedule (a two-column layout: the schedule and reminder cards,
+// and beside them a preview of the next deadlines computed the same way the
+// database does and who submits), and the health of the
 // email copies (p6b) so a provider outage is visible instead of silent. Who reports follows roles (staff_reports.submit, managed
 // under Administration -> Roles); granting "Reviewer" is what lets someone
 // read other staff's reports -- being an administrator does not.
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { fetchProgramStaff, setProgramRole } from "../../lib/programStaff.js";
 import {
   REVIEWER_ROLES, dueAtFor, fetchQueueHealth, fetchSchedules, fmtDueAt, fmtPeriod, localDateIn, periodForDate, periodForIndex, updateSchedule
 } from "../../lib/staffReports.js";
+import { DATE_LOCALE } from "../../lib/constants.js";
 import { roleLabel } from "../../lib/utils.js";
+import DatePicker from "../DatePicker.jsx";
 import { Alert } from "../ui/alert.jsx";
+import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
 import { DataTable } from "../ui/data-table.jsx";
 import { EmptyState } from "../ui/empty-state.jsx";
 import { Field, Input, Select } from "../ui/field.jsx";
 import { SectionCard } from "../ui/section-card.jsx";
 import { Skeleton } from "../ui/skeleton.jsx";
+import { Switch } from "../ui/switch.jsx";
 
 const PROGRAM = "staff_reports";
 const TIME_ZONES = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Port-au-Prince", "UTC"];
-const OFFSETS = [-7, -5, -3, -2, -1, 0, 1, 2, 3];
+const BEFORE = [-7, -5, -3, -2, -1];
+const AFTER = [1, 2, 3];
+const PERIOD_DAYS = [7, 14, 21, 28, 30, 31];
+const DUE_DAYS = [0, 1, 2, 3, 4, 5, 6, 7];
+const GRACE = [0, 1, 2, 4, 8, 12, 24, 48, 72];
+
+// The preset choices plus whatever the schedule already holds, so a value
+// set before these dropdowns existed still shows (and saves) as itself.
+function withCurrent(list, value) {
+  return list.indexOf(value) === -1 ? list.concat([value]).sort((a, b) => a - b) : list;
+}
+
+// The design's card headings run larger than SectionCard's default.
+const big = (text) => <span className="text-lg">{text}</span>;
+
+// One reminder as a tinted check chip, as in the schedule design.
+function OffsetChip({ checked, onChange, children }) {
+  return (
+    <label className={"flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm transition-colors "
+      + (checked ? "border-primary/40 bg-primary-tint font-semibold text-primary" : "border-border bg-card text-card-foreground hover:bg-surface-sunken")}>
+      <input type="checkbox" className="h-4 w-4 accent-[var(--primary)]" checked={checked} onChange={onChange} />
+      {children}
+    </label>
+  );
+}
 
 function ScheduleCard({ schedule, onSaved }) {
   const { lang, showToast } = useApp();
@@ -33,10 +64,22 @@ function ScheduleCard({ schedule, onSaved }) {
   const set = (k, v) => setDraft((d) => Object.assign({}, d, { [k]: v }));
   const valid = draft.firstPeriodStart && draft.periodDays >= 7 && draft.periodDays <= 62 && draft.deadlineDaysAfterEnd >= 0
     && draft.graceHours >= 0 && draft.deadlineTime;
+  const loc = DATE_LOCALE[lang] || "en-US";
 
   const today = localDateIn(draft.timeZone);
   const firstIndex = valid ? Math.max(0, periodForDate(draft, today).index) : 0;
   const preview = valid ? [0, 1, 2].map((i) => periodForIndex(draft, firstIndex + i)) : [];
+
+  const hm = (draft.deadlineTime || "00:00").split(":");
+  const timeLabel = new Date(2000, 0, 1, Number(hm[0]), Number(hm[1])).toLocaleTimeString(loc, { hour: "numeric", minute: "2-digit" });
+  const zoneOf = (iso) => new Date(iso).toLocaleTimeString(loc, { timeZone: draft.timeZone, hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  const dayOf = (iso) => new Date(iso).toLocaleDateString(loc, { timeZone: draft.timeZone, weekday: "short", month: "short", day: "numeric" });
+  const days = (n) => (n === 1 ? t("srOneDay") : t("srNDays").replace("{n}", n));
+  const hours = (n) => (n === 1 ? t("srOneHour") : t("srNHours").replace("{n}", n));
+
+  const has = (o) => draft.reminderOffsets.indexOf(o) !== -1;
+  const toggle = (o) => set("reminderOffsets", has(o)
+    ? draft.reminderOffsets.filter((x) => x !== o) : draft.reminderOffsets.concat([o]).sort((a, b) => a - b));
 
   async function save(e) {
     e.preventDefault();
@@ -57,71 +100,127 @@ function ScheduleCard({ schedule, onSaved }) {
   }
 
   return (
-    // overflow-visible: the card's default overflow-hidden would stop the
-    // save bar from sticking to the bottom of the window.
-    <SectionCard title={t("srScheduleTitle")} className="overflow-visible">
-      <form className="grid gap-5" onSubmit={save}>
-        <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field htmlFor="sched-start" label={t("srFirstPeriodStart")} hint={t("srFirstPeriodStartHelp")}>
-            <Input id="sched-start" aria-describedby="sched-start-hint" type="date" className="tabular-nums" value={draft.firstPeriodStart} onChange={(e) => set("firstPeriodStart", e.target.value)} required />
-          </Field>
-          <Field htmlFor="sched-days" label={t("srPeriodDays")} hint={t("srPeriodDaysHelp")}>
-            <Input id="sched-days" aria-describedby="sched-days-hint" type="number" min={7} max={62} className="tabular-nums" value={draft.periodDays} onChange={(e) => set("periodDays", Number(e.target.value))} required />
-          </Field>
-          <Field htmlFor="sched-tz" label={t("srTimeZone")}>
-            <Select id="sched-tz" value={draft.timeZone} onChange={(e) => set("timeZone", e.target.value)}>
-              {TIME_ZONES.concat(TIME_ZONES.indexOf(draft.timeZone) === -1 ? [draft.timeZone] : []).map((z) => <option key={z} value={z}>{z}</option>)}
-            </Select>
-          </Field>
-          <Field htmlFor="sched-due-days" label={t("srDeadlineDays")} hint={t("srDeadlineDaysHelp")}>
-            <Input id="sched-due-days" aria-describedby="sched-due-days-hint" type="number" min={0} max={30} className="tabular-nums" value={draft.deadlineDaysAfterEnd} onChange={(e) => set("deadlineDaysAfterEnd", Number(e.target.value))} required />
-          </Field>
-          <Field htmlFor="sched-due-time" label={t("srDeadlineTime")}>
-            <Input id="sched-due-time" type="time" className="tabular-nums" value={draft.deadlineTime} onChange={(e) => set("deadlineTime", e.target.value)} required />
-          </Field>
-          <Field htmlFor="sched-grace" label={t("srGraceHours")} hint={t("srGraceHoursHelp")}>
-            <Input id="sched-grace" aria-describedby="sched-grace-hint" type="number" min={0} max={168} className="tabular-nums" value={draft.graceHours} onChange={(e) => set("graceHours", Number(e.target.value))} required />
-          </Field>
+    <form className="grid gap-5" onSubmit={save}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="m-0 text-2xl font-bold text-card-foreground">{t("srScheduleTitle")}</h2>
+          <p className="!m-0 !mt-1 text-sm text-muted">{t("srScheduleSubtitle")}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant={draft.active ? "success" : "neutral"} dot className="px-3 py-1 text-meta">
+            {t(draft.active ? "srActive" : "srPaused")}
+          </Badge>
+          <Switch checked={draft.active} onCheckedChange={(v) => set("active", v)} label={t("srScheduleActive")} />
+        </div>
+      </div>
+
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+        <div className="grid gap-5">
+          <SectionCard title={big(t("srScheduleDeadlineTitle"))} className="overflow-visible">
+            <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+              <Field htmlFor="sched-start" label={t("srFirstPeriodStart")} hint={t("srFirstPeriodStartHelp")}>
+                <DatePicker id="sched-start" value={draft.firstPeriodStart} onChange={(v) => set("firstPeriodStart", v)} required />
+              </Field>
+              <Field htmlFor="sched-days" label={t("srPeriodDays")} hint={t("srPeriodDaysHelp")}>
+                <Select id="sched-days" value={draft.periodDays} onChange={(e) => set("periodDays", Number(e.target.value))}>
+                  {withCurrent(PERIOD_DAYS, draft.periodDays).map((n) => <option key={n} value={n}>{days(n)}</option>)}
+                </Select>
+              </Field>
+              <Field htmlFor="sched-tz" label={t("srTimeZone")}>
+                <Select id="sched-tz" value={draft.timeZone} onChange={(e) => set("timeZone", e.target.value)}>
+                  {TIME_ZONES.concat(TIME_ZONES.indexOf(draft.timeZone) === -1 ? [draft.timeZone] : []).map((z) => <option key={z} value={z}>{z}</option>)}
+                </Select>
+              </Field>
+              <Field htmlFor="sched-due-days" label={t("srDeadlineDays")} hint={t("srDeadlineDaysHelp")}>
+                <Select id="sched-due-days" value={draft.deadlineDaysAfterEnd} onChange={(e) => set("deadlineDaysAfterEnd", Number(e.target.value))}>
+                  {withCurrent(DUE_DAYS, draft.deadlineDaysAfterEnd).map((n) => <option key={n} value={n}>{days(n)}</option>)}
+                </Select>
+              </Field>
+              <Field htmlFor="sched-due-time" label={t("srDeadlineTime")}>
+                <Input id="sched-due-time" type="time" className="tabular-nums" value={draft.deadlineTime} onChange={(e) => set("deadlineTime", e.target.value)} required />
+              </Field>
+              <Field htmlFor="sched-grace" label={t("srGraceHours")} hint={t("srGraceHoursHelp")}>
+                <Select id="sched-grace" value={draft.graceHours} onChange={(e) => set("graceHours", Number(e.target.value))}>
+                  {withCurrent(GRACE, draft.graceHours).map((n) => <option key={n} value={n}>{hours(n)}</option>)}
+                </Select>
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard title={big(t("srReminders"))}>
+            <p className="!-mt-2 !mb-4 text-sm text-muted">{t("srRemindersStop")}</p>
+            <fieldset className="m-0 min-w-0 border-0 p-0">
+              <legend className="mb-2 text-sm font-semibold text-card-foreground">{t("srBeforeDeadline")}</legend>
+              <div className="flex flex-wrap gap-2">
+                {BEFORE.map((o) => (
+                  <OffsetChip key={o} checked={has(o)} onChange={() => toggle(o)}>
+                    {o === -1 ? t("srOffsetBefore1") : t("srOffsetBefore").replace("{n}", -o)}
+                  </OffsetChip>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="m-0 mt-4 min-w-0 border-0 p-0">
+              <legend className="mb-2 w-full border-t border-border pt-4 text-sm font-semibold text-card-foreground">{t("srOnDeadline")}</legend>
+              <div className="flex flex-wrap gap-2">
+                <OffsetChip checked={has(0)} onChange={() => toggle(0)}>{t("srOffsetAt").replace("{time}", timeLabel)}</OffsetChip>
+              </div>
+            </fieldset>
+            <fieldset className="m-0 mt-4 min-w-0 border-0 p-0">
+              <legend className="mb-2 w-full border-t border-border pt-4 text-sm text-muted">
+                <span className="font-semibold text-card-foreground">{t("srAfterDeadline")}</span> · {t("srOnlyIfNotSubmitted")}
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {AFTER.map((o) => (
+                  <OffsetChip key={o} checked={has(o)} onChange={() => toggle(o)}>
+                    {o === 1 ? t("srOffsetAfter1") : t("srOffsetAfterN").replace("{n}", o)}
+                  </OffsetChip>
+                ))}
+              </div>
+            </fieldset>
+            <p className="!mb-0 !mt-4 !text-meta text-muted">{t("srReviewersNotified")}</p>
+          </SectionCard>
         </div>
 
-        <fieldset className="m-0 min-w-0 border-0 p-0">
-          <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">{t("srReminders")}</legend>
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
-            {OFFSETS.map((o) => (
-              <label key={o} className="mb-1.5 font-semibold flex min-h-9 items-center gap-2 text-ui text-card-foreground">
-                <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.reminderOffsets.indexOf(o) !== -1}
-                  onChange={() => set("reminderOffsets", draft.reminderOffsets.indexOf(o) !== -1
-                    ? draft.reminderOffsets.filter((x) => x !== o) : draft.reminderOffsets.concat([o]).sort((a, b) => a - b))} />
-                {o === -1 ? t("srOffsetBefore1") : o < 0 ? t("srOffsetBefore").replace("{n}", -o)
-                  : o === 0 ? t("srOffsetOnDay") : o === 1 ? t("srOffsetAfter1") : t("srOffsetAfter").replace("{n}", o)}
-              </label>
-            ))}
-          </div>
-          <p className="m-0 mt-1 text-meta text-muted">{t("srRemindersHelp")}</p>
-        </fieldset>
+        <div className="grid gap-5">
+          <SectionCard title={<span className="flex items-center gap-2 text-lg">{t("srSchedulePreview")}<Badge variant="info">{t("srPreview")}</Badge></span>}>
+            {preview.length > 0 ? (
+              <>
+                <p className="!-mt-2 !mb-4 text-sm text-muted">
+                  {t("srEveryNDays").replace("{n}", draft.periodDays)} · {zoneOf(dueAtFor(draft, preview[0].end))}
+                </p>
+                <ul className="m-0 grid list-none gap-3 p-0">
+                  {preview.map((p) => {
+                    const due = dueAtFor(draft, p.end).toISOString();
+                    return (
+                      <li key={p.start} className="rounded-lg bg-background px-4 py-3">
+                        <div className="text-caption font-semibold uppercase tracking-wide text-muted">{fmtPeriod(p.start, p.end, lang)}</div>
+                        <div className="mt-1 text-base font-bold text-card-foreground">{t("srDue")} {dayOf(due)}</div>
+                        <div className="mt-0.5 text-meta text-muted">{zoneOf(due)}</div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : <p className="m-0 text-meta text-muted">—</p>}
+          </SectionCard>
 
-        <Alert tone="info">{t("srWhoReportsRoles")}</Alert>
-
-        <label className="mb-1.5 flex min-h-10 items-center gap-2 text-ui font-semibold text-card-foreground">
-          <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.active} onChange={(e) => set("active", e.target.checked)} /> {t("srScheduleActive")}
-        </label>
-
-        {preview.length > 0 && (
-          <div className="rounded-control bg-surface-sunken px-4 py-3">
-            <p className="m-0 text-meta font-semibold text-muted">{t("srSchedulePreview")}</p>
-            <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-ui tabular-nums text-card-foreground">
-              {preview.map((p) => (
-                <li key={p.start}>{fmtPeriod(p.start, p.end, lang)} — {t("srDue")} {fmtDueAt(dueAtFor(draft, p.end).toISOString(), draft.timeZone, lang)}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-col gap-3 rounded-b-surface border-t border-line-subtle bg-card px-5 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p className="m-0 text-meta text-muted">{t("srScheduleChangeNote")}</p>
-          <Button type="submit" className="shrink-0" disabled={busy || !valid}>{t("srSaveSchedule")}</Button>
+          <SectionCard title={big(t("srWhoSubmitsTitle"))}>
+            <p className="!m-0 text-sm text-muted">{t("srWhoSubmitsHelp")}</p>
+            <Link to="/admin/roles" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary no-underline hover:underline">
+              {t("srManageRoles")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </SectionCard>
         </div>
-      </form>
-    </SectionCard>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <p className="!m-0 text-sm text-muted">{t("srScheduleChangeNote")}</p>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setDraft(schedule)}>{t("cancelLabel")}</Button>
+          <Button type="submit" disabled={busy || !valid}>{t("srSaveChanges")}</Button>
+        </div>
+      </div>
+    </form>
   );
 }
 
