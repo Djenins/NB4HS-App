@@ -17,7 +17,6 @@ import { TOUCH_FILL } from "../ui/field.jsx";
 // `appt-control` is the hook main.css uses to trim these back on short
 // landscape kiosks (1366x768 and friends) without shrinking the type.
 export const APPT_CONTROL = TOUCH_FILL + " appt-control block min-h-[56px] rounded-touch text-touch-body";
-const ICON_PAD = "pl-[52px]";
 
 export function ApptLabel({ htmlFor, required, children, className }) {
   return (
@@ -40,20 +39,8 @@ export function ApptFieldError({ id, children }) {
   );
 }
 
-function LeadingIcon({ icon: Glyph }) {
-  if (!Glyph) return null;
-  return (
-    <Glyph
-      size={20}
-      strokeWidth={2}
-      aria-hidden="true"
-      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary"
-    />
-  );
-}
-
 export function ApptField({
-  name, label, type = "text", required = false, error = "", icon, placeholder, autoComplete, className, onAddressSelect
+  name, label, type = "text", required = false, error = "", placeholder, autoComplete, className, onAddressSelect
 }) {
   // The street field passes onAddressSelect and gets address suggestions.
   const InputEl = onAddressSelect ? AddressInput : "input";
@@ -64,7 +51,6 @@ export function ApptField({
     <div className={cn("min-w-0", className)}>
       <ApptLabel htmlFor={id} required={required}>{label}</ApptLabel>
       <div className="relative">
-        <LeadingIcon icon={icon} />
         <InputEl
           {...addressProps}
           type={type}
@@ -75,7 +61,7 @@ export function ApptField({
           aria-required={required ? "true" : undefined}
           aria-invalid={error ? "true" : undefined}
           aria-describedby={errorId}
-          className={cn(APPT_CONTROL, icon && ICON_PAD, error && "field-invalid")}
+          className={cn(APPT_CONTROL, error && "field-invalid")}
           // Preserved from the original form: phone input is reformatted as
           // it's typed, exactly the same helper FormField.jsx used.
           onInput={type === "tel" ? (e) => { e.target.value = formatPhone(e.target.value); } : undefined}
@@ -90,7 +76,7 @@ export function ApptField({
 // full-screen option list is a far easier target than any custom dropdown,
 // and the surrounding form keeps reading the value off form.elements.
 export function ApptSelect({
-  name, id, label, required = false, error = "", icon, value, defaultValue, onChange, children, className
+  name, id, label, required = false, error = "", value, defaultValue, onChange, children, className
 }) {
   const selectId = id || "appt-req-" + name;
   const errorId = error ? selectId + "-error" : undefined;
@@ -98,7 +84,6 @@ export function ApptSelect({
     <div className={cn("min-w-0", className)}>
       <ApptLabel htmlFor={selectId} required={required}>{label}</ApptLabel>
       <div className="relative">
-        <LeadingIcon icon={icon} />
         <select
           name={name}
           id={selectId}
@@ -108,7 +93,7 @@ export function ApptSelect({
           aria-required={required ? "true" : undefined}
           aria-invalid={error ? "true" : undefined}
           aria-describedby={errorId}
-          className={cn(APPT_CONTROL, "appt-select pr-10", icon && ICON_PAD, error && "field-invalid")}
+          className={cn(APPT_CONTROL, "appt-select pr-10", error && "field-invalid")}
         >
           {children}
         </select>
@@ -118,29 +103,19 @@ export function ApptSelect({
   );
 }
 
-export function ApptTextarea({ name, label, icon: Glyph, placeholder, hint, className }) {
+export function ApptTextarea({ name, label, placeholder, hint, className }) {
   const id = "appt-req-" + name;
   const hintId = hint ? id + "-hint" : undefined;
   return (
     <div className={cn("min-w-0", className)}>
       <ApptLabel htmlFor={id}>{label}</ApptLabel>
       <div className="relative">
-        {/* Sits with the first line of text rather than centred: a textarea
-            grows, and a vertically centred icon would drift down with it. */}
-        {Glyph && (
-          <Glyph
-            size={20}
-            strokeWidth={2}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-[17px] text-primary"
-          />
-        )}
         <textarea
           name={name}
           id={id}
           aria-describedby={hintId}
           placeholder={placeholder}
-          className={cn(APPT_CONTROL, "appt-textarea resize-y py-3", Glyph && ICON_PAD)}
+          className={cn(APPT_CONTROL, "appt-textarea resize-y py-3")}
         />
       </div>
       {hint && <p id={hintId} className="appt-hint mt-1.5 text-touch-meta leading-snug text-muted">{hint}</p>}

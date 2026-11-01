@@ -13,7 +13,7 @@
 // My Availability, and once a person is chosen the free-form date/time pair
 // is replaced by SlotPicker -- only that person's open times. "No preference"
 // keeps the old free-form request that staff assign later.
-import { CalendarCheck, Clock, MessageSquare, Users } from "lucide-react";
+import { CalendarCheck } from "lucide-react";
 import { roleLabel } from "../../lib/utils.js";
 import SlotPicker from "./SlotPicker.jsx";
 import ApptRequestCard from "./ApptRequestCard.jsx";
@@ -36,7 +36,6 @@ export default function AppointmentDetailsSection({ t, lang, errors, staffList, 
           id="appt-req-meeting-with"
           label={t("apptStaffPickerLabel")}
           required
-          icon={Users}
           value={staffId}
           onChange={onStaffChange}
         >
@@ -53,7 +52,6 @@ export default function AppointmentDetailsSection({ t, lang, errors, staffList, 
             name="meetingWith"
             id="appt-req-meeting-with-role"
             label={t("apptMeetingWithLabel")}
-            icon={Users}
             defaultValue="case_manager"
           >
             <option value="case_manager">{t("roleCaseManager")}</option>
@@ -72,7 +70,7 @@ export default function AppointmentDetailsSection({ t, lang, errors, staffList, 
             <ApptDateField name="date" label={t("apptPreferredDateLabel")} required error={errors.date} />
             <ApptField
               name="time" label={t("apptPreferredTimeLabel")} type="time" required
-              icon={Clock} error={errors.time}
+              error={errors.time}
             />
           </div>
         )}
@@ -80,7 +78,6 @@ export default function AppointmentDetailsSection({ t, lang, errors, staffList, 
         <ApptTextarea
           name="reason"
           label={t("apptReasonLabel")}
-          icon={MessageSquare}
           placeholder={t("apptReasonPlaceholder")}
           hint={t("apptReasonHint")}
         />
