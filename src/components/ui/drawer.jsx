@@ -4,6 +4,9 @@
 //
 //   <Drawer open onClose title icon footer closeLabel>body</Drawer>
 //
+// The icon disc is the info tone; `iconClassName` swaps in another tone's
+// chip + ink for a record that has one (the calendar's event kinds).
+//
 // Header (optional icon disc, h2 title, close), a scrolling body, and a
 // footer of actions. Same focus/Escape handling as Dialog.
 import { useId } from "react";
@@ -14,7 +17,7 @@ import { cn } from "../../lib/cn.js";
 import { useModalA11y } from "../../lib/useModalA11y.js";
 import { IconButton } from "./icon-button.jsx";
 
-function DrawerPanel({ onClose, title, subtitle, icon, footer, closeLabel, children }) {
+function DrawerPanel({ onClose, title, subtitle, icon, iconClassName, footer, closeLabel, children }) {
   const ref = useModalA11y(onClose, true);
   const titleId = useId();
   return (
@@ -30,7 +33,7 @@ function DrawerPanel({ onClose, title, subtitle, icon, footer, closeLabel, child
       className="fixed inset-y-0 right-0 z-[1201] flex w-full max-w-md flex-col border-l border-border bg-card text-card-foreground shadow-overlay"
     >
       <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        {icon ? <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-tone-info-chip text-tone-info-ink [&_svg]:h-[18px] [&_svg]:w-[18px]">{icon}</div> : null}
+        {icon ? <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-control [&_svg]:h-[18px] [&_svg]:w-[18px]", iconClassName || "bg-tone-info-chip text-tone-info-ink")}>{icon}</div> : null}
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="m-0 truncate text-section font-semibold text-card-foreground">{title}</h2>
           {subtitle ? <p className="m-0 truncate text-meta text-muted">{subtitle}</p> : null}
