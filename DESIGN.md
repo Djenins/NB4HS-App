@@ -236,6 +236,9 @@ Slots: `bg` tinted surface, `border` hairline around it, `chip` icon disc one st
 
 **The Tabular Figures Rule.** Every number column, KPI, time, count and detail value uses `tabular-nums`.
 
+### Touch scale (kiosk, appointments, sign-in)
+The client-facing screens are used with a finger, often from arm's length, so they take the same tokens one size up: `text-touch-hero` 36px, `touch-title` 28px, `touch-heading` 22px, `touch-section` 18px, `touch-lead` 18px, `touch-body` 16px, `touch-label` 15px, `touch-meta` 14px (the floor). Touch controls are 52px or taller with `rounded-touch` (14px), still under the 16px surface. Colours, tones, surfaces and shadows are the shared ones.
+
 ## Layout
 
 Content sits in `<main>` with a 16px gutter and a 1200px measure inside the content column; the Calendar runs full width. Tailwind's default breakpoints only (640/768/1024/1280) and its 4px spacing steps.

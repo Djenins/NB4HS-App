@@ -104,7 +104,7 @@ export function ReportHistory({ history }) {
         <li key={r.id} className="rounded-lg border border-border bg-background px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="font-semibold text-card-foreground">{t("srAction_" + r.action)} · {t("srVersionN").replace("{n}", r.version)}</span>
-            <span className="text-xs text-muted">{nameOf(r.actorId)} · {fmtStamp(r.createdAt, lang)}</span>
+            <span className="text-meta text-muted">{nameOf(r.actorId)} · {fmtStamp(r.createdAt, lang)}</span>
           </div>
           {r.comment && <p className="!mb-0 !mt-1.5 whitespace-pre-wrap !text-sm text-card-foreground">{r.comment}</p>}
         </li>

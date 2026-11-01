@@ -120,7 +120,7 @@ export default function ReportReview({ reportId }) {
 
           {versions.length > 1 && (
             <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
-              <label htmlFor="report-version" className="text-xs font-semibold text-muted">{t("srShowingVersion")}</label>
+              <label htmlFor="report-version" className="text-meta font-semibold text-muted">{t("srShowingVersion")}</label>
               <select id="report-version" className={REPORT_CONTROL + " h-9 w-auto"} value={version ? version.version : ""}
                 onChange={(e) => setShownVersion(Number(e.target.value))}>
                 {versions.map((v, i) => (
@@ -149,7 +149,7 @@ export default function ReportReview({ reportId }) {
                   </label>
                   <textarea id="review-comment" rows={5} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)}
                     className={REPORT_CONTROL + " resize-y py-2"} required={mode === "revision"} autoFocus />
-                  <p className="!m-0 !text-xs text-muted">{t("srCommentVisibleToAuthor")}</p>
+                  <p className="!m-0 !text-meta text-muted">{t("srCommentVisibleToAuthor")}</p>
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={() => { setMode(null); setComment(""); }} disabled={busy}>{t("cancelLabel")}</Button>
                     <Button type="submit" disabled={busy || (mode === "revision" && !comment.trim())}>
@@ -174,7 +174,7 @@ export default function ReportReview({ reportId }) {
                       className="flex min-h-0 w-full items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm font-normal transform-none hover:border-primary">
                       <span className="min-w-0">
                         <span className="block font-semibold text-card-foreground">{fmtPeriod(r.periodStart, r.periodEnd, lang)}</span>
-                        <span className="block text-xs text-muted">{programsText(r.programs)}</span>
+                        <span className="block text-meta text-muted">{programsText(r.programs)}</span>
                       </span>
                       <ReportStatusBadge status={r.status} />
                     </button>

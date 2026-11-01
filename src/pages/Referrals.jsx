@@ -59,6 +59,7 @@ import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 // Board first: this page's default answer to "where is everyone in the
 // pipeline" is the column shape, not a sorted list.
@@ -301,6 +302,7 @@ export default function Referrals() {
 
   return (
     <>
+      <WorkforceNav value="referrals" />
       <PageHeader
         title={t("referralsTitle")}
         description={t("referralsDesc")}

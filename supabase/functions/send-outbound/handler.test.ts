@@ -1,6 +1,6 @@
 // deno test supabase/functions/send-outbound/handler.test.ts
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { appLink, createHandler, escapeHtml, renderEmail, resendSender } from "./handler.ts";
+import { appLink, createHandler, escapeHtml, renderClientEmail, renderEmail, renderNewsletter, resendSender, textToHtml, twilioSender, unsubscribeLink } from "./handler.ts";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -54,7 +54,7 @@ Deno.test("sends each claimed message and reports every result", async () => {
   const f = fakes({ sendResults: { "jane@nb4hs.org": { ok: false, error: "provider 500" } } });
   const res = await f.handle(post());
   assertEquals(await res.json(), { claimed: 3, sent: 1, failed: 2 });
-  assertEquals(f.calls[0], ["claim_outbound_messages", { p_limit: 20 }]);
+  assertEquals(f.calls[0], ["claim_outbound_messages", { p_limit: 20, p_channels: ["email"] }]);
   const done = f.calls.filter((c) => c[0] === "complete_outbound_message").map((c) => c[1]);
   assertEquals(done, [
     { p_id: "m1", p_ok: true, p_provider_id: "prov-director@nb4hs.org", p_error: null },
@@ -91,7 +91,7 @@ Deno.test("links never leave the app", () => {
   assertEquals(appLink("https://app.example", "/myreports/r1"), "https://app.example/myreports/r1");
   assertEquals(appLink("https://app.example", "https://evil.example/x"), "https://app.example/");
   assertEquals(appLink("https://app.example", "//evil.example"), "https://app.example/");
-  assertEquals(appLink("", "/x"), "https://nb4hs-app.vercel.app/x");
+  assertEquals(appLink("", "/x"), "https://app.nb4hs.org/x");
   assertEquals(escapeHtml(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
 });
 
@@ -113,4 +113,141 @@ Deno.test("Resend: 2xx is sent with its id; anything else is an error", async ()
   assertEquals(seen[0][2].Authorization, "Bearer key");
   const badFetch = (() => Promise.resolve(new Response(JSON.stringify({ message: "domain not verified" }), { status: 403 }))) as Any;
   assertEquals(await resendSender("key", "f", badFetch)({ to: "a@b.org", subject: "S", html: "", text: "" }), { ok: false, error: "provider 403: domain not verified" });
+});
+
+Deno.test("texts are claimed only once Twilio is configured, and go out as written", async () => {
+  const claimed: Any[] = [];
+  const texts: Any[] = [];
+  const emails: Any[] = [];
+  const queue = [
+    { id: "s1", channel: "sms", to_address: "+14015550142", template: "client_message", payload: { body: "Bonjou Marie, randevou ou demen.", language: "ht" } },
+    { id: "e1", channel: "email", to_address: "marie@example.org", template: "client_message", payload: { subject: "Classes", body: "Line one\nline two\n\n<b>Para</b>", language: "fr" } }
+  ];
+  const admin = { rpc: (name: string, args: Any) => { claimed.push([name, args]); return Promise.resolve({ data: name === "claim_outbound_messages" ? queue : null, error: null }); } };
+  const handle = createHandler({
+    admin, cronSecret: "s3cret", appUrl: "https://a", providerConfigured: true, smsConfigured: true,
+    send: (e: Any) => { emails.push(e); return Promise.resolve({ ok: true, id: "re" }); },
+    sendSms: (t: Any) => { texts.push(t); return Promise.resolve({ ok: true, id: "SM1" }); }
+  });
+  assertEquals(await (await handle(post())).json(), { claimed: 2, sent: 2, failed: 0 });
+  assertEquals(claimed[0], ["claim_outbound_messages", { p_limit: 20, p_channels: ["email", "sms"] }]);
+  assertEquals(texts, [{ to: "+14015550142", body: "Bonjou Marie, randevou ou demen." }]);
+  assertEquals(emails[0].subject, "Classes");
+  assert(emails[0].html.includes('lang="fr"'));
+  assert(emails[0].html.includes("Line one<br>line two"));
+  assert(emails[0].html.includes("&lt;b&gt;Para&lt;/b&gt;"));
+  assert(emails[0].text.includes("Si vous ne souhaitez plus recevoir"));
+
+  const smsOnly: Any[] = [];
+  const h2 = createHandler({
+    admin: { rpc: (n: string, a: Any) => { smsOnly.push([n, a]); return Promise.resolve({ data: [], error: null }); } },
+    cronSecret: "s3cret", appUrl: "https://a", providerConfigured: false, smsConfigured: true,
+    send: () => Promise.resolve({ ok: true }), sendSms: () => Promise.resolve({ ok: true })
+  });
+  await h2(post());
+  assertEquals(smsOnly[0][1].p_channels, ["sms"]);
+});
+
+Deno.test("client emails escape staff text and fall back to English", () => {
+  const e = renderClientEmail({ subject: "", body: "<script>x</script>", language: "xx" })!;
+  assertEquals(e.subject, "New Bridges for Haitian Success");
+  assert(!e.html.includes("<script>"));
+  assert(e.html.includes('lang="en"'));
+  assertEquals(renderClientEmail({ body: "  " }), null);
+  assertEquals(textToHtml("a\n\n\nb").split("<p").length - 1, 2);
+});
+
+Deno.test("Twilio: form post with basic auth; a Messaging Service SID is used as such", async () => {
+  const seen: Any[] = [];
+  const okFetch = ((u: string, init: Any) => { seen.push([u, new URLSearchParams(init.body), init.headers]); return Promise.resolve(new Response(JSON.stringify({ sid: "SM9" }), { status: 201 })); }) as Any;
+  assertEquals(await twilioSender("AC1", "tok", "+14015550000", okFetch)({ to: "+14015550142", body: "Hi" }), { ok: true, id: "SM9" });
+  assertEquals(seen[0][0], "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages.json");
+  assertEquals(seen[0][1].get("From"), "+14015550000");
+  assertEquals(seen[0][1].get("To"), "+14015550142");
+  assertEquals(seen[0][2].Authorization, "Basic " + btoa("AC1:tok"));
+  await twilioSender("AC1", "tok", "MG123", okFetch)({ to: "+1", body: "x" });
+  assertEquals(seen[1][1].get("MessagingServiceSid"), "MG123");
+  assertEquals(seen[1][1].get("From"), null);
+  const badFetch = (() => Promise.resolve(new Response(JSON.stringify({ message: "unsubscribed recipient" }), { status: 400 }))) as Any;
+  assertEquals(await twilioSender("AC1", "tok", "+1", badFetch)({ to: "+1", body: "x" }), { ok: false, error: "provider 400: unsubscribed recipient" });
+});
+
+const TOKEN = "a".repeat(64);
+
+Deno.test("newsletters carry the mailing address, an unsubscribe link and header", async () => {
+  const sent: Any[] = [];
+  const queue = [{ id: "n1", channel: "email", to_address: "marie@example.org", template: "newsletter",
+    payload: { subject: "Fall <classes>", body: "Classes start Monday.", language: "ht", unsubscribe_token: TOKEN, mailing_address: "123 Main St, Providence, RI 02903" } }];
+  const admin = { rpc: (name: string) => Promise.resolve({ data: name === "claim_outbound_messages" ? queue : null, error: null }) };
+  const handle = createHandler({ admin, cronSecret: "s3cret", appUrl: "https://app.example/", providerConfigured: true,
+    send: (e: Any) => { sent.push(e); return Promise.resolve({ ok: true, id: "re" }); } });
+  assertEquals((await (await handle(post())).json()).sent, 1);
+  const e = sent[0];
+  assertEquals(e.subject, "Fall <classes>");
+  assert(e.html.includes("Fall &lt;classes&gt;"));
+  assert(e.html.includes("123 Main St, Providence, RI 02903"));
+  assert(e.html.includes('href="https://app.example/unsubscribe?t=' + TOKEN + '&amp;l=ht"'));
+  assert(e.html.includes("Dezabòne"));
+  assert(e.text.includes("https://app.example/unsubscribe?t=" + TOKEN + "&l=ht"));
+  assertEquals(e.headers, { "List-Unsubscribe": "<https://app.example/unsubscribe?t=" + TOKEN + "&l=ht>" });
+});
+
+Deno.test("an incomplete newsletter is never sent", () => {
+  assertEquals(renderNewsletter({ subject: "S", body: "B", unsubscribe_token: TOKEN }, "https://a"), null);
+  assertEquals(renderNewsletter({ subject: "S", body: "B", mailing_address: "Addr" }, "https://a"), null);
+  assertEquals(unsubscribeLink("https://a", "../../evil", "xx"), "https://a/unsubscribe?t=&l=en");
+});
+
+Deno.test("Resend gets the List-Unsubscribe header when there is one", async () => {
+  const seen: Any[] = [];
+  const okFetch = ((_u: string, init: Any) => { seen.push(JSON.parse(init.body)); return Promise.resolve(new Response("{}", { status: 200 })); }) as Any;
+  await resendSender("k", "f", okFetch)({ to: "a@b.org", subject: "S", html: "h", text: "t", headers: { "List-Unsubscribe": "<x>" } });
+  await resendSender("k", "f", okFetch)({ to: "a@b.org", subject: "S", html: "h", text: "t" });
+  assertEquals(seen[0].headers, { "List-Unsubscribe": "<x>" });
+  assertEquals(seen[1].headers, undefined);
+});
+
+Deno.test("layout newsletters render their sections, escape, and keep the legal footer", () => {
+  const content = {
+    hero: { src: "https://cdn.example/hero.png", alt: "Class" },
+    headline: "Fall <classes>", intro: "Starts Monday.", cta: { label: "Sign up", url: "https://app.nb4hs.org/register" },
+    subheading: "Also new",
+    sections: [
+      { title: "ESL", text: "Mornings", link: { label: "Details", url: "javascript:alert(1)" }, src: "http://insecure/x.png" },
+      { title: "Computers", text: "Afternoons", link: { label: "Details", url: "https://example.org/c" } },
+      { title: "Citizenship", text: "Evenings" }
+    ]
+  };
+  const e = renderNewsletter({ subject: "News", body: "fallback", language: "fr", layout: "multi", content,
+    unsubscribe_token: TOKEN, mailing_address: "123 Main St, Providence, RI" }, "https://app.nb4hs.org")!;
+  assert(e.html.includes("Fall &lt;classes&gt;"));
+  assert(e.html.includes('src="https://cdn.example/hero.png"'));
+  assert(e.html.includes('href="https://app.nb4hs.org/register"'));
+  assert(!e.html.includes("javascript:"));
+  assert(!e.html.includes("http://insecure"));
+  assert(e.html.includes("Also new") && e.html.includes("Citizenship"));
+  assert(e.html.includes("123 Main St, Providence, RI"));
+  assert(e.html.includes("Se désabonner"));
+  assert(e.text.includes("Sign up: https://app.nb4hs.org/register"));
+  assert(e.text.includes("Details: https://example.org/c"));
+  assertEquals(e.headers["List-Unsubscribe"], "<https://app.nb4hs.org/unsubscribe?t=" + TOKEN + "&l=fr>");
+});
+
+Deno.test("an unknown layout falls back to the plain email", () => {
+  const e = renderNewsletter({ subject: "S", body: "Plain body", layout: "fancy", content: {}, unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://a")!;
+  assert(e.html.includes("Plain body"));
+});
+
+Deno.test("every email opens with the logo and the organization's name", () => {
+  const logo = 'src="https://app.example/assets/email/nb4hs-logo.png"';
+  const name = ">New Bridges for Haitian Success</p>";
+  const report = renderEmail("staff_report_acknowledged", { period: "P", link: "/myreports/r1" }, "https://app.example/")!;
+  const client = renderClientEmail({ body: "Hello" }, "https://app.example");
+  const plain = renderNewsletter({ subject: "S", body: "B", unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://app.example")!;
+  const layoutNl = renderNewsletter({ subject: "S", body: "B", layout: "pyramid", content: { headline: "H" }, unsubscribe_token: TOKEN, mailing_address: "Addr" }, "https://app.example")!;
+  for (const e of [report, client!, plain, layoutNl]) {
+    assert(e.html.includes(logo), "logo missing");
+    assert(e.html.includes(name), "name missing");
+    assert(e.html.includes("font-size:20px;line-height:1.3;font-weight:bold"), "name not enlarged");
+  }
 });

@@ -2,13 +2,19 @@
 // active, delete a custom entry, add a new custom entry). Ported from
 // manage.js's manageListCard(). Used twice on the Manage page, once per kind.
 import { useState } from "react";
-import { CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { slugify } from "../lib/utils.js";
 import { createCustomOption, deleteCustomOption, setOptionDisabled } from "../lib/clientsData.js";
+import { Badge } from "./ui/badge.jsx";
+import { Button } from "./ui/button.jsx";
+import { Input } from "./ui/field.jsx";
+import { IconButton } from "./ui/icon-button.jsx";
+import { SectionCard } from "./ui/section-card.jsx";
+import { Switch } from "./ui/switch.jsx";
 
 export default function ManageListCard({ kind, icon, title, description, list, disabled, placeholder }) {
-  const { lang, showToast } = useApp();
+  const { lang, showToast, requestConfirm } = useApp();
   const t = useT();
   const [input, setInput] = useState("");
   // Local overrides so a click flips the pill immediately instead of
@@ -40,8 +46,10 @@ export default function ManageListCard({ kind, icon, title, description, list, d
     }
   }
 
-  async function remove(key) {
-    await deleteCustomOption(kind, key);
+  async function remove(item) {
+    const ok = await requestConfirm(t("deleteLabel") + " “" + (item[lang] || item.en) + "”?", { danger: true });
+    if (!ok) return;
+    await deleteCustomOption(kind, item.key);
   }
 
   async function addNew() {
@@ -56,54 +64,49 @@ export default function ManageListCard({ kind, icon, title, description, list, d
     showToast(t("addNew") + " ✓");
   }
 
-  return (
-    <div className="card">
-      <div className="flex-between" style={{ marginBottom: 6 }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <div className="icon-badge">{icon}</div>
-          <div>
-            <h3 style={{ margin: 0 }}>{title}</h3>
-            <p className="muted" style={{ margin: "4px 0 0", fontSize: ".88rem" }}>{description}</p>
-          </div>
-        </div>
-        <span className="badge badge-in">{activeCount} {t("activeCountLabel")}</span>
-      </div>
+  const inputId = "manage-new-" + kind;
 
-      <div style={{ marginTop: 10 }}>
+  return (
+    <SectionCard
+      title={<span className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-chip bg-primary-tint text-primary [&_svg]:h-[18px] [&_svg]:w-[18px]">{icon}</span>{title}</span>}
+      description={description}
+      action={<Badge variant="success" className="tabular-nums">{activeCount} {t("activeCountLabel")}</Badge>}
+      footer={
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); addNew(); }}>
+          <label htmlFor={inputId} className="sr-only">{placeholder}</label>
+          <Input id={inputId} placeholder={placeholder} value={input} onChange={(e) => setInput(e.target.value)} />
+          <Button type="submit" disabled={!input.trim()}><Plus className="h-4 w-4" aria-hidden="true" />{t("addNew")}</Button>
+        </form>
+      }
+    >
+      <ul className="m-0 list-none divide-y divide-line-subtle p-0">
         {list.map((item) => {
           const isDisabled = isKeyDisabled(item.key);
+          const name = item[lang] || item.en;
           return (
-            <div className="kv" key={item.key}>
-              <span>
-                {item[lang] || item.en}
-                {item.custom && <span className="badge badge-in" style={{ marginLeft: 6 }}>{t("customLabel")}</span>}
+            <li key={item.key} className="flex min-h-[44px] items-center justify-between gap-3 py-1.5">
+              <span className={"flex min-w-0 flex-wrap items-center gap-2 text-ui " + (isDisabled ? "text-muted" : "text-card-foreground")}>
+                {name}
+                {item.custom && <Badge variant="neutral">{t("customLabel")}</Badge>}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  type="button"
-                  className={"btn-icon status-toggle" + (isDisabled ? " status-toggle-off" : " status-toggle-on")}
-                  onClick={() => toggle(item.key, isDisabled)}
-                >
-                  {isDisabled ? <Circle className="icon" /> : <CheckCircle2 className="icon" />}
-                  {isDisabled ? t("inactiveLabel") : t("activeLabel")}
-                </button>
+              <span className="flex shrink-0 items-center gap-1">
+                <Switch
+                  checked={!isDisabled}
+                  onCheckedChange={(next) => toggle(item.key, next).catch(() => {})}
+                  label={name}
+                  onText={t("activeLabel")}
+                  offText={t("inactiveLabel")}
+                />
                 {item.custom && (
-                  <button type="button" className="btn-icon btn-icon-danger" onClick={() => remove(item.key)} aria-label={t("deleteLabel")}>
-                    <Trash2 className="icon" />
-                  </button>
+                  <IconButton label={t("deleteLabel") + " " + name} variant="danger" size="sm" onClick={() => remove(item)}>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </IconButton>
                 )}
               </span>
-            </div>
+            </li>
           );
         })}
-      </div>
-
-      <div className="field" style={{ marginTop: 14, marginBottom: 0, display: "flex", gap: 10, alignItems: "center" }}>
-        <div style={{ flex: 1 }}>
-          <input type="text" placeholder={placeholder} aria-label={placeholder} value={input} onChange={(e) => setInput(e.target.value)} />
-        </div>
-        <button className="btn-primary" onClick={addNew}>{t("addNew")}</button>
-      </div>
-    </div>
+      </ul>
+    </SectionCard>
   );
 }

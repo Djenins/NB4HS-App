@@ -40,6 +40,8 @@ import { AUTH_MODEL, landingItem } from "../lib/workspaces.js";
 import { totalEnrolledCount } from "../lib/students.js";
 import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/supabaseAuth.js";
 import { BUTTON_RESET, Button } from "../components/ui/button.jsx";
+import { CONTROL } from "../components/ui/field.jsx";
+import { cn } from "../lib/cn.js";
 import { Card, CardContent } from "../components/ui/card.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 
@@ -141,10 +143,10 @@ export default function StaffLogin() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <img src={LOGO_URL} alt={ORG.name} className="h-11 w-11 rounded-lg bg-white/90 object-contain p-1" />
+            <img src={LOGO_URL} alt={ORG.name} className="h-11 w-11 rounded-control bg-white/90 object-contain p-1" />
             <div>
-              <div className="text-xl font-extrabold leading-tight"><Wordmark /></div>
-              <div className="text-xs font-medium text-white/70">{ORG.name}</div>
+              <div className="text-touch-heading font-extrabold leading-tight"><Wordmark /></div>
+              <div className="text-touch-meta font-medium text-white/70">{ORG.name}</div>
             </div>
           </div>
 
@@ -154,18 +156,18 @@ export default function StaffLogin() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="mb-0 mt-9 text-3xl font-extrabold leading-tight sm:text-4xl"
+            className="mb-0 mt-9 text-touch-title font-extrabold sm:text-touch-hero"
           >
             {t("staffPortalHeroHeading")}
           </m.p>
           <div className="mt-3 h-1 w-14 rounded-full bg-gold" />
-          <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/85">{t("staffPortalHeroSubtitle")}</p>
+          <p className="mt-5 max-w-sm text-touch-label leading-relaxed text-white/85">{t("staffPortalHeroSubtitle")}</p>
 
           <div className="mt-8 space-y-2.5">
             {FEATURES.map(({ icon: Icon, key }) => (
-              <div key={key} className="flex items-center gap-3 text-sm font-medium text-white/90">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                  <Icon className="h-4 w-4 text-white/80" strokeWidth={2} />
+              <div key={key} className="flex items-center gap-3 text-touch-label font-medium text-white/90">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-white/10">
+                  <Icon className="h-4 w-4 text-white/80" strokeWidth={2} aria-hidden="true" />
                 </span>
                 {t(key)}
               </div>
@@ -181,16 +183,16 @@ export default function StaffLogin() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
-                className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"
+                className="rounded-surface border border-white/10 bg-white/5 p-3 text-center"
               >
-                <Icon className="mx-auto h-5 w-5 text-white/80" strokeWidth={2} />
-                <div className="mt-1.5 text-lg font-extrabold">{num}</div>
-                <div className="text-[11px] font-medium leading-tight text-white/70">{label}</div>
+                <Icon className="mx-auto h-5 w-5 text-white/80" strokeWidth={2} aria-hidden="true" />
+                <div className="mt-1.5 text-touch-section font-extrabold tabular-nums">{num}</div>
+                <div className="text-touch-meta font-medium leading-tight text-white/70">{label}</div>
               </m.div>
             ))}
           </div>
-          <div className="mt-6 flex items-center gap-2 text-xs font-medium text-white/70">
-            <Heart className="h-3.5 w-3.5" strokeWidth={2} /> {t("landingCommunityTagline")}
+          <div className="mt-6 flex items-center gap-2 text-touch-meta font-medium text-white/70">
+            <Heart className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" /> {t("landingCommunityTagline")}
           </div>
         </div>
       </div>
@@ -219,23 +221,23 @@ export default function StaffLogin() {
                   sparing "premium" touch on this one badge, not a wholesale
                   recolor of every icon in the app. */}
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold-ink">
-                <Lock className="h-6 w-6" strokeWidth={2} />
+                <Lock className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
               </div>
-              <div className="mt-3 text-sm font-bold text-primary">{t("staffLoginTitle")}</div>
-              <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-card-foreground">
+              <div className="mt-3 text-touch-meta font-bold text-primary">{t("staffLoginTitle")}</div>
+              <h1 className="mt-1 text-touch-title font-extrabold text-card-foreground">
                 {mode === "login" ? t("welcomeBackHeading") : t("forgotPasswordHeading")}
               </h1>
-              <p className="mt-2 text-sm text-muted">{mode === "login" ? t("staffLoginSubtitle") : t("forgotPasswordSubtitle")}</p>
+              <p className="mt-2 text-touch-body text-muted">{mode === "login" ? t("staffLoginSubtitle") : t("forgotPasswordSubtitle")}</p>
             </div>
 
-            <Card className="mx-auto mt-6 w-full max-w-[460px] rounded-[20px]">
-              <CardContent className="p-10">
+            <Card className="mx-auto mt-6 w-full max-w-[460px]">
+              <CardContent className="p-6 sm:p-10">
                 {mode === "login" ? (
                   <form onSubmit={handleSubmit} noValidate>
                     <div className="mb-5">
-                      <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>
+                      <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type="email"
                           id="login-email"
@@ -243,24 +245,24 @@ export default function StaffLogin() {
                           placeholder={t("workEmailPlaceholder")}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
                         />
                       </div>
                     </div>
 
                     <div className="mb-4">
                       <div className="mb-2 flex items-center justify-between">
-                        <label className="required block text-sm font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
+                        <label className="required block text-touch-label font-semibold text-card-foreground" htmlFor="login-password">{t("loginPassword")}</label>
                         <button
                           type="button"
-                          className={BUTTON_RESET + " text-sm font-semibold text-primary hover:underline"}
+                          className={BUTTON_RESET + " text-touch-meta font-semibold text-primary hover:underline"}
                           onClick={() => setMode("forgot")}
                         >
                           {t("forgotPasswordLink")}
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type={showPw ? "text" : "password"}
                           id="login-password"
@@ -268,7 +270,7 @@ export default function StaffLogin() {
                           placeholder={t("passwordFieldPlaceholder")}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-12 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-12 text-touch-body")}
                         />
                         <Button
                           type="button"
@@ -288,7 +290,7 @@ export default function StaffLogin() {
                               transition={{ duration: 0.15 }}
                               className="flex"
                             >
-                              {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
+                              {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden="true" /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden="true" />}
                             </m.span>
                           </AnimatePresence>
                         </Button>
@@ -299,17 +301,17 @@ export default function StaffLogin() {
                       type="submit"
                       size="lg"
                       disabled={!email.trim() || !password || submitting}
-                      className="mt-2 h-14 w-full text-base"
+                      className="mt-2 h-14 w-full rounded-touch text-touch-body"
                     >
-                      {t("loginBtn")} <ArrowRight className="h-4 w-4" />
+                      {t("loginBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </form>
                 ) : (
                   <form onSubmit={handleForgotSubmit} noValidate>
                     <div className="mb-5">
-                      <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="reset-email">{t("loginEmail")}</label>
+                      <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="reset-email">{t("loginEmail")}</label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type="email"
                           id="reset-email"
@@ -317,7 +319,7 @@ export default function StaffLogin() {
                           placeholder={t("workEmailPlaceholder")}
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
-                          className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
                         />
                       </div>
                     </div>
@@ -326,15 +328,15 @@ export default function StaffLogin() {
                       type="submit"
                       size="lg"
                       disabled={!resetEmail.trim() || submitting}
-                      className="mt-2 h-14 w-full text-base"
+                      className="mt-2 h-14 w-full rounded-touch text-touch-body"
                     >
-                      {t("sendResetLinkBtn")} <ArrowRight className="h-4 w-4" />
+                      {t("sendResetLinkBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Button>
 
                     <Button
                       type="button"
                       variant="ghost"
-                      className="mt-3 h-auto w-full text-sm font-semibold text-muted hover:bg-transparent hover:text-card-foreground"
+                      className="mt-3 h-auto w-full text-touch-meta font-semibold text-muted hover:bg-transparent hover:text-card-foreground"
                       onClick={() => setMode("login")}
                     >
                       {t("backToSignIn")}
@@ -342,7 +344,7 @@ export default function StaffLogin() {
                   </form>
                 )}
 
-                {mode === "login" && <p className="mt-4 text-center text-xs leading-relaxed text-muted">{t("passwordAuthCaution")}</p>}
+                {mode === "login" && <p className="mt-4 text-center text-touch-meta text-muted">{t("passwordAuthCaution")}</p>}
               </CardContent>
             </Card>
           </m.div>

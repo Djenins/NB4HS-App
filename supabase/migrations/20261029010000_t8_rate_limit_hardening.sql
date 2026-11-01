@@ -1,6 +1,8 @@
 -- t8 -- harden the t6 throttle on the functions open without sign-in
 -- (launch-readiness review, 2026-10-29).
--- NOT APPLIED to the hosted project. Tested on the local stack with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-10-30 (version 20261029010000) after a
+-- rolled-back dry run on live and after PR #70 was deployed. Tested on the
+-- local stack with
 -- supabase/tests/t8_rate_limit_check.sql and
 -- supabase/tests/t8_rate_limit_concurrency.sh. Undo with
 -- supabase/rollback/t8_rate_limit_hardening_down.sql.

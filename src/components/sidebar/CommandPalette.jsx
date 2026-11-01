@@ -125,7 +125,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={cn("block truncate text-sm", isActive ? "font-semibold text-primary" : "font-medium")}>{r.title}</span>
-                      {r.subtitle && <span className="block truncate text-xs text-muted">{r.subtitle}</span>}
+                      {r.subtitle && <span className="block truncate text-meta text-muted">{r.subtitle}</span>}
                     </span>
                     {isActive && <CornerDownLeft aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />}
                   </div>
@@ -135,7 +135,7 @@ export default function CommandPalette({ pages, scopes, placeholder, onClose, t 
           ))}
         </div>
 
-        <div aria-hidden="true" className="hidden items-center gap-4 border-t border-border px-4 py-2.5 text-xs text-muted sm:flex">
+        <div aria-hidden="true" className="hidden items-center gap-4 border-t border-border px-4 py-2.5 text-meta text-muted sm:flex">
           <span className="flex items-center gap-1.5"><Kbd>↑</Kbd><Kbd>↓</Kbd> {t("cmdkHintNavigate")}</span>
           <span className="flex items-center gap-1.5"><Kbd>↵</Kbd> {t("cmdkHintOpen")}</span>
           <span className="flex items-center gap-1.5"><Kbd>Esc</Kbd> {t("cmdkHintClose")}</span>

@@ -3,23 +3,33 @@
 // search and "assigned to me", with the find-first add flow and the
 // contact detail view. Fetched on demand rather than held in AppContext:
 // only this section needs it.
+//
+// Layout is the design system's list page: PageHeader, then one card with
+// the search, the quick filter, a DataTable (stacked rows below lg) and
+// Pagination. A skeleton holds the table's shape while it loads.
 import { useEffect, useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { RotateCcw, UserPlus, Users } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { useOutreachProgram } from "../../context/OutreachProgramContext.jsx";
 import { fetchOutreachContacts, filterContacts } from "../../lib/outreachContacts.js";
+import { paginateList } from "../../lib/pagination.js";
 import { formatPhone } from "../../lib/utils.js";
-import EmptyState from "../EmptyState.jsx";
 import NbIdBadge from "../NbIdBadge.jsx";
-import { SectionCard } from "../SectionCard.jsx";
+import Pagination from "../Pagination.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
-import { SNAP_CONTROL } from "./SnapField.jsx";
+import { Card } from "../ui/card.jsx";
+import { DataTable } from "../ui/data-table.jsx";
+import { EmptyState } from "../ui/empty-state.jsx";
+import { FilterChips } from "../ui/filter-chips.jsx";
+import { PageHeader } from "../ui/page-header.jsx";
+import { SearchInput } from "../ui/search-input.jsx";
+import { StatusBadge } from "../ui/status-badge.jsx";
 import SnapAddContact from "./SnapAddContact.jsx";
 import SnapContactDetail from "./SnapContactDetail.jsx";
+import { LoadError, RecordName, RowFacts } from "./SnapListParts.jsx";
 
-const TH = "bg-card px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted shadow-[0_1px_0_var(--border)]";
-const FOLLOW_VARIANT = { none: "neutral", needed: "warn", scheduled: "default", done: "success" };
+const fullName = (c) => (c.firstName + " " + c.lastName).trim();
 
 export default function SnapContacts({ intent }) {
   const { data, session } = useApp();
@@ -30,6 +40,8 @@ export default function SnapContacts({ intent }) {
   const [loadError, setLoadError] = useState(false);
   const [q, setQ] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [adding, setAdding] = useState(intent === "new");
   const [openId, setOpenId] = useState(null);
 
@@ -42,68 +54,115 @@ export default function SnapContacts({ intent }) {
 
   const nameOf = (id) => { const p = (data.profiles || []).find((x) => x.id === id); return p ? (p.name || p.email) : null; };
   const list = filterContacts(contacts || [], { q, mineOnly, userId });
+  const paged = paginateList(list, page, pageSize);
   const open = (contacts || []).find((c) => c.id === openId) || null;
 
-  return (
-    <SectionCard
-      title={t("snapSectionContacts")}
-      action={
-        <Button className="gap-1.5" onClick={() => setAdding(true)}>
-          <UserPlus className="h-4 w-4" aria-hidden="true" /> {t("snapAddContact")}
-        </Button>
-      }
-    >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label={t("searchLabel")} placeholder={t("snapFindPersonPlaceholder")} className={SNAP_CONTROL + " pl-9"} />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-card-foreground">
-          <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
-          {t("snapMineOnly")}
-        </label>
-      </div>
+  const language = (c) => (c.preferredLanguage ? t("snapLang_" + c.preferredLanguage) : "—");
+  const method = (c) => (c.preferredContactMethod ? t("snapMethod_" + c.preferredContactMethod) : "—");
+  const assigned = (c) => (c.assignedTo ? (nameOf(c.assignedTo) || "—") : t("snapUnassigned"));
+  const followUp = (c) => <StatusBadge domain="contactFollowUp" status={c.followUpStatus}>{t("snapFollow_" + c.followUpStatus)}</StatusBadge>;
 
-      {loadError ? (
-        <EmptyState icon="users" message={t("snapContactsLoadError")} />
-      ) : contacts === null ? null : !list.length ? (
-        <EmptyState icon="users" message={contacts.length ? t("snapNoContactsMatch") : t("snapNoContacts")} />
-      ) : (
-        <div className="overflow-auto rounded-xl border border-border">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={TH}>{t("snapContactCol")}</th>
-                <th className={TH}>{t("snapPreferredLanguage")}</th>
-                <th className={TH}>{t("snapPreferredMethod")}</th>
-                <th className={TH}>{t("snapAssignedTo")}</th>
-                <th className={TH}>{t("snapFollowUp")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((c) => (
-                <tr key={c.id} className="cursor-pointer border-t border-border transition-colors hover:bg-background" onClick={() => setOpenId(c.id)}>
-                  <td className="px-4 py-3 align-middle">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setOpenId(c.id); }}
-                      className="min-h-0 border-0 bg-transparent p-0 text-left font-semibold text-card-foreground transform-none hover:text-primary">
-                      {(c.firstName + " " + c.lastName).trim()}
-                    </button>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <NbIdBadge nbId={c.nbId} />
-                      <span>{[formatPhone(c.phone), c.email].filter(Boolean).join(" · ")}</span>
-                      {c.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-middle">{c.preferredLanguage ? t("snapLang_" + c.preferredLanguage) : "—"}</td>
-                  <td className="px-4 py-3 align-middle">{c.preferredContactMethod ? t("snapMethod_" + c.preferredContactMethod) : "—"}</td>
-                  <td className="px-4 py-3 align-middle">{c.assignedTo ? (nameOf(c.assignedTo) || "—") : t("snapUnassigned")}</td>
-                  <td className="px-4 py-3 align-middle"><Badge variant={FOLLOW_VARIANT[c.followUpStatus] || "neutral"}>{t("snapFollow_" + c.followUpStatus)}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  function identity(c) {
+    const reach = [formatPhone(c.phone), c.email].filter(Boolean).join(" · ");
+    return (
+      <div className="min-w-0">
+        <RecordName onOpen={() => setOpenId(c.id)}>{fullName(c)}</RecordName>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
+          <NbIdBadge nbId={c.nbId} />
+          {reach && <span className="tabular-nums">{reach}</span>}
+          {c.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const columns = [
+    { key: "contact", header: t("snapContactCol"), cell: identity },
+    { key: "language", header: t("snapPreferredLanguage"), cell: language },
+    { key: "method", header: t("snapPreferredMethod"), cell: method },
+    { key: "assigned", header: t("snapAssignedTo"), cell: assigned },
+    { key: "follow", header: t("snapFollowUp"), cell: followUp }
+  ];
+
+  function clearFilters() { setQ(""); setMineOnly(false); setPage(1); }
+
+  const addButton = (
+    <Button onClick={() => setAdding(true)}>
+      <UserPlus className="h-4 w-4" aria-hidden="true" /> {t("snapAddContact")}
+    </Button>
+  );
+
+  let body;
+  if (loadError) {
+    body = <LoadError title={t("snapContactsLoadError")} onRetry={load} />;
+  } else if (contacts && !contacts.length) {
+    body = <EmptyState icon={Users} title={t("snapNoContacts")} description={t("snapNoContactsHint")} action={addButton} />;
+  } else {
+    body = (
+      <>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput
+            className="min-w-0 flex-1"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
+            onClear={() => { setQ(""); setPage(1); }}
+            clearLabel={t("clearLabel")}
+            placeholder={t("snapFindPersonPlaceholder")}
+            aria-label={t("searchLabel")}
+          />
+          <FilterChips
+            multiple
+            label={t("filtersLabel")}
+            value={mineOnly ? ["mine"] : []}
+            onChange={(v) => { setMineOnly(v.indexOf("mine") !== -1); setPage(1); }}
+            options={[{ value: "mine", label: t("snapMineOnly") }]}
+          />
+        </div>
+        <DataTable
+          className="mt-4"
+          caption={t("snapSectionContacts")}
+          loading={contacts === null}
+          columns={columns}
+          rows={paged.items}
+          getRowId={(c) => c.id}
+          renderCard={(c) => (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                {identity(c)}
+                <span className="shrink-0">{followUp(c)}</span>
+              </div>
+              <RowFacts items={[
+                { label: t("snapPreferredLanguage"), value: language(c) },
+                { label: t("snapPreferredMethod"), value: method(c) },
+                { label: t("snapAssignedTo"), value: assigned(c) }
+              ]} />
+            </>
+          )}
+          empty={
+            <EmptyState
+              variant="no-results"
+              title={t("snapNoContactsMatch")}
+              description={t("snapNoMatchHint")}
+              action={<Button variant="secondary" onClick={clearFilters}><RotateCcw className="h-4 w-4" aria-hidden="true" />{t("clearLabel")}</Button>}
+            />
+          }
+        />
+        {paged.total ? (
+          <Pagination
+            bare
+            page={paged.page} totalPages={paged.totalPages} total={paged.total} pageSize={paged.pageSize}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} itemLabel={t("snapContactsItemLabel")}
+            onChange={(delta) => setPage(paged.page + delta)}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title={t("snapSectionContacts")} description={t("snapContactsDesc")} actions={addButton} />
+      <Card className="p-4 sm:p-5">{body}</Card>
 
       {adding && (
         <SnapAddContact
@@ -120,6 +179,6 @@ export default function SnapContacts({ intent }) {
           onChanged={(updated) => setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))}
         />
       )}
-    </SectionCard>
+    </>
   );
 }

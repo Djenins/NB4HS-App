@@ -1,6 +1,8 @@
 // SnapContacts.test.jsx -- the add flow searches existing clients first,
 // links rather than duplicates, warns before creating a likely duplicate,
 // and the detail view respects who may edit and records consent.
+// The list renders as a table and as stacked phone rows (CSS shows one), so
+// list queries take the first match.
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,14 +58,14 @@ beforeEach(() => {
 describe("SnapContacts", () => {
   it("lists contacts with their language, method and follow-up", async () => {
     renderAs("worker", "w-me");
-    expect(await screen.findByText("Jean Pierre")).toBeInTheDocument();
-    expect(screen.getByText(en("snapLang_ht"))).toBeInTheDocument();
-    expect(screen.getByText(en("snapFollow_needed"))).toBeInTheDocument();
+    expect((await screen.findAllByText("Jean Pierre"))[0]).toBeInTheDocument();
+    expect(screen.getAllByText(en("snapLang_ht"))[0]).toBeInTheDocument();
+    expect(screen.getAllByText(en("snapFollow_needed"))[0]).toBeInTheDocument();
   });
 
   it("finds an existing client first and links them instead of creating a record", async () => {
     renderAs("worker", "w-me");
-    await screen.findByText("Jean Pierre");
+    await screen.findAllByText("Jean Pierre");
     fireEvent.click(screen.getByRole("button", { name: en("snapAddContact") }));
     fireEvent.change(screen.getByLabelText(en("snapFindPersonPlaceholder")), { target: { value: "marie" } });
     fireEvent.click(await screen.findByRole("button", { name: en("snapAddExisting") }));
@@ -74,7 +76,7 @@ describe("SnapContacts", () => {
 
   it("shows when a found client is already a SNAP contact", async () => {
     renderAs("worker", "w-me");
-    await screen.findByText("Jean Pierre");
+    await screen.findAllByText("Jean Pierre");
     fireEvent.click(screen.getByRole("button", { name: en("snapAddContact") }));
     fireEvent.change(screen.getByLabelText(en("snapFindPersonPlaceholder")), { target: { value: "pierre" } });
     expect(await screen.findByRole("button", { name: en("snapAlreadyContact") })).toBeInTheDocument();
@@ -82,15 +84,15 @@ describe("SnapContacts", () => {
 
   it("requires a name and a way to reach them, then warns about a likely duplicate", async () => {
     renderAs("worker", "w-me");
-    await screen.findByText("Jean Pierre");
+    await screen.findAllByText("Jean Pierre");
     fireEvent.click(screen.getByRole("button", { name: en("snapAddContact") }));
     fireEvent.click(screen.getByRole("button", { name: en("snapNewPerson") }));
     const dialog = screen.getByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: en("snapAddContact") }));
     expect(await screen.findByRole("alert")).toHaveTextContent(en("snapNameRequired"));
 
-    fireEvent.change(screen.getByLabelText(en("firstName")), { target: { value: "Marie" } });
-    fireEvent.change(screen.getByLabelText(en("lastName")), { target: { value: "Joseph" } });
+    fireEvent.change(screen.getByRole("textbox", { name: en("firstName") }), { target: { value: "Marie" } });
+    fireEvent.change(screen.getByRole("textbox", { name: en("lastName") }), { target: { value: "Joseph" } });
     fireEvent.click(within(dialog).getByRole("button", { name: en("snapAddContact") }));
     expect(await screen.findByRole("alert")).toHaveTextContent(en("snapContactNeedsWay"));
 
@@ -102,7 +104,7 @@ describe("SnapContacts", () => {
 
   it("opens a colleague's contact read-only for a worker, but lets them record consent", async () => {
     renderAs("worker", "w-me");
-    fireEvent.click(await screen.findByRole("button", { name: "Jean Pierre" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Jean Pierre" }))[0]);
     expect(await screen.findByText(en("snapContactReadOnly"))).toBeInTheDocument();
     expect(screen.getByLabelText(en("snapPreferredLanguage"))).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: en("snapConsentRecordYes") + ": " + en("snapMethod_sms") + " — " + en("snapPurpose_appointment_reminders") }));
@@ -111,7 +113,7 @@ describe("SnapContacts", () => {
 
   it("lets a supervisor edit and reassign", async () => {
     renderAs("supervisor", "s-me");
-    fireEvent.click(await screen.findByRole("button", { name: "Jean Pierre" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Jean Pierre" }))[0]);
     expect(await screen.findByLabelText(en("snapPreferredLanguage"))).not.toBeDisabled();
     expect(screen.getByLabelText(en("snapAssignedTo")).tagName).toBe("SELECT");
   });

@@ -15,6 +15,8 @@ import { ORG } from "../lib/constants.js";
 import { LOGO_URL } from "../lib/logo.js";
 import { getSession, signOut, updatePassword } from "../lib/supabaseAuth.js";
 import { Button } from "../components/ui/button.jsx";
+import { CONTROL } from "../components/ui/field.jsx";
+import { cn } from "../lib/cn.js";
 import { Card, CardContent } from "../components/ui/card.jsx";
 
 // An admin's invite (Administration > Invite staff) lands here too, with
@@ -57,31 +59,31 @@ export default function ResetPassword() {
       <div className="w-full max-w-[460px]">
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-tint text-gold-ink">
-            <Lock className="h-6 w-6" strokeWidth={2} />
+            <Lock className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
           </div>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded bg-white/90 object-contain p-1" />
-            <span className="text-sm font-bold text-primary">{ORG.name}</span>
+            <img src={LOGO_URL} alt={ORG.name} className="h-8 w-8 rounded-control bg-white/90 object-contain p-1" />
+            <span className="text-touch-meta font-bold text-primary">{ORG.name}</span>
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>
-          <p className="mt-2 text-sm text-muted">{t(ARRIVED_BY_INVITE ? "setPasswordSubtitle" : "resetPasswordSubtitle")}</p>
+          <h1 className="mt-3 text-touch-title font-extrabold text-card-foreground">{t(ARRIVED_BY_INVITE ? "setPasswordHeading" : "resetPasswordHeading")}</h1>
+          <p className="mt-2 text-touch-body text-muted">{t(ARRIVED_BY_INVITE ? "setPasswordSubtitle" : "resetPasswordSubtitle")}</p>
         </div>
 
-        <Card className="mx-auto mt-6 w-full rounded-[20px]">
-          <CardContent className="p-10">
+        <Card className="mx-auto mt-6 w-full">
+          <CardContent className="p-6 sm:p-10">
             {checking ? null : !validLink ? (
               <div className="text-center">
-                <p className="text-sm text-muted">{t("resetLinkInvalidError")}</p>
-                <Button size="lg" className="mt-5 h-14 w-full text-base" onClick={() => navigate("/staff-login")}>
+                <p className="text-touch-body text-muted">{t("resetLinkInvalidError")}</p>
+                <Button size="lg" className="mt-5 h-14 w-full rounded-touch text-touch-body" onClick={() => navigate("/staff-login")}>
                   {t("backToSignIn")}
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
                 <div className="mb-5">
-                  <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="new-password">{t("newPasswordLabel")}</label>
+                  <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="new-password">{t("newPasswordLabel")}</label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                     <input
                       type={showPw ? "text" : "password"}
                       id="new-password"
@@ -89,7 +91,7 @@ export default function ResetPassword() {
                       placeholder={t("phNewPassword")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-12 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-12 text-touch-body")}
                     />
                     <Button
                       type="button"
@@ -100,15 +102,15 @@ export default function ResetPassword() {
                       aria-label={showPw ? t("hidePassword") : t("showPassword")}
                       title={showPw ? t("hidePassword") : t("showPassword")}
                     >
-                      {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} />}
+                      {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden="true" /> : <Eye className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden="true" />}
                     </Button>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="required mb-2 block text-sm font-semibold text-card-foreground" htmlFor="confirm-password">{t("confirmPasswordLabel")}</label>
+                  <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="confirm-password">{t("confirmPasswordLabel")}</label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} />
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                     <input
                       type={showPw ? "text" : "password"}
                       id="confirm-password"
@@ -116,7 +118,7 @@ export default function ResetPassword() {
                       placeholder={t("phConfirmPassword")}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-14 w-full rounded-[14px] border border-border bg-background pl-11 pr-4 text-sm text-card-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
                     />
                   </div>
                 </div>
@@ -125,9 +127,9 @@ export default function ResetPassword() {
                   type="submit"
                   size="lg"
                   disabled={!password || !confirmPassword || submitting}
-                  className="mt-2 h-14 w-full text-base"
+                  className="mt-2 h-14 w-full rounded-touch text-touch-body"
                 >
-                  {t(ARRIVED_BY_INVITE ? "setPasswordBtn" : "updatePasswordBtn")} <ArrowRight className="h-4 w-4" />
+                  {t(ARRIVED_BY_INVITE ? "setPasswordBtn" : "updatePasswordBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </form>
             )}

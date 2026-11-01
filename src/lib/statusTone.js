@@ -36,6 +36,19 @@ const STATUS_TONES = {
 
   // Client communications log
   "communication:followup": "warning",
+  "communication:followupDone": "success",
+
+  // Messages to clients (the outbound queue); "sent" means the provider accepted it
+  "message:queued": "info",
+  "message:sending": "info",
+  "message:sent": "success",
+  "message:failed": "danger",
+  "message:cancelled": "neutral",
+
+  // Newsletters
+  "newsletter:draft": "neutral",
+  "newsletter:sent": "success",
+  "newsletter:cancelled": "warning",
 
   // Outreach follow-up tasks (overdue/dueToday are derived from open + due date)
   "task:overdue": "danger",
@@ -44,7 +57,21 @@ const STATUS_TONES = {
   "task:done": "success",
   "taskPriority:high": "warning",
   "taskPriority:low": "neutral",
+  "caseReview:not_requested": "neutral",
   "caseReview:requested": "warning",
+  "caseReview:approved": "success",
+  "caseReview:changes_requested": "warning",
+
+  // Outreach contacts, cases and consent (Outreach Contacts and Cases)
+  "contactFollowUp:none": "neutral",
+  "contactFollowUp:needed": "warning",
+  "contactFollowUp:scheduled": "info",
+  "contactFollowUp:done": "success",
+  "outreachCase:open": "info",
+  "outreachCase:closed": "neutral",
+  "consent:granted": "success",
+  "consent:revoked": "warning",
+  "consent:none": "neutral",
 
   // Workforce: job openings, referrals, placements (not_selected is neutral -- it isn't an error)
   "opening:draft": "neutral",

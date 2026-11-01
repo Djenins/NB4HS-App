@@ -50,7 +50,7 @@ const links = pages.map((f) => {
 
 describe("guarded routes", () => {
   it("every staff page is behind a guard", () => {
-    const staffPages = Object.values(fileOf).filter((f) => !["Login", "StaffLogin", "ResetPassword", "ApptRequest", "ApptRequestSuccess", "AppointmentLookup", "ClientRegister", "ClientRegisterSuccess", "Admin"].includes(f));
+    const staffPages = Object.values(fileOf).filter((f) => !["Login", "StaffLogin", "ResetPassword", "ApptRequest", "ApptRequestSuccess", "AppointmentLookup", "ClientRegister", "ClientRegisterSuccess", "Unsubscribe", "Admin"].includes(f));
     expect(staffPages.filter((f) => !keysOfFile[f])).toEqual([]);
   });
 
