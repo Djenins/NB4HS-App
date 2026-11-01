@@ -11,6 +11,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { LayoutGrid, ListChecks, Settings2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
 import ReportReview from "../components/reports/ReportReview.jsx";
 import ReportingSettings from "../components/reports/ReportingSettings.jsx";
 import { StaffReportsAll, StaffReportsOverview } from "../components/reports/StaffReportsTables.jsx";
@@ -53,6 +54,7 @@ export default function StaffReports() {
         value={section}
         onChange={(key) => { setChosen(key); if (reportId) navigate("/staffreports"); }}
       />
+      {!reportId && <PageHeader title={t("navStaffReports")} />}
       {reportId ? <ReportReview reportId={reportId} /> : <ActiveComponent />}
     </>
   );

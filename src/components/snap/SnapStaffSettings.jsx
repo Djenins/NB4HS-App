@@ -97,7 +97,7 @@ export default function SnapStaffSettings() {
                         </Avatar>
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-card-foreground">{p.name || "—"}</div>
-                          <div className="truncate text-xs text-muted">{p.email}</div>
+                          <div className="truncate text-meta text-muted">{p.email}</div>
                         </div>
                       </div>
                     </td>

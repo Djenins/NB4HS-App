@@ -49,24 +49,24 @@ export default function WeekView({ dayBlocks, weekdayLabels, todayStr, holidaysB
 
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-border bg-card shadow-card"
+      className="overflow-hidden rounded-surface border border-border bg-card shadow-card"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       <div className="flex">
-        <div className="w-[78px] shrink-0 border-r border-[var(--cal-grid)] sm:w-[112px]">
+        <div className="w-[78px] shrink-0 border-r border-line-subtle sm:w-[112px]">
           <div
             style={{ height: HEADER_HEIGHT }}
-            className="flex items-center gap-1.5 border-b border-[var(--cal-grid)] pl-3 sm:pl-4"
+            className="flex items-center gap-1.5 border-b border-line-subtle pl-3 sm:pl-4"
           >
             <Clock className="h-[18px] w-[18px] shrink-0 text-navy dark:text-card-foreground" aria-hidden="true" />
-            <span className="text-[15px] font-semibold text-navy dark:text-card-foreground">{t("calendarTimeColumn")}</span>
+            <span className="text-body font-semibold text-navy dark:text-card-foreground">{t("calendarTimeColumn")}</span>
           </div>
 
           {allDayHeight > 0 && (
             <div
               style={{ height: allDayHeight }}
-              className="flex items-center border-b border-[var(--cal-grid)] pl-3 text-[11px] font-bold uppercase tracking-wide text-primary sm:pl-4"
+              className="flex items-center border-b border-line-subtle pl-3 text-caption font-bold uppercase tracking-[0.06em] text-tone-info-ink sm:pl-4"
             >
               {t("calendarAllDay")}
             </div>
@@ -80,7 +80,7 @@ export default function WeekView({ dayBlocks, weekdayLabels, todayStr, holidaysB
               <span
                 key={h}
                 style={{ top: i * grid.hourHeight }}
-                className="absolute left-3 -translate-y-1/2 whitespace-nowrap text-[13px] font-medium tabular-nums text-[var(--ev-ink-soft)] sm:left-4 sm:text-[15px]"
+                className="absolute left-3 -translate-y-1/2 whitespace-nowrap text-meta font-medium tabular-nums text-on-tint sm:left-4 sm:text-body"
               >
                 {fmtHour(h)}
               </span>

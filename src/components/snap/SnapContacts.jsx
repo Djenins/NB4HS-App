@@ -88,7 +88,7 @@ export default function SnapContacts({ intent }) {
                       className="min-h-0 border-0 bg-transparent p-0 text-left font-semibold text-card-foreground transform-none hover:text-primary">
                       {(c.firstName + " " + c.lastName).trim()}
                     </button>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-meta text-muted">
                       <NbIdBadge nbId={c.nbId} />
                       <span>{[formatPhone(c.phone), c.email].filter(Boolean).join(" · ")}</span>
                       {c.status === "inactive" && <Badge variant="neutral">{t("snapStatus_inactive")}</Badge>}

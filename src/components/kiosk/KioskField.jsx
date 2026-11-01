@@ -12,11 +12,11 @@ import AddressInput from "../AddressInput.jsx";
 // bare input/select/textarea rules already supply the fill, border, radius
 // and blue focus ring the design system uses everywhere else -- these
 // utilities only scale that up to the 52-56px touch target the kiosk needs.
-export const KIOSK_CONTROL = "min-h-[52px] rounded-xl text-base sm:text-[1.05rem]";
+export const KIOSK_CONTROL = "min-h-[52px] rounded-touch text-touch-body";
 
 export function KioskLabel({ htmlFor, children, required, className }) {
   return (
-    <label htmlFor={htmlFor} className={cn("mb-1 block text-[0.95rem] font-semibold text-navy dark:text-[color:var(--text)]", className)}>
+    <label htmlFor={htmlFor} className={cn("mb-1 block text-touch-label font-semibold text-navy dark:text-[color:var(--text)]", className)}>
       {children}
       {required && <span className="text-accent" aria-hidden="true"> *</span>}
     </label>
@@ -26,7 +26,7 @@ export function KioskLabel({ htmlFor, children, required, className }) {
 export function KioskFieldError({ id, children }) {
   if (!children) return null;
   return (
-    <p id={id} role="alert" className="mt-1.5 text-[0.9rem] font-semibold text-accent">
+    <p id={id} role="alert" className="mt-1.5 text-touch-label font-semibold text-tone-danger-ink">
       {children}
     </p>
   );

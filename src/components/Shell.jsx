@@ -41,6 +41,7 @@ import { sidebarSections } from "./sidebar/sidebarNav.js";
 import KioskTopBar from "./kiosk/KioskTopBar.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+import { APPOINTMENTS_PATH } from "./WorkforceNav.jsx";
 
 // Shown while a lazily-loaded staff page's chunk is fetched. On a normal
 // connection that's under the 300ms delay in .route-loading, so nothing
@@ -222,6 +223,9 @@ export default function Shell() {
   // Breadcrumb: the workspace the page belongs to, then the page.
   const pageKey = navKeyForPath(location.pathname);
   const crumbWorkspace = pageKey ? visibleWorkspaces(items).find((w) => w.key === (workspaceOfItem(pageKey) || "home")) : null;
+  // Workforce's Appointments section has no nav key of its own (it rides on
+  // Job Seekers' access), so name it here rather than as the dashboard.
+  const crumbLabel = location.pathname === APPOINTMENTS_PATH ? t("appointmentsTitle") : navLabel(pageKey, lang);
 
   return (
     <Fragment>
@@ -273,12 +277,12 @@ export default function Shell() {
                     <Menu aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
                   </button>
                 )}
-                {showSidebar && crumbWorkspace && navLabel(pageKey, lang) ? (
+                {showSidebar && crumbWorkspace && crumbLabel ? (
                   <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
                     <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-meta text-muted">
                       <li className="truncate">{t(crumbWorkspace.label)}</li>
                       <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
-                      <li className="truncate font-semibold text-card-foreground" aria-current="page">{navLabel(pageKey, lang)}</li>
+                      <li className="truncate font-semibold text-card-foreground" aria-current="page">{crumbLabel}</li>
                     </ol>
                   </nav>
                 ) : null}

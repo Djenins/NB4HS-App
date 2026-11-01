@@ -32,10 +32,8 @@ import {
 import { employmentTypeLabel, formatPayRange, jobOpeningSortKey, statusLabel } from "../lib/jobOpenings.js";
 import { hasReachedInterview, stageLabel as referralStageLabel } from "../lib/referrals.js";
 import { computeRetentionRate, placementStatusLabel } from "../lib/placements.js";
-import { avatarColorFor } from "../lib/avatarTone.js";
 import { cn } from "../lib/cn.js";
 import { activeIndustryList, formatAddress, formatPhone, fmtDateLong } from "../lib/utils.js";
-import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 import { Button, BUTTON_RESET } from "../components/ui/button.jsx";
 import { Card } from "../components/ui/card.jsx";
 import { Dialog } from "../components/ui/dialog.jsx";
@@ -54,6 +52,7 @@ import EmployerPipelineTracker from "../components/EmployerPipelineTracker.jsx";
 import JobOpeningDetailModal from "../components/JobOpeningDetailModal.jsx";
 import JobOpeningWizard from "../components/JobOpeningWizard.jsx";
 import AddressInput from "../components/AddressInput.jsx";
+import RecordHeader, { ContactItem } from "../components/RecordHeader.jsx";
 
 const TAB_KEYS = ["overview", "jobOpenings", "candidates", "placements", "documents", "activity", "notes"];
 const TAB_LABEL = {
@@ -342,78 +341,75 @@ function UploadDocumentModal({ onSave, onCancel }) {
   );
 }
 
-function ContactItem({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="m-0 min-w-0 break-words">{children}</dd>
-    </div>
-  );
-}
-
-// Identity header -- ClientHeader's anatomy for an employer: back link,
+// Identity header -- the shared RecordHeader for an employer: back link,
 // initials avatar, business name as the page h1, partnership stage, contact
-// line, two visible actions and the rest under More.
-function EmployerHeader({ record, industryName, onBack, onAddJob, onEditCompany, onEditPartnership, onAddActivity, onAddNote, onUploadDocument }) {
+// line, the "at a glance" facts, two visible actions and the rest under More.
+function EmployerHeader({ record, industryName, facts, onBack, onAddJob, onEditCompany, onEditPartnership, onAddActivity, onAddNote, onUploadDocument }) {
   const t = useT();
-  return (
-    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0">
-        <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          {t("navEmployers")}
-        </Button>
-        <div className="flex items-start gap-4">
-          <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
-            <AvatarFallback className={avatarColorFor(record.businessName) + " text-section"}>{businessInitials(record.businessName)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <h1 className="m-0 break-words text-heading font-bold text-card-foreground [text-wrap:balance]">{record.businessName}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="employer" status={record.partnershipStage}>{partnershipStageLabel(record.partnershipStage)}</StatusBadge>
-            </div>
-            <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
-              {industryName ? <ContactItem icon={Factory} label={t("industryLabel")}>{industryName}</ContactItem> : null}
-              <ContactItem icon={Phone} label={t("contactPhoneLabel")}><span className="tabular-nums">{formatPhone(record.contactPhone) || "—"}</span></ContactItem>
-              {record.contactEmail ? <ContactItem icon={Mail} label={t("contactEmailLabel")}>{record.contactEmail}</ContactItem> : null}
-              <ContactItem icon={MapPin} label={t("address")}>{formatAddress(record) || "—"}</ContactItem>
-            </dl>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Button onClick={onAddJob}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> {t("addJobBtn")}
-        </Button>
-        <Button variant="secondary" onClick={onEditCompany}>
-          <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <IconButton label={t("moreActionsBtn")} variant="secondary" size="lg">
-              <MoreHorizontal aria-hidden="true" />
-            </IconButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[14rem]">
-            <DropdownMenuItem onSelect={onEditPartnership}>
-              <Handshake className="h-4 w-4 text-muted" aria-hidden="true" />{t("editPartnershipBtn")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onAddActivity}>
-              <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" />{t("addActivityBtn")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onAddNote}>
-              <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onUploadDocument}>
-              <UploadCloud className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+  function moreMenu(size) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <IconButton label={t("moreActionsBtn")} variant="secondary" size={size}>
+            <MoreHorizontal aria-hidden="true" />
+          </IconButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[14rem]">
+          <DropdownMenuItem onSelect={onEditPartnership}>
+            <Handshake className="h-4 w-4 text-muted" aria-hidden="true" />{t("editPartnershipBtn")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onAddActivity}>
+            <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" />{t("addActivityBtn")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onAddNote}>
+            <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden="true" />{t("addNoteBtn")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onUploadDocument}>
+            <UploadCloud className="h-4 w-4 text-muted" aria-hidden="true" />{t("uploadDocumentBtn")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <RecordHeader
+      name={record.businessName}
+      initials={businessInitials(record.businessName)}
+      onBack={onBack}
+      backLabel={t("navEmployers")}
+      facts={facts}
+      badges={<StatusBadge domain="employer" status={record.partnershipStage}>{partnershipStageLabel(record.partnershipStage)}</StatusBadge>}
+      contact={
+        <>
+          {industryName ? <ContactItem icon={Factory} label={t("industryLabel")}>{industryName}</ContactItem> : null}
+          <ContactItem icon={Phone} label={t("contactPhoneLabel")}><span className="tabular-nums">{formatPhone(record.contactPhone) || "—"}</span></ContactItem>
+          {record.contactEmail ? <ContactItem icon={Mail} label={t("contactEmailLabel")}>{record.contactEmail}</ContactItem> : null}
+          <ContactItem icon={MapPin} label={t("address")}>{formatAddress(record) || "—"}</ContactItem>
+        </>
+      }
+      actions={
+        <>
+          <Button onClick={onAddJob}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> {t("addJobBtn")}
+          </Button>
+          <Button variant="secondary" onClick={onEditCompany}>
+            <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editProfileBtn")}
+          </Button>
+          {moreMenu("lg")}
+        </>
+      }
+      compactActions={
+        <>
+          <Button size="sm" onClick={onAddJob}>
+            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">{t("addJobBtn")}</span>
+          </Button>
+          {moreMenu("sm")}
+        </>
+      }
+    />
   );
 }
 
@@ -528,6 +524,14 @@ export default function EmployerProfile() {
     }
   }
 
+  // The header's "at a glance" strip, from counts the overview already shows.
+  const headerFacts = [
+    { icon: Briefcase, tone: activeOpeningsCount ? "info" : "neutral", label: t("activeOpeningsLabel"), value: String(activeOpeningsCount) },
+    { icon: Users, tone: "violet", label: t("employerTabCandidates"), value: String(totalReferralsCount), hint: totalReferralsCount ? interviewsCount + " " + t("totalInterviewsLabel").toLowerCase() : null },
+    { icon: UserCheck, tone: hiresCount ? "success" : "neutral", label: t("totalHiresLabel"), value: String(hiresCount), hint: retentionRate === null ? null : t("retentionRateLabel") + ": " + retentionRate + "%" },
+    { icon: CalendarClock, tone: "neutral", label: t("lastMeetingDateLabel"), value: record.lastMeetingDate ? fmtDateLong(record.lastMeetingDate) : t("notSetLabel") }
+  ];
+
   const TAB_COUNTS = {
     jobOpenings: employerOpenings.length, candidates: employerReferrals.length, placements: employerPlacements.length,
     documents: documents.length, activity: activity.length, notes: notes.length
@@ -540,7 +544,7 @@ export default function EmployerProfile() {
   return (
     <>
       <EmployerHeader
-        record={record} industryName={industryName}
+        record={record} industryName={industryName} facts={headerFacts}
         onBack={() => navigate("/workforce/employers")}
         onAddJob={() => setAddingJobOpening(true)}
         onEditCompany={() => setEditingCompany(true)}

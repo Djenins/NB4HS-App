@@ -241,7 +241,7 @@ export default function PermissionsTab({ account, isSelf, catalog }) {
 
       {staged.length ? (
         <div role="region" aria-label={t("adminStagedChanges")}
-          className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-card px-4 py-3 shadow-overlay">
+          className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-border bg-card px-4 py-3 shadow-overlay">
           <span className="inline-flex items-center gap-2 text-ui font-semibold text-card-foreground">
             <CircleDot className="h-4 w-4 text-tone-warning-ink" aria-hidden="true" />
             {staged.length === 1 ? t("adminOneStaged") : t("adminNStaged").replace("{n}", staged.length)}

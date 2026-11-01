@@ -4,7 +4,7 @@
 // SVG set) -- this file doesn't replace that, it's scoped to the sidebar.
 import {
   BarChart3, Briefcase, ClipboardList, ClipboardPen, Building2, CalendarDays, CalendarClock, CheckCircle2, ClipboardCheck, FileText,
-  FolderKanban, GraduationCap, HeartHandshake, House, KanbanSquare, LayoutDashboard, ListChecks, LogIn, LogOut, QrCode, Search,
+  FolderKanban, GraduationCap, HeartHandshake, House, KanbanSquare, LayoutDashboard, ListChecks, LogIn, LogOut, MessagesSquare, QrCode, Search,
   Settings, ShoppingBasket, UserSearch, Users
 } from "lucide-react";
 
@@ -16,6 +16,7 @@ export var NAV_ICONS = {
   checkin: LogIn,
   checkout: LogOut,
   search: Search,
+  communications: MessagesSquare,
   reports: BarChart3,
   fooddistribution: ShoppingBasket,
   calendar: CalendarDays,

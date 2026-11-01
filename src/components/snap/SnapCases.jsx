@@ -61,14 +61,14 @@ function NewCase({ onCreated, onClose }) {
         <p className="!mb-4 !text-sm text-muted">{t("snapChooseContactHelp")}</p>
         <div className="grid gap-4">
           <div className="grid gap-1.5">
-            <label htmlFor="newcase-contact" className="text-xs font-semibold text-muted required">{t("snapChooseContact")}</label>
+            <label htmlFor="newcase-contact" className="text-meta font-semibold text-muted required">{t("snapChooseContact")}</label>
             <select id="newcase-contact" className={SNAP_CONTROL} value={contactId} onChange={(e) => setContactId(e.target.value)} required>
               <option value="">{t("snapChooseContactPrompt")}</option>
               {contacts.map((c) => <option key={c.id} value={c.id}>{(c.firstName + " " + c.lastName).trim()} · {c.nbId}</option>)}
             </select>
           </div>
           <fieldset className="m-0 border-0 p-0">
-            <legend className="mb-1.5 text-xs font-semibold text-muted">{t("snapAssistanceRequested")}</legend>
+            <legend className="mb-1.5 text-meta font-semibold text-muted">{t("snapAssistanceRequested")}</legend>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {optionsFor(options, "assistance_type").map((o) => (
                 <label key={o.key} className="flex items-center gap-1.5 text-sm text-card-foreground">
@@ -81,12 +81,12 @@ function NewCase({ onCreated, onClose }) {
           </fieldset>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <label htmlFor="newcase-followup" className="text-xs font-semibold text-muted">{t("snapFollowUpDate")}</label>
+              <label htmlFor="newcase-followup" className="text-meta font-semibold text-muted">{t("snapFollowUpDate")}</label>
               <input id="newcase-followup" type="date" min={todayStr()} className={SNAP_CONTROL} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
             </div>
             {lead && (
               <div className="grid gap-1.5">
-                <label htmlFor="newcase-assigned" className="text-xs font-semibold text-muted">{t("snapAssignedTo")}</label>
+                <label htmlFor="newcase-assigned" className="text-meta font-semibold text-muted">{t("snapAssignedTo")}</label>
                 <select id="newcase-assigned" className={SNAP_CONTROL} value={assignedTo || ""} onChange={(e) => setAssignedTo(e.target.value)}>
                   {(data.profiles || []).filter((p) => p.active !== false).map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
                 </select>
@@ -166,7 +166,7 @@ export default function SnapCases({ intent }) {
                         className="min-h-0 border-0 bg-transparent p-0 text-left font-semibold text-card-foreground transform-none hover:text-primary">
                         {(c.firstName + " " + c.lastName).trim()}
                       </button>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">{c.caseNumber} <NbIdBadge nbId={c.nbId} /></div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-meta text-muted">{c.caseNumber} <NbIdBadge nbId={c.nbId} /></div>
                     </td>
                     <td className="px-4 py-3 align-middle"><Badge variant={c.closedAt ? "neutral" : "default"}>{stageLabel(stages, c.stageKey, lang)}</Badge></td>
                     <td className="px-4 py-3 align-middle">{c.assignedTo ? (nameOf(c.assignedTo) || "—") : t("snapUnassigned")}</td>

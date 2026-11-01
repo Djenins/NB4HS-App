@@ -96,7 +96,7 @@ export default function SnapAddContact({ contacts, onCreated, onOpenContact, onC
                           <span className="font-semibold text-card-foreground">{(client.firstName + " " + client.lastName).trim()}</span>
                           <NbIdBadge nbId={client.nbId} />
                         </div>
-                        <div className="text-xs text-muted">{[formatPhone(client.phone), client.email].filter(Boolean).join(" · ") || "—"}</div>
+                        <div className="text-meta text-muted">{[formatPhone(client.phone), client.email].filter(Boolean).join(" · ") || "—"}</div>
                       </div>
                       {existing ? (
                         <Button size="sm" variant="ghost" onClick={() => onOpenContact(existing)}>{t("snapAlreadyContact")}</Button>

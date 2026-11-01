@@ -18,6 +18,7 @@ import LegacyRedirect from "./components/LegacyRedirect.jsx";
 import Shell from "./components/Shell.jsx";
 import StaffLogin from "./pages/StaffLogin.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import Unsubscribe from "./pages/Unsubscribe.jsx";
 import RequireRoute from "./components/RequireRoute.jsx";
 import CheckIn from "./pages/CheckIn.jsx";
 import CheckInStudent from "./pages/CheckInStudent.jsx";
@@ -63,6 +64,7 @@ const Referrals = lazy(() => import("./pages/Referrals.jsx"));
 const Placements = lazy(() => import("./pages/Placements.jsx"));
 const PlacementDetail = lazy(() => import("./pages/PlacementDetail.jsx"));
 const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
+const WorkforceAppointments = lazy(() => import("./pages/WorkforceAppointments.jsx"));
 const Outreach = lazy(() => import("./pages/Outreach.jsx"));
 const MyReports = lazy(() => import("./pages/MyReports.jsx"));
 const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
@@ -70,6 +72,7 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Availability = lazy(() => import("./pages/Availability.jsx"));
+const Communications = lazy(() => import("./pages/Communications.jsx"));
 
 // "/" is for staff only: the sign-in page, or straight to their landing page
 // once signed in. Clients never land here -- they get the kiosk link (/kiosk).
@@ -128,6 +131,8 @@ export default function App() {
         <Route path="/staff-login" element={<StaffHome />} />
         <Route path="/kiosk" element={<KioskEntry />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* A newsletter's unsubscribe link: public, client-facing, outside Shell. */}
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
 
         <Route element={<Shell />}>
           <Route path="/dashboard" element={<RequireRoute routeKey="dashboard"><Dashboard /></RequireRoute>} />
@@ -146,6 +151,7 @@ export default function App() {
           <Route path="/register/success" element={<ClientRegisterSuccess />} />
           <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
           <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
+          <Route path="/communications/:section?" element={<RequireRoute routeKey="communications"><Communications /></RequireRoute>} />
           <Route path="/food/:section?" element={<RequireRoute routeKey="fooddistribution"><FoodDistribution /></RequireRoute>} />
           <Route path="/calendar" element={<RequireRoute routeKey="calendar"><CalendarPage /></RequireRoute>} />
           <Route path="/qrcode" element={<RequireRoute routeKey="qrcode"><QRCode /></RequireRoute>} />
@@ -162,6 +168,7 @@ export default function App() {
           <Route path="/workforce" element={<RequireRoute routeKey="workforcedashboard"><WorkforceDashboard /></RequireRoute>} />
           <Route path="/workforce/participants" element={<RequireRoute routeKey="jobdeveloper"><JobDeveloper /></RequireRoute>} />
           <Route path="/workforce/participants/:clientId" element={<RequireRoute routeKey="jobdeveloper"><JobClientProfile /></RequireRoute>} />
+          <Route path="/workforce/appointments" element={<RequireRoute routeKey="jobdeveloper"><WorkforceAppointments /></RequireRoute>} />
           <Route path="/workforce/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
           <Route path="/workforce/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
           <Route path="/workforce/jobs" element={<RequireRoute routeKey="jobopenings"><JobOpenings /></RequireRoute>} />

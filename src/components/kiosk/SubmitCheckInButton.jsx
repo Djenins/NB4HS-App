@@ -10,8 +10,8 @@ export default function SubmitCheckInButton({ label, busy = false, className }) 
       type="submit"
       disabled={busy}
       className={cn(
-        "flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-primary px-4 text-[1.05rem] font-bold text-primary-foreground xl:gap-3 xl:text-[1.15rem]",
-        "min-h-[72px] xl:min-h-[80px] shadow-[0_6px_18px_rgba(37,99,235,.28)] transition-colors duration-150",
+        "flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-touch bg-primary px-4 text-touch-lead font-bold text-primary-foreground xl:gap-3 xl:text-touch-section",
+        "min-h-[72px] xl:min-h-[80px] shadow-raised transition-colors duration-fast",
         "hover:bg-primary-dark active:bg-primary-dark active:scale-[0.99]",
         "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary",
         busy && "cursor-not-allowed opacity-70",

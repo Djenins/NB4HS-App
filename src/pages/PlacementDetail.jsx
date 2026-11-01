@@ -1,23 +1,23 @@
 // PlacementDetail.jsx -- Placement detail page (a real route, not a modal,
 // per the spec -- the timeline + four check-in forms + end-placement flow
 // is too much for a modal). Record-page anatomy from ClientProfile.jsx /
-// ClientHeader.jsx: back link, an identity header (avatar, name as the h1,
-// status badge, position/employer/start date) with at most two actions,
+// ClientHeader.jsx: back link, the shared RecordHeader (avatar, name as the
+// h1, status badge, position/employer/start date, "at a glance" facts) with
+// at most two actions,
 // then ui SectionCards -- details and the retention timeline as divided
 // rows on the left, one SectionCard per check-in form on the right. Every
 // modal is a ui Dialog.
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Briefcase, Building2, CalendarDays, CircleStop, Pencil } from "lucide-react";
+import { ArrowLeft, Briefcase, Building2, CalendarDays, CircleStop, ClipboardCheck, Clock, Pencil, Wallet } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { updatePlacement, updatePlacementCheckin } from "../lib/clientsData.js";
-import { avatarColorFor } from "../lib/avatarTone.js";
-import { CHECKIN_TYPES, placementStatusLabel } from "../lib/placements.js";
-import { fmtDateLong } from "../lib/utils.js";
+import { CHECKIN_TYPES, checkinState, checkinTypeLabel, placementStatusLabel } from "../lib/placements.js";
+import { fmtDateLong, todayStr } from "../lib/utils.js";
 import EndPlacementModal from "../components/EndPlacementModal.jsx";
 import PlacementCheckinCard from "../components/PlacementCheckinCard.jsx";
 import PlacementTimeline from "../components/PlacementTimeline.jsx";
-import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
+import RecordHeader, { ContactItem } from "../components/RecordHeader.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Card } from "../components/ui/card.jsx";
 import { Dialog } from "../components/ui/dialog.jsx";
@@ -37,15 +37,9 @@ function FieldRow({ label, value }) {
   );
 }
 
-// Header meta line item: icon + a visually hidden label for screen readers.
-function MetaItem({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="m-0 min-w-0 break-words">{children}</dd>
-    </div>
-  );
+// Whole calendar days from one YYYY-MM-DD to another.
+function daysBetween(from, to) {
+  return Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000);
 }
 
 function EditPlacementModal({ record, onSave, onCancel }) {
@@ -153,48 +147,64 @@ export default function PlacementDetail() {
 
   const name = record.participantName || "";
 
+  // The header's "at a glance" strip.
+  const today = todayStr();
+  const daysOnJob = record.startDate && record.startDate <= today
+    ? daysBetween(record.startDate, record.currentStatus === "ended" && record.endDate ? record.endDate : today)
+    : null;
+  const nextCheckin = checkins.find((c) => !c.completed);
+  const nextCheckinState = nextCheckin ? checkinState(nextCheckin) : null;
+  const headerFacts = [
+    { icon: Wallet, tone: "neutral", label: t("hourlyWageLabel"), value: record.hourlyWage ? record.hourlyWage + t("perHourSuffix") : t("notSetLabel") },
+    { icon: Clock, tone: "neutral", label: t("hoursPerWeekLabel"), value: record.hoursPerWeek ? String(record.hoursPerWeek) : t("notSetLabel") },
+    { icon: CalendarDays, tone: record.currentStatus === "active" ? "success" : "neutral", label: t("daysOnJobLabel"), value: daysOnJob === null ? "—" : daysOnJob + t("daysCountSuffix") },
+    nextCheckin
+      ? {
+        icon: ClipboardCheck, tone: nextCheckinState === "due" ? "danger" : "info", label: t("nextCheckinLabel"),
+        value: checkinTypeLabel(nextCheckin.checkinType),
+        hint: (nextCheckin.dueDate ? fmtDateLong(nextCheckin.dueDate) + " · " : "") + t("checkinState_" + nextCheckinState)
+      }
+      : { icon: ClipboardCheck, tone: "success", label: t("nextCheckinLabel"), value: t("checkinsAllDone") }
+  ];
+
   return (
     <>
-      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <Button variant="ghost" size="sm" className="-ml-2 mb-2 text-muted" onClick={goBack}>
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            {t("navPlacements")}
-          </Button>
-          <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0" aria-hidden="true">
-              <AvatarFallback className={avatarColorFor(name) + " text-section"}>{(name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              {/* m-0 and explicit weight: main.css still styles bare h1 at 2rem/800. */}
-              <h1 className="m-0 text-heading font-bold text-card-foreground [text-wrap:balance]">{name || "—"}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge domain="placement" status={record.currentStatus}>{placementStatusLabel(record.currentStatus)}</StatusBadge>
-              </div>
-              <dl className="m-0 mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-meta text-muted">
-                <MetaItem icon={Briefcase} label={t("positionLabel")}>{record.positionTitle || "—"}</MetaItem>
-                <MetaItem icon={Building2} label={t("employerLabel")}>{record.employerName || "—"}</MetaItem>
-                <MetaItem icon={CalendarDays} label={t("jobStartDateLabel")}>
-                  <span>{t("jobStartDateLabel")}: <span className="tabular-nums">{fmtDateLong(record.startDate)}</span></span>
-                </MetaItem>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button variant="secondary" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editLabel")}
-          </Button>
-          {/* Ending is consequential, so it opens a confirm-with-reason
-              dialog whose submit is the danger button. */}
-          {record.currentStatus === "active" && (
-            <Button variant="secondary" onClick={() => setEnding(true)}>
-              <CircleStop className="h-4 w-4" aria-hidden="true" /> {t("markEndedBtn")}
+      <RecordHeader
+        name={name || "—"}
+        initials={name ? name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() : "?"}
+        onBack={goBack}
+        backLabel={t("navPlacements")}
+        facts={headerFacts}
+        badges={<StatusBadge domain="placement" status={record.currentStatus}>{placementStatusLabel(record.currentStatus)}</StatusBadge>}
+        contact={
+          <>
+            <ContactItem icon={Briefcase} label={t("positionLabel")}>{record.positionTitle || "—"}</ContactItem>
+            <ContactItem icon={Building2} label={t("employerLabel")}>{record.employerName || "—"}</ContactItem>
+            <ContactItem icon={CalendarDays} label={t("jobStartDateLabel")}>
+              <span>{t("jobStartDateLabel")}: <span className="tabular-nums">{fmtDateLong(record.startDate)}</span></span>
+            </ContactItem>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" aria-hidden="true" /> {t("editLabel")}
             </Button>
-          )}
-        </div>
-      </header>
+            {/* Ending is consequential, so it opens a confirm-with-reason
+                dialog whose submit is the danger button. */}
+            {record.currentStatus === "active" && (
+              <Button variant="secondary" onClick={() => setEnding(true)}>
+                <CircleStop className="h-4 w-4" aria-hidden="true" /> {t("markEndedBtn")}
+              </Button>
+            )}
+          </>
+        }
+        compactActions={
+          <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+            <Pencil className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">{t("editLabel")}</span>
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,35fr)_minmax(0,65fr)]">
         <div className="flex min-w-0 flex-col gap-6">

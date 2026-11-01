@@ -17,12 +17,12 @@ export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = Use
       </span>
       {/* Split on spaces so a long title wraps between words instead of
           breaking inside "Check-In" at its hyphen on narrower kiosks. */}
-      <h1 className="kiosk-sidebar-title mt-2 text-[1.375rem] font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-[1.75rem] xl:text-[2.2rem]">
+      <h1 className="kiosk-sidebar-title mt-2 text-touch-heading font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-touch-title xl:text-touch-hero">
         {title.split(" ").map((word, i) => (
           <span key={word + i} className="inline-block">{word}{i < title.split(" ").length - 1 ? "\u00a0" : ""}</span>
         ))}
       </h1>
-      <p className="mt-2 text-[0.92rem] leading-snug text-muted xl:text-[1rem]">{subtitle}</p>
+      <p className="mt-2 text-touch-label leading-snug text-muted xl:text-touch-body">{subtitle}</p>
 
       <nav aria-label={navLabel || title} className="kiosk-sidebar-steps mt-4 hidden gap-2 md:flex md:flex-row lg:flex-col xl:mt-5 xl:gap-2.5">
         {steps.map((step) => (
@@ -41,8 +41,8 @@ export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = Use
       <div className="kiosk-sidebar-help mt-auto hidden items-start gap-2.5 pt-4 lg:flex">
         <CircleHelp size={20} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
         <div>
-          <p className="m-0 text-[0.95rem] font-bold text-navy dark:text-[color:var(--text)]">{helpTitle}</p>
-          <p className="m-0 text-[0.9rem] leading-snug text-muted">{helpText}</p>
+          <p className="m-0 text-touch-label font-bold text-navy dark:text-[color:var(--text)]">{helpTitle}</p>
+          <p className="m-0 text-touch-label leading-snug text-muted">{helpText}</p>
         </div>
       </div>
     </div>
