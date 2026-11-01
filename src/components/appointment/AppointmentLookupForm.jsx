@@ -6,7 +6,7 @@
 // page via form.elements at submit time (the same way they always were), and
 // the required/optional split shown here is exactly the rule the page
 // validates: last name is required, and at least one of email/phone.
-import { Info, Loader2, Mail, Phone, Search, UserRound } from "lucide-react";
+import { Info, Loader2, Search } from "lucide-react";
 import { cn } from "../../lib/cn.js";
 import { formatPhone } from "../../lib/utils.js";
 import { TOUCH_FILL } from "../ui/field.jsx";
@@ -16,9 +16,9 @@ import { TOUCH_FILL } from "../ui/field.jsx";
 // scale that up to the touch target this visitor-facing page needs (56px on a
 // phone, 62px on the kiosk) and leave room for the leading icon.
 const LOOKUP_INPUT =
-  TOUCH_FILL + " min-h-[56px] rounded-touch pl-[52px] text-touch-body sm:min-h-[62px] sm:text-touch-lead";
+  TOUCH_FILL + " min-h-[56px] rounded-touch text-touch-body sm:min-h-[62px] sm:text-touch-lead";
 
-function LookupField({ name, label, type = "text", required, icon: LeadingIcon, placeholder, autoComplete, error, invalid, describedBy }) {
+function LookupField({ name, label, type = "text", required, placeholder, autoComplete, error, invalid, describedBy }) {
   const id = "appt-lookup-" + name;
   const errorId = error ? id + "-error" : undefined;
   // `invalid` without `error` is the phone half of the email-or-phone rule:
@@ -32,12 +32,6 @@ function LookupField({ name, label, type = "text", required, icon: LeadingIcon, 
         {required && <span className="text-accent" aria-hidden="true"> *</span>}
       </label>
       <div className="relative">
-        <LeadingIcon
-          size={21}
-          strokeWidth={2}
-          aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary"
-        />
         <input
           type={type}
           name={name}
@@ -65,7 +59,6 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
         name="lastName"
         label={t("lastName")}
         required
-        icon={UserRound}
         autoComplete="family-name"
         placeholder={t("apptLookupLastNamePlaceholder")}
         error={errors.lastName}
@@ -81,7 +74,6 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
           name="email"
           label={t("email")}
           type="email"
-          icon={Mail}
           autoComplete="email"
           placeholder={t("apptLookupEmailPlaceholder")}
           describedBy="appt-lookup-contact-hint"
@@ -101,7 +93,6 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
           name="phone"
           label={t("phoneOptional")}
           type="tel"
-          icon={Phone}
           autoComplete="tel"
           placeholder="(555) 123-4567"
           describedBy={"appt-lookup-contact-hint" + (errors.contact ? " appt-lookup-email-error" : "")}

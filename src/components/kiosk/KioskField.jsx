@@ -34,7 +34,7 @@ export function KioskFieldError({ id, children }) {
 }
 
 export default function KioskField({
-  name, label, type = "text", required = false, error = "", icon: LeadingIcon,
+  name, label, type = "text", required = false, error = "",
   placeholder, value, disabled = false, readOnly = false, className, onAddressSelect
 }) {
   // The street field passes onAddressSelect and gets address suggestions.
@@ -46,19 +46,6 @@ export default function KioskField({
     <div className={cn("min-w-0", className)}>
       <KioskLabel htmlFor={id} required={required}>{label}</KioskLabel>
       <div className="relative">
-        {LeadingIcon && (
-          <LeadingIcon
-            size={20}
-            strokeWidth={2}
-            aria-hidden="true"
-            className={cn(
-              // Hidden on the narrowest phones: at 375px the icon's inset
-              // would crowd the field's own value out of view.
-              "pointer-events-none absolute left-4 top-1/2 hidden -translate-y-1/2 sm:block",
-              disabled ? "text-muted" : "text-primary"
-            )}
-          />
-        )}
         <InputEl
           {...addressProps}
           type={type}
@@ -71,7 +58,7 @@ export default function KioskField({
           readOnly={readOnly}
           aria-invalid={error ? "true" : undefined}
           aria-describedby={errorId}
-          className={cn(KIOSK_CONTROL, "w-full", LeadingIcon && "sm:pl-12", error && "field-invalid")}
+          className={cn(KIOSK_CONTROL, "w-full", error && "field-invalid")}
           onInput={type === "tel" ? (e) => { e.target.value = formatPhone(e.target.value); } : undefined}
         />
       </div>

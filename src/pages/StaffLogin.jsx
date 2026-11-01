@@ -26,7 +26,7 @@
 // displaying their passwords in the app's own UI -- even production-gated --
 // would mean leaking real credentials, not demo ones.
 import { AnimatePresence, m } from "framer-motion";
-import { ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Mail, Scale, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Scale, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
@@ -237,7 +237,6 @@ export default function StaffLogin() {
                     <div className="mb-5">
                       <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type="email"
                           id="login-email"
@@ -245,7 +244,7 @@ export default function StaffLogin() {
                           placeholder={t("workEmailPlaceholder")}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
+                          className={cn(CONTROL, "h-14 rounded-touch px-4 text-touch-body")}
                         />
                       </div>
                     </div>
@@ -262,7 +261,6 @@ export default function StaffLogin() {
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type={showPw ? "text" : "password"}
                           id="login-password"
@@ -270,7 +268,7 @@ export default function StaffLogin() {
                           placeholder={t("passwordFieldPlaceholder")}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-12 text-touch-body")}
+                          className={cn(CONTROL, "h-14 rounded-touch pl-4 pr-12 text-touch-body")}
                         />
                         <Button
                           type="button"
@@ -311,7 +309,6 @@ export default function StaffLogin() {
                     <div className="mb-5">
                       <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="reset-email">{t("loginEmail")}</label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                         <input
                           type="email"
                           id="reset-email"
@@ -319,7 +316,7 @@ export default function StaffLogin() {
                           placeholder={t("workEmailPlaceholder")}
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
-                          className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
+                          className={cn(CONTROL, "h-14 rounded-touch px-4 text-touch-body")}
                         />
                       </div>
                     </div>

@@ -83,7 +83,6 @@ export default function ResetPassword() {
                 <div className="mb-5">
                   <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="new-password">{t("newPasswordLabel")}</label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                     <input
                       type={showPw ? "text" : "password"}
                       id="new-password"
@@ -91,7 +90,7 @@ export default function ResetPassword() {
                       placeholder={t("phNewPassword")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-12 text-touch-body")}
+                      className={cn(CONTROL, "h-14 rounded-touch pl-4 pr-12 text-touch-body")}
                     />
                     <Button
                       type="button"
@@ -110,7 +109,6 @@ export default function ResetPassword() {
                 <div className="mb-4">
                   <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="confirm-password">{t("confirmPasswordLabel")}</label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden="true" />
                     <input
                       type={showPw ? "text" : "password"}
                       id="confirm-password"
@@ -118,7 +116,7 @@ export default function ResetPassword() {
                       placeholder={t("phConfirmPassword")}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={cn(CONTROL, "h-14 rounded-touch pl-11 pr-4 text-touch-body")}
+                      className={cn(CONTROL, "h-14 rounded-touch px-4 text-touch-body")}
                     />
                   </div>
                 </div>

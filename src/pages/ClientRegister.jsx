@@ -142,7 +142,7 @@ export default function ClientRegister() {
             >
               <div className="grid gap-x-4 gap-y-3 sm:gap-y-4">
                 <ApptField
-                  name="street" label={t("address")} icon={MapPin} placeholder={t("streetAddressPlaceholder")}
+                  name="street" label={t("address")} placeholder={t("streetAddressPlaceholder")}
                   onAddressSelect={(a) => {
                     // Uncontrolled form: write the picked city / ZIP straight in.
                     const form = formRef.current;
