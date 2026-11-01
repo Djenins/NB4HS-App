@@ -1,9 +1,9 @@
-// CheckInVisitor.jsx -- the full visitor check-in form on the kiosk: one
-// centred column with the title, a three-step progress bar (Visitor
-// Information -> Address -> Visit Details) that jumps to each section and
-// follows focus, the three section cards, and a bar pinned to the bottom
-// with the help note and Submit. Date and time aren't asked for: the kiosk's
-// top bar shows them and the record stamps its own on submit.
+// CheckInVisitor.jsx -- the full visitor check-in form on the kiosk, laid
+// out to fit one screen with no scrolling: a title row, then three columns --
+// Visitor Information | Address | Visit Details with the help note and
+// Submit (two columns on narrower screens). Date and time aren't asked for: the kiosk's top
+// bar shows them and the record stamps its own on submit. Phones are too
+// short for all of it and stack the cards in one scrolling column.
 //
 // Fields are uncontrolled and read via FormData on submit (except the
 // service/staff selects, which need state for their "other, please specify"
@@ -12,8 +12,7 @@
 // visits.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CircleHelp, ClipboardList, MapPin, UserRound, UserRoundCheck } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { CircleHelp, UserRoundCheck } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeServiceList, activeStaffList, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
@@ -34,16 +33,9 @@ export default function CheckInVisitor() {
   // unchanged; the value just says *why* the field failed.
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
-  const [activeStep, setActiveStep] = useState("visitor");
 
   const services = activeServiceList(data.customServices, data.disabledServices);
   const staffList = activeStaffList(data.customStaff, data.disabledStaff);
-
-  const sectionRefs = {
-    visitor: useRef(null),
-    address: useRef(null),
-    visit: useRef(null)
-  };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -97,109 +89,76 @@ export default function CheckInVisitor() {
     }
   }
 
-  const steps = [
-    { id: "visitor", number: "1", icon: UserRound, title: t("sectionVisitorInfo"), description: t("sectionVisitorInfoDesc") },
-    { id: "address", number: "2", icon: MapPin, title: t("sectionAddress"), description: t("sectionAddressDesc") },
-    { id: "visit", number: "3", icon: ClipboardList, title: t("sectionVisitDetails"), description: t("kioskStepVisitDetailsDesc") }
-  ];
-
-  // Step cards double as anchor navigation; focusing any control inside a
-  // section makes that section's card the active one.
-  function goToStep(id) {
-    setActiveStep(id);
-    const el = sectionRefs[id].current;
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  function handleFocusIn(e) {
-    const match = steps.find((s) => {
-      const el = sectionRefs[s.id].current;
-      return el && el.contains(e.target);
-    });
-    if (match && match.id !== activeStep) setActiveStep(match.id);
-  }
-
-
   return (
-    // Where Shell fixes <main> to the window (main--kiosk-form: wide and tall
-    // enough), this column scrolls itself; elsewhere the page scrolls. Either
-    // way the progress bar and the Submit bar stick to the scrolling edge.
+    // Where Shell fixes <main> to the window (main--kiosk-form), the layout
+    // is sized to fit it; overflow-y-auto is only a safety net for a screen
+    // shorter than the kiosk it was designed for.
     <div className="kiosk-checkin flex w-full flex-1 flex-col [@media(min-width:1024px)_and_(min-height:620px)]:min-h-0 [@media(min-width:1024px)_and_(min-height:620px)]:overflow-y-auto">
       {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        onFocus={handleFocusIn}
         noValidate
-        className="mx-auto flex w-full max-w-3xl flex-col"
+        className="mx-auto flex w-full max-w-6xl flex-col gap-4"
       >
-        <header className="flex items-center gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-14 sm:w-14">
-            <UserRoundCheck strokeWidth={2} aria-hidden="true" className="h-6 w-6 sm:h-7 sm:w-7" />
+        <header className="flex items-center gap-3 lg:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
+            <UserRoundCheck strokeWidth={2} aria-hidden="true" className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <h1 className="m-0 text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("checkInFormTitle")}</h1>
-            <p className="m-0 mt-1 text-touch-body leading-snug text-muted">{t("welcome") + "! " + t("checkInFormSubtitle")}</p>
+            <h1 className="m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-title">{t("checkInFormTitle")}</h1>
+            <p className="m-0 text-touch-label leading-snug text-muted">{t("welcome") + "! " + t("checkInFormSubtitle")}</p>
           </div>
-        </header>
-
-        {/* Progress: tap a step to jump to it; focusing a field moves it.
-            Pinned to the top of the scrolling column on wide screens, so every
-            step stays one tap away; where the page scrolls (phones), the
-            kiosk's own top bar holds that edge, so it scrolls away instead. */}
-        <nav aria-label={t("checkInFormTitle")} className="z-10 mt-4 bg-background py-2 [@media(min-width:1024px)_and_(min-height:620px)]:sticky [@media(min-width:1024px)_and_(min-height:620px)]:top-0">
-          <ol className="m-0 flex list-none items-center gap-2 p-0">
-            {steps.map((step, i) => {
-              const active = activeStep === step.id;
-              const done = steps.findIndex((s) => s.id === activeStep) > i;
-              return (
-                <li key={step.id} className={cn("m-0 flex min-w-0 items-center gap-2", active ? "flex-[3] sm:flex-1" : "flex-1")}>
-                  <button
-                    type="button"
-                    onClick={() => goToStep(step.id)}
-                    aria-current={active ? "step" : undefined}
-                    aria-label={step.number + ". " + step.title}
-                    className={cn(
-                      "flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-touch border px-3 py-2 text-left transition-colors duration-fast",
-                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                      active ? "border-primary bg-primary-tint" : "border-border bg-card hover:border-line-strong"
-                    )}
-                  >
-                    <span className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-touch-label font-bold tabular-nums",
-                      active || done ? "bg-primary text-primary-foreground" : "bg-surface-sunken text-muted"
-                    )}>{step.number}</span>
-                    {/* On phones only the current step names itself; the others
-                        show their number (the button keeps the full name). */}
-                    <span className={cn("min-w-0 text-touch-label font-semibold leading-tight", active ? "text-primary" : "hidden text-card-foreground sm:inline")}>{step.title}</span>
-                  </button>
-                  {i < steps.length - 1 ? <span aria-hidden="true" className="hidden h-px w-4 shrink-0 bg-line-strong sm:block" /> : null}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-
-        {/* A size container: the sections pick their columns from this
-            column's width, not the window's. */}
-        <div className="mt-5 flex flex-col gap-4 [container-type:inline-size]">
-          <VisitorInformationSection id="kiosk-step-visitor" sectionRef={sectionRefs.visitor} t={t} errors={errors} />
-          <AddressSection id="kiosk-step-address" sectionRef={sectionRefs.address} t={t} errors={errors} />
-          <VisitDetailsSection
-            id="kiosk-step-visit" sectionRef={sectionRefs.visit}
-            t={t} lang={lang} errors={errors}
-            services={services} staffList={staffList}
-            service={service} onServiceChange={(e) => setService(e.target.value)}
-            staff={staff} onStaffChange={(e) => setStaff(e.target.value)}
-          />
-        </div>
-
-        {/* Pinned to the bottom of the screen so Submit is always in reach. */}
-        <div className="sticky bottom-0 z-10 mt-5 -mx-3 flex flex-col gap-3 border-t border-border bg-background px-3 py-4 sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:rounded-surface sm:border sm:bg-card sm:px-5 sm:shadow-raised">
-          <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
+          </div>
+          {/* On wide screens the help note sits up here, so the Visit Details
+              column only has to hold Submit; phones show it by Submit. */}
+          <div className="hidden shrink-0 rounded-touch border border-border bg-card px-4 py-3 shadow-card lg:block">
+            <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
             <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <span><span className="font-semibold text-card-foreground">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
           </p>
-          <SubmitCheckInButton label={t("submit")} busy={busy} className="min-h-[64px] sm:w-auto sm:min-w-[18rem] xl:min-h-[64px]" />
+          </div>
+        </header>
+
+        {/* Three columns when the form is wide enough (Visitor | Address |
+            Visit Details + Submit), two on narrower screens, and a plain
+            stack on phones (a grid would trap the sticky Submit bar in its
+            own row).
+            The outer div is the size container the grid reads; each column
+            is one too, so its fields pick their own layout. */}
+        <div className="[container-type:inline-size]">
+          <div className="flex flex-col gap-4 [@container(min-width:40rem)]:grid [@container(min-width:40rem)]:grid-cols-2 [@container(min-width:40rem)]:items-start [@container(min-width:50rem)]:grid-cols-3">
+            <div className="[container-type:inline-size]">
+              <VisitorInformationSection id="kiosk-step-visitor" t={t} errors={errors} />
+            </div>
+            <div className="[container-type:inline-size]">
+              <AddressSection id="kiosk-step-address" t={t} errors={errors} />
+            </div>
+            {/* "contents" on phones: the column's box disappears so the Submit
+                bar's sticky edge is the whole form, not just this column. */}
+            <div className="contents lg:flex lg:flex-col lg:gap-4 lg:[container-type:inline-size]">
+              <VisitDetailsSection
+                id="kiosk-step-visit"
+                t={t} lang={lang} errors={errors}
+                services={services} staffList={staffList}
+                service={service} onServiceChange={(e) => setService(e.target.value)}
+                staff={staff} onStaffChange={(e) => setStaff(e.target.value)}
+              />
+              {/* On phones this bar is pinned to the bottom of the screen so
+                  Submit stays in reach while the cards scroll; on wide
+                  screens it's just the button under Visit Details. */}
+              <div className="sticky bottom-0 z-10 -mx-3 flex flex-col gap-3 border-t border-border bg-background px-3 py-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
+                <div className="lg:hidden">
+                  <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
+                    <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <span><span className="font-semibold text-card-foreground">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
+                  </p>
+                </div>
+                <SubmitCheckInButton label={t("submit")} busy={busy} className="min-h-[60px] xl:min-h-[64px]" />
+              </div>
+            </div>
+          </div>
         </div>
       </form>
     </div>

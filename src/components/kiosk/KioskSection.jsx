@@ -1,6 +1,8 @@
 // KioskSection.jsx -- one white form card in the kiosk's centre column
 // (Visitor Information / Address / Visit Details). Purely presentational:
 // icon badge + title in the header, caller-supplied fields in the body.
+// In a narrow size container (the visitor form's three columns) the title
+// drops one step so "Visitor Information" stays on one line.
 import { cn } from "../../lib/cn.js";
 
 // Badge tints. Blue is the NB4HS primary; violet is kept for Visit Details
@@ -20,7 +22,7 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
       ref={sectionRef}
       aria-labelledby={id + "-title"}
       className={cn(
-        "scroll-mt-20 rounded-surface border border-border bg-card p-4 shadow-card sm:p-6",
+        "rounded-surface border border-border bg-card p-4 shadow-card sm:p-5",
         className
       )}
     >
@@ -29,7 +31,7 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
           <SectionIcon strokeWidth={2} aria-hidden="true" className="h-[19px] w-[19px] sm:h-[21px] sm:w-[21px]" />
         </span>
         <div className="min-w-0">
-          <h2 id={id + "-title"} className="m-0 text-touch-section font-extrabold leading-tight tracking-tight sm:text-touch-heading text-navy dark:text-[color:var(--text)]">{title}</h2>
+          <h2 id={id + "-title"} className="m-0 text-touch-section font-extrabold leading-tight tracking-tight sm:text-touch-heading text-navy dark:text-[color:var(--text)] [@container(max-width:20rem)]:text-touch-section">{title}</h2>
           {subtitle && <p className="m-0 mt-0.5 text-touch-label leading-snug text-muted">{subtitle}</p>}
         </div>
       </div>

@@ -20,10 +20,10 @@ export default function AddressSection({ id, sectionRef, t, errors }) {
   return (
     <KioskSection id={id} sectionRef={sectionRef} icon={MapPin} tone="soft" title={t("sectionAddress")}>
       <KioskField
-        name="address" label={t("address")} required placeholder={t("phAddress")} error={errors.address}
+        name="address" label={t("address")} required placeholder={t("streetAddressPlaceholder")} error={errors.address}
         onAddressSelect={fillFromAddress}
       />
-      <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 [@container(min-width:36rem)]:grid-cols-[1.4fr_0.7fr_0.9fr]">
+      <div className="mt-2.5 grid grid-cols-[minmax(0,5rem)_minmax(0,1fr)] gap-x-4 gap-y-2.5 [@container(min-width:36rem)]:grid-cols-[1.4fr_0.7fr_0.9fr]">
         <KioskField
           name="city" label={t("city")} required placeholder={t("phCity")}
           error={errors.city} className="col-span-2 [@container(min-width:36rem)]:col-span-1"
