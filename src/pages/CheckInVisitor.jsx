@@ -120,7 +120,10 @@ export default function CheckInVisitor() {
 
 
   return (
-    <div className="kiosk-checkin flex w-full flex-1 flex-col">
+    // Where Shell fixes <main> to the window (main--kiosk-form: wide and tall
+    // enough), this column scrolls itself; elsewhere the page scrolls. Either
+    // way the progress bar and the Submit bar stick to the scrolling edge.
+    <div className="kiosk-checkin flex w-full flex-1 flex-col [@media(min-width:1024px)_and_(min-height:620px)]:min-h-0 [@media(min-width:1024px)_and_(min-height:620px)]:overflow-y-auto">
       {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
       <form
         ref={formRef}
@@ -139,8 +142,11 @@ export default function CheckInVisitor() {
           </div>
         </header>
 
-        {/* Progress: tap a step to jump to it; focusing a field moves it. */}
-        <nav aria-label={t("checkInFormTitle")} className="mt-6">
+        {/* Progress: tap a step to jump to it; focusing a field moves it.
+            Pinned to the top of the scrolling column on wide screens, so every
+            step stays one tap away; where the page scrolls (phones), the
+            kiosk's own top bar holds that edge, so it scrolls away instead. */}
+        <nav aria-label={t("checkInFormTitle")} className="z-10 mt-4 bg-background py-2 [@media(min-width:1024px)_and_(min-height:620px)]:sticky [@media(min-width:1024px)_and_(min-height:620px)]:top-0">
           <ol className="m-0 flex list-none items-center gap-2 p-0">
             {steps.map((step, i) => {
               const active = activeStep === step.id;
