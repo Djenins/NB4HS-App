@@ -56,18 +56,18 @@ function RoleCard({ icon, iconClass, title, services, buttonLabel, buttonClass, 
 // button. From sm up the page keeps the card layout above.
 function ChoiceRow({ icon: Icon, iconClass, title, description, onClick }) {
   return (
-    <li className="m-0">
+    <li className="m-0 flex flex-1 flex-col">
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[56px] w-full items-center gap-3 border-0 bg-transparent px-4 py-2 text-left font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="flex min-h-[56px] w-full flex-1 items-center gap-3 border-0 bg-transparent px-4 py-2 text-left [@media(min-height:740px)]:min-h-[72px] [@media(min-height:740px)]:gap-4 [@media(min-height:740px)]:py-3 [@media(min-height:880px)]:gap-5 [@media(min-height:880px)]:px-5 font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
-        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", iconClass)}>
-          <Icon strokeWidth={2} aria-hidden="true" className="h-5 w-5" />
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full [@media(min-height:740px)]:h-12 [@media(min-height:740px)]:w-12 [@media(min-height:880px)]:h-14 [@media(min-height:880px)]:w-14", iconClass)}>
+          <Icon strokeWidth={2} aria-hidden="true" className="h-5 w-5 [@media(min-height:740px)]:h-6 [@media(min-height:740px)]:w-6 [@media(min-height:880px)]:h-7 [@media(min-height:880px)]:w-7" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block break-words text-touch-body font-extrabold leading-snug text-navy dark:text-[color:var(--text)]">{title}</span>
-          <span className="block break-words text-touch-meta leading-snug text-muted">{description}</span>
+          <span className="block break-words text-touch-body font-extrabold leading-snug [@media(min-height:740px)]:text-touch-section [@media(min-height:880px)]:text-touch-heading text-navy dark:text-[color:var(--text)]">{title}</span>
+          <span className="block break-words text-touch-meta leading-snug text-muted [@media(min-height:740px)]:mt-0.5 [@media(min-height:740px)]:text-touch-label [@media(min-height:880px)]:text-touch-body">{description}</span>
         </span>
         <ChevronRight strokeWidth={2.4} aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />
       </button>
@@ -118,12 +118,14 @@ export default function CheckIn() {
         {/* Phone: a compact, left-aligned welcome and one list of every
             choice, each row tapping straight through. Short one-line
             descriptions so all of it fits one phone screen; wider screens
-            keep the full ones below. */}
-        <div className="w-full sm:hidden">
-          <h1 className="m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
-          <p className="m-0 mt-0.5 text-touch-label text-muted">{t("landingChooseHowWeHelp")}</p>
+            keep the full ones below. Sized for small phones, then scaled up
+            on taller ones, where the rows stretch to fill the screen (up
+            to a cap) so a Pro Max isn't left half empty. */}
+        <div className="flex w-full flex-1 flex-col sm:hidden">
+          <h1 className="m-0 text-touch-heading [@media(min-height:740px)]:mt-2 [@media(min-height:740px)]:text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
+          <p className="m-0 mt-0.5 text-touch-label text-muted [@media(min-height:740px)]:mt-1 [@media(min-height:740px)]:text-touch-body">{t("landingChooseHowWeHelp")}</p>
 
-          <ul className="m-0 mt-3 list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
+          <ul className="m-0 mt-3 flex flex-col [@media(min-height:740px)]:mt-6 [@media(min-height:740px)]:max-h-[38rem] [@media(min-height:740px)]:flex-1 [@media(min-height:880px)]:mt-7 [@media(min-height:880px)]:max-h-[42rem] list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
             <ChoiceRow icon={GraduationCap} iconClass="bg-tone-info-chip text-tone-info-ink"
               title={t("iAmStudent").replace(/\s*\(.*\)$/, "")} description={t("landingStudentShort")}
               onClick={() => navigate("/checkin/student")} />
@@ -141,7 +143,7 @@ export default function CheckIn() {
               onClick={() => navigate("/appointments/request")} />
           </ul>
 
-          <p className="m-0 mt-3 text-touch-meta text-muted">
+          <p className="m-0 mt-3 text-touch-meta text-muted [@media(min-height:740px)]:mt-auto [@media(min-height:740px)]:pt-5 [@media(min-height:740px)]:text-touch-label">
             {t("alreadyRequestedApptLabel")}{" "}
             <button
               type="button"
@@ -152,7 +154,7 @@ export default function CheckIn() {
             </button>
           </p>
 
-          <p className="m-0 mt-3 flex items-center justify-center gap-2 text-center text-touch-meta text-muted">
+          <p className="m-0 mt-3 flex items-center justify-center gap-2 text-center [@media(min-height:740px)]:mt-4 text-touch-meta text-muted [@media(min-height:740px)]:text-touch-label">
             <Headset size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
             <span><span className="font-semibold text-navy dark:text-[color:var(--text)]">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
           </p>
