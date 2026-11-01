@@ -194,13 +194,7 @@ export function reportPermissions(report, userId, isReviewer) {
   };
 }
 
-export function statusVariant(status, overdue) {
-  if (overdue) return "accent";
-  return {
-    draft: "neutral", not_started: "neutral", submitted: "default", under_review: "warn",
-    revision_requested: "accent", acknowledged: "success"
-  }[status] || "neutral";
-}
+// A status's colour lives in lib/statusTone.js ("staffReport:<status>").
 
 // The headline numbers for one period on the reviewer dashboard.
 export function summarizeExpectations(rows) {

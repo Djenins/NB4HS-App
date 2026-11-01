@@ -4,7 +4,8 @@
 // staff_reports.review or .view_all gets Overview and All reports; whoever
 // holds staff_reports.schedule.manage gets Settings. An administrator who
 // doesn't review sees only Settings -- configuring reporting does not mean
-// reading reports.
+// reading reports. With a single section there is nothing to switch
+// between, so a page header stands in for the strip.
 // /staffreports/:id opens one report for review.
 import { useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
@@ -48,13 +49,16 @@ export default function StaffReports() {
 
   return (
     <>
-      <ModuleNav
-        label={t("navStaffReports")}
-        items={visible.map((key) => ({ key, label: t(SECTIONS[key].label), icon: SECTIONS[key].icon }))}
-        value={section}
-        onChange={(key) => { setChosen(key); if (reportId) navigate("/staffreports"); }}
-      />
-      {!reportId && <PageHeader title={t("navStaffReports")} />}
+      {visible.length > 1 ? (
+        <ModuleNav
+          label={t("navStaffReports")}
+          items={visible.map((key) => ({ key, label: t(SECTIONS[key].label), icon: SECTIONS[key].icon }))}
+          value={section}
+          onChange={(key) => { setChosen(key); if (reportId) navigate("/staffreports"); }}
+        />
+      ) : (
+        <PageHeader title={t("navStaffReports")} description={t("srSettingsOnlyIntro")} />
+      )}
       {reportId ? <ReportReview reportId={reportId} /> : <ActiveComponent />}
     </>
   );
