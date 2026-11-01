@@ -140,51 +140,63 @@ export default function ApptRequest() {
         />
 
         <form ref={formRef} onSubmit={handleSubmit} noValidate className="appt-form mt-5 flex flex-col gap-4">
-          {/* Landscape kiosk: the two cards share the width instead of
-              stacking, which is what keeps the whole form inside one
-              1366x768 viewport. Below lg they stack into one column. */}
-          <div className="appt-cards grid items-stretch gap-4 lg:grid-cols-2 lg:gap-5">
-            <YourInformationSection
-              t={t}
-              errors={errors}
-              open={openSections.info}
-              onToggle={() => toggleSection("info")}
-            />
-            <AppointmentDetailsSection
-              t={t}
-              lang={lang}
-              errors={errors}
-              slotRefresh={slotRefresh}
-              staffList={staffList}
-              staffId={staffId}
-              onStaffChange={(e) => setStaffId(e.target.value)}
-              open={openSections.details}
-              onToggle={() => toggleSection("details")}
-            />
+          {/* Landscape kiosk: two columns, each stacked -- Your Information
+              with the "What happens next" note under it, Appointment Details
+              with Submit under it -- so the short card doesn't stretch to the
+              tall one's height and the form fits one 768px-tall screen. The
+              note's art is dropped there. On phones the columns dissolve
+              ("contents") and order puts the note after the details. */}
+          <div className="appt-cards flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:[&_.appt-next-art]:!hidden">
+            <div className="contents lg:flex lg:flex-col lg:gap-4">
+              <div className="order-1 lg:order-none">
+                <YourInformationSection
+                  t={t}
+                  errors={errors}
+                  open={openSections.info}
+                  onToggle={() => toggleSection("info")}
+                />
+              </div>
+              <div className="order-3 lg:order-none">
+                <WhatHappensNext
+                  title={t("apptWhatsNextTitle")}
+                  text={t("apptWhatsNextDesc")}
+                  open={openSections.next}
+                  onToggle={() => toggleSection("next")}
+                />
+              </div>
+            </div>
+            <div className="contents lg:flex lg:flex-col lg:gap-4">
+              <div className="order-2 lg:order-none">
+                <AppointmentDetailsSection
+                  t={t}
+                  lang={lang}
+                  errors={errors}
+                  slotRefresh={slotRefresh}
+                  staffList={staffList}
+                  staffId={staffId}
+                  onStaffChange={(e) => setStaffId(e.target.value)}
+                  open={openSections.details}
+                  onToggle={() => toggleSection("details")}
+                />
+              </div>
+              <div className="order-4 flex flex-col gap-4 lg:order-none">
+                {submitError && (
+                  <p
+                    role="alert"
+                    className="m-0 flex items-start gap-2.5 rounded-touch border border-tone-danger-border bg-tone-danger-bg p-3.5 text-touch-body font-semibold text-tone-danger-ink"
+                  >
+                    <TriangleAlert size={20} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
+                    {submitError}
+                  </p>
+                )}
+                <AppointmentSubmitButton
+                  label={t("submitApptRequestBtn")}
+                  busyLabel={t("apptRequestSubmitting")}
+                  busy={busy}
+                />
+              </div>
+            </div>
           </div>
-
-          <WhatHappensNext
-            title={t("apptWhatsNextTitle")}
-            text={t("apptWhatsNextDesc")}
-            open={openSections.next}
-            onToggle={() => toggleSection("next")}
-          />
-
-          {submitError && (
-            <p
-              role="alert"
-              className="m-0 flex items-start gap-2.5 rounded-touch border border-tone-danger-border bg-tone-danger-bg p-3.5 text-touch-body font-semibold text-tone-danger-ink"
-            >
-              <TriangleAlert size={20} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-              {submitError}
-            </p>
-          )}
-
-          <AppointmentSubmitButton
-            label={t("submitApptRequestBtn")}
-            busyLabel={t("apptRequestSubmitting")}
-            busy={busy}
-          />
         </form>
       </div>
     </div>
