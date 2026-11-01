@@ -18,7 +18,7 @@
 //     via FormData at submit time, same as the native input did -- a hidden
 //     <input type="hidden" name={name}> is kept in sync internally. Used by
 //     FormField.jsx's type="date" case (ApptRequest.jsx).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
@@ -34,11 +34,39 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(current || todayStr());
   const containerRef = useRef(null);
+  const panelRef = useRef(null);
+  // Opens upward when the calendar won't fit below the field but does fit
+  // above it.
+  const [dropUp, setDropUp] = useState(false);
   const today = todayStr();
 
   useEffect(() => {
     if (open) setViewDate(current || todayStr());
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Measured before paint, so the panel never flashes on the wrong side.
+  // "Room" is bounded by the nearest ancestor that clips (a dialog's
+  // scrolling body, an overflow-hidden card) or else the window.
+  useLayoutEffect(() => {
+    if (!open || !containerRef.current || !panelRef.current) { setDropUp(false); return; }
+    const field = containerRef.current.getBoundingClientRect();
+    const needed = panelRef.current.offsetHeight + 8;
+    let top = 0, bottom = window.innerHeight;
+    for (let el = containerRef.current.parentElement; el && el !== document.body; el = el.parentElement) {
+      const o = getComputedStyle(el);
+      if (/(auto|scroll|hidden|clip)/.test(o.overflowY + " " + o.overflow)) {
+        const r = el.getBoundingClientRect();
+        top = Math.max(top, r.top); bottom = Math.min(bottom, r.bottom);
+        break;
+      }
+    }
+    const below = bottom - field.bottom, above = field.top - top;
+    const up = below < needed && above >= needed;
+    setDropUp(up);
+    // Fits on neither side (a short dialog): open below and scroll the
+    // dialog or page just enough to show the whole calendar.
+    if (below < needed && !up) panelRef.current.scrollIntoView({ block: "nearest" });
   }, [open]);
 
   useEffect(() => {
@@ -106,7 +134,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
       {name && <input type="hidden" name={name} value={current} readOnly required={required} />}
 
       {open && (
-        <div className="date-picker-panel" role="dialog" aria-label={t("pleaseSelect")}>
+        <div ref={panelRef} className={"date-picker-panel" + (dropUp ? " drop-up" : "")} role="dialog" aria-label={t("pleaseSelect")}>
           <div className="date-picker-quick">
             <button type="button" className="date-picker-quick-btn" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
             <button type="button" className="date-picker-quick-btn" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
