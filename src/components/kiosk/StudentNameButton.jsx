@@ -2,6 +2,8 @@
 // The whole card is the check-in control (tapping a name *is* the submit
 // here), so it's sized as a fingertip target rather than a text link, and
 // it shows its own in-flight state while its createVisit() call settles.
+// It sinks slightly under the finger (k-press) so the tap registers before
+// the spinner does.
 import { LoaderCircle } from "lucide-react";
 import { cn } from "../../lib/cn.js";
 
@@ -11,24 +13,25 @@ function initials(student) {
   return (first + last).toUpperCase() || "?";
 }
 
-export default function StudentNameButton({ student, busy = false, disabled = false, onClick }) {
+export default function StudentNameButton({ student, busy = false, disabled = false, onClick, enterAt = 0 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-busy={busy ? "true" : undefined}
+      style={{ "--d": enterAt + "s" }}
       className={cn(
         "flex min-h-[64px] w-full items-center gap-3 sm:min-h-[76px] rounded-surface border border-border bg-card px-4 py-3 text-left",
-        "transition-colors duration-150 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary",
-        !disabled && "hover:border-primary hover:bg-primary-tint active:bg-primary-tint",
+        "k-enter focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        !disabled && "k-press hover:border-primary hover:bg-primary-tint active:bg-primary-tint",
         busy && "border-primary bg-primary-tint",
         disabled && !busy && "cursor-not-allowed opacity-55"
       )}
     >
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-touch-label font-extrabold sm:h-12 sm:w-12 sm:text-touch-body",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-fast text-touch-label font-extrabold sm:h-12 sm:w-12 sm:text-touch-body",
           busy ? "bg-primary text-primary-foreground" : "bg-primary-tint text-primary"
         )}
         aria-hidden="true"

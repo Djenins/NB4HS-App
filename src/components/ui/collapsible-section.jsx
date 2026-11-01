@@ -2,7 +2,8 @@
 // a form that stays out of the way until staff need it (Add a household,
 // Import). The toggle is a real button with aria-expanded in the card's
 // action slot; collapsed, only the header (and any `extra`, e.g. a
-// duplicate-client warning) renders. Same anatomy as Case Management's
+// duplicate-client warning) renders. Opening fades the body in from just
+// above, so it reads as unfolding from the header. Same anatomy as Case Management's
 // local copy, which can move onto this one in the design clean-up.
 //
 //   <CollapsibleSection title description collapsed onToggle expandLabel collapseLabel cardRef extra>
@@ -35,7 +36,7 @@ export function CollapsibleSection({ title, description, collapsed, onToggle, ex
           </IconButton>
         }
       >
-        {collapsed ? (extra || null) : <><div id={bodyId}>{children}</div>{extra}</>}
+        {collapsed ? (extra || null) : <><div id={bodyId} className="animate-in fade-in-0 slide-in-from-top-1 duration-200">{children}</div>{extra}</>}
       </SectionCard>
     </div>
   );

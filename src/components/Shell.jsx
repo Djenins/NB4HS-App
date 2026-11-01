@@ -19,7 +19,7 @@
 // §7.2).
 import { AnimatePresence } from "framer-motion";
 import { ChevronRight, Menu } from "lucide-react";
-import { Fragment, Suspense, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp, useStaffT } from "../context/AppContext.jsx";
 import { isClientFacingPath } from "../lib/i18n.js";
@@ -130,6 +130,20 @@ export default function Shell() {
 
   // The drawer closes on navigation and when the window grows past phone width.
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, viewport]);
+
+  // A quick fade on the page area when the route changes, so moving between
+  // screens reads as one view replacing another rather than a hard cut.
+  // Opacity only: a transform on <main> would briefly re-anchor any fixed
+  // element inside it. Skipped on first paint, which has its own loading bar.
+  const mainRef = useRef(null);
+  const firstPathRef = useRef(location.pathname);
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el || location.pathname === firstPathRef.current || !el.animate) return undefined;
+    firstPathRef.current = null;
+    const anim = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "cubic-bezier(.2,.8,.2,1)" });
+    return () => anim.cancel();
+  }, [location.pathname]);
 
   // ⌘K / Ctrl+K opens the search palette from anywhere in the staff app.
   useEffect(() => {
@@ -305,7 +319,7 @@ export default function Shell() {
             {isKioskLanding ? (
               <Outlet />
             ) : (
-              <main id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
+              <main ref={mainRef} id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
                 <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
                   <Outlet />
                 </Suspense>

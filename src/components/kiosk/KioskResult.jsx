@@ -1,8 +1,9 @@
 // KioskResult.jsx -- the confirmation screen at the end of every kiosk task
 // (checked in, checked out, registered, appointment requested). One frame so
 // the four endings look alike: a success check, a title, what happens next,
-// then the actions. Centred in the space below KioskTopBar, which already
-// carries the logo.
+// then the actions, arriving in that order (see .success-icon--drawn and
+// .kiosk-result-rise in main.css). Centred in the space below KioskTopBar,
+// which already carries the logo.
 //
 // `returnAfterMs` sends the kiosk back to its start screen by itself, so the
 // next person never walks up to someone else's confirmation.
@@ -32,16 +33,16 @@ export default function KioskResult({ title, children, actions, returnAfterMs, o
         aria-live="polite"
         className="m-auto flex w-full max-w-[640px] flex-col items-center rounded-surface border border-border bg-card px-5 py-7 text-center shadow-card sm:px-10 sm:py-12"
       >
-        <span className="success-icon flex h-16 w-16 items-center justify-center rounded-full bg-success text-success-foreground sm:h-[88px] sm:w-[88px]">
+        <span className="success-icon success-icon--drawn isolate flex h-16 w-16 items-center justify-center rounded-full bg-success text-success-foreground sm:h-[88px] sm:w-[88px]">
           <Check strokeWidth={3} aria-hidden="true" className="h-8 w-8 sm:h-10 sm:w-10" />
         </span>
-        <h1 className="m-0 mt-5 text-balance text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-6 sm:text-touch-hero">
+        <h1 className="kiosk-result-rise m-0 mt-5 [--rise-delay:.22s] text-balance text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-6 sm:text-touch-hero">
           {title}
         </h1>
-        <div className="mt-2.5 flex max-w-[52ch] flex-col items-center gap-3 text-touch-body text-muted sm:mt-3 sm:text-touch-lead">
+        <div className="kiosk-result-rise mt-2.5 flex max-w-[52ch] [--rise-delay:.28s] flex-col items-center gap-3 text-touch-body text-muted sm:mt-3 sm:text-touch-lead">
           {children}
         </div>
-        {actions && <div className="mt-6 sm:mt-8 flex w-full max-w-[420px] flex-col gap-3">{actions}</div>}
+        {actions && <div className="kiosk-result-rise mt-6 sm:mt-8 flex [--rise-delay:.34s] w-full max-w-[420px] flex-col gap-3">{actions}</div>}
       </section>
     </div>
   );

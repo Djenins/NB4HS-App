@@ -18,7 +18,7 @@ function fillFromAddress(a) {
 
 export default function AddressSection({ id, sectionRef, t, errors }) {
   return (
-    <KioskSection id={id} sectionRef={sectionRef} icon={MapPin} tone="soft" title={t("sectionAddress")}>
+    <KioskSection id={id} sectionRef={sectionRef} icon={MapPin} tone="soft" title={t("sectionAddress")} enterAt={0.28}>
       <KioskField
         name="address" label={t("address")} required placeholder={t("streetAddressPlaceholder")} error={errors.address}
         onAddressSelect={fillFromAddress}

@@ -8,7 +8,9 @@
 // On a phone the reassurance panel would sit between the last field and the
 // button, so it's dropped there: Submit instead stays pinned to the bottom of
 // the screen while the client scrolls the form (the student footer just sits
-// at the end of the roster).
+// at the end of the roster). It arrives after the form beside it: the panel
+// (or the phone's Submit bar) rises, its icon grows in, the illustration
+// settles last.
 import { CircleCheck } from "lucide-react";
 import communityIllustration from "../../assets/nb4hs-community.svg";
 import { cn } from "../../lib/cn.js";
@@ -17,13 +19,14 @@ import SubmitCheckInButton from "./SubmitCheckInButton.jsx";
 export default function KioskActionPanel({ title, description, submitLabel, busy, icon: PanelIcon = CircleCheck, footer }) {
   return (
     <aside
+      style={{ "--d": ".3s" }}
       className={cn(
-        "flex min-h-0 flex-col text-center lg:h-full lg:overflow-y-auto lg:rounded-surface lg:border lg:border-border lg:bg-tone-info-bg lg:p-5 xl:p-6",
+        "k-enter flex min-h-0 flex-col text-center lg:h-full lg:overflow-y-auto lg:rounded-surface lg:border lg:border-border lg:bg-tone-info-bg lg:p-5 xl:p-6",
         !footer && "sticky bottom-0 z-10 -mx-3 border-t border-border bg-background px-3 pb-3 pt-3 lg:static lg:mx-0 lg:border-t"
       )}
     >
       <div className="hidden lg:block">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tone-success-chip text-tone-success-ink">
+        <span style={{ "--d": ".42s" }} className="k-pop mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-tone-success-chip text-tone-success-ink">
           <PanelIcon size={32} strokeWidth={2} aria-hidden="true" />
         </span>
         <h2 className="mt-4 mb-[0.55em] text-touch-heading font-extrabold tracking-tight text-navy dark:text-[color:var(--text)]">{title}</h2>
@@ -34,7 +37,8 @@ export default function KioskActionPanel({ title, description, submitLabel, busy
         src={communityIllustration}
         alt=""
         aria-hidden="true"
-        className="mx-auto mt-5 hidden w-full max-w-[240px] min-h-0 flex-1 object-contain lg:block"
+        style={{ "--d": ".5s" }}
+        className="k-enter mx-auto mt-5 hidden w-full max-w-[240px] min-h-0 flex-1 object-contain lg:block"
       />
 
       {footer || <SubmitCheckInButton label={submitLabel} busy={busy} className="min-h-[60px] lg:mt-6 lg:min-h-[72px]" />}

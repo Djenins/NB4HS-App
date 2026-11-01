@@ -103,17 +103,18 @@ export default function CheckInVisitor() {
       >
         <header className="flex items-center gap-3 lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
+          {/* Arrives like KioskPageHeader: badge, title, then the line under it. */}
+          <span className="k-pop flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
             <UserRoundCheck strokeWidth={2} aria-hidden="true" className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <h1 className="m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-title">{t("checkInFormTitle")}</h1>
-            <p className="m-0 text-touch-label leading-snug text-muted">{t("welcome") + "! " + t("checkInFormSubtitle")}</p>
+            <h1 style={{ "--d": ".06s" }} className="k-reveal m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-title">{t("checkInFormTitle")}</h1>
+            <p style={{ "--d": ".16s" }} className="k-enter m-0 text-touch-label leading-snug text-muted">{t("welcome") + "! " + t("checkInFormSubtitle")}</p>
           </div>
           </div>
           {/* On wide screens the help note sits up here, so the Visit Details
               column only has to hold Submit; phones show it by Submit. */}
-          <div className="hidden shrink-0 rounded-touch border border-border bg-card px-4 py-3 shadow-card lg:block">
+          <div style={{ "--d": ".44s" }} className="k-enter hidden shrink-0 rounded-touch border border-border bg-card px-4 py-3 shadow-card lg:block">
             <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
             <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <span><span className="font-semibold text-card-foreground">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
@@ -147,8 +148,9 @@ export default function CheckInVisitor() {
               />
               {/* On phones this bar is pinned to the bottom of the screen so
                   Submit stays in reach while the cards scroll; on wide
-                  screens it's just the button under Visit Details. */}
-              <div className="sticky bottom-0 z-10 -mx-3 flex flex-col gap-3 border-t border-border bg-background px-3 py-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
+                  screens it's just the button under Visit Details. It
+                  rises in last, once the form it submits is in place. */}
+              <div style={{ "--d": ".44s" }} className="k-enter sticky bottom-0 z-10 -mx-3 flex flex-col gap-3 border-t border-border bg-background px-3 py-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
                 <div className="lg:hidden">
                   <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
                     <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
