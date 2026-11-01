@@ -947,6 +947,15 @@ export var STR = {
   studentOrVisitor: { en: "Are you here as a Student or a Visitor?", ht: "Èske w isit la kòm Elèv oswa Vizitè?", fr: "Venez-vous en tant qu'Étudiant ou Visiteur ?" },
   iAmStudent: { en: "I'm a Student (Class Check-In)", ht: "Mwen se yon Elèv (Enskripsyon Klas)", fr: "Je suis Étudiant (Enregistrement de Classe)" },
   iAmVisitor: { en: "I'm a Visitor (Other Services)", ht: "Mwen se yon Vizitè (Lòt Sèvis)", fr: "Je suis Visiteur (Autres Services)" },
+  landingWelcomeShort: { en: "Welcome!", ht: "Byenveni!", fr: "Bienvenue !" },
+  // Phone welcome list (CheckIn.jsx): one-line descriptions so all five
+  // choices fit a small phone screen; wider screens keep the full ones.
+  landingStudentShort: { en: "Classes and testing", ht: "Klas ak tès", fr: "Cours et examens" },
+  landingVisitorShort: { en: "Services and appointments", ht: "Sèvis ak randevou", fr: "Services et rendez-vous" },
+  landingRegisterShort: { en: "First-time sign-up", ht: "Premye enskripsyon", fr: "Première inscription" },
+  landingCheckOutShort: { en: "Check out as you leave", ht: "Siyen sòti lè w ap pati", fr: "Pointez votre départ" },
+  landingApptShort: { en: "Book a future visit", ht: "Pran yon randevou", fr: "Réserver un rendez-vous" },
+  landingChooseHowWeHelp: { en: "Choose how we can help.", ht: "Chwazi kijan nou ka ede w.", fr: "Comment pouvons-nous vous aider ?" },
   landingHowCanWeHelp: { en: "How can we help you today?", ht: "Kijan nou ka ede w jodi a?", fr: "Comment pouvons-nous vous aider aujourd'hui ?" },
   landingStudentServices: { en: "Computer Literacy, ESL, Digital Skills, Northstar Testing", ht: "Konesans Òdinatè, ESL, Konpetans Dijital, Tès Northstar", fr: "Alphabétisation Informatique, ESL, Compétences Numériques, Test Northstar" },
   landingVisitorServices: { en: "Immigration, Case Management, Food Distribution, Job Assistance, Appointments", ht: "Imigrasyon, Jesyon Ka, Distribisyon Manje, Asistans Travay, Randevou", fr: "Immigration, Gestion de Cas, Distribution Alimentaire, Aide à l'Emploi, Rendez-vous" },
