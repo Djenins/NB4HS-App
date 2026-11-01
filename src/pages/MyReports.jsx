@@ -58,7 +58,7 @@ function Submitted({ report, periodLabel, programsText, onBack }) {
       <span className="flex h-12 w-12 items-center justify-center rounded-chip bg-tone-success-chip text-tone-success-ink">
         <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
       </span>
-      <h1 className="m-0 text-heading text-card-foreground">{t("srSubmittedTitle")}</h1>
+      <h1 className="m-0 text-heading font-extrabold text-card-foreground">{t("srSubmittedTitle")}</h1>
       <p className="m-0 text-body text-card-foreground">{periodLabel} · {programsText}</p>
       <p className="m-0 text-ui tabular-nums text-muted">{t("srSubmittedAt")}: {fmtStamp(report.submittedAt, lang)}</p>
       <p className="m-0 text-ui text-muted">{t("srSubmittedNotified")}</p>

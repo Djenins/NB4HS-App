@@ -483,7 +483,7 @@ export default function Availability() {
         title={isAdmin && personId !== session.id ? (person.name || "Staff") + "'s Availability" : "My Availability"}
         description="Mark when you can meet clients. They can only book the times you open here."
         actions={isAdmin ? (
-          <label className="flex flex-wrap items-center gap-2 text-ui font-semibold text-card-foreground">
+          <label className="mb-1.5 flex flex-wrap items-center gap-2 text-ui font-semibold text-card-foreground">
             <span className="whitespace-nowrap">Calendar for</span>
             <Select value={personId || ""} onChange={(e) => setPersonId(e.target.value)} className="min-w-[16rem] max-w-full font-normal">
               {people.map((p) => <option key={p.id} value={p.id}>{p.name || p.email}{p.id === session.id ? " (me)" : ""} — {roleLabel(p.role, "en")}</option>)}

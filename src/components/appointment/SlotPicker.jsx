@@ -78,7 +78,7 @@ export default function SlotPicker({ staffId, staffName, t, lang, error }) {
                   aria-label={fmtDateLong(d, lang)}
                   onClick={() => { setDay(d); setTime(""); }}
                   className={cn(
-                    "flex min-h-[60px] min-w-[64px] shrink-0 flex-col items-center justify-center rounded-touch border-2 px-2 font-bold leading-tight transform-none transition-colors",
+                    "flex min-h-[60px] min-w-[64px] shrink-0 flex-col items-center justify-center rounded-touch border-2 px-2 py-3 font-bold leading-tight transform-none transition-colors",
                     on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-navy hover:border-primary dark:text-[color:var(--text)]"
                   )}
                 >
@@ -104,7 +104,7 @@ export default function SlotPicker({ staffId, staffName, t, lang, error }) {
                   aria-checked={on}
                   onClick={() => setTime(tm)}
                   className={cn(
-                    "flex min-h-[48px] items-center justify-center gap-1.5 rounded-touch border-2 px-2 text-touch-label font-bold tabular-nums transform-none transition-colors",
+                    "flex min-h-[48px] items-center justify-center gap-1.5 rounded-touch border-2 px-2 py-3 text-touch-label font-bold tabular-nums transform-none transition-colors",
                     on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-navy hover:border-primary dark:text-[color:var(--text)]"
                   )}
                 >

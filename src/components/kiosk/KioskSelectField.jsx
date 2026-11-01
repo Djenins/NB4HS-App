@@ -21,7 +21,7 @@ export default function KioskSelectField({
         onChange={onChange}
         aria-invalid={error ? "true" : undefined}
         aria-describedby={errorId}
-        className={cn(KIOSK_CONTROL, "kiosk-select w-full", error && "field-invalid")}
+        className={cn(KIOSK_CONTROL, "kiosk-select w-full pr-10", error && "field-invalid")}
       >
         {children}
       </select>

@@ -9,13 +9,14 @@
 import { Info, Loader2, Mail, Phone, Search, UserRound } from "lucide-react";
 import { cn } from "../../lib/cn.js";
 import { formatPhone } from "../../lib/utils.js";
+import { TOUCH_FILL } from "../ui/field.jsx";
 
 // main.css's bare `input` rule already supplies the fill, 14px radius, border
 // and blue focus ring used everywhere else in the app -- these utilities only
 // scale that up to the touch target this visitor-facing page needs (56px on a
 // phone, 62px on the kiosk) and leave room for the leading icon.
 const LOOKUP_INPUT =
-  "w-full min-h-[56px] rounded-touch pl-[52px] text-touch-body sm:min-h-[62px] sm:text-touch-lead";
+  TOUCH_FILL + " min-h-[56px] rounded-touch pl-[52px] text-touch-body sm:min-h-[62px] sm:text-touch-lead";
 
 function LookupField({ name, label, type = "text", required, icon: LeadingIcon, placeholder, autoComplete, error, invalid, describedBy }) {
   const id = "appt-lookup-" + name;
@@ -112,7 +113,7 @@ export default function AppointmentLookupForm({ formRef, onSubmit, errors, busy,
         type="submit"
         disabled={busy}
         className={cn(
-          "mt-5 flex w-full items-center justify-center gap-3 rounded-touch bg-primary px-5 font-bold text-primary-foreground",
+          "mt-5 flex w-full items-center justify-center gap-3 rounded-touch bg-primary px-5 py-3 font-bold text-primary-foreground",
           "min-h-[60px] text-touch-lead sm:min-h-[68px] sm:text-touch-section",
           "shadow-raised transition-colors duration-fast",
           "hover:bg-primary-dark active:bg-primary-dark",

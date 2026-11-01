@@ -17,7 +17,7 @@ export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = Use
       </span>
       {/* Split on spaces so a long title wraps between words instead of
           breaking inside "Check-In" at its hyphen on narrower kiosks. */}
-      <h1 className="kiosk-sidebar-title mt-2 text-touch-heading font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-touch-title xl:text-touch-hero">
+      <h1 className="kiosk-sidebar-title mt-2 mb-[0.55em] text-touch-heading font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-touch-title xl:text-touch-hero">
         {title.split(" ").map((word, i) => (
           <span key={word + i} className="inline-block">{word}{i < title.split(" ").length - 1 ? "\u00a0" : ""}</span>
         ))}

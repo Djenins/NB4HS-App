@@ -311,7 +311,7 @@ export default function Manage() {
                     return (
                       <label
                         key={d}
-                        className={"inline-flex h-9 cursor-pointer items-center gap-2 rounded-chip border px-4 text-meta font-semibold transition-colors duration-fast focus-within:ring-2 [@media(pointer:coarse)]:h-11 " +
+                        className={"mb-1.5 inline-flex h-9 cursor-pointer items-center gap-2 rounded-chip border px-4 text-meta font-semibold transition-colors duration-fast focus-within:ring-2 [@media(pointer:coarse)]:h-11 " +
                           (on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-card-foreground hover:border-primary hover:text-primary")}
                       >
                         <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleDay(d)} />

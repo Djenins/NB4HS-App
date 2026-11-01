@@ -78,8 +78,7 @@ export function DataTable({ columns, rows, getRowId, sort, onSort, selection, re
                     scope="col"
                     aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
                     className={cn(
-                      // normal-case/tracking-normal: main.css uppercases every bare th.
-                      "sticky top-0 z-10 whitespace-nowrap bg-surface-sunken px-3 py-2.5 text-left text-meta font-semibold normal-case tracking-normal text-muted shadow-[inset_0_-1px_0_var(--border)]",
+                      "sticky top-0 z-10 whitespace-nowrap bg-surface-sunken px-3 py-2.5 text-left text-meta font-semibold text-muted shadow-[inset_0_-1px_0_var(--border)]",
                       col.headerClassName
                     )}
                   >

@@ -141,7 +141,7 @@ export default function Outreach({ program: routeProgram }) {
       />
       {visiblePrograms.length > 1 && (
         <div className="mb-4 flex items-center justify-end gap-2">
-          <label htmlFor="outreach-program" className="text-meta font-semibold text-muted">{t("outreachProgramLabel")}</label>
+          <label htmlFor="outreach-program" className="mb-1.5 block text-meta font-semibold text-muted">{t("outreachProgramLabel")}</label>
           <Select id="outreach-program" className="w-auto min-w-[10rem]" value={program}
             onChange={(e) => navigate("/" + e.target.value)}>
             {visiblePrograms.map((p) => <option key={p.key} value={p.key}>{programName(p, lang)}</option>)}

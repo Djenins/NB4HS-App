@@ -88,7 +88,7 @@ function ScheduleCard({ schedule, onSaved }) {
           <legend className="mb-1.5 p-0 text-meta font-semibold text-card-foreground">{t("srReminders")}</legend>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             {OFFSETS.map((o) => (
-              <label key={o} className="flex min-h-9 items-center gap-2 text-ui text-card-foreground">
+              <label key={o} className="mb-1.5 font-semibold flex min-h-9 items-center gap-2 text-ui text-card-foreground">
                 <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.reminderOffsets.indexOf(o) !== -1}
                   onChange={() => set("reminderOffsets", draft.reminderOffsets.indexOf(o) !== -1
                     ? draft.reminderOffsets.filter((x) => x !== o) : draft.reminderOffsets.concat([o]).sort((a, b) => a - b))} />
@@ -102,7 +102,7 @@ function ScheduleCard({ schedule, onSaved }) {
 
         <Alert tone="info">{t("srWhoReportsRoles")}</Alert>
 
-        <label className="flex min-h-10 items-center gap-2 text-ui font-semibold text-card-foreground">
+        <label className="mb-1.5 flex min-h-10 items-center gap-2 text-ui font-semibold text-card-foreground">
           <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.active} onChange={(e) => set("active", e.target.checked)} /> {t("srScheduleActive")}
         </label>
 

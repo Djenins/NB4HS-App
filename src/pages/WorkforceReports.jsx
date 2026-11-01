@@ -294,7 +294,7 @@ export default function WorkforceReports() {
             className="lg:col-span-6"
             action={
               <div className="flex items-center gap-2">
-                <label htmlFor="wfrep-year" className="text-meta font-semibold text-card-foreground">{t("selectYearLabel")}</label>
+                <label htmlFor="wfrep-year" className="mb-1.5 block text-meta font-semibold text-card-foreground">{t("selectYearLabel")}</label>
                 <Select id="wfrep-year" value={selectedYear} onChange={function (e) { setSelectedYear(e.target.value); }} className="h-8 w-auto tabular-nums">
                   {yearOptions.map(function (y) { return <option key={y} value={y}>{y}</option>; })}
                 </Select>

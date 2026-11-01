@@ -207,7 +207,7 @@ function AddClientCard({ collapsed, onToggle, forwardRef }) {
             <legend className="mb-2 p-0 text-meta font-semibold text-card-foreground">{t("clientServicesLabel")}</legend>
             <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-3">
               {CASE_SERVICES.map((s) => (
-                <label key={s.key} className="flex min-h-9 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+                <label key={s.key} className="mb-1.5 font-semibold flex min-h-9 cursor-pointer items-center gap-2 text-ui text-card-foreground">
                   <input type="checkbox" checked={services.indexOf(s.key) !== -1} onChange={() => toggleService(s.key)} className="h-4 w-4 shrink-0 cursor-pointer accent-primary" />
                   {caseServiceLabel(s.key, lang)}
                 </label>
@@ -262,7 +262,7 @@ function ImportClientsCard({ collapsed, onToggle, onImported }) {
       <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
         {/* The file input stays focusable (sr-only, not display:none) so the
             picker opens from the keyboard; the label draws the drop zone. */}
-        <label className="flex h-10 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-control border border-dashed border-border bg-card px-3 text-ui text-muted transition-colors duration-fast focus-within:border-primary focus-within:ring-2 hover:border-primary hover:text-card-foreground [@media(pointer:coarse)]:h-11">
+        <label className="mb-1.5 font-semibold flex h-10 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-control border border-dashed border-border bg-card px-3 text-ui text-muted transition-colors duration-fast focus-within:border-primary focus-within:ring-2 hover:border-primary hover:text-card-foreground [@media(pointer:coarse)]:h-11">
           <FileUp className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{fileName || t("chooseFileFirst")}</span>
           <input

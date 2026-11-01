@@ -32,7 +32,7 @@ export default function ResultsToolbar({ id, total, sort, onSortChange, sortOpti
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <label htmlFor={selectId} className="m-0 whitespace-nowrap text-meta font-semibold text-muted">{t("sortByFieldLabel")}</label>
+          <label htmlFor={selectId} className="block m-0 whitespace-nowrap text-meta font-semibold text-muted">{t("sortByFieldLabel")}</label>
           <Select id={selectId} value={sort} onChange={function (e) { onSortChange(e.target.value); }} className="w-auto min-w-[10rem]">
             {sortOptions.map(function (o) { return <option key={o.value} value={o.value}>{o.label}</option>; })}
           </Select>

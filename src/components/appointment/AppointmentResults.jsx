@@ -76,13 +76,13 @@ function LookupState({ tone, icon: StateIcon, title, description, actionLabel, o
       >
         <StateIcon size={28} strokeWidth={2} aria-hidden="true" />
       </span>
-      <h3 className="mt-3 text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">{title}</h3>
+      <h3 className="mt-3 mb-[0.55em] text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">{title}</h3>
       <p className="mx-auto mt-1.5 max-w-[46ch] text-touch-body leading-snug text-muted">{description}</p>
       {actionLabel && (
         <button
           type="button"
           onClick={onAction}
-          className="mt-4 inline-flex min-h-[52px] items-center justify-center rounded-touch border border-secondary-border bg-card px-7 text-touch-body font-bold text-navy transform-none transition-colors duration-fast hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)]"
+          className="mt-4 inline-flex min-h-[52px] items-center justify-center rounded-touch border border-secondary-border bg-card px-7 py-3 text-touch-body font-bold text-navy transform-none transition-colors duration-fast hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)]"
         >
           {actionLabel}
         </button>
@@ -123,7 +123,7 @@ export default function AppointmentResults({ state, results, lang, t, onRetry })
 
   return (
     <section className="mt-7" aria-live="polite">
-      <h2 className="text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">
+      <h2 className="mb-[0.55em] text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">
         {t("apptLookupResultsTitle")}
       </h2>
       <ul className="m-0 mt-3 flex list-none flex-col gap-3 p-0">

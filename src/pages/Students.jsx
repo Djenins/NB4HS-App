@@ -877,7 +877,7 @@ function UploadStudentsPanel() {
     >
       {/* The visually-hidden file input stays focusable inside its label, so
           the drop zone works from the keyboard too. */}
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-surface border-2 border-dashed border-line-strong p-6 text-center transition-colors duration-fast focus-within:border-primary focus-within:ring-2 hover:border-primary hover:bg-surface-sunken">
+      <label className="mb-1.5 font-semibold flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-surface border-2 border-dashed border-line-strong p-6 text-center transition-colors duration-fast focus-within:border-primary focus-within:ring-2 hover:border-primary hover:bg-surface-sunken">
         <FileUp className="h-6 w-6 text-muted" aria-hidden="true" />
         <span className="text-ui font-semibold text-card-foreground">{fileName || t("chooseFileDragDrop")}</span>
         <span className="text-meta text-muted">{t("fileTypesHint")}</span>
@@ -1303,7 +1303,7 @@ function CoursesCard({ courses }) {
           <div className="divide-y divide-border rounded-control border border-border">
             {classes.map((c) => (
               <div key={c.key} className="flex items-center justify-between gap-3 px-3 py-2">
-                <label htmlFor={"course-for-" + c.key} className="truncate text-ui font-semibold text-card-foreground">{c.name}</label>
+                <label htmlFor={"course-for-" + c.key} className="mb-1.5 block truncate text-ui font-semibold text-card-foreground">{c.name}</label>
                 <Select id={"course-for-" + c.key} value={c.courseKey || ""} onChange={(e) => assign(c.key, e.target.value)} className="!w-48">
                   <option value="">{t("courseUnassigned")}</option>
                   {courses.map((co) => <option key={co.key} value={co.key}>{co.name}</option>)}

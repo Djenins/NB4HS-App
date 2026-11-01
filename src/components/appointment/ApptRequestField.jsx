@@ -12,10 +12,11 @@ import DatePicker from "../DatePicker.jsx";
 import { cn } from "../../lib/cn.js";
 import { formatPhone, todayStr } from "../../lib/utils.js";
 import AddressInput from "../AddressInput.jsx";
+import { TOUCH_FILL } from "../ui/field.jsx";
 
 // `appt-control` is the hook main.css uses to trim these back on short
 // landscape kiosks (1366x768 and friends) without shrinking the type.
-export const APPT_CONTROL = "appt-control block w-full min-h-[56px] rounded-touch text-touch-body";
+export const APPT_CONTROL = TOUCH_FILL + " appt-control block min-h-[56px] rounded-touch text-touch-body";
 const ICON_PAD = "pl-[52px]";
 
 export function ApptLabel({ htmlFor, required, children, className }) {
@@ -107,7 +108,7 @@ export function ApptSelect({
           aria-required={required ? "true" : undefined}
           aria-invalid={error ? "true" : undefined}
           aria-describedby={errorId}
-          className={cn(APPT_CONTROL, "appt-select", icon && ICON_PAD, error && "field-invalid")}
+          className={cn(APPT_CONTROL, "appt-select pr-10", icon && ICON_PAD, error && "field-invalid")}
         >
           {children}
         </select>

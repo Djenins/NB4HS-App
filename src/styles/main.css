@@ -200,9 +200,6 @@
        - Tailwind's own width/style/color utilities (0,1,0)
        - every class rule in this file -- .theme-pill, .date-picker-trigger
          and the rest
-       - the bare-tag rules below: `button` (border:2px solid
-         transparent), `input, select, textarea` (1px solid var(--border)),
-         `th,td` (border-bottom), all at (0,0,1)
      so no styled control loses its border. The elements that would rely on a
      UA default border instead -- fieldset, iframe -- aren't used anywhere in
      src/, and the one <hr> (AppointmentLookup.jsx) already spells its rule
@@ -240,55 +237,33 @@
     background:var(--bg); color:var(--text); font-size:18px; line-height:1.4;
   }
   #root{min-height:100vh; display:flex; flex-direction:column;}
-  h1,h2,h3{line-height:1.25; margin:0 0 .55em 0; font-weight:800; letter-spacing:-.01em;}
-  h1{font-size:2rem;} h2{font-size:1.55rem;} h3{font-size:1.15rem; font-weight:700; letter-spacing:0;}
+  /* Element base, at zero specificity like Tailwind's preflight (which is off
+     here). It only resets: every look -- size, weight, padding, fill, border,
+     radius -- comes from the element's own classes or a ui/ component. The
+     old styled tag rules (52px filled buttons and inputs, 2rem/800 headings,
+     block bold labels, uppercase table headers) were removed in goal 8. */
+  :where(h1,h2,h3,h4){margin:0; font-size:inherit; font-weight:inherit; line-height:1.25;}
+  :where(button,input,select,textarea){font:inherit; color:inherit; margin:0;}
+  :where(button){background:transparent; padding:0; cursor:pointer; text-transform:none;}
+  :where(button:disabled){opacity:.5; cursor:not-allowed;}
+  :where(input,select,textarea){background:transparent; padding:0; line-height:inherit;}
+  :where(textarea){resize:vertical;}
+  :where(table){border-collapse:collapse;}
+  :where(th){text-align:left;}
+  /* The select chevron: appearance:none drops the native arrow (whose look
+     varies by browser), so it is redrawn here for every select, ui/Select
+     included. Callers keep 40px of right padding for it (Select's pr-10). */
+  :where(select){
+    appearance:none; -webkit-appearance:none; -moz-appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2364748B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center; background-size:16px;
+  }
   p{margin:0 0 .75em 0;}
   a{color:var(--primary);}
   code{background:var(--tint-neutral); padding:2px 6px; border-radius:5px; font-size:.85em; color:var(--primary-dark);}
   .icon{width:18px; height:18px; flex:0 0 auto; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vertical-align:-4px;}
-  button{
-    font-size:1rem; font-family:inherit; cursor:pointer; border-radius:10px; border:2px solid transparent;
-    min-height:52px; padding:12px 20px; font-weight:600;
-    transition:transform .12s ease, opacity .15s ease, box-shadow .12s ease, background-color .12s ease;
-  }
-  /* Wrapped in :where() so these are specificity-0. Both rules set the whole
-     `transform` shorthand, so at their natural specificity (0,2,1 / 0,1,1)
-     they beat -- and wipe out -- any Tailwind transform utility on a button,
-     e.g. the `absolute right-2 top-1/2 -translate-y-1/2` centering on the
-     password reveal toggle in StaffLogin/ResetPassword: hovering swapped
-     translateY(-50%) for translateY(-1px) and the button dropped half its
-     height. At specificity 0 a transform utility class always wins (main.css
-     loads after tailwind.css, but 0,1,0 still beats 0,0,0), while plain
-     buttons that declare no transform of their own keep the lift/press. */
-  :where(button:not(:disabled):hover){transform:translateY(-1px);}
-  :where(button:active){transform:scale(0.98);}
-  button:disabled{opacity:.5; cursor:not-allowed;}
-  /* Filled-input look: a soft gray resting fill (var(--bg), same tone as
-     the page background) that lifts to solid white/card on focus -- modeled
-     on a reference form design the client shared. Border thinned from 2px
-     to 1px since the fill itself now does most of the work of separating
-     a field from its surroundings. */
-  input, select, textarea{
-    font-size:1rem; font-family:inherit; padding:12px 14px; border-radius:14px; border:1px solid var(--border);
-    width:100%; background:var(--bg); color:var(--text); min-height:52px;
-    transition:border-color .12s ease, box-shadow .12s ease, background-color .12s ease;
-  }
-  textarea{min-height:90px;}
-  /* Native select chrome ignores the shared input fill/radius in some
-     browsers, so reset its appearance and redraw the dropdown chevron
-     as a background image to keep it visually aligned with text inputs. */
-  select{
-    appearance:none; -webkit-appearance:none; -moz-appearance:none;
-    padding-right:40px; cursor:pointer;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2364748B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 14px center; background-size:16px;
-  }
-  input[type="checkbox"], input[type="radio"]{
-    width:18px; height:18px; min-height:auto; padding:0; flex:0 0 auto; accent-color:var(--primary); cursor:pointer;
-  }
-  input:focus, select:focus, textarea:focus{outline:3px solid var(--focus-ring); border-color:var(--primary); background-color:var(--card);}
+  :where(input[type="checkbox"], input[type="radio"]){width:18px; height:18px; flex:0 0 auto; accent-color:var(--primary); cursor:pointer;}
   .field-invalid{border-color:var(--accent) !important; background:var(--accent-tint);}
-  label{display:block; font-weight:600; margin-bottom:6px;}
   .field{margin-bottom:16px;}
   .required:after{content:" *"; color:var(--accent);}
   .grid{display:grid; gap:16px;}
@@ -302,11 +277,6 @@
   header.topbar .brand img{height:46px; width:auto; display:block;}
   header.topbar .brand-sub{color:var(--muted); font-weight:600; font-size:.85rem; border-left:2px solid var(--border); padding-left:10px; margin-left:2px;}
   main{flex:1; padding:16px; max-width:1100px; width:100%; margin:0 auto;}
-  table{width:100%; border-collapse:collapse; font-size:.95rem;}
-  th,td{text-align:left; padding:14px 12px; border-bottom:1px solid var(--border);}
-  th{color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; background:var(--card); position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--border);}
-  tbody tr{transition:background .1s ease;}
-  tbody tr:hover{background:var(--bg);}
   /* Generic mirror-flip -- reuses a right-pointing chevron as a left one
      wherever needed, instead of drawing a second icon. */
   .icon-flip-x{transform:scaleX(-1);}
@@ -558,9 +528,10 @@
     padding:16px; animation:modal-pop-in .14s ease-out;
   }
   .date-picker-quick{display:flex; gap:8px; margin-bottom:14px;}
-  .date-picker-quick-btn{padding:6px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.85rem; cursor:pointer; transition:border-color .1s ease;}
+  .date-picker-quick-btn{min-height:40px; padding:6px 14px; border-radius:999px; border:2px solid var(--border); background:var(--card); color:var(--text); font-weight:600; font-size:.85rem; cursor:pointer; transition:border-color .1s ease;}
   .date-picker-quick-btn:hover{border-color:var(--border-strong);}
   .date-picker-quick-btn:disabled{opacity:.5; cursor:not-allowed;}
+  @media (pointer: coarse){ .date-picker-quick-btn{min-height:44px;} }
   .date-picker-nav{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:10px;}
   .date-picker-select{
     flex:1; min-height:auto; height:34px; padding:2px 6px; font-size:.85rem; font-weight:700;

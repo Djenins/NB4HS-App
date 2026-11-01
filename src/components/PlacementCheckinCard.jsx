@@ -73,11 +73,11 @@ export default function PlacementCheckinCard({ checkin, onUpdate }) {
               </Select>
             </Field>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+              <label className="mb-1.5 font-semibold flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
                 <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-primary" checked={fields.promotion} onChange={(e) => setField("promotion", e.target.checked)} />
                 {t("promotionLabel")}
               </label>
-              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
+              <label className="mb-1.5 font-semibold flex min-h-10 cursor-pointer items-center gap-2 text-ui text-card-foreground">
                 <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-primary" checked={fields.raise} onChange={(e) => setField("raise", e.target.checked)} />
                 {t("raiseLabel")}
               </label>

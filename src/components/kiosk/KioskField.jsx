@@ -7,12 +7,13 @@
 import { cn } from "../../lib/cn.js";
 import { formatPhone } from "../../lib/utils.js";
 import AddressInput from "../AddressInput.jsx";
+import { TOUCH_FILL } from "../ui/field.jsx";
 
 // Shared control sizing for every kiosk input/select/textarea. main.css's
 // bare input/select/textarea rules already supply the fill, border, radius
 // and blue focus ring the design system uses everywhere else -- these
 // utilities only scale that up to the 52-56px touch target the kiosk needs.
-export const KIOSK_CONTROL = "min-h-[52px] rounded-touch text-touch-body";
+export const KIOSK_CONTROL = TOUCH_FILL + " min-h-[52px] rounded-touch text-touch-body";
 
 export function KioskLabel({ htmlFor, children, required, className }) {
   return (
