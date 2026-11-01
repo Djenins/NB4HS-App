@@ -16,7 +16,7 @@ export default function SidebarSection({ label, collapsed, first, children }) {
         </>
       ) : (
         <div className="flex items-center gap-2 px-2.5 pb-1.5">
-          <span id={id} className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-sb-muted">{label}</span>
+          <span id={id} className="shrink-0 text-caption font-semibold uppercase tracking-[0.06em] text-sb-muted">{label}</span>
           <span aria-hidden="true" className="h-px flex-1 bg-sb-divider" />
         </div>
       )}

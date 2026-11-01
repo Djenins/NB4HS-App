@@ -47,6 +47,7 @@ import { EmptyState } from "../components/ui/empty-state.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SearchInput } from "../components/ui/search-input.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 function optionsFrom(list, allLabel) {
   return [{ value: "", label: allLabel }].concat(list.map(function (i) { return { value: i.key, label: i.en }; }));
@@ -295,6 +296,7 @@ export default function CandidateMatching() {
 
   return (
     <>
+      <WorkforceNav value="candidatematching" />
       <PageHeader title={t("candidateMatchingTitle")} description={t("candidateMatchingDesc")} />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_1fr]">

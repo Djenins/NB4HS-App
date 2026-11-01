@@ -8,30 +8,31 @@
 // meeting is with, status, reason) -- nothing is derived or invented, and no
 // identifier or internal note is exposed.
 import { CalendarDays, CalendarX2, Clock, MessageSquareText, TriangleAlert, UserRound } from "lucide-react";
-import { apptStatusBadgeClass, apptStatusLabel, meetingWithLabel } from "../../lib/appointments.js";
+import { apptStatusLabel, meetingWithLabel } from "../../lib/appointments.js";
 import { fmtDateLong } from "../../lib/utils.js";
 import { cn } from "../../lib/cn.js";
+import { StatusBadge } from "../ui/status-badge.jsx";
 
 function StatusPill({ status, lang }) {
   return (
-    <span className={cn("badge shrink-0", apptStatusBadgeClass(status))}>{apptStatusLabel(status, lang)}</span>
+    <StatusBadge domain="appointment" status={status} className="shrink-0">{apptStatusLabel(status, lang)}</StatusBadge>
   );
 }
 
 function AppointmentCard({ appt, lang, t }) {
   return (
-    <li className="rounded-[16px] border border-border bg-card p-4 shadow-card sm:p-5">
+    <li className="rounded-surface border border-border bg-card p-4 shadow-card sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
             <CalendarDays size={22} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="m-0 text-[1.1rem] font-extrabold leading-tight text-navy dark:text-[color:var(--text)] sm:text-[1.2rem]">
+            <p className="m-0 text-touch-lead font-extrabold leading-tight text-navy dark:text-[color:var(--text)] sm:text-touch-section">
               {fmtDateLong(appt.date, lang)}
             </p>
             {appt.time && (
-              <p className="m-0 mt-1 flex items-center gap-1.5 text-[0.95rem] font-semibold text-muted">
+              <p className="m-0 mt-1 flex items-center gap-1.5 text-touch-label font-semibold text-muted">
                 <Clock size={16} strokeWidth={2} aria-hidden="true" className="text-primary" />
                 {appt.time}
               </p>
@@ -41,7 +42,7 @@ function AppointmentCard({ appt, lang, t }) {
         <StatusPill status={appt.status} lang={lang} />
       </div>
 
-      <dl className="m-0 mt-3 flex flex-col gap-2 border-t border-border pt-3 text-[0.95rem] sm:flex-row sm:flex-wrap sm:gap-x-8">
+      <dl className="m-0 mt-3 flex flex-col gap-2 border-t border-border pt-3 text-touch-label sm:flex-row sm:flex-wrap sm:gap-x-8">
         <div className="flex min-w-0 items-start gap-2">
           <dt className="sr-only">{t("calendarStaffMember")}</dt>
           <UserRound size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
@@ -63,25 +64,25 @@ function LookupState({ tone, icon: StateIcon, title, description, actionLabel, o
   return (
     <div
       className={cn(
-        "rounded-[18px] border p-6 text-center sm:p-8",
-        tone === "error" ? "border-accent-soft bg-accent-tint" : "border-border bg-background"
+        "rounded-surface border p-6 text-center sm:p-8",
+        tone === "error" ? "border-tone-danger-border bg-tone-danger-bg" : "border-border bg-surface-sunken"
       )}
     >
       <span
         className={cn(
           "mx-auto flex h-14 w-14 items-center justify-center rounded-full",
-          tone === "error" ? "bg-card text-accent" : "bg-primary-tint text-primary"
+          tone === "error" ? "bg-tone-danger-chip text-tone-danger-ink" : "bg-tone-info-chip text-tone-info-ink"
         )}
       >
         <StateIcon size={28} strokeWidth={2} aria-hidden="true" />
       </span>
-      <h3 className="mt-3 text-[1.125rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.35rem]">{title}</h3>
-      <p className="mx-auto mt-1.5 max-w-[46ch] text-[0.98rem] leading-snug text-muted">{description}</p>
+      <h3 className="mt-3 text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">{title}</h3>
+      <p className="mx-auto mt-1.5 max-w-[46ch] text-touch-body leading-snug text-muted">{description}</p>
       {actionLabel && (
         <button
           type="button"
           onClick={onAction}
-          className="btn-secondary mt-4 min-h-[50px] px-7 text-[1rem] font-bold"
+          className="mt-4 inline-flex min-h-[52px] items-center justify-center rounded-touch border border-secondary-border bg-card px-7 text-touch-body font-bold text-navy transform-none transition-colors duration-fast hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)]"
         >
           {actionLabel}
         </button>
@@ -122,7 +123,7 @@ export default function AppointmentResults({ state, results, lang, t, onRetry })
 
   return (
     <section className="mt-7" aria-live="polite">
-      <h2 className="text-[1.125rem] font-extrabold text-navy dark:text-[color:var(--text)] sm:text-[1.4rem]">
+      <h2 className="text-touch-section font-extrabold text-navy dark:text-[color:var(--text)] sm:text-touch-heading">
         {t("apptLookupResultsTitle")}
       </h2>
       <ul className="m-0 mt-3 flex list-none flex-col gap-3 p-0">

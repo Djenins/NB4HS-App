@@ -11,19 +11,25 @@
 // org's English wording (see OPTION_KEYS). The print window and the PDF are
 // copies of the form as rendered, so they come out in the UI language.
 import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { loadPdfLibs } from "../lib/pdfLibs.js";
 import {
-  AlertTriangle, Briefcase, Camera, Check, ChevronDown, FileText,
-  Home, MapPin, Phone, Plus, Printer, Save, ShieldCheck, Users, UsersRound,
+  AlertTriangle, Briefcase, Camera, Check, ChevronDown, Download, FileText, FileSignature,
+  Home, MapPin, PenLine, Phone, Plus, Printer, Save, ShieldCheck, Users, UsersRound,
 } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
 import { Card, CardTitle } from "./ui/card.jsx";
+import { Dialog } from "./ui/dialog.jsx";
 import { BUTTON_RESET, Button } from "./ui/button.jsx";
 import { Field, Input } from "./ui/field.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
 import { cn } from "../lib/cn.js";
-import { fetchClientIntake, saveClientIntake, updateClientRecord } from "../lib/clientsData.js";
+import {
+  createClientDocument, fetchClientDocuments, fetchClientIntake, getFileSignedUrl,
+  saveClientIntake, updateClientRecord, uploadClientFile,
+} from "../lib/clientsData.js";
 import AddressInput from "./AddressInput.jsx";
+import SignaturePad from "./SignaturePad.jsx";
 
 const EMPTY_CHILD = { name: "", age: "", gender: "", school: "", grade: "", custody: "" };
 
@@ -37,7 +43,7 @@ const EMPTY_INTAKE = {
   barriers: [], benefits: [], referrals: [],
   numChildren: "", children: [EMPTY_CHILD, EMPTY_CHILD], headOfHousehold: "",
   housingType: [], bedroomsNeeded: "", preferredLocation: "", monthlyBudget: "", needFurniture: "",
-  authorizeRelease: "", clientName: "", clientSignature: "", clientDate: "", caseManagerName: "", caseManagerSignature: "", caseManagerDate: "",
+  authorizeRelease: "", clientName: "", clientSignature: "", clientSignatureImage: "", clientSignedAt: "", clientDate: "", caseManagerName: "", caseManagerSignature: "", caseManagerDate: "",
 };
 
 const BARRIER_OPTIONS = ["Income", "Housing", "Transportation", "Employment", "Language", "Legal", "Domestic Violence", "Substance Abuse", "Bad Landlord History", "Previous Eviction", "Criminal Background", "Health insurance", "School"];
@@ -245,6 +251,147 @@ function SectionCardHeader({ title, collapsed, onToggle }) {
   );
 }
 
+function todayIso() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+// Storage keys reject accents and some punctuation, so the uploaded file
+// gets an ASCII name; the readable name goes on the client_documents row.
+function asciiSlug(v) {
+  return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "client";
+}
+
+// ClientSignatureField -- the "Client Signature" box in section 9. Shows the
+// drawn signature (or an older typed one) and the button that opens the
+// signing dialog. The button carries data-html2canvas-ignore so it stays
+// out of the PDF and the print copy.
+function ClientSignatureField({ image, typed, onSign }) {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-meta font-semibold text-card-foreground">{t("intakeQClientSignature")}</span>
+      <div className="flex min-h-[72px] items-center justify-center rounded-control border border-border bg-white px-3 py-2">
+        {image ? (
+          <img data-signature="client" src={image} alt={t("intakeQClientSignature")} className="max-h-16 max-w-full object-contain" />
+        ) : typed ? (
+          <span className="text-ui italic text-slate-900">{typed}</span>
+        ) : (
+          <span className="text-meta text-slate-500">{t("intakeNotSigned")}</span>
+        )}
+      </div>
+      {onSign ? (
+        <Button type="button" variant={image ? "secondary" : "primary"} onClick={onSign} data-html2canvas-ignore="true">
+          <PenLine className="h-4 w-4" aria-hidden="true" /> {image ? t("intakeResignBtn") : t("intakeSignBtn")}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+// SignIntakeDialog -- client-facing: the client draws a signature with a
+// finger, stylus or mouse, prints their name and confirms the date.
+function SignIntakeDialog({ open, initialName, onCancel, onSign }) {
+  const t = useT();
+  const padRef = useRef(null);
+  const nameId = useId();
+  const dateId = useId();
+  const [name, setName] = useState(initialName || "");
+  const [date, setDate] = useState(todayIso());
+  const [hasInk, setHasInk] = useState(false);
+  const [error, setError] = useState("");
+
+  function submit(e) {
+    e.preventDefault();
+    if (!padRef.current || padRef.current.isEmpty()) { setError(t("intakeSignNeedSignature")); return; }
+    if (!name.trim()) { setError(t("intakeSignNeedName")); return; }
+    onSign({ image: padRef.current.toDataURL(), name: name.trim(), date: date || todayIso() });
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      title={t("intakeSignDialogTitle")}
+      description={t("intakeSignDialogDesc")}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit, noValidate: true }}
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onCancel}>{t("cancelLabel")}</Button>
+          <Button type="submit" size="lg">
+            <FileSignature className="h-4 w-4" aria-hidden="true" /> {t("intakeSignConfirmBtn")}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <p className="m-0 text-body text-card-foreground">{t("intakeSignAttest")}</p>
+        <div className="flex flex-col gap-2">
+          <SignaturePad
+            ref={padRef}
+            label={t("intakeSignPadLabel")}
+            placeholder={t("intakeSignHere")}
+            onChange={(inked) => { setHasInk(inked); if (inked) setError(""); }}
+          />
+          <div className="flex justify-end">
+            <Button type="button" variant="ghost" onClick={() => padRef.current && padRef.current.clear()} disabled={!hasInk}>
+              {t("intakeSignClear")}
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("intakeQClientName")} htmlFor={nameId} required>
+            <Input id={nameId} value={name} onChange={(e) => { setName(e.target.value); setError(""); }} autoComplete="off" />
+          </Field>
+          <Field label={t("intakeQClientDate")} htmlFor={dateId}>
+            <Input id={dateId} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+        </div>
+        {error ? <p role="alert" className="m-0 text-meta font-semibold text-tone-danger-ink">{error}</p> : null}
+      </div>
+    </Dialog>
+  );
+}
+
+// SignedCopies -- staff-only list of the signed PDFs saved to this client's
+// documents (category "intake"), each re-downloadable from storage.
+function SignedCopies({ docs }) {
+  const t = useT();
+  const [opening, setOpening] = useState(null);
+  async function open(doc) {
+    setOpening(doc.id);
+    const url = await getFileSignedUrl(doc.storagePath);
+    setOpening(null);
+    if (url) window.open(url, "_blank", "noopener");
+  }
+  if (!docs.length) return null;
+  return (
+    <SectionCard title={t("intakeSignedCopiesTitle")} flush>
+      <ul className="m-0 list-none p-0">
+        {docs.map((d) => (
+          <li key={d.id} className="flex flex-col gap-2 border-t border-line-subtle px-5 py-3 first:border-t-0 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-ui font-semibold text-card-foreground">
+                <FileSignature className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="truncate">{d.fileName}</span>
+              </div>
+              <div className="mt-0.5 text-meta text-muted">
+                {t("uploadedByLabel")}: {d.uploadedBy || "—"} · <span className="tabular-nums">{new Date(d.uploadedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+              </div>
+            </div>
+            <Button type="button" variant="secondary" size="sm" loading={opening === d.id} onClick={() => open(d)}>
+              <Download className="h-4 w-4" aria-hidden="true" /> {t("downloadLabel")}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+  );
+}
+
 // `saved` is the stored form (client_intakes, or the client record before
 // p3c); without one the form starts from the client's contact details.
 function initialIntake(client, saved) {
@@ -277,6 +424,10 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   const [saveError, setSaveError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [stored, setStored] = useState(null);
+  const [signing, setSigning] = useState(false);
+  const [savingSigned, setSavingSigned] = useState(false);
+  const [signedStatus, setSignedStatus] = useState("");
+  const [signedDocs, setSignedDocs] = useState([]);
   const printRef = useRef(null);
   const edited = useRef(false);
 
@@ -291,6 +442,9 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       setStored(res.form);
       setF(initialIntake(client, res.form));
       setSavedAt(res.savedAt);
+    });
+    fetchClientDocuments(clientId).then((rows) => {
+      if (!cancelled) setSignedDocs(rows.filter((d) => d.category === "intake"));
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,6 +504,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
       }
       el.setAttribute("disabled", "disabled");
     });
+    clone.querySelectorAll("[data-html2canvas-ignore]").forEach((n) => n.remove());
 
     const headHtml = Array.from(document.querySelectorAll("head style, head link[rel='stylesheet']"))
       .map((n) => n.outerHTML)
@@ -375,38 +530,94 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
   // across A4 pages. Different from downloadFilledForm above: that one opens
   // the OS print dialog so staff can print or "Save as PDF" manually; this
   // one generates and downloads an actual .pdf file directly, no dialog.
-  async function exportAsPdf() {
+  //
+  // buildPdf is shared with the signed copy, which passes `light` so the
+  // record on file is always the light theme, whatever the screen shows.
+  async function buildPdf(light) {
     const source = printRef.current;
-    if (!source) return;
+    if (!source) return null;
+    const { html2canvas, jsPDF } = await loadPdfLibs();
+    const bg = light ? "#ffffff" : (getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff");
+    const canvas = await html2canvas(source, {
+      scale: 2, backgroundColor: bg, useCORS: true,
+      onclone: light ? (doc) => doc.documentElement.setAttribute("data-theme", "light") : undefined,
+    });
+    // The signed copy is stored, so it goes in as one JPEG (a few hundred KB)
+    // rather than a lossless PNG of the whole page (tens of MB); the alias
+    // keeps jsPDF from embedding the image again on every page.
+    const format = light ? "JPEG" : "PNG";
+    const imgData = light ? canvas.toDataURL("image/jpeg", 0.85) : canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, format, 0, position, imgWidth, imgHeight, "intake-form");
+    heightLeft -= pageHeight;
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, format, 0, position, imgWidth, imgHeight, "intake-form");
+      heightLeft -= pageHeight;
+    }
+    return pdf;
+  }
+
+  async function exportAsPdf() {
     setExporting(true);
     try {
-      const { html2canvas, jsPDF } = await loadPdfLibs();
-      const bg = getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#ffffff";
-      const canvas = await html2canvas(source, { scale: 2, backgroundColor: bg, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-
-      const pdf = new jsPDF({ unit: "pt", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(t("intakePdfFilePrefix") + " - " + (f.fullName || t("intakeUnnamedClient")) + ".pdf");
+      const pdf = await buildPdf(false);
+      if (pdf) pdf.save(t("intakePdfFilePrefix") + " - " + (f.fullName || t("intakeUnnamedClient")) + ".pdf");
     } catch (err) {
       console.warn("exportAsPdf failed", err);
     } finally {
       setExporting(false);
+    }
+  }
+
+  // The client has signed: put the signature, printed name and date on the
+  // form, save the form, then render it to PDF and file that PDF in the
+  // client's documents. flushSync makes the signature part of the DOM
+  // before html2canvas takes its picture.
+  function applySignature({ image, name, date }) {
+    const next = Object.assign({}, f, {
+      clientSignatureImage: image, clientName: name, clientDate: date, clientSignedAt: new Date().toISOString(),
+    });
+    edited.current = true;
+    flushSync(() => {
+      setF(next);
+      setSigning(false);
+    });
+    if (client && client.id) saveSignedCopy(next);
+  }
+
+  async function saveSignedCopy(form) {
+    setSavingSigned(true);
+    setSignedStatus("");
+    try {
+      const when = await saveClientIntake(client.id, form);
+      setStored(form);
+      setSavedAt(when);
+      const img = printRef.current && printRef.current.querySelector("img[data-signature]");
+      if (img && img.decode) await img.decode().catch(() => {});
+      const pdf = await buildPdf(true);
+      if (!pdf) throw new Error("form not rendered");
+      const day = form.clientDate || todayIso();
+      const label = t("intakeSignedFilePrefix") + " - " + (form.clientName || form.fullName || t("intakeUnnamedClient")) + " - " + day + ".pdf";
+      const file = new File([pdf.output("blob")], "signed-intake-" + asciiSlug(form.clientName || form.fullName) + "-" + day + ".pdf", { type: "application/pdf" });
+      const path = await uploadClientFile(client.id, file);
+      const doc = await createClientDocument(client.id, { fileName: label, category: "intake", storagePath: path });
+      setSignedDocs((prev) => [doc].concat(prev));
+      setSignedStatus("saved");
+    } catch (err) {
+      console.warn("saveSignedCopy failed", err);
+      setSignedStatus("error");
+    } finally {
+      setSavingSigned(false);
     }
   }
 
@@ -582,7 +793,7 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             <RadioGroup label={t("intakeQAuthorizeRelease")} name="authorizeRelease" value={f.authorizeRelease} onChange={(v) => set("authorizeRelease", v)} options={["YES", "NO"]} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <IntakeField label={t("intakeQClientName")} placeholder={t("intakePhTypeName")} value={f.clientName} onChange={(v) => set("clientName", v)} />
-              <IntakeField label={t("intakeQClientSignature")} value={f.clientSignature} onChange={(v) => set("clientSignature", v)} placeholder={t("intakePhTypeToSign")} />
+              <ClientSignatureField image={f.clientSignatureImage} typed={f.clientSignature} onSign={() => setSigning(true)} />
               <IntakeField label={t("intakeQClientDate")} type="date" value={f.clientDate} onChange={(v) => set("clientDate", v)} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -605,6 +816,11 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
             <Button onClick={exportAsPdf} loading={exporting} variant="secondary">
               <Camera className="h-4 w-4" aria-hidden="true" /> {t("intakeExportPdfBtn")}
             </Button>
+            {client && client.id && f.clientSignatureImage ? (
+              <Button onClick={() => saveSignedCopy(f)} loading={savingSigned} variant="secondary">
+                <FileSignature className="h-4 w-4" aria-hidden="true" /> {t("intakeSaveSignedCopyBtn")}
+              </Button>
+            ) : null}
             <Button onClick={clearForm} variant="ghost">
               {t("intakeClearFormBtn")}
             </Button>
@@ -617,6 +833,19 @@ export default function IntakeFormCard({ collapsed, onToggle, client, bare }) {
               </span>
             ) : null}
           </div>
+          {signedStatus ? (
+            <p aria-live="polite" className={cn("m-0 flex items-center gap-1.5 text-ui font-semibold", signedStatus === "error" ? "text-tone-danger-ink" : "text-tone-success-ink")}>
+              {signedStatus === "error" ? t("intakeSignedCopyError") : (<><Check className="h-4 w-4" aria-hidden="true" /> {t("intakeSignedCopySaved")}</>)}
+            </p>
+          ) : null}
+          {client && client.id ? <SignedCopies docs={signedDocs} /> : null}
+          <SignIntakeDialog
+            key={signing ? "open" : "closed"}
+            open={signing}
+            initialName={f.clientName || f.fullName}
+            onCancel={() => setSigning(false)}
+            onSign={applySignature}
+          />
         </div>
       )}
     </div>

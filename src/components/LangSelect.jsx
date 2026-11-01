@@ -21,7 +21,7 @@ export default function LangSelect() {
         <button
           type="button"
           aria-label={t("language") + ": " + current.label}
-          className="group flex min-h-[44px] items-center gap-2 rounded-xl border border-border bg-card px-3 text-[0.95rem] font-semibold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[state=open]:border-primary data-[state=open]:bg-primary-tint dark:text-[color:var(--text)] sm:px-4"
+          className="group flex min-h-[44px] items-center gap-2 rounded-touch border border-border bg-card px-3 text-touch-label font-semibold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[state=open]:border-primary data-[state=open]:bg-primary-tint dark:text-[color:var(--text)] sm:px-4"
         >
           <Languages size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
           {/* Phone: first word only ("Kreyòl"), so it fits beside Back and the
@@ -38,7 +38,7 @@ export default function LangSelect() {
               key={l.code}
               value={l.code}
               lang={l.code}
-              className="flex min-h-[44px] cursor-pointer select-none items-center gap-3 rounded-lg px-3 text-[0.98rem] font-semibold text-card-foreground outline-none transition-colors data-[highlighted]:bg-background data-[state=checked]:text-primary"
+              className="flex min-h-[44px] cursor-pointer select-none items-center gap-3 rounded-control px-3 text-touch-body font-semibold text-card-foreground outline-none transition-colors data-[highlighted]:bg-surface-sunken data-[state=checked]:text-primary"
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                 <DropdownMenuPrimitive.ItemIndicator>

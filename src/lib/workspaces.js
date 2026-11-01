@@ -21,7 +21,7 @@ export var AUTH_MODEL = (import.meta.env && import.meta.env.VITE_AUTH_MODEL) ===
 // The sidebar groups Home's pages under their section headings either way.
 export var WORKSPACES = [
   { key: "home", label: "wsHome", icon: House,
-    items: ["dashboard", "mycaseload", "checkin", "checkout", "search", "myreports", "staffreports", "reports", "qrcode", "manage"] },
+    items: ["dashboard", "mycaseload", "checkin", "checkout", "search", "communications", "myreports", "staffreports", "reports", "qrcode", "manage"] },
   { key: "students", label: "navAdultEducation", icon: GraduationCap, items: ["students", "assessments"] },
   { key: "workforce", label: "navSectionWorkforceDevelopment", icon: Briefcase,
     items: ["workforcedashboard", "jobdeveloper", "jobopenings", "employers", "candidatematching", "referrals", "placements", "workforcereports"] },

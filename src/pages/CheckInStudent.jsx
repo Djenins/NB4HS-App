@@ -88,7 +88,7 @@ export default function CheckInStudent() {
 
   return (
     <div className="kiosk-checkin flex min-h-0 w-full flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
+      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-surface sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
         {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
 
         <div className="flex min-h-0 flex-1 flex-col gap-5 lg:grid lg:grid-cols-[minmax(210px,19%)_minmax(0,1fr)_minmax(240px,20%)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 xl:gap-6">
@@ -120,12 +120,12 @@ export default function CheckInStudent() {
                 />
               ))
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-[18px] border border-border bg-card p-10 text-center shadow-card">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-tint-neutral text-muted">
+              <div className="flex flex-1 flex-col items-center justify-center rounded-surface border border-border bg-card p-10 text-center shadow-card">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-tone-neutral-chip text-tone-neutral-ink">
                   <CalendarX size={30} strokeWidth={1.8} aria-hidden="true" />
                 </span>
-                <p className="mt-4 text-[1.15rem] font-bold text-navy dark:text-[color:var(--text)]">{t("noClassesMeetingToday")}</p>
-                <p className="mt-1 text-[0.98rem] text-muted">{t("notMyName")}</p>
+                <p className="mt-4 text-touch-section font-bold text-navy dark:text-[color:var(--text)]">{t("noClassesMeetingToday")}</p>
+                <p className="mt-1 text-touch-body text-muted">{t("notMyName")}</p>
               </div>
             )}
           </div>
@@ -137,11 +137,11 @@ export default function CheckInStudent() {
               <button
                 type="button"
                 onClick={() => navigate("/checkin/visitor")}
-                className="mt-6 flex min-h-[64px] w-full items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-card px-3 text-center text-[0.95rem] font-bold leading-snug text-primary transition-colors hover:bg-primary-tint active:bg-primary-tint focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary xl:gap-2.5 xl:px-4 xl:text-[1rem]"
+                className="mt-6 flex min-h-[64px] w-full items-center justify-center gap-2 rounded-touch border-2 border-primary bg-card px-3 text-center text-touch-label font-bold leading-snug text-primary transition-colors hover:bg-primary-tint active:bg-primary-tint focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary xl:gap-2.5 xl:px-4 xl:text-touch-body"
               >
                 <UserRoundSearch size={20} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
                 <span className="min-w-0">
-                  {notMyNameLead && <span className="block text-[0.78rem] font-semibold text-muted">{notMyNameLead}</span>}
+                  {notMyNameLead && <span className="block text-touch-meta font-semibold text-muted">{notMyNameLead}</span>}
                   <span className="block">{notMyNameAction}</span>
                 </span>
               </button>
@@ -149,7 +149,7 @@ export default function CheckInStudent() {
           />
         </div>
 
-        <p className="mt-2 hidden shrink-0 text-center text-[0.9rem] text-muted lg:block">{t("kioskFooterWelcome")}</p>
+        <p className="mt-2 hidden shrink-0 text-center text-touch-label text-muted lg:block">{t("kioskFooterWelcome")}</p>
       </div>
     </div>
   );

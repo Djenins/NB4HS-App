@@ -80,7 +80,7 @@ export default function AppointmentLookup() {
 
   return (
     <div className="appt-lookup flex w-full flex-1 flex-col">
-      <div className="mx-auto w-full max-w-[1400px] rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-7 sm:shadow-card lg:p-9">
+      <div className="mx-auto w-full max-w-[1400px] rounded-surface sm:border sm:border-border sm:bg-card sm:p-7 sm:shadow-card lg:p-9">
         {/* Back, logo and language live in the shared KioskTopBar (Shell.jsx). */}
         <KioskPageHeader icon={Search} title={t("apptLookupTitle")} description={t("apptLookupDesc")} />
 

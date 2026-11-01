@@ -45,6 +45,7 @@ import ResultsToolbar from "../components/ResultsToolbar.jsx";
 import SearchFilterPanel from "../components/SearchFilterPanel.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 
 function distinct(list, key) {
@@ -219,6 +220,7 @@ export default function Placements() {
 
   return (
     <>
+      <WorkforceNav value="placements" />
       <PageHeader
         title={t("placementsTitle")}
         description={t("placementsDesc")}

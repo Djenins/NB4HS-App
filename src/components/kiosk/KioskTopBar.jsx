@@ -30,12 +30,12 @@ export default function KioskTopBar({ onBack }) {
   const now = useNow();
 
   return (
-    <header className="sticky top-0 z-[15] flex shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-8 sm:py-3">
+    <header className="sticky top-0 z-[15] flex shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-2.5 shadow-card sm:gap-3 sm:px-8 sm:py-3">
       {onBack && (
         <button
           type="button"
           onClick={onBack}
-          className="flex min-h-[48px] shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 text-[1rem] font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)] sm:px-5"
+          className="flex min-h-[48px] shrink-0 items-center gap-2 rounded-touch border border-border bg-card px-3 text-touch-body font-bold text-navy transform-none transition-colors hover:bg-primary-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[color:var(--text)] sm:px-5"
         >
           <ArrowLeft size={20} strokeWidth={2.4} aria-hidden="true" className="text-primary" />
           {t("back")}
@@ -44,7 +44,7 @@ export default function KioskTopBar({ onBack }) {
       <img src={LOGO_URL} alt={ORG.name} className="h-8 w-auto min-w-0 shrink object-contain sm:h-11" />
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
-        <div className="hidden items-center gap-3 rounded-2xl border border-border bg-background px-4 py-2 text-[0.95rem] font-semibold text-navy dark:text-[color:var(--text)] md:flex">
+        <div className="hidden items-center gap-3 rounded-touch border border-border bg-surface-sunken px-4 py-2 tabular-nums text-touch-label font-semibold text-navy dark:text-[color:var(--text)] md:flex">
           <span className="flex items-center gap-2">
             <Clock size={18} strokeWidth={2} aria-hidden="true" className="text-primary" />
             {fmtTime(now.toISOString())}
