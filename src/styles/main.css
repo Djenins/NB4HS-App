@@ -528,6 +528,10 @@
     padding:16px; animation:modal-pop-in .14s ease-out;
   }
   .date-picker-panel.drop-up{top:auto; bottom:calc(100% + 8px);}
+  .date-picker-trigger:disabled{background:var(--surface-sunken); opacity:.7; cursor:not-allowed;}
+  /* Compact (32px) trigger for tight spots such as the notification bell's reschedule row. */
+  .ds-control.ds-control-sm .date-picker-trigger{height:32px; padding:0 8px; font-size:var(--fs-meta);}
+  @media (pointer: coarse){ .ds-control.ds-control-sm .date-picker-trigger{height:44px;} }
   /* Room kept when the picker scrolls its dialog or page to show itself. */
   .date-picker-panel{scroll-margin:12px;}
   .date-picker-quick{display:flex; gap:8px; margin-bottom:14px;}

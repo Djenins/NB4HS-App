@@ -31,6 +31,7 @@ import { StatusBadge } from "../ui/status-badge.jsx";
 import SnapCaseDetail from "./SnapCaseDetail.jsx";
 import { SnapCheckboxes } from "./SnapField.jsx";
 import { LoadError, RecordName, RowFacts } from "./SnapListParts.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 function NewCase({ onCreated, onClose }) {
   const { data, lang, session, showToast } = useApp();
@@ -96,7 +97,7 @@ function NewCase({ onCreated, onClose }) {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("snapFollowUpDate")} htmlFor="newcase-followup">
-            <Input id="newcase-followup" type="date" min={todayStr()} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+            <div className="ds-control"><DatePicker id="newcase-followup" min={todayStr()} value={followUpDate} onChange={setFollowUpDate} /></div>
           </Field>
           {lead && (
             <Field label={t("snapAssignedTo")} htmlFor="newcase-assigned">

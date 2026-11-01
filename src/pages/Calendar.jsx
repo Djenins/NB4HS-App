@@ -45,6 +45,7 @@ import EventDrawer from "../components/calendar/EventDrawer.jsx";
 import EventMenu from "../components/calendar/EventMenu.jsx";
 import Legend from "../components/calendar/Legend.jsx";
 import { CalendarError, CalendarSkeleton } from "../components/calendar/CalendarStatus.jsx";
+import DatePicker from "../components/DatePicker.jsx";
 
 // The switcher in CalendarHeader. Week/Month/Day is the trio the redesign
 // reference puts there; Agenda stays on the end because it's a saved
@@ -112,7 +113,7 @@ function AddEventModal({ type, defaultDate, createdByName, onSave, onCancel }) {
           <Input id={id("person")} value={fields.personName} onChange={(e) => setField("personName", e.target.value)} placeholder={t("phPersonName")} />
         </Field>
         <Field label={t("calendarDate")} required htmlFor={id("date")}>
-          <Input id={id("date")} type="date" value={fields.date} onChange={(e) => setField("date", e.target.value)} />
+          <div className="ds-control"><DatePicker id={id("date")} value={fields.date} onChange={(v) => setField("date", v)} /></div>
         </Field>
         {type === "appointment" && (
           <Field label={t("calendarAvailability")} htmlFor={id("availability")}>

@@ -26,6 +26,7 @@ import { Field, Input, Select, Textarea } from "../ui/field.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
 import { SnapCheckboxes, SnapSelect } from "./SnapField.jsx";
 import { SnapTaskForm, SnapTaskRows } from "./SnapTaskList.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 const H3 = "m-0 text-section font-semibold text-card-foreground";
 
@@ -160,7 +161,7 @@ export default function SnapCaseDetail({ caseRow, stages, onChanged, onClose }) 
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label={t("snapFollowUpDate")} htmlFor="case-followup">
-              <Input id="case-followup" type="date" value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(e) => patch({ followUpDate: e.target.value })} />
+              <div className="ds-control"><DatePicker id="case-followup" value={caseRow.followUpDate || ""} disabled={!perms.canEdit || busy} onChange={(v) => patch({ followUpDate: v })} /></div>
             </Field>
             {perms.canReassign && (
               <Field label={t("snapAssignedTo")} htmlFor="case-assigned">

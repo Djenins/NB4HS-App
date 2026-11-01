@@ -14,6 +14,7 @@ import { Button } from "./ui/button.jsx";
 import { Field, Input } from "./ui/field.jsx";
 import { IconButton } from "./ui/icon-button.jsx";
 import { StatusBadge } from "./ui/status-badge.jsx";
+import DatePicker from "./DatePicker.jsx";
 
 const DANGER_GHOST = "text-tone-danger-ink hover:bg-tone-danger-bg";
 
@@ -74,7 +75,7 @@ export default function AppointmentRow({ appt, onConfirm, onComplete, onCancel, 
         <div className="mt-2 space-y-3 rounded-control bg-surface-sunken p-3">
           <div className="grid grid-cols-2 gap-2">
             <Field label={t("apptDateLabel")} htmlFor={idBase + "-date"}>
-              <Input id={idBase + "-date"} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <div className="ds-control"><DatePicker id={idBase + "-date"} value={date} onChange={setDate} /></div>
             </Field>
             <Field label={t("apptTimeLabel")} htmlFor={idBase + "-time"}>
               <Input id={idBase + "-time"} type="time" value={time} onChange={(e) => setTime(e.target.value)} />

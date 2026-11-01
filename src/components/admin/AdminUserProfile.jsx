@@ -39,6 +39,7 @@ import { TabPanel, Tabs } from "../ui/tabs.jsx";
 import { AccountStatusBadge, ReasonDialog, fmtWhen } from "./adminShared.jsx";
 import { InviteLinkPanel } from "./InviteDialog.jsx";
 import { ROLE_KIND_LABEL } from "./AdminRoles.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 
 // ---------------- Profile tab ----------------
@@ -232,7 +233,7 @@ function AddRoleDialog({ open, onClose, account, catalog, onAdded }) {
           </Select>
         </Field>
         <Field label={t("adminExpiresLabel")} htmlFor="add-role-expires" hint={t("adminExpiresHint")}>
-          <Input id="add-role-expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
+          <div className="ds-control"><DatePicker id="add-role-expires" value={expires} onChange={setExpires} /></div>
         </Field>
         <Field label={t("adminReasonOptionalLabel")} htmlFor="add-role-reason" hint={t("adminReasonHint")}>
           <Input placeholder={t("phReasonOptional")} id="add-role-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} />

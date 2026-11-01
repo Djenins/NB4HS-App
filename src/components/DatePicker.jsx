@@ -24,7 +24,7 @@ import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2
 import Icon from "./Icon.jsx";
 import { IconButton } from "./ui/icon-button.jsx";
 
-export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min }) {
+export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min, max, disabled }) {
   const { lang } = useApp();
   const t = useT();
   const isControlled = value !== undefined && typeof onChange === "function";
@@ -81,6 +81,10 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
     };
   }, [open]);
 
+  // min/max ("YYYY-MM-DD", optional) bound the pickable days; strings
+  // compare in date order.
+  const outOfRange = (ds) => (!!min && ds < min) || (!!max && ds > max);
+
   function commit(v) {
     if (isControlled) onChange(v); else setInternalValue(v);
     setOpen(false);
@@ -124,20 +128,21 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
         type="button"
         id={id}
         className="date-picker-trigger"
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
         <Icon name="calendar" />
-        <span className={current ? "" : "muted"}>{current ? fmtDateLong(current, lang) : (placeholder || t("pleaseSelect"))}</span>
+        <span className={current ? "" : "muted"}>{current ? fmtDateLong(current, lang) : (placeholder || t("selectDate"))}</span>
       </button>
       {name && <input type="hidden" name={name} value={current} readOnly required={required} />}
 
       {open && (
         <div ref={panelRef} className={"date-picker-panel" + (dropUp ? " drop-up" : "")} role="dialog" aria-label={t("pleaseSelect")}>
           <div className="date-picker-quick">
-            <button type="button" className="date-picker-quick-btn" disabled={!!min && today < min} onClick={() => commit(today)}>{t("today")}</button>
-            <button type="button" className="date-picker-quick-btn" onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
+            <button type="button" className="date-picker-quick-btn" disabled={outOfRange(today)} onClick={() => commit(today)}>{t("today")}</button>
+            <button type="button" className="date-picker-quick-btn" disabled={outOfRange(addDays(today, 1))} onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
           </div>
           <div className="date-picker-nav">
             <IconButton size="sm" label={t("prevPage")} onClick={() => shiftMonth(-1)}>
@@ -173,7 +178,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
               >
                 <option value="" disabled>{t("pleaseSelect")}</option>
                 {dayOptions.map((d) => (
-                  <option key={d} value={d} disabled={!!min && viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(d) < min}>{d}</option>
+                  <option key={d} value={d} disabled={outOfRange(viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(d))}>{d}</option>
                 ))}
               </select>
             </label>
@@ -185,8 +190,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
             {cells.map((c) => {
               const isSelected = !!current && c.dateStr === current;
               const isToday = c.dateStr === today;
-              // "YYYY-MM-DD" strings compare in date order.
-              const tooEarly = !!min && c.dateStr < min;
+              const blocked = outOfRange(c.dateStr);
               return (
                 <button
                   type="button"
@@ -195,7 +199,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
                   onClick={() => commit(c.dateStr)}
                   aria-pressed={isSelected}
                   aria-label={fmtDateLong(c.dateStr, lang)}
-                  disabled={tooEarly}
+                  disabled={blocked}
                 >
                   {c.day}
                 </button>

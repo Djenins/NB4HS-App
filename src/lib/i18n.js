@@ -592,6 +592,7 @@ export var STR = {
   state: { en: "State", ht: "Eta", fr: "État" },
   zip: { en: "ZIP Code", ht: "Kòd Postal", fr: "Code Postal" },
   reasonForVisit: { en: "Reason for Visit", ht: "Rezon Vizit la", fr: "Motif de la Visite" },
+  selectDate: { en: "Select a date", ht: "Chwazi yon dat", fr: "Choisir une date" },
   pleaseSelect: { en: "-- Please select --", ht: "-- Tanpri chwazi --", fr: "-- Veuillez sélectionner --" },
   monthLabel: { en: "Month", ht: "Mwa", fr: "Mois" },
   yearLabel: { en: "Year", ht: "Ane", fr: "Année" },

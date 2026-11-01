@@ -22,6 +22,7 @@ import { EmptyState } from "../ui/empty-state.jsx";
 import { Field, Input, Select } from "../ui/field.jsx";
 import { IconButton } from "../ui/icon-button.jsx";
 import { StatusBadge } from "../ui/status-badge.jsx";
+import DatePicker from "../DatePicker.jsx";
 
 // The row's status for the `task` statusTone domain, or null for an open
 // task that isn't due yet.
@@ -159,7 +160,7 @@ export function SnapTaskForm({ context, onSaved, onCancel }) {
         <Input placeholder={t("phTaskTitle")} id="task-title" autoComplete="off" value={fields.title} onChange={(e) => set("title")(e.target.value)} />
       </Field>
       <Field label={t("snapTaskDue")} htmlFor="task-due">
-        <Input id="task-due" type="date" value={fields.dueDate} onChange={(e) => set("dueDate")(e.target.value)} />
+        <div className="ds-control"><DatePicker id="task-due" value={fields.dueDate} onChange={set("dueDate")} /></div>
       </Field>
       <Field label={t("snapTaskPriority")} htmlFor="task-priority">
         <Select id="task-priority" value={fields.priority} onChange={(e) => set("priority")(e.target.value)}>
