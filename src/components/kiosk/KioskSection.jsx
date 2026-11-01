@@ -2,7 +2,8 @@
 // (Visitor Information / Address / Visit Details). Purely presentational:
 // icon badge + title in the header, caller-supplied fields in the body.
 // In a narrow size container (the visitor form's three columns) the title
-// drops one step so "Visitor Information" stays on one line.
+// drops one step so "Visitor Information" stays on one line. Each card rises
+// in on arrival; `enterAt` (seconds) puts a screen's cards in reading order.
 import { cn } from "../../lib/cn.js";
 
 // Badge tints. Blue is the NB4HS primary; violet is kept for Visit Details
@@ -15,14 +16,15 @@ const BADGE_TONES = {
   violet: "bg-tone-violet-chip text-tone-violet-ink"
 };
 
-export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, subtitle, children, className }) {
+export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone = "primary", title, subtitle, enterAt = 0.2, children, className }) {
   return (
     <section
       id={id}
       ref={sectionRef}
       aria-labelledby={id + "-title"}
+      style={{ "--d": enterAt + "s" }}
       className={cn(
-        "rounded-surface border border-border bg-card p-4 shadow-card sm:p-5",
+        "k-enter rounded-surface border border-border bg-card p-4 shadow-card sm:p-5",
         className
       )}
     >

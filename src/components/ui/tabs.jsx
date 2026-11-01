@@ -1,15 +1,19 @@
 // tabs.jsx -- underline tabs for a record page's sections (Overview, Notes,
 // Documents...). Real ARIA tabs: arrow keys move between them, and the
-// caller renders the active panel with <TabPanel>.
+// caller renders the active panel with <TabPanel>. The underline slides
+// from the old tab to the new one (a shared layoutId), so the switch reads
+// as one move rather than two separate repaints.
 //
 //   <Tabs label value onChange items={[{ value, label, count? }]} idBase />
 //   <TabPanel idBase value={active}>...</TabPanel>
-import { useRef } from "react";
+import { useId, useRef } from "react";
+import { m } from "framer-motion";
 import { cn } from "../../lib/cn.js";
 import { BUTTON_RESET } from "./button.jsx";
 
 export function Tabs({ label, value, onChange, items, idBase, className }) {
   const refs = useRef([]);
+  const indicatorId = useId();
   function onKeyDown(e, i) {
     const dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     if (!dir) return;
@@ -37,9 +41,18 @@ export function Tabs({ label, value, onChange, items, idBase, className }) {
             className={cn(
               BUTTON_RESET,
               "relative inline-flex h-11 shrink-0 items-center gap-2 border-b-2 border-solid px-3 text-ui transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2",
-              active ? "border-primary font-semibold text-primary" : "border-transparent font-medium text-muted hover:text-card-foreground"
+              "border-transparent",
+              active ? "font-semibold text-primary" : "font-medium text-muted hover:text-card-foreground"
             )}
           >
+            {active ? (
+              <m.span
+                layoutId={indicatorId}
+                aria-hidden="true"
+                className="absolute inset-x-0 -bottom-0.5 h-0.5 bg-primary"
+                transition={{ type: "tween", duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+              />
+            ) : null}
             {item.label}
             {item.count != null ? (
               <span className={cn("rounded-chip px-1.5 text-caption font-semibold tabular-nums", active ? "bg-tone-info-bg text-tone-info-ink" : "bg-tone-neutral-bg text-tone-neutral-ink")}>{item.count}</span>

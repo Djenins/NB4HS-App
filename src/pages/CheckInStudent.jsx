@@ -112,6 +112,7 @@ export default function CheckInStudent() {
                   id={"kiosk-class-" + c.key}
                   sectionRef={(el) => { sectionRefs.current[c.key] = el; }}
                   classItem={c}
+                  index={i}
                   roster={studentsForClass(data.students, c.key)}
                   meetsLabel={steps[i].description}
                   emptyLabel={t("noStudentsEnrolled")}

@@ -5,29 +5,31 @@
 // CheckInVisitor.jsx / CheckInStudent.jsx) so it sits in the top-left
 // corner of the kiosk frame. Shared by both check-in screens: the visitor
 // form passes its three form sections as `steps`, the student roster passes
-// today's classes.
+// today's classes. On arrival the badge grows in, the title is revealed and
+// the step cards rise one after another (k-* classes in main.css).
 import { CircleHelp, UserRoundCheck } from "lucide-react";
 import KioskStepCard from "./KioskStepCard.jsx";
 
 export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = UserRoundCheck, steps, activeStep, onStepSelect, navLabel, helpTitle, helpText }) {
   return (
     <div className="flex min-h-0 flex-col lg:h-full lg:overflow-y-auto">
-      <span className="kiosk-sidebar-badge flex h-10 w-10 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-12 sm:w-12 xl:h-14 xl:w-14">
+      <span className="kiosk-sidebar-badge k-pop flex h-10 w-10 items-center justify-center rounded-full bg-primary-tint text-primary sm:h-12 sm:w-12 xl:h-14 xl:w-14">
         <IdentityIcon strokeWidth={2} aria-hidden="true" className="h-[22px] w-[22px] sm:h-[26px] sm:w-[26px]" />
       </span>
       {/* Split on spaces so a long title wraps between words instead of
           breaking inside "Check-In" at its hyphen on narrower kiosks. */}
-      <h1 className="kiosk-sidebar-title mt-2 mb-[0.55em] text-touch-heading font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-touch-title xl:text-touch-hero">
+      <h1 style={{ "--d": ".06s" }} className="kiosk-sidebar-title k-reveal mt-2 mb-[0.55em] text-touch-heading font-extrabold leading-[1.12] tracking-tight text-navy dark:text-[color:var(--text)] sm:mt-2.5 sm:text-touch-title xl:text-touch-hero">
         {title.split(" ").map((word, i) => (
           <span key={word + i} className="inline-block">{word}{i < title.split(" ").length - 1 ? "\u00a0" : ""}</span>
         ))}
       </h1>
-      <p className="mt-2 text-touch-label leading-snug text-muted xl:text-touch-body">{subtitle}</p>
+      <p style={{ "--d": ".16s" }} className="k-enter mt-2 text-touch-label leading-snug text-muted xl:text-touch-body">{subtitle}</p>
 
       <nav aria-label={navLabel || title} className="kiosk-sidebar-steps mt-4 hidden gap-2 md:flex md:flex-row lg:flex-col xl:mt-5 xl:gap-2.5">
-        {steps.map((step) => (
+        {steps.map((step, i) => (
           <KioskStepCard
             key={step.id}
+            enterAt={0.22 + Math.min(i, 5) * 0.06}
             number={step.number}
             icon={step.icon}
             title={step.title}
@@ -38,7 +40,7 @@ export default function KioskSidebar({ title, subtitle, icon: IdentityIcon = Use
         ))}
       </nav>
 
-      <div className="kiosk-sidebar-help mt-auto hidden items-start gap-2.5 pt-4 lg:flex">
+      <div style={{ "--d": ".5s" }} className="kiosk-sidebar-help k-enter mt-auto hidden items-start gap-2.5 pt-4 lg:flex">
         <CircleHelp size={20} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
         <div>
           <p className="m-0 text-touch-label font-bold text-navy dark:text-[color:var(--text)]">{helpTitle}</p>

@@ -31,7 +31,7 @@ export default function VisitDetailsSection({
   id, sectionRef, t, lang, errors, services, staffList, service, onServiceChange, staff, onStaffChange
 }) {
   return (
-    <KioskSection id={id} sectionRef={sectionRef} icon={ClipboardList} tone="violet" title={t("sectionVisitDetails")}>
+    <KioskSection id={id} sectionRef={sectionRef} icon={ClipboardList} tone="violet" title={t("sectionVisitDetails")} enterAt={0.36}>
       <div className="grid gap-x-4 gap-y-2.5 [@container(min-width:32rem)]:grid-cols-2">
         <KioskSelectField
           name="service" id="service-select" label={t("reasonForVisit")} required

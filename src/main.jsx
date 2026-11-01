@@ -21,9 +21,9 @@ import "./styles/main.css";
 // the state change still reads without anything moving across the screen.
 //
 // LazyMotion: components use the slim `m.*` elements, and framer-motion's
-// animation engine (domAnimation -- animate/exit/variants/hover/tap, no
-// drag or layout) arrives as its own chunk right after first paint instead
-// of riding in the entry bundle. `strict` makes a stray full `motion.*`
+// animation engine (domMax -- animate/exit/variants plus the layout
+// animations behind the sliding tab and segment indicators) arrives as its
+// own chunk right after first paint instead of riding in the entry bundle. `strict` makes a stray full `motion.*`
 // element throw in dev, so the saving can't silently regress.
 const loadMotionFeatures = () => import("./lib/motionFeatures.js").then((mod) => mod.default);
 

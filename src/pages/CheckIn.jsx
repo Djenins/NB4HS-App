@@ -3,10 +3,18 @@
 // (Shell.jsx skips its default topbar/footer-note for this route -- see
 // the `isKioskLanding` check there) instead of sitting inside the plain
 // boxed card the rest of the app's screens use.
+//
+// Entrance: the welcome is revealed, the gold rule draws out under it, then
+// the choices rise in reading order with their icon discs growing in, all
+// within about 0.8s (the k-* classes in main.css; each element's --d sets
+// its turn). The background glows keep drifting while the kiosk sits idle.
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarCheck, ChevronRight, GraduationCap, Headset, Heart, LogOut, User, UserPlus } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { cn } from "../lib/cn.js";
+
+// Entrance delay, in seconds, for the k-* classes.
+const delay = (s) => ({ "--d": s + "s" });
 import { ORG } from "../lib/constants.js";
 import { LOGO_URL } from "../lib/logo.js";
 import KioskTopBar from "../components/kiosk/KioskTopBar.jsx";
@@ -15,20 +23,21 @@ import KioskTopBar from "../components/kiosk/KioskTopBar.jsx";
 // Appointment card below it: icon beside the title and description, a
 // full-width button underneath. From sm up it becomes the centred kiosk card
 // (2x2 on a tablet, one row of four on a wide kiosk).
-function RoleCard({ icon, iconClass, title, services, buttonLabel, buttonClass, onClick, compact }) {
+function RoleCard({ icon, iconClass, title, services, buttonLabel, buttonClass, onClick, compact, enterAt }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      style={delay(enterAt)}
       className={cn(
         // The whole card is the button, so it may raise on hover (border and
         // shadow only, never a lift -- DESIGN.md's Still Card Rule).
-        "group flex w-full flex-wrap items-center gap-3 rounded-surface border border-border bg-card px-4 py-4 text-left font-normal shadow-card transition-[border-color,box-shadow] duration-fast ease-out hover:border-line-strong hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
+        "k-enter k-press group flex w-full flex-wrap items-center gap-3 rounded-surface border border-border bg-card px-4 py-4 text-left font-normal shadow-card hover:border-line-strong hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
         "sm:max-w-[420px] sm:flex-col sm:flex-nowrap sm:gap-0 sm:py-6 sm:text-center",
         compact ? "sm:px-6" : "sm:px-8"
       )}
     >
-      <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-16 sm:w-16", iconClass)}>
+      <span style={delay(enterAt + 0.1)} className={cn("k-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-16 sm:w-16", iconClass)}>
         {icon({ strokeWidth: 2, className: "h-6 w-6 sm:h-8 sm:w-8", "aria-hidden": true })}
       </span>
       {/* sm+: flex-1 makes the text absorb the height difference, so every
@@ -54,13 +63,13 @@ function RoleCard({ icon, iconClass, title, services, buttonLabel, buttonClass, 
 // Phone only (below sm): one row of the single list panel -- a small icon in
 // a soft tone circle, title and description, a chevron; the whole row is the
 // button. From sm up the page keeps the card layout above.
-function ChoiceRow({ icon: Icon, iconClass, title, description, onClick }) {
+function ChoiceRow({ icon: Icon, iconClass, title, description, onClick, enterAt }) {
   return (
-    <li className="m-0 flex flex-1 flex-col">
+    <li style={delay(enterAt)} className="k-enter m-0 flex flex-1 flex-col">
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[56px] w-full flex-1 items-center gap-3 border-0 bg-transparent px-4 py-2 text-left [@media(min-height:740px)]:min-h-[72px] [@media(min-height:740px)]:gap-4 [@media(min-height:740px)]:py-3 [@media(min-height:880px)]:gap-5 [@media(min-height:880px)]:px-5 font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="flex min-h-[56px] w-full flex-1 items-center gap-3 border-0 bg-transparent px-4 py-2 text-left [@media(min-height:740px)]:min-h-[72px] [@media(min-height:740px)]:gap-4 [@media(min-height:740px)]:py-3 [@media(min-height:880px)]:gap-5 [@media(min-height:880px)]:px-5 k-press font-normal hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full [@media(min-height:740px)]:h-12 [@media(min-height:740px)]:w-12 [@media(min-height:880px)]:h-14 [@media(min-height:880px)]:w-14", iconClass)}>
           <Icon strokeWidth={2} aria-hidden="true" className="h-5 w-5 [@media(min-height:740px)]:h-6 [@media(min-height:740px)]:w-6 [@media(min-height:880px)]:h-7 [@media(min-height:880px)]:w-7" />
@@ -91,12 +100,12 @@ export default function CheckIn() {
     <div className={cn("kiosk-landing relative flex w-full flex-col overflow-hidden bg-background", compact ? "min-h-0" : "h-screen supports-[height:100dvh]:h-[100dvh]")}>
       <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block">
         <div
-          className="absolute left-1/2 top-[-10%] h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-60"
-          style={{ background: "radial-gradient(closest-side, var(--primary-tint), transparent)" }}
+          className="k-glow absolute left-1/2 top-[-10%] h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-60"
+          style={{ background: "radial-gradient(closest-side, var(--primary-tint), transparent)", "--drift-x": "-60px", "--drift-y": "30px", "--drift-time": "21s" }}
         />
         <div
-          className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full opacity-70"
-          style={{ background: "radial-gradient(closest-side, var(--gold-tint), transparent)" }}
+          className="k-glow absolute -bottom-32 -right-24 h-96 w-96 rounded-full opacity-70"
+          style={{ background: "radial-gradient(closest-side, var(--gold-tint), transparent)", "--drift-x": "-50px", "--drift-y": "-40px", "--drift-time": "17s" }}
         />
       </div>
 
@@ -122,28 +131,28 @@ export default function CheckIn() {
             on taller ones, where the rows stretch to fill the screen (up
             to a cap) so a Pro Max isn't left half empty. */}
         <div className="flex w-full flex-1 flex-col sm:hidden">
-          <h1 className="m-0 text-touch-heading [@media(min-height:740px)]:mt-2 [@media(min-height:740px)]:text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
-          <p className="m-0 mt-0.5 text-touch-label text-muted [@media(min-height:740px)]:mt-1 [@media(min-height:740px)]:text-touch-body">{t("landingChooseHowWeHelp")}</p>
+          <h1 className="k-reveal m-0 text-touch-heading [@media(min-height:740px)]:mt-2 [@media(min-height:740px)]:text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
+          <p style={delay(0.1)} className="k-enter m-0 mt-0.5 text-touch-label text-muted [@media(min-height:740px)]:mt-1 [@media(min-height:740px)]:text-touch-body">{t("landingChooseHowWeHelp")}</p>
 
-          <ul className="m-0 mt-3 flex flex-col [@media(min-height:740px)]:mt-6 [@media(min-height:740px)]:max-h-[38rem] [@media(min-height:740px)]:flex-1 [@media(min-height:880px)]:mt-7 [@media(min-height:880px)]:max-h-[42rem] list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
+          <ul style={delay(0.14)} className="k-enter m-0 mt-3 flex flex-col [@media(min-height:740px)]:mt-6 [@media(min-height:740px)]:max-h-[38rem] [@media(min-height:740px)]:flex-1 [@media(min-height:880px)]:mt-7 [@media(min-height:880px)]:max-h-[42rem] list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
             <ChoiceRow icon={GraduationCap} iconClass="bg-tone-info-chip text-tone-info-ink"
               title={t("iAmStudent").replace(/\s*\(.*\)$/, "")} description={t("landingStudentShort")}
-              onClick={() => navigate("/checkin/student")} />
+              onClick={() => navigate("/checkin/student")} enterAt={0.20} />
             <ChoiceRow icon={User} iconClass="bg-tone-warning-chip text-tone-warning-ink"
               title={t("iAmVisitor").replace(/\s*\(.*\)$/, "")} description={t("landingVisitorShort")}
-              onClick={() => navigate("/checkin/visitor")} />
+              onClick={() => navigate("/checkin/visitor")} enterAt={0.26} />
             <ChoiceRow icon={UserPlus} iconClass="bg-tone-success-chip text-tone-success-ink"
               title={t("registerKioskTitle")} description={t("landingRegisterShort")}
-              onClick={() => navigate("/register")} />
+              onClick={() => navigate("/register")} enterAt={0.32} />
             <ChoiceRow icon={LogOut} iconClass="bg-tone-neutral-chip text-tone-neutral-ink"
               title={t("iAmDone")} description={t("landingCheckOutShort")}
-              onClick={() => navigate("/checkout")} />
+              onClick={() => navigate("/checkout")} enterAt={0.38} />
             <ChoiceRow icon={CalendarCheck} iconClass="bg-tone-violet-chip text-tone-violet-ink"
               title={t("requestApptLandingBtn")} description={t("landingApptShort")}
-              onClick={() => navigate("/appointments/request")} />
+              onClick={() => navigate("/appointments/request")} enterAt={0.44} />
           </ul>
 
-          <p className="m-0 mt-3 text-touch-meta text-muted [@media(min-height:740px)]:mt-auto [@media(min-height:740px)]:pt-5 [@media(min-height:740px)]:text-touch-label">
+          <p style={delay(0.55)} className="k-enter m-0 mt-3 text-touch-meta text-muted [@media(min-height:740px)]:mt-auto [@media(min-height:740px)]:pt-5 [@media(min-height:740px)]:text-touch-label">
             {t("alreadyRequestedApptLabel")}{" "}
             <button
               type="button"
@@ -154,7 +163,7 @@ export default function CheckIn() {
             </button>
           </p>
 
-          <p className="m-0 mt-3 flex items-center justify-center gap-2 text-center [@media(min-height:740px)]:mt-4 text-touch-meta text-muted [@media(min-height:740px)]:text-touch-label">
+          <p style={delay(0.6)} className="k-enter m-0 mt-3 flex items-center justify-center gap-2 text-center [@media(min-height:740px)]:mt-4 text-touch-meta text-muted [@media(min-height:740px)]:text-touch-label">
             <Headset size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
             <span><span className="font-semibold text-navy dark:text-[color:var(--text)]">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
           </p>
@@ -162,11 +171,11 @@ export default function CheckIn() {
 
         {/* sm and up: the kiosk card layout, unchanged. */}
         <div className="my-auto hidden w-full flex-col items-center sm:flex">
-        <h1 className={cn("mb-[0.55em] max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-touch-heading sm:text-touch-title" : "text-touch-heading sm:text-touch-hero")}>
+        <h1 className={cn("k-reveal mb-[0.55em] max-w-3xl text-balance text-center font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]", compact ? "text-touch-heading sm:text-touch-title" : "text-touch-heading sm:text-touch-hero")}>
           {t("landingWelcomeTo")} {ORG.name}
         </h1>
-        <p className={cn("text-center text-touch-body text-muted", compact ? "mt-1.5" : "mt-1.5 sm:mt-2 sm:text-touch-lead")}>{t("landingHowCanWeHelp")}</p>
-        <span aria-hidden="true" className={cn("rounded-full bg-gold", compact ? "mt-3 h-1 w-12" : "mt-4 h-1 w-16")} />
+        <p style={delay(0.12)} className={cn("k-enter text-center text-touch-body text-muted", compact ? "mt-1.5" : "mt-1.5 sm:mt-2 sm:text-touch-lead")}>{t("landingHowCanWeHelp")}</p>
+        <span aria-hidden="true" style={delay(0.22)} className={cn("k-bar rounded-full bg-gold", compact ? "mt-3 h-1 w-12" : "mt-4 h-1 w-16")} />
 
         {/* Four role cards: stacked rows on a phone, 2x2 on a tablet, one row on a wide kiosk. */}
         <div className={cn("grid w-full max-w-[1500px] grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 xl:grid-cols-4", compact ? "mt-6 sm:gap-4" : "mt-5 sm:gap-6")}>
@@ -179,6 +188,7 @@ export default function CheckIn() {
             buttonLabel={t("checkInLabel")}
             buttonClass="bg-primary text-primary-foreground group-hover:bg-primary-dark"
             onClick={() => navigate("/checkin/student")}
+            enterAt={0.28}
           />
           <RoleCard
             compact={compact}
@@ -189,6 +199,7 @@ export default function CheckIn() {
             buttonLabel={t("checkInLabel")}
             buttonClass="bg-tone-warning-solid text-tone-warning-on-solid group-hover:bg-gold-dark"
             onClick={() => navigate("/checkin/visitor")}
+            enterAt={0.35}
           />
           {/* New clients sign themselves up for Case Management
               (ClientRegister.jsx); staff complete the full intake afterwards. */}
@@ -201,6 +212,7 @@ export default function CheckIn() {
             buttonLabel={t("registerSubmitBtn")}
             buttonClass="bg-tone-success-solid text-tone-success-on-solid"
             onClick={() => navigate("/register")}
+            enterAt={0.42}
           />
           <RoleCard
             compact={compact}
@@ -211,6 +223,7 @@ export default function CheckIn() {
             buttonLabel={t("checkOutBtn")}
             buttonClass="bg-navy text-navy-foreground group-hover:bg-navy-dark"
             onClick={() => navigate("/checkout")}
+            enterAt={0.49}
           />
         </div>
 
@@ -220,10 +233,11 @@ export default function CheckIn() {
         <button
           type="button"
           onClick={() => navigate("/appointments/request")}
+          style={delay(0.58)}
           className={cn(
             // Phone: icon + text on one row, a full-width button beneath.
             // sm and up: one row with the button on the right.
-            "group flex w-full max-w-[1500px] flex-wrap items-center gap-3 rounded-surface border border-border bg-card px-4 py-4 text-left font-normal shadow-card transition-[border-color,box-shadow] duration-fast hover:border-line-strong hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:flex-nowrap sm:gap-4",
+            "k-enter k-press group flex w-full max-w-[1500px] flex-wrap items-center gap-3 rounded-surface border border-border bg-card px-4 py-4 text-left font-normal shadow-card hover:border-line-strong hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:flex-nowrap sm:gap-4",
             compact ? "mt-3 sm:mt-4 sm:px-5" : "mt-3 sm:mt-6 sm:px-7 sm:py-5"
           )}
         >
@@ -238,7 +252,7 @@ export default function CheckIn() {
             {t("continueLabel")} <ArrowRight size={20} strokeWidth={2.5} aria-hidden="true" />
           </span>
         </button>
-        <p className={cn("text-center text-touch-meta text-muted", compact ? "mt-3" : "mt-4")}>
+        <p style={delay(0.64)} className={cn("k-enter text-center text-touch-meta text-muted", compact ? "mt-3" : "mt-4")}>
           {t("alreadyRequestedApptLabel")}{" "}
           <button
             type="button"
@@ -250,7 +264,7 @@ export default function CheckIn() {
         </p>
 
         {/* Phones show this note under their list instead. */}
-        <div className={cn("flex-col items-center gap-1.5 text-center", compact ? "mt-6 flex" : "mt-5 hidden sm:flex")}>
+        <div style={delay(0.7)} className={cn("k-enter flex-col items-center gap-1.5 text-center", compact ? "mt-6 flex" : "mt-5 hidden sm:flex")}>
           <span className={cn("flex items-center justify-center rounded-full bg-primary-tint text-primary", compact ? "h-9 w-9" : "h-10 w-10")}>
             <Headset size={compact ? 16 : 18} strokeWidth={2} aria-hidden="true" />
           </span>
