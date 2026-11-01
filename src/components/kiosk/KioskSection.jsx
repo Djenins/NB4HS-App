@@ -20,7 +20,7 @@ export default function KioskSection({ id, sectionRef, icon: SectionIcon, tone =
       ref={sectionRef}
       aria-labelledby={id + "-title"}
       className={cn(
-        "rounded-surface border border-border bg-card p-4 shadow-card",
+        "rounded-surface border border-border bg-card p-4 shadow-card sm:p-6",
         className
       )}
     >
