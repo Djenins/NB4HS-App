@@ -4,13 +4,15 @@
 // staff_reports.review or .view_all gets Overview and All reports; whoever
 // holds staff_reports.schedule.manage gets Settings. An administrator who
 // doesn't review sees only Settings -- configuring reporting does not mean
-// reading reports.
+// reading reports. With a single section there is nothing to switch
+// between, so a page header stands in for the strip.
 // /staffreports/:id opens one report for review.
 import { useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { LayoutGrid, ListChecks, Settings2 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
+import { PageHeader } from "../components/ui/page-header.jsx";
 import ReportReview from "../components/reports/ReportReview.jsx";
 import ReportingSettings from "../components/reports/ReportingSettings.jsx";
 import { StaffReportsAll, StaffReportsOverview } from "../components/reports/StaffReportsTables.jsx";
@@ -47,12 +49,16 @@ export default function StaffReports() {
 
   return (
     <>
-      <ModuleNav
-        label={t("navStaffReports")}
-        items={visible.map((key) => ({ key, label: t(SECTIONS[key].label), icon: SECTIONS[key].icon }))}
-        value={section}
-        onChange={(key) => { setChosen(key); if (reportId) navigate("/staffreports"); }}
-      />
+      {visible.length > 1 ? (
+        <ModuleNav
+          label={t("navStaffReports")}
+          items={visible.map((key) => ({ key, label: t(SECTIONS[key].label), icon: SECTIONS[key].icon }))}
+          value={section}
+          onChange={(key) => { setChosen(key); if (reportId) navigate("/staffreports"); }}
+        />
+      ) : (
+        <PageHeader title={t("navStaffReports")} description={t("srSettingsOnlyIntro")} />
+      )}
       {reportId ? <ReportReview reportId={reportId} /> : <ActiveComponent />}
     </>
   );

@@ -1,11 +1,13 @@
 // StaffReportsTables.jsx -- the reviewer's two list sections in Staff
-// Reports. Overview is one period: who owes a report, the headline counts,
-// and every expected report including the ones never started (from the
-// staff_reports_overview RPC, which refuses non-reviewers). All reports is
+// Reports. Overview is one period, sized for a small team: one summary
+// card (period, deadline, how many are in), the reports waiting for review,
+// then everyone expected to report, including those who never started (from
+// the staff_reports_overview RPC, which refuses non-reviewers). Filters live
+// only on All reports, where the rows add up across periods. All reports is
 // every submitted report across periods, searchable, with a CSV export of
 // the summary rows -- report text and comments are not exported.
 import { useEffect, useMemo, useState } from "react";
-import { AlarmClock, CheckCircle2, ClipboardList, Download, Hourglass, Inbox, Percent, RotateCcw } from "lucide-react";
+import { CheckCircle2, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
@@ -18,7 +20,6 @@ import { DataTable } from "../ui/data-table.jsx";
 import { EmptyState } from "../ui/empty-state.jsx";
 import { Field, Select } from "../ui/field.jsx";
 import { FilterBar, FilterField } from "../ui/filter-bar.jsx";
-import { KpiCard } from "../ui/kpi-card.jsx";
 import { RangeBar } from "../ui/range-bar.jsx";
 import { SearchInput } from "../ui/search-input.jsx";
 import { SectionCard } from "../ui/section-card.jsx";
@@ -77,7 +78,9 @@ function Filters({ idBase, filters, setFilters, staffIds, names, statuses, t }) 
 
 // Review-list template: one DataTable, a stacked row per report on phones
 // and tablets, the review action at the end of every row.
-function ReportsTable({ rows, names, tz, showPeriod, loading, empty }) {
+// One period's rows share a deadline, which the Overview already states,
+// so it hides the Due column there.
+function ReportsTable({ caption, rows, names, tz, showPeriod, showDue = true, loading, empty }) {
   const { lang } = useApp();
   const t = useT();
   const navigate = useNavigate();
@@ -92,14 +95,14 @@ function ReportsTable({ rows, names, tz, showPeriod, loading, empty }) {
   const programsOf = (r) => (r.programs && r.programs.length ? names.programsText(r.programs) : "—");
   return (
     <DataTable
-      caption={t("srReportsThisPeriod")}
+      caption={caption}
       loading={loading}
       empty={empty}
       columns={[
         { key: "staff", header: t("srStaffMember"), cell: (r) => names.staff[r.staffId] || "—", className: "font-semibold" },
         { key: "programs", header: t("srPrograms"), cell: programsOf },
         { key: "period", header: t("srReportingPeriod"), hidden: !showPeriod, cell: (r) => fmtPeriod(r.periodStart, r.periodEnd, lang) },
-        { key: "due", header: t("srDue"), cell: (r) => fmtDueAt(r.dueAt, tz, lang), className: "text-muted" },
+        { key: "due", header: t("srDue"), hidden: !showDue, cell: (r) => fmtDueAt(r.dueAt, tz, lang), className: "text-muted" },
         { key: "submitted", header: t("srSubmitted"), cell: (r) => (r.submittedAt ? fmtStamp(r.submittedAt, lang) : "—"), className: "text-muted" },
         { key: "status", header: t("srStatus"), cell: (r) => <ReportStatusBadge status={r.status} overdue={r.overdue} />, className: "whitespace-nowrap" },
         { key: "action", header: <span className="sr-only">{t("srReviewAction")}</span>, cell: action, className: "whitespace-nowrap text-right" }
@@ -141,15 +144,42 @@ function useReferenceData() {
 
 const EMPTY_FILTERS = { q: "", program: "", staffId: "", status: "" };
 
+// The period's numbers as one line under a progress bar. Only counts that
+// call for action take a colour, and only when they're above zero.
+function PeriodSummary({ stats, t }) {
+  const pct = stats.expected ? Math.round((stats.submitted / stats.expected) * 100) : 0;
+  const parts = [
+    ["srSummaryAwaiting", stats.awaitingReview, "text-tone-info-ink"],
+    ["srSummarySentBack", stats.revisionRequested, "text-tone-warning-ink"],
+    ["srSummaryOverdue", stats.overdue, "text-tone-danger-ink"]
+  ];
+  return (
+    <div className="grid gap-2.5">
+      <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-surface-sunken">
+        <div className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none" style={{ width: pct + "%" }} />
+      </div>
+      <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-ui tabular-nums">
+        <span className="font-semibold text-card-foreground">
+          {t("srSummarySubmitted").replace("{n}", stats.submitted).replace("{total}", stats.expected)}
+        </span>
+        {parts.map(([key, n, tone]) => (
+          <span key={key} className={n ? "font-medium " + tone : "text-muted"}>
+            <span aria-hidden="true" className="mr-3 text-muted">·</span>{t(key).replace("{n}", n)}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 export function StaffReportsOverview() {
-  const { lang } = useApp();
+  const { lang, can } = useApp();
   const t = useT();
   const { periods, tz, loadError } = useReferenceData();
   const names = useNames();
   const [periodId, setPeriodId] = useState("");
   const [rows, setRows] = useState(null);
   const [rowsError, setRowsError] = useState(false);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   // Default to the period containing today, else the latest one already started, else the first upcoming.
   useEffect(() => {
@@ -169,50 +199,51 @@ export function StaffReportsOverview() {
   if (loadError) return <SectionCard><EmptyState variant="error" title={t("srLoadError")} /></SectionCard>;
   if (!periods) return <Skeleton className="h-64 w-full" />;
   const period = periods.find((p) => p.id === periodId);
-  const scoped = filterReportRows(rows || [], { program: filters.program, staffId: filters.staffId }, names);
-  const stats = summarizeExpectations(scoped);
-  const list = filterReportRows(scoped, filters, names);
-  const staffIds = Array.from(new Set((rows || []).map((r) => r.staffId)));
-  // A tile only takes a tone colour when its number calls for attention.
-  const tiles = [
-    ["srKpiExpected", stats.expected, ClipboardList, "neutral"],
-    ["srKpiSubmitted", stats.submitted, CheckCircle2, "success"],
-    ["srKpiPending", stats.pending, Hourglass, "neutral"],
-    ["srKpiOverdue", stats.overdue, AlarmClock, stats.overdue ? "danger" : "neutral"],
-    ["srKpiAwaitingReview", stats.awaitingReview, Inbox, stats.awaitingReview ? "info" : "neutral"],
-    ["srKpiRevision", stats.revisionRequested, RotateCcw, stats.revisionRequested ? "warning" : "neutral"],
-    ["srKpiRate", stats.rate === null ? "—" : stats.rate + "%", Percent, "info"]
-  ];
+  const withPeriod = (rows || []).map((r) => Object.assign({}, r, { periodStart: period && period.start, periodEnd: period && period.end }));
+  const everyone = withPeriod.slice().sort((a, b) => (names.staff[a.staffId] || "").localeCompare(names.staff[b.staffId] || ""));
+  // Oldest submission first: it has waited longest.
+  const waiting = withPeriod.filter((r) => r.status === "submitted" || r.status === "under_review")
+    .sort((a, b) => (a.submittedAt || "").localeCompare(b.submittedAt || ""));
+  const canReview = can("staff_reports.review");
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <Field className="sm:w-72" label={t("srReportingPeriod")} htmlFor="sr-overview-period">
-          <Select id="sr-overview-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
-            {periods.map((p) => <option key={p.id} value={p.id}>{fmtPeriod(p.start, p.end, lang)}</option>)}
-          </Select>
-        </Field>
-        {period && <p className="m-0 text-ui tabular-nums text-muted sm:pb-2.5">{t("srDue")} {fmtDueAt(period.dueAt, tz, lang)}</p>}
-      </div>
+      <SectionCard>
+        <div className="grid gap-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <Field className="sm:w-72" label={t("srReportingPeriod")} htmlFor="sr-overview-period">
+              <Select id="sr-overview-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
+                {periods.map((p) => <option key={p.id} value={p.id}>{fmtPeriod(p.start, p.end, lang)}</option>)}
+              </Select>
+            </Field>
+            {period && <p className="m-0 text-ui tabular-nums text-muted sm:pb-2.5">{t("srDue")} {fmtDueAt(period.dueAt, tz, lang)}</p>}
+          </div>
+          {rowsError ? null : rows ? <PeriodSummary stats={summarizeExpectations(rows)} t={t} /> : <Skeleton className="h-10 w-full" />}
+        </div>
+      </SectionCard>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 2xl:grid-cols-7">
-        {tiles.map(([label, value, Icon, tone]) => (
-          rows ? <KpiCard key={label} label={t(label)} value={value} icon={Icon} tone={tone} /> : <Skeleton key={label} className="h-[104px] w-full" />
-        ))}
-      </div>
-
-      <div>
-        <Filters idBase="sr-overview" filters={filters} setFilters={setFilters} staffIds={staffIds} names={names}
-          statuses={["not_started", "draft"].concat(REPORT_STATUSES.slice(1), ["overdue"])} t={t} />
-        <SectionCard title={t("srReportsThisPeriod")}>
-          {rowsError ? <EmptyState variant="error" compact title={t("srLoadError")} />
-            : <ReportsTable
-                loading={rows === null}
-                rows={list.map((r) => Object.assign({}, r, { periodStart: period && period.start, periodEnd: period && period.end }))}
-                names={names} tz={tz}
-                empty={<EmptyState compact variant={rows && rows.length ? "no-results" : "none"} title={rows && rows.length ? t("srNoMatches") : t("srNobodyExpected")} />} />}
-        </SectionCard>
-      </div>
+      {rowsError ? (
+        <SectionCard><EmptyState variant="error" compact title={t("srLoadError")} /></SectionCard>
+      ) : (
+        <>
+          {canReview && (
+            <SectionCard title={t("srNeedsReview")}>
+              {rows !== null && waiting.length === 0 ? (
+                // An empty queue is good news, not an empty page: one quiet line.
+                <p className="m-0 flex items-center gap-2 text-ui text-muted">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-tone-success-ink" aria-hidden="true" /> {t("srNeedsReviewNone")}
+                </p>
+              ) : (
+                <ReportsTable caption={t("srNeedsReview")} loading={rows === null} rows={waiting} names={names} tz={tz} showDue={false} />
+              )}
+            </SectionCard>
+          )}
+          <SectionCard title={t("srEveryoneThisPeriod")}>
+            <ReportsTable caption={t("srEveryoneThisPeriod")} loading={rows === null} rows={everyone} names={names} tz={tz} showDue={false}
+              empty={<EmptyState compact title={t("srNobodyExpected")} />} />
+          </SectionCard>
+        </>
+      )}
     </div>
   );
 }
@@ -265,7 +296,7 @@ export function StaffReportsAll() {
         description={t("srExportNote")}
         action={<Button variant="secondary" className="gap-1.5" onClick={exportCsv} disabled={!list.length}><Download className="h-4 w-4" aria-hidden="true" /> {t("srExportCsv")}</Button>}
       >
-        <ReportsTable rows={list} names={names} tz={tz} showPeriod
+        <ReportsTable caption={t("srSectionAll")} rows={list} names={names} tz={tz} showPeriod
           empty={<EmptyState compact variant={reports.length ? "no-results" : "none"} title={reports.length ? t("srNoMatches") : t("srNoSubmittedReports")} />} />
       </SectionCard>
     </div>

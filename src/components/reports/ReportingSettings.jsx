@@ -1,8 +1,9 @@
 // ReportingSettings.jsx -- Staff Reports' configuration section, for holders
-// of staff_reports.schedule.manage. Three cards: the biweekly schedule (with
-// a preview of the next deadlines computed the same way the database does),
-// who reviews, and the health of the email copies (p6b) so a provider
-// outage is visible instead of silent. Who reports follows roles (staff_reports.submit, managed
+// of staff_reports.schedule.manage. Three cards: who reviews (first, with a
+// warning while nobody does, since then every submission goes unread), the
+// biweekly schedule (with a preview of the next deadlines computed the same
+// way the database does, and its Save kept in view), and the health of the
+// email copies (p6b) so a provider outage is visible instead of silent. Who reports follows roles (staff_reports.submit, managed
 // under Administration -> Roles); granting "Reviewer" is what lets someone
 // read other staff's reports -- being an administrator does not.
 import { useEffect, useState } from "react";
@@ -56,7 +57,9 @@ function ScheduleCard({ schedule, onSaved }) {
   }
 
   return (
-    <SectionCard title={t("srScheduleTitle")}>
+    // overflow-visible: the card's default overflow-hidden would stop the
+    // save bar from sticking to the bottom of the window.
+    <SectionCard title={t("srScheduleTitle")} className="overflow-visible">
       <form className="grid gap-5" onSubmit={save}>
         <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field htmlFor="sched-start" label={t("srFirstPeriodStart")} hint={t("srFirstPeriodStartHelp")}>
@@ -89,7 +92,8 @@ function ScheduleCard({ schedule, onSaved }) {
                 <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.reminderOffsets.indexOf(o) !== -1}
                   onChange={() => set("reminderOffsets", draft.reminderOffsets.indexOf(o) !== -1
                     ? draft.reminderOffsets.filter((x) => x !== o) : draft.reminderOffsets.concat([o]).sort((a, b) => a - b))} />
-                {o < 0 ? t("srOffsetBefore").replace("{n}", -o) : o === 0 ? t("srOffsetOnDay") : t("srOffsetAfter").replace("{n}", o)}
+                {o === -1 ? t("srOffsetBefore1") : o < 0 ? t("srOffsetBefore").replace("{n}", -o)
+                  : o === 0 ? t("srOffsetOnDay") : o === 1 ? t("srOffsetAfter1") : t("srOffsetAfter").replace("{n}", o)}
               </label>
             ))}
           </div>
@@ -112,7 +116,7 @@ function ScheduleCard({ schedule, onSaved }) {
             </ul>
           </div>
         )}
-        <div className="flex flex-col gap-3 border-t border-line-subtle pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-col gap-3 rounded-b-surface border-t border-line-subtle bg-card px-5 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="m-0 text-meta text-muted">{t("srScheduleChangeNote")}</p>
           <Button type="submit" className="shrink-0" disabled={busy || !valid}>{t("srSaveSchedule")}</Button>
         </div>
@@ -141,7 +145,8 @@ function PeopleCard() {
 
   const staff = (data.profiles || []).filter((p) => p.active !== false).slice()
     .sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
-  const roleOf = (userId) => (roles[userId] && roles[userId].active ? roles[userId].role : "");
+  const roleOf = (userId) => (roles && roles[userId] && roles[userId].active ? roles[userId].role : "");
+  const reviewers = roles === null ? null : staff.filter((p) => roleOf(p.id) === "reviewer").length;
   const roleSelect = (p) => (
     <Select aria-label={t("srReportingRole") + " — " + (p.name || p.email)}
       value={roleOf(p.id)} disabled={savingKey === p.id}
@@ -155,8 +160,12 @@ function PeopleCard() {
   );
 
   return (
-    <SectionCard title={t("srPeopleTitle")}>
-      <Alert tone="info" className="mb-4">{t("srPeopleHelp")}</Alert>
+    <SectionCard
+      title={t("srPeopleTitle")}
+      description={t("srPeopleHelp")}
+      action={reviewers ? <span className="text-meta font-semibold tabular-nums text-muted">{t("srReviewerCount").replace("{n}", reviewers)}</span> : null}
+    >
+      {reviewers === 0 ? <Alert tone="warning" className="mb-4" title={t("srNoReviewerTitle")}>{t("srNoReviewerBody")}</Alert> : null}
       {roles === null ? <Skeleton className="h-40 w-full" /> : (
         <DataTable
           caption={t("srPeopleTitle")}
@@ -230,8 +239,8 @@ export default function ReportingSettings() {
   if (schedules === null) return <Skeleton className="h-96 w-full" />;
   return (
     <div className="grid gap-6">
-      {schedules.map((s) => <ScheduleCard key={s.id + n} schedule={s} onSaved={load} />)}
       <PeopleCard />
+      {schedules.map((s) => <ScheduleCard key={s.id + n} schedule={s} onSaved={load} />)}
       <EmailCard />
     </div>
   );

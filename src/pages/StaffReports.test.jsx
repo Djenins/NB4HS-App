@@ -1,7 +1,8 @@
 // StaffReports.test.jsx -- who sees the reporting pages, the staff flow
-// (create a draft, required-field check, submit, confirmation), and the
+// (create a draft, required-field check, submit, confirmation), the
 // reviewer flow (opening a report starts the review; a revision needs a
-// comment). Data calls are stubbed; the database rules themselves are
+// comment), and the page layout (the overview's summary and review queue,
+// the settings warning while nobody reviews). Data calls are stubbed; the database rules themselves are
 // covered by supabase/tests/p6a_reports_check.sql.
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -27,6 +28,7 @@ vi.mock("../lib/staffReports.js", async (importOriginal) => {
     fetchSchedules: stub("fetchSchedules"), fetchReportHistory: stub("fetchReportHistory"), createDraft: stub("createDraft"),
     saveDraft: stub("saveDraft"), submitReport: stub("submitReport"), fetchReport: stub("fetchReport"), startReview: stub("startReview"),
     requestRevision: stub("requestRevision"), acknowledgeReport: stub("acknowledgeReport"),
+    fetchPeriods: stub("fetchPeriods"), fetchOverview: stub("fetchOverview"),
     fetchQueueHealth: () => (api.fetchQueueHealth ? api.fetchQueueHealth() : Promise.resolve(null)),
     fetchAttachments: () => (api.fetchAttachments ? api.fetchAttachments() : Promise.resolve([])),
     uploadAttachment: stub("uploadAttachment")
@@ -34,7 +36,7 @@ vi.mock("../lib/staffReports.js", async (importOriginal) => {
 });
 vi.mock("../lib/programStaff.js", async (importOriginal) => ({
   ...(await importOriginal()),
-  fetchProgramStaff: () => Promise.resolve({})
+  fetchProgramStaff: () => (api.fetchProgramStaff ? api.fetchProgramStaff() : Promise.resolve({}))
 }));
 
 import MyReports from "./MyReports.jsx";
@@ -267,5 +269,52 @@ describe("Staff Reports review", () => {
     expect(await screen.findByText("Ran two workshops")).toBeTruthy();
     expect(screen.queryByRole("button", { name: en("srAcknowledge") })).toBeNull();
     expect(api.startReview).not.toHaveBeenCalled();
+  });
+});
+
+describe("Staff Reports layout", () => {
+  const row = (staffId, status, extra) => Object.assign({
+    periodId: "p1", staffId, programs: [], dueAt: PERIOD.dueAt, overdue: false, reportId: null, status, submittedAt: null, version: 0
+  }, extra);
+
+  it("gives a settings-only administrator a page header, not a one-item section strip", async () => {
+    setup("administrator", {}, "u-boss");
+    renderAt("/staffreports");
+    expect(await screen.findByRole("heading", { level: 1, name: en("navStaffReports") })).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: en("navStaffReports") })).toBeNull();
+  });
+
+  it("warns in settings while nobody reviews, and names reminders in the singular for one day", async () => {
+    setup("administrator", {}, "u-boss");
+    renderAt("/staffreports");
+    expect(await screen.findByText(en("srNoReviewerTitle"))).toBeTruthy();
+    expect(screen.getByText(en("srOffsetBefore1"))).toBeTruthy();
+    expect(screen.getByText(en("srOffsetAfter1"))).toBeTruthy();
+    expect(screen.queryByText(/\b1 days\b/)).toBeNull();
+  });
+
+  it("drops the warning once someone reviews", async () => {
+    setup("administrator", {}, "u-boss");
+    api.fetchProgramStaff = vi.fn().mockResolvedValue({ "u-jane": { role: "reviewer", active: true } });
+    renderAt("/staffreports");
+    expect(await screen.findByText(en("srReviewerCount").replace("{n}", 1))).toBeTruthy();
+    expect(screen.queryByText(en("srNoReviewerTitle"))).toBeNull();
+  });
+
+  it("sums up the period and lists what waits for review above everyone's status", async () => {
+    setup("staff", { staff_reports: "reviewer" }, "u-boss");
+    api.fetchPeriods = vi.fn().mockResolvedValue([{ id: "p1", start: PERIOD.periodStart, end: PERIOD.periodEnd, dueAt: PERIOD.dueAt }]);
+    api.fetchOverview = vi.fn().mockResolvedValue([
+      row("u-jane", "submitted", { reportId: "r1", submittedAt: "2026-11-16T15:00:00Z", version: 1 }),
+      row("u-boss", "not_started")
+    ]);
+    renderAt("/staffreports");
+    expect(await screen.findByText(en("srSummarySubmitted").replace("{n}", 1).replace("{total}", 2))).toBeTruthy();
+    expect(screen.getByText(en("srSummaryAwaiting").replace("{n}", 1))).toBeTruthy();
+    const queue = screen.getByRole("heading", { name: en("srNeedsReview") }).closest("section, div.overflow-hidden");
+    expect(queue.textContent).toContain("Jane Pierre");
+    expect(queue.textContent).not.toContain("B. Director");
+    expect(screen.getByRole("heading", { name: en("srEveryoneThisPeriod") })).toBeTruthy();
+    expect(screen.queryByText(en("srKpiRate"))).toBeNull();
   });
 });
