@@ -11,7 +11,7 @@ import {
 import { subscribeClientsTable } from "../lib/clientsData.js";
 import { formatPhone } from "../lib/utils.js";
 import { cn } from "../lib/cn.js";
-import EmptyState from "./EmptyState.jsx";
+import { EmptyState } from "./ui/empty-state.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.jsx";
@@ -237,7 +237,7 @@ export default function CaseResources() {
         </div>
       ) : (
         <Card><CardContent className="p-5">
-          <EmptyState icon="users" message={term || category ? t("noSearchResults") : t("noResourcesYet")} />
+          <EmptyState compact variant={term || category ? "no-results" : "none"} title={term || category ? t("noSearchResults") : t("noResourcesYet")} />
         </CardContent></Card>
       )}
     </>

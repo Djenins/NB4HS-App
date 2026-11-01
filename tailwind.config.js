@@ -36,7 +36,6 @@ export default {
         // Gold: sparing premium accent (dividers, featured stats, KPI
         // highlights, badges) -- never a dominant color.
         gold: { DEFAULT: "var(--gold)", dark: "var(--gold-dark)", foreground: "#1F172A", ink: "var(--gold-ink)" },
-        warn: "var(--warn)",
         background: "var(--bg)",
         card: { DEFAULT: "var(--card)", foreground: "var(--text)" },
         border: "var(--border)",
@@ -54,8 +53,7 @@ export default {
         sky: { tint: "var(--sky-tint)", ink: "var(--sky-ink)" },
         "tint-neutral": "var(--tint-neutral)",
         "tint-success": "var(--tint-success)",
-        "tint-warn": "var(--tint-warn)",
-        "tint-danger": "var(--tint-danger)",
+        "tint-danger": "var(--accent-tint)",
         // NB4HS Operate semantic layer (plans/ui-design-system.md). Surfaces
         // and lines first, then one six-slot entry per tone, e.g.
         // bg-tone-success-bg / border-tone-success-border / text-tone-success-ink.

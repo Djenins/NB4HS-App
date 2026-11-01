@@ -21,11 +21,6 @@ export function apptStatusLabel(status, lang) {
   if (status === "cancelled") return t("apptStatusCancelled", lang);
   return status;
 }
-export function apptStatusBadgeClass(status) {
-  if (status === "requested") return "badge-warn";
-  if (status === "cancelled") return "badge-out";
-  return "badge-in";
-}
 export function sortedAppointments(appointments, meetingWith) {
   var list = (appointments || []).slice();
   if (meetingWith) list = list.filter(function (a) { return a.meetingWith === meetingWith; });
