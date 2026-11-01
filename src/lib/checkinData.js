@@ -9,6 +9,7 @@
 // `setData(prev => ...)` patches to calling the functions below.
 import { supabase } from "./supabase.js";
 import { masterToRow } from "./clientsData.js";
+import { markMyVisitOut } from "./kioskDevice.js";
 
 // ---------- mapping: DB row (snake_case) <-> app shape (camelCase) ----------
 
@@ -245,6 +246,43 @@ export async function fetchVisitCount() {
   if (error) { console.warn("fetchVisitCount failed", error); return 0; }
   return Number(data) || 0;
 }
+// The welcome page's "Students Enrolled" for a signed-out browser, which no
+// longer loads the roster unless it's a paired tablet (k1).
+export async function fetchStudentCount() {
+  const { data, error } = await supabase.rpc("public_student_count");
+  if (error) { console.warn("fetchStudentCount failed", error); return 0; }
+  return Number(data) || 0;
+}
+// Student check-in from an unpaired phone: name plus the last four digits of
+// the phone number on file. Resolves to { status: "ok", visit } with the new
+// visit in app shape, or { status: "not_found" | "already" }.
+export async function selfCheckInStudent(firstName, lastName, phoneLast4, visitDate) {
+  const { data, error } = await supabase.rpc("kiosk_student_self_check_in", {
+    p_first_name: firstName, p_last_name: lastName, p_phone_last4: phoneLast4, p_visit_date: visitDate
+  });
+  if (error) throw error;
+  if (!data || data.status !== "ok") return { status: (data && data.status) || "not_found" };
+  return { status: "ok", visit: visitFromRow(data.visit) };
+}
+
+// ---------- paired kiosk tablets (System Settings) ----------
+
+export async function fetchKioskDevices() {
+  const { data, error } = await supabase.rpc("admin_kiosk_devices");
+  if (error) throw error;
+  return data || [];
+}
+// Pairs the device that calls it; resolves to { id, name, key } -- the key
+// is handed back this once and never again.
+export async function createKioskDevice(name) {
+  const { data, error } = await supabase.rpc("admin_create_kiosk_device", { p_name: name });
+  if (error) throw error;
+  return data;
+}
+export async function revokeKioskDevice(id) {
+  const { error } = await supabase.rpc("admin_revoke_kiosk_device", { p_id: id });
+  if (error) throw error;
+}
 // Search.jsx's edit-visit action -- staff-only (see the visits_update RLS
 // policy: active staff only; the anonymous kiosk goes through the kiosk_*
 // RPCs above instead of touching the table).
@@ -260,6 +298,8 @@ export async function updateVisit(id, patch) {
 export async function checkOutVisit(id) {
   const { data, error } = await supabase.rpc("check_out_visit", { visit_id: id });
   if (error) throw error;
+  // A phone's own list of visits (kioskDevice.js) is the only copy it has.
+  markMyVisitOut(id, data && data.time_out);
   return data ? visitFromRow(data) : null;
 }
 

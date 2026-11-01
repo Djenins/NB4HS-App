@@ -16,13 +16,14 @@ import { CircleHelp, UserRoundCheck } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { activeServiceList, activeStaffList, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
+import { rememberMyVisit } from "../lib/kioskDevice.js";
 import SubmitCheckInButton from "../components/kiosk/SubmitCheckInButton.jsx";
 import VisitorInformationSection from "../components/kiosk/VisitorInformationSection.jsx";
 import AddressSection from "../components/kiosk/AddressSection.jsx";
 import VisitDetailsSection from "../components/kiosk/VisitDetailsSection.jsx";
 
 export default function CheckInVisitor() {
-  const { data, lang, showToast } = useApp();
+  const { data, lang, showToast, session, kioskPaired } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -83,6 +84,9 @@ export default function CheckInVisitor() {
     setBusy(true);
     try {
       const created = await createVisit(record);
+      // A client's own phone keeps the visit so it can check out later --
+      // the only visit it will ever list (kioskDevice.js).
+      if (!session && !kioskPaired) rememberMyVisit(created);
       navigate("/checkin/success", { state: { lastCheckInId: created.id, kind: "visitor" } });
     } finally {
       setBusy(false);
