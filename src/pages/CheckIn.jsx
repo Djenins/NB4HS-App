@@ -60,14 +60,14 @@ function ChoiceRow({ icon: Icon, iconClass, title, description, onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[64px] w-full items-center gap-3.5 border-0 bg-transparent px-4 py-3 text-left font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="flex min-h-[56px] w-full items-center gap-3 border-0 bg-transparent px-4 py-2 text-left font-normal transform-none transition-colors duration-fast hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
-        <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", iconClass)}>
-          <Icon strokeWidth={2} aria-hidden="true" className="h-[22px] w-[22px]" />
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", iconClass)}>
+          <Icon strokeWidth={2} aria-hidden="true" className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block break-words text-touch-section font-extrabold leading-snug text-navy dark:text-[color:var(--text)]">{title}</span>
-          <span className="mt-0.5 block break-words text-touch-meta leading-snug text-muted">{description}</span>
+          <span className="block break-words text-touch-body font-extrabold leading-snug text-navy dark:text-[color:var(--text)]">{title}</span>
+          <span className="block break-words text-touch-meta leading-snug text-muted">{description}</span>
         </span>
         <ChevronRight strokeWidth={2.4} aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />
       </button>
@@ -108,7 +108,7 @@ export default function CheckIn() {
         tabIndex={-1}
         className={cn(
           "relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-y-auto px-4 sm:px-6",
-          compact ? "pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 sm:pt-6" : "pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:pt-5"
+          compact ? "pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:pb-[max(2rem,env(safe-area-inset-bottom))] sm:pt-6" : "pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-5"
         )}
       >
         {/* m-auto rather than justify-center on <main>: it centres the content
@@ -116,30 +116,32 @@ export default function CheckIn() {
             there isn't -- justify-center pushed the heading and first card
             above the scroll area on phones and short kiosk screens. */}
         {/* Phone: a compact, left-aligned welcome and one list of every
-            choice, each row tapping straight through. */}
+            choice, each row tapping straight through. Short one-line
+            descriptions so all of it fits one phone screen; wider screens
+            keep the full ones below. */}
         <div className="w-full sm:hidden">
-          <h1 className="m-0 text-touch-title font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
-          <p className="m-0 mt-1 text-touch-body text-muted">{t("landingChooseHowWeHelp")}</p>
+          <h1 className="m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)]">{t("landingWelcomeShort")}</h1>
+          <p className="m-0 mt-0.5 text-touch-label text-muted">{t("landingChooseHowWeHelp")}</p>
 
-          <ul className="m-0 mt-5 list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
+          <ul className="m-0 mt-3 list-none divide-y divide-line-subtle overflow-hidden rounded-surface border border-border bg-card p-0 shadow-card">
             <ChoiceRow icon={GraduationCap} iconClass="bg-tone-info-chip text-tone-info-ink"
-              title={t("iAmStudent").replace(/\s*\(.*\)$/, "")} description={t("landingStudentServices")}
+              title={t("iAmStudent").replace(/\s*\(.*\)$/, "")} description={t("landingStudentShort")}
               onClick={() => navigate("/checkin/student")} />
             <ChoiceRow icon={User} iconClass="bg-tone-warning-chip text-tone-warning-ink"
-              title={t("iAmVisitor").replace(/\s*\(.*\)$/, "")} description={t("landingVisitorServices")}
+              title={t("iAmVisitor").replace(/\s*\(.*\)$/, "")} description={t("landingVisitorShort")}
               onClick={() => navigate("/checkin/visitor")} />
             <ChoiceRow icon={UserPlus} iconClass="bg-tone-success-chip text-tone-success-ink"
-              title={t("registerKioskTitle")} description={t("registerKioskServices")}
+              title={t("registerKioskTitle")} description={t("landingRegisterShort")}
               onClick={() => navigate("/register")} />
             <ChoiceRow icon={LogOut} iconClass="bg-tone-neutral-chip text-tone-neutral-ink"
-              title={t("iAmDone")} description={t("landingCheckOutServices")}
+              title={t("iAmDone")} description={t("landingCheckOutShort")}
               onClick={() => navigate("/checkout")} />
             <ChoiceRow icon={CalendarCheck} iconClass="bg-tone-violet-chip text-tone-violet-ink"
-              title={t("requestApptLandingBtn")} description={t("requestApptCardDesc")}
+              title={t("requestApptLandingBtn")} description={t("landingApptShort")}
               onClick={() => navigate("/appointments/request")} />
           </ul>
 
-          <p className="m-0 mt-4 text-touch-meta text-muted">
+          <p className="m-0 mt-3 text-touch-meta text-muted">
             {t("alreadyRequestedApptLabel")}{" "}
             <button
               type="button"
@@ -150,7 +152,7 @@ export default function CheckIn() {
             </button>
           </p>
 
-          <p className="m-0 mt-5 flex items-center justify-center gap-2 text-center text-touch-meta text-muted">
+          <p className="m-0 mt-3 flex items-center justify-center gap-2 text-center text-touch-meta text-muted">
             <Headset size={18} strokeWidth={2} aria-hidden="true" className="shrink-0 text-primary" />
             <span><span className="font-semibold text-navy dark:text-[color:var(--text)]">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
           </p>
