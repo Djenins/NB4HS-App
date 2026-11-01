@@ -138,7 +138,7 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
   const { fmtDateLong, monthNamesLong, monthYearLabel, weekdayShortLabels } = await import("./utils.js");
   it("names months and weekdays in Kreyòl", () => {
     expect(monthNamesLong("ht")).toEqual(["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"]);
-    expect(weekdayShortLabels("ht")).toEqual(["lin", "mad", "mèk", "jed", "van", "sam", "dim"]);
+    expect(weekdayShortLabels("ht")).toEqual(["dim", "lin", "mad", "mèk", "jed", "van", "sam"]);
     expect(fmtDateLong("2026-11-02", "ht")).toBe("2 novanm 2026");
     expect(monthYearLabel(2026, 9, "ht")).toBe("oktòb 2026");
   });
@@ -147,7 +147,7 @@ describe("Kreyòl dates (no Haitian Creole in the browser's Intl data)", async (
     // A full timestamp (a document's created_at) shows the local day, not "Invalid Date".
     expect(fmtDateLong(new Date(2026, 10, 2, 21, 30).toISOString(), "en")).toBe("Nov 2, 2026");
     expect(monthNamesLong("fr")[10]).toBe("novembre");
-    expect(weekdayShortLabels("en")[0]).toBe("Mon");
+    expect(weekdayShortLabels("en")[0]).toBe("Sun");
   });
 });
 

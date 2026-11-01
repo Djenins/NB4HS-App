@@ -1,5 +1,5 @@
-// DatePicker.jsx -- a small popover calendar (Today/Tomorrow quick-picks +
-// month grid) that replaces native <input type="date"> app-wide, per a
+// DatePicker.jsx -- a small popover calendar (month and year menus, arrows,
+// and a Sunday-first grid of the month's days) that replaces native <input type="date"> app-wide, per a
 // reference design the client shared. Deliberately scoped to single-date
 // selection only -- every date field in this app (intake date, DOB, work
 // permit expiration, appointment date, report from/to) picks one date, not
@@ -20,9 +20,8 @@
 //     FormField.jsx's type="date" case (ApptRequest.jsx).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { addDays, buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
+import { buildMonthGrid, daysInMonth, fmtDateLong, monthNamesLong, pad2, todayStr, weekdayShortLabels } from "../lib/utils.js";
 import Icon from "./Icon.jsx";
-import { IconButton } from "./ui/icon-button.jsx";
 
 export default function DatePicker({ id, name, value, defaultValue, onChange, required, invalid, placeholder, min, max, disabled }) {
   const { lang } = useApp();
@@ -100,13 +99,11 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
     setViewDate(d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()));
   }
 
-  const cells = buildMonthGrid(viewYear, viewMonth);
+  // Drop the trailing week(s) that hold only next month's days.
+  const grid = buildMonthGrid(viewYear, viewMonth);
+  const cells = grid.slice(0, Math.ceil((grid.findIndex((c) => c.inMonth) + daysInMonth(viewYear, viewMonth)) / 7) * 7);
   const weekdays = weekdayShortLabels(lang);
   const monthNames = monthNamesLong(lang);
-  const currentDate = current ? new Date(current + "T00:00:00") : null;
-  const selectedDay = currentDate && currentDate.getFullYear() === viewYear && currentDate.getMonth() === viewMonth ? currentDate.getDate() : "";
-  const dayCount = daysInMonth(viewYear, viewMonth);
-  const dayOptions = Array.from({ length: dayCount }, (_, i) => i + 1);
   const thisRealYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 111 }, (_, i) => thisRealYear + 10 - i);
 
@@ -117,9 +114,6 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
   function setMonth(m) {
     const d = new Date(viewYear, m, Math.min(viewD.getDate(), daysInMonth(viewYear, m)));
     setViewDate(d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()));
-  }
-  function setDay(day) {
-    commit(viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(day));
   }
 
   return (
@@ -140,54 +134,41 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
 
       {open && (
         <div ref={panelRef} className={"date-picker-panel" + (dropUp ? " drop-up" : "")} role="dialog" aria-label={t("pleaseSelect")}>
-          <div className="date-picker-quick">
-            <button type="button" className="date-picker-quick-btn" disabled={outOfRange(today)} onClick={() => commit(today)}>{t("today")}</button>
-            <button type="button" className="date-picker-quick-btn" disabled={outOfRange(addDays(today, 1))} onClick={() => commit(addDays(today, 1))}>{t("tomorrow")}</button>
-          </div>
-          <div className="date-picker-nav">
-            <IconButton size="sm" label={t("prevPage")} onClick={() => shiftMonth(-1)}>
-              <Icon name="chevronrt" className="icon-flip-x" />
-            </IconButton>
-            <select
-              className="date-picker-select"
-              aria-label={t("monthLabel")}
-              value={viewMonth}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            >
-              {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select
-              className="date-picker-select"
-              aria-label={t("yearLabel")}
-              value={viewYear}
-              onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            >
-              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <IconButton size="sm" label={t("nextPage")} onClick={() => shiftMonth(1)}>
-              <Icon name="chevronrt" />
-            </IconButton>
-          </div>
-          <div className="date-picker-day-select">
-            <label>
-              {t("dayLabel")}
+          <div className="date-picker-head">
+            <div className="date-picker-titles">
               <select
-                aria-label={t("dayLabel")}
-                value={selectedDay}
-                onChange={(e) => setDay(parseInt(e.target.value, 10))}
+                className="date-picker-select"
+                aria-label={t("monthLabel")}
+                value={viewMonth}
+                onChange={(e) => setMonth(parseInt(e.target.value, 10))}
               >
-                <option value="" disabled>{t("pleaseSelect")}</option>
-                {dayOptions.map((d) => (
-                  <option key={d} value={d} disabled={outOfRange(viewYear + "-" + pad2(viewMonth + 1) + "-" + pad2(d))}>{d}</option>
-                ))}
+                {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-            </label>
+              <select
+                className="date-picker-select"
+                aria-label={t("yearLabel")}
+                value={viewYear}
+                onChange={(e) => setYear(parseInt(e.target.value, 10))}
+              >
+                {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div className="date-picker-arrows">
+              <button type="button" className="date-picker-arrow" aria-label={t("prevPage")} title={t("prevPage")} onClick={() => shiftMonth(-1)}>
+                <Icon name="chevronrt" className="icon-flip-x" />
+              </button>
+              <button type="button" className="date-picker-arrow" aria-label={t("nextPage")} title={t("nextPage")} onClick={() => shiftMonth(1)}>
+                <Icon name="chevronrt" />
+              </button>
+            </div>
           </div>
           <div className="date-picker-weekdays">
             {weekdays.map((w, i) => <span key={i}>{w}</span>)}
           </div>
           <div className="date-picker-grid">
             {cells.map((c) => {
+              // Only this month's days are shown; the others keep their place.
+              if (!c.inMonth) return <span key={c.dateStr} aria-hidden="true" />;
               const isSelected = !!current && c.dateStr === current;
               const isToday = c.dateStr === today;
               const blocked = outOfRange(c.dateStr);
@@ -195,7 +176,7 @@ export default function DatePicker({ id, name, value, defaultValue, onChange, re
                 <button
                   type="button"
                   key={c.dateStr}
-                  className={"date-picker-day" + (c.inMonth ? "" : " outside") + (isSelected ? " selected" : "") + (isToday ? " today" : "")}
+                  className={"date-picker-day" + (isSelected ? " selected" : "") + (isToday ? " today" : "")}
                   onClick={() => commit(c.dateStr)}
                   aria-pressed={isSelected}
                   aria-label={fmtDateLong(c.dateStr, lang)}

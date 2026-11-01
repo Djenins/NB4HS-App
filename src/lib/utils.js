@@ -105,7 +105,7 @@ export function addMonths(dateStr, n) {
 // months and weekdays in English. These are the Kreyòl names, lower-case like
 // French. Only client-facing pages ever see lang "ht" (AppContext).
 var HT_MONTHS = ["janvye", "fevriye", "mas", "avril", "me", "jen", "jiyè", "out", "septanm", "oktòb", "novanm", "desanm"];
-var HT_WEEKDAYS_SHORT = ["lin", "mad", "mèk", "jed", "van", "sam", "dim"];
+var HT_WEEKDAYS_SHORT = ["dim", "lin", "mad", "mèk", "jed", "van", "sam"];
 
 // Takes a bare YYYY-MM-DD (read as a local calendar day) or a full timestamp
 // such as a row's created_at (shown as the day it falls on locally).
@@ -150,16 +150,16 @@ export function weekdayShortLabels(lang) {
   if (lang === "ht") return HT_WEEKDAYS_SHORT.slice();
   var out = [];
   for (var i = 0; i < 7; i++) {
-    var d = new Date(2024, 0, 1 + i);
+    var d = new Date(2023, 11, 31 + i); // Sun 31 Dec 2023, so the week starts on Sunday
     out.push(d.toLocaleDateString(DATE_LOCALE[lang] || "en-US", { weekday: "short" }));
   }
   return out;
 }
-// 6 weeks x 7 days (Monday-first), including enough leading/trailing days
-// from adjacent months to fill the grid.
+// 6 weeks x 7 days (Sunday-first, as US calendars are), including enough
+// leading/trailing days from adjacent months to fill the grid.
 export function buildMonthGrid(year, month) {
   var firstOfMonth = new Date(year, month, 1);
-  var firstWeekday = (firstOfMonth.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+  var firstWeekday = firstOfMonth.getDay(); // 0=Sun .. 6=Sat
   var start = new Date(year, month, 1 - firstWeekday);
   var cells = [];
   for (var i = 0; i < 42; i++) {
