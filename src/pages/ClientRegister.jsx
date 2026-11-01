@@ -103,92 +103,103 @@ export default function ClientRegister() {
 
   return (
     <div className="appt-request flex w-full flex-1 flex-col">
-      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-6 sm:shadow-card">
+      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
         <KioskPageHeader
           icon={UserPlus}
           title={t("registerTitle")}
           description={t("registerDesc")}
         />
 
-        <form ref={formRef} onSubmit={handleSubmit} noValidate className="appt-form mt-5 flex flex-col gap-4">
-          <div className="appt-cards grid items-stretch gap-4 lg:grid-cols-2 lg:gap-5">
-            <div className="flex flex-col gap-4">
-              <YourInformationSection t={t} errors={errors} open={openSections.info} onToggle={() => toggleSection("info")} description={t("registerYourInfoDesc")} />
-              <ApptRequestCard
-                id="register-about"
-                icon={Cake}
-                title={t("registerAboutTitle")}
-                description={t("registerAboutDesc")}
-                open={openSections.info}
-                onToggle={() => toggleSection("info")}
-              >
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
-                  <ApptDateField name="dob" label={t("dobLabel")} error={errors.dob} pastOnly />
-                  <ApptSelect name="immigrationStatus" label={t("immigrationStatusLabel")} defaultValue="">
-                    <option value="">{t("pleaseSelect")}</option>
-                    {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key, lang)}</option>)}
-                  </ApptSelect>
-                </div>
-              </ApptRequestCard>
-            </div>
-
-            <ApptRequestCard
-              id="register-more"
-              icon={MapPin}
-              title={t("registerAddressServicesTitle")}
-              description={t("registerAddressServicesDesc")}
-              open={openSections.more}
-              onToggle={() => toggleSection("more")}
-            >
-              <div className="grid gap-x-4 gap-y-3 sm:gap-y-4">
-                <ApptField
-                  name="street" label={t("address")} placeholder={t("streetAddressPlaceholder")}
-                  onAddressSelect={(a) => {
-                    // Uncontrolled form: write the picked city / ZIP straight in.
-                    const form = formRef.current;
-                    if (!form) return;
-                    if (a.city) form.elements.namedItem("city").value = a.city;
-                    if (a.zip) form.elements.namedItem("zip").value = a.zip;
-                  }}
-                />
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5">
-                  <ApptField name="city" label={t("city")} autoComplete="address-level2" placeholder={t("phCity")} />
-                  <ApptField name="zip" label={t("zip")} autoComplete="postal-code" placeholder={t("phZip")} />
-                </div>
-                <fieldset className="m-0 min-w-0 border-0 p-0">
-                  <legend className="appt-label mb-2 block p-0 text-[0.95rem] font-bold text-navy dark:text-[color:var(--text)]">
-                    {t("registerServicesLabel")}
-                  </legend>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {CASE_SERVICES.map((s) => {
-                      const on = services.indexOf(s.key) !== -1;
-                      return (
-                        <label
-                          key={s.key}
-                          className={cn(
-                            "mb-1.5 flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[14px] border px-4 text-[1rem] font-semibold transition-colors",
-                            on ? "border-primary bg-primary-tint text-primary" : "border-border bg-card text-card-foreground hover:border-primary"
-                          )}
-                        >
-                          <input type="checkbox" checked={on} onChange={() => toggleService(s.key)} className="h-5 w-5 shrink-0" />
-                          {caseServiceLabel(s.key, lang)}
-                        </label>
-                      );
-                    })}
+        <form ref={formRef} onSubmit={handleSubmit} noValidate className="appt-form mt-4 flex flex-col gap-4">
+          {/* Fits one screen on a kiosk or laptop: two columns once the form
+              is wide enough (the outer div is the size container the grid
+              reads), a stack on phones. Left: who you are, and what happens
+              next; right: address, the services as compact chips, Submit. */}
+          <div className="[container-type:inline-size]">
+            <div className="appt-cards flex flex-col gap-4 [@container(min-width:46rem)]:grid [@container(min-width:46rem)]:grid-cols-2 [@container(min-width:46rem)]:items-start">
+              <div className="flex flex-col gap-4">
+                <YourInformationSection t={t} errors={errors} open={openSections.info} onToggle={() => toggleSection("info")} description={t("registerYourInfoDesc")} />
+                <ApptRequestCard
+                  id="register-about"
+                  icon={Cake}
+                  title={t("registerAboutTitle")}
+                  description={t("registerAboutDesc")}
+                  open={openSections.info}
+                  onToggle={() => toggleSection("info")}
+                >
+                  <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
+                    <ApptDateField name="dob" label={t("dobLabel")} error={errors.dob} pastOnly />
+                    <ApptSelect name="immigrationStatus" label={t("immigrationStatusLabel")} defaultValue="">
+                      <option value="">{t("pleaseSelect")}</option>
+                      {IMMIGRATION_STATUSES.map((s) => <option key={s.key} value={s.key}>{immigrationStatusLabel(s.key, lang)}</option>)}
+                    </ApptSelect>
                   </div>
-                </fieldset>
+                </ApptRequestCard>
+                {/* Wide screens skip this note: the page's own subtitle already
+                    says a case manager will be in touch, and the room goes to
+                    fitting the form on one screen. */}
+                <div className="[@container(min-width:46rem)]:hidden">
+                  <WhatHappensNext
+              title={t("apptWhatsNextTitle")}
+              text={t("registerWhatsNextDesc")}
+              open={openSections.next}
+              onToggle={() => toggleSection("next")}
+            />
+                </div>
               </div>
-            </ApptRequestCard>
-          </div>
 
-          <WhatHappensNext
-            title={t("apptWhatsNextTitle")}
-            text={t("registerWhatsNextDesc")}
-            open={openSections.next}
-            onToggle={() => toggleSection("next")}
-          />
+              <div className="flex flex-col gap-4">
+                <ApptRequestCard
+                  id="register-more"
+                  icon={MapPin}
+                  title={t("registerAddressServicesTitle")}
+                  description={t("registerAddressServicesDesc")}
+                  open={openSections.more}
+                  onToggle={() => toggleSection("more")}
+                >
+                  <div className="grid gap-x-4 gap-y-3">
+                    <ApptField
+                      name="street" label={t("address")} placeholder={t("streetAddressPlaceholder")}
+                      onAddressSelect={(a) => {
+                        // Uncontrolled form: write the picked city / ZIP straight in.
+                        const form = formRef.current;
+                        if (!form) return;
+                        if (a.city) form.elements.namedItem("city").value = a.city;
+                        if (a.zip) form.elements.namedItem("zip").value = a.zip;
+                      }}
+                />
+                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5">
+                    <ApptField name="city" label={t("city")} autoComplete="address-level2" placeholder={t("phCity")} />
+                    <ApptField name="zip" label={t("zip")} autoComplete="postal-code" placeholder={t("phZip")} />
+                </div>
+                    <fieldset className="m-0 min-w-0 border-0 p-0">
+                      <legend className="appt-label mb-1.5 block p-0 text-[0.95rem] font-bold text-navy dark:text-[color:var(--text)]">
+                        {t("registerServicesLabel")}
+                      </legend>
+                      {/* Chips that wrap: ten services in a few short rows
+                          instead of a tall two-column list of tiles. */}
+                      <div className="flex flex-wrap gap-x-1.5 gap-y-1">
+                        {CASE_SERVICES.map((s) => {
+                          const on = services.indexOf(s.key) !== -1;
+                          return (
+                            <label
+                              key={s.key}
+                              className={cn(
+                                "m-0 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-chip border px-3 text-touch-meta font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+                                on ? "border-primary bg-primary-tint text-primary" : "border-border bg-card text-card-foreground hover:border-primary"
+                              )}
+                            >
+                              <input type="checkbox" checked={on} onChange={() => toggleService(s.key)} className="m-0 h-[18px] w-[18px] shrink-0 accent-primary" />
+                              {caseServiceLabel(s.key, lang)}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  </div>
+                </ApptRequestCard>
 
-          {submitError && (
+                {submitError && (
             <p
               role="alert"
               className="m-0 flex items-start gap-2.5 rounded-[14px] border border-accent-soft bg-accent-tint p-3.5 text-[0.98rem] font-semibold text-accent"
@@ -198,7 +209,10 @@ export default function ClientRegister() {
             </p>
           )}
 
-          <AppointmentSubmitButton label={t("registerSubmitBtn")} busyLabel={t("registerSubmitting")} busy={busy} />
+                <AppointmentSubmitButton label={t("registerSubmitBtn")} busyLabel={t("registerSubmitting")} busy={busy} />
+              </div>
+            </div>
+          </div>
         </form>
       </div>
     </div>

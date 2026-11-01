@@ -452,6 +452,8 @@
     .appt-request .appt-lede{margin-top:2px; font-size:1rem;}
     .appt-request .appt-form{margin-top:10px; gap:8px;}
     .appt-request .appt-cards{gap:14px;}
+    /* Registration's two columns (ClientRegister.jsx). */
+    .appt-request .appt-cards > div{gap:10px;}
     .appt-request .appt-card{padding:12px 14px;}
     .appt-request .appt-card-badge{height:40px; width:40px;}
     .appt-request .appt-card-title{font-size:1.1rem;}
