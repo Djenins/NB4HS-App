@@ -15,7 +15,7 @@ Rules for every goal:
 | # | Goal | Scope | Done when | Status |
 |---|---|---|---|---|
 | 1 | Clean-up and docs | Rewrite `README-Dev.md` to match the current app. Mark `snap-outreach-architecture.md` with its real status. Merge or close PR #21 (Add a Household form) | The docs match the code and PR #21 is closed or merged | ☐ |
-| 2 | Security leftovers | Confirm S7 and S8 are fixed on live (Phase 3). Fix S11: make `audit_events` append-only and audit profile changes. Decide on S13 (kiosk RPC rate limits) | Each item has a regression check and is marked closed in `unified-access-architecture.md` | ☐ |
+| 2 | Security leftovers | Confirm S7 and S8 are fixed on live (Phase 3). Fix S11: make `audit_events` append-only and audit profile changes. Decide on S13 (kiosk RPC rate limits) | Each item has a regression check and is marked closed in `unified-access-architecture.md` | ◐ 2026-10-30: S7, S8 and S13 closed and confirmed on live; S11 fixed by `t9`, tested locally, waiting for approval to apply |
 | 3 | Bundle size | Split the ~1 MB main chunk: route-level `lazy()`, and separate chunks for the chart, jsPDF and html2canvas libraries | No chunk is over 500 KB; build and tests pass | ☑ 2026-10-29: largest chunk 401 KB (was 1,006 KB); first-load JavaScript 521 → 287 KB gzip |
 | 4 | Design batch 3d: Outreach | `Outreach.jsx` shell, Contacts, Cases, Tasks, Staff, the detail modals: PageHeaders, `DataTable` with phone cards, Skeletons, `EmptyState` | `impeccable detect` is clean for the batch; PR merged | ☐ |
 | 5 | Design batch 3e: Programs and admin | Food Distribution, Manage, Settings, Users, QR Code: remove about 60 inline styles | `impeccable detect` is clean; PR merged | ☐ |

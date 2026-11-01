@@ -7,7 +7,7 @@ Status: **approved 2026-10-26** with the recommended defaults D1–D13. **Phase 
 - Migrations p0a (20261026084229) and p0b (20261026084847) applied and verified on live.
 - One test appointment was submitted on the live site, checked and deleted.
 
-Open from §2.1: S7 and S8 (Phase 3), S11 (Phase 1), S13 (review).
+§2.1 is closed (launch goal 2, 2026-10-30). S7, S8 and S13 are fixed on live. S11's last gaps are fixed by `t9`, which is not on live yet.
 Audit date 2026-10-26. The audit was read-only: the repository at `origin/main` (d47f5bc), the open PR branches and the live Supabase project `vkbzarlkqzvhsfdmxyyq`, read with SELECT queries only.
 
 This builds on three earlier plans. It does not replace them:
@@ -106,13 +106,13 @@ These are fixed in Phase 0 or Phase 1, independent of the new model.
 | S4 | Medium | Users can edit their own `profiles.email`. Appointment notifications are routed by email (`limit 1`), so a user can intercept a colleague's notifications | `rbac_hardening.sql:8-27` |
 | S5 | Medium | The `staff_directory` view (definer rights) is granted to anon and exposes staff emails | `20260716053433…:30-36` |
 | S6 | Medium | Signup still stores a requested `administrator` role (inactive). Activating that account grants admin silently | stage0a:32-38 |
-| S7 | Medium | Workforce toggle and RLS disagree (see §1.2) | `20260727200452` vs workforce policies |
-| S8 | Medium | Intake form is gated to case manager or admin **only in the UI**; `clients` RLS is `is_staff()` | `CaseManagement.jsx:293`, `ClientProfile.jsx:616` |
+| S7 | Medium | Workforce toggle and RLS disagree (see §1.2) | `20260727200452` vs workforce policies. **Closed:** fixed by `p3b`. Live checked 2026-10-30 (read-only): the workforce tables check `has_wf()` permissions, which follow the setting. Regression check: `supabase/tests/s7_s8_regression_check.sql` |
+| S8 | Medium | Intake form is gated to case manager or admin **only in the UI**; `clients` RLS is `is_staff()` | `CaseManagement.jsx:293`, `ClientProfile.jsx:616`. **Closed:** fixed by `p3c`. Live checked 2026-10-30 (read-only): intake lives in `client_intakes` behind `case_management.intake.view`/`.edit` (administrators and case managers), no intake form is left on `clients`, and the routing trigger is there. Regression check: `s7_s8_regression_check.sql` |
 | S9 | Low | `created_by` and `uploaded_by` can be spoofed on notes, documents, communications and calendar events. A "private" note can be planted under another user's name | `20260720193841`, others |
 | S10 | Low | Some admin checks skip `active` (calendar_events, appointments by email) | `20260716050948:35,43` |
-| S11 | Low | `audit_events` is not append-only for privileged roles; profile changes are not audited | stage1:92 |
+| S11 | Low | `audit_events` is not append-only for privileged roles; profile changes are not audited | stage1:92. **Closed in the repo; `t9` needs approval for live.** `p1a` added the append-only trigger and the profiles audit. `t9` closes what was left: `session_replication_role = replica` switched both off, `service_role` could write fake rows, and deleting an account with history failed. Check: `t9_audit_append_only_check.sql` |
 | S12 | Low | `next_nb_id()` and `next_student_display_id()` are callable by anon (number burning) | `20260715131048`, `20260716032418` |
-| S13 | Info | Kiosk RPCs expose the roster and open visits by design. Rate limiting is to be reviewed | stage0a |
+| S13 | Info | Kiosk RPCs expose the roster and open visits by design. Rate limiting is to be reviewed | stage0a. **Closed:** the owner chose a throttle (`security-decisions-2026-10-28.md`). `t6` added it and `t8` hardened it (`launch-readiness-2026-10-29.md` §2). Both are on live: checked 2026-10-30, 13 limits, the request hook and the cleanup job. Checks: `t6_rate_limits_check.sql`, `t8_rate_limit_check.sql` |
 
 ---
 
