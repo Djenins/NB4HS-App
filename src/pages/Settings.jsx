@@ -66,7 +66,7 @@ export default function Settings() {
   }
 
   const rolePermissionRows = [
-    [t("roleAdmin"), t("roleAdminDesc"), Users, "danger"],
+    [t("roleAdmin"), t("roleAdminDesc"), Users, "info"],
     [t("roleStaff"), t("roleStaffDesc"), UserRound, "violet"],
     [t("roleReceptionist"), t("roleReceptionistDesc"), Building2, "success"],
     [t("roleCaseManager"), t("roleCaseManagerDesc"), Briefcase, "warning"],
