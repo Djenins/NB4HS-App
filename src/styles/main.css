@@ -152,16 +152,6 @@
     --fs-heading:1.25rem; --fs-section:1rem; --fs-body:0.9375rem;
     --fs-ui:0.875rem; --fs-meta:0.8125rem; --fs-caption:0.75rem; --fs-kpi:1.5rem;
 
-    /* Touch scale (batch 3h): the kiosk, appointment and sign-in screens,
-       used with a finger from arm's length. Same tokens as the staff UI,
-       one size up: body 16-18px, titles up to 36px, nothing under 14px.
-       Touch controls are 52px+ tall, so they get a 14px radius -- still
-       under the 16px surface they sit on. */
-    --fs-touch-hero:2.25rem; --fs-touch-title:1.75rem; --fs-touch-heading:1.375rem;
-    --fs-touch-section:1.125rem; --fs-touch-lead:1.125rem; --fs-touch-body:1rem;
-    --fs-touch-label:0.9375rem; --fs-touch-meta:0.875rem;
-    --radius-touch:14px;
-
     /* Motion */
     --duration-fast:150ms; --duration-base:200ms; --ease-out:cubic-bezier(.2,.8,.2,1);
   }
@@ -421,9 +411,11 @@
     .grid-4{grid-template-columns:repeat(4,1fr);}
   }
   .app-shell-top{position:sticky; top:0; z-index:20;}
+  /* The staff topbar is a quiet hairline bar (batch 3g): it used to carry a
+     3px red rule, but red is for errors only. */
   header.topbar{
     background:var(--card); color:var(--text); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    border-bottom:1px solid var(--border); box-shadow:var(--shadow-sm);
+    border-bottom:1px solid var(--border);
   }
   header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem;}
   header.topbar .brand img{height:46px; width:auto; display:block;}
@@ -634,11 +626,11 @@
      filled brand colour. */
   :root{
     --sb-bg:rgba(255,255,255,.88); --sb-border:rgba(148,163,184,.22); --sb-divider:rgba(148,163,184,.24);
-    --sb-text:#172554; --sb-muted:#64748B; --sb-icon:#334155;
-    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:#2563EB;
+    --sb-text:#172554; --sb-muted:var(--muted); --sb-icon:#334155;
+    --sb-hover:rgba(37,99,235,.06); --sb-active:#DCE8FF; --sb-active-text:#155EEF; --sb-rail-active:var(--primary);
     --sb-field:rgba(241,245,249,.95); --sb-field-border:rgba(148,163,184,.28); --sb-kbd:#ffffff;
     --sb-seg:rgba(241,245,249,.95); --sb-seg-on:#ffffff; --sb-seg-on-text:#155EEF;
-    --sb-tooltip:#0F172A; --sb-tooltip-text:#ffffff;
+    --sb-tooltip:var(--text); --sb-tooltip-text:var(--card);
     --sb-shadow:0 1px 2px rgba(15,23,42,.04), 0 16px 40px -12px rgba(15,23,42,.16);
     /* The canvas behind the floating sidebar and content panel: one step
        below the page colour, so the panel (which keeps --bg) lifts off it. */
@@ -676,13 +668,10 @@
      sidebar as its own rounded panel, with the same 16px inset, border and
      shadow. The panel is the scroll container -- the window doesn't scroll
      -- so the topbar stays inside its rounded top edge; sticky children
-     (topbar, ModuleNav) stick to the panel's top instead of the window's.
-     position:relative makes the panel the containing block for absolute
-     descendants (e.g. the charts' sr-only tables); otherwise they escape
-     the overflow clip and stretch the window's scroll past the shell. */
+     (topbar, ModuleNav) stick to the panel's top instead of the window's. */
   .app-shell--floating{background:var(--canvas); height:100dvh;}
   .content-col--floating{
-    position:relative; height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+    height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
     background:var(--bg); border:1px solid var(--sb-border); box-shadow:var(--sb-shadow);
   }
   .content-col > main{max-width:1200px;}
@@ -952,7 +941,7 @@
     nav.tabs, .sidebar, .no-print{display:none !important;}
     .app-shell-top{position:static;}
     .content-col > header.topbar{position:static;}
-    header.topbar{border-bottom:2px solid var(--accent); box-shadow:none;}
+    header.topbar{border-bottom:1px solid var(--border); box-shadow:none;}
     body{background:#fff;}
     main, .content-col > main{max-width:100%;}
     .app-shell--floating{height:auto; background:#fff;}

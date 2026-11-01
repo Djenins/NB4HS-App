@@ -2,6 +2,10 @@
 // panel, slid in from the left over a dimmed backdrop. A modal while open:
 // focus is trapped and restored afterwards, Escape and the backdrop close
 // it, and the page underneath can't scroll. Shell closes it on navigation.
+//
+// Motion is the design system's drawer motion: 200ms on the ease-out curve,
+// the same as ui/drawer.jsx, mirrored to slide from the left. With "reduce
+// motion" on, main.jsx's MotionConfig drops the slide and keeps the fade.
 import { m } from "framer-motion";
 import { useEffect } from "react";
 import { useModalA11y } from "../../lib/useModalA11y.js";
@@ -24,8 +28,8 @@ export default function SidebarDrawer({ label, onClose, children }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
+        transition={{ duration: 0.15 }}
+        className="absolute inset-0 bg-surface-overlay"
       />
       <m.div
         ref={boxRef}
@@ -35,7 +39,7 @@ export default function SidebarDrawer({ label, onClose, children }) {
         initial={{ x: "-104%" }}
         animate={{ x: 0 }}
         exit={{ x: "-104%" }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
+        transition={{ type: "tween", duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
         className="absolute bottom-3 left-3 top-3 w-[min(320px,calc(100vw-24px))]"
       >
         {children}
