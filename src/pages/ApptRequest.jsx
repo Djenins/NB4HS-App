@@ -132,7 +132,7 @@ export default function ApptRequest() {
 
   return (
     <div className="appt-request flex w-full flex-1 flex-col">
-      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-6 sm:shadow-card">
+      <div className="appt-frame mx-auto flex w-full max-w-[1500px] flex-col rounded-surface sm:border sm:border-border sm:bg-card sm:p-6 sm:shadow-card">
         <KioskPageHeader
           icon={CalendarCheck}
           title={t("requestApptTitle")}
@@ -173,7 +173,7 @@ export default function ApptRequest() {
           {submitError && (
             <p
               role="alert"
-              className="m-0 flex items-start gap-2.5 rounded-[14px] border border-accent-soft bg-accent-tint p-3.5 text-[0.98rem] font-semibold text-accent"
+              className="m-0 flex items-start gap-2.5 rounded-touch border border-tone-danger-border bg-tone-danger-bg p-3.5 text-touch-body font-semibold text-tone-danger-ink"
             >
               <TriangleAlert size={20} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
               {submitError}

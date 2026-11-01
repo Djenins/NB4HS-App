@@ -29,8 +29,8 @@ function RescheduleForm({ appt, onDone }) {
   return (
     <div className="mt-2 space-y-2 rounded-lg border border-border bg-background p-2" onClick={(e) => e.stopPropagation()}>
       <div className="grid grid-cols-2 gap-2">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 min-h-0 w-full rounded-md border border-border bg-card px-2 text-xs" />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-8 min-h-0 w-full rounded-md border border-border bg-card px-2 text-xs" />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 min-h-0 w-full rounded-md border border-border bg-card px-2 text-meta" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-8 min-h-0 w-full rounded-md border border-border bg-card px-2 text-meta" />
       </div>
       <div className="flex gap-1.5">
         <Button size="sm" onClick={save}>{t("saveRescheduleBtn")}</Button>
@@ -67,7 +67,7 @@ function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
           className={cn("flex min-h-0 w-full items-center gap-2 rounded-none border-0 border-b border-border px-3 py-2.5 text-left font-normal transform-none last:border-0 hover:bg-background focus:bg-background focus:outline-none", n.read ? "bg-transparent" : "bg-primary-tint")}>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-card-foreground">{title}</span>
-            <span className="mt-0.5 block text-xs text-muted">{n.message}</span>
+            <span className="mt-0.5 block text-meta text-muted">{n.message}</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
         </button>
@@ -78,10 +78,10 @@ function NotificationRow({ n, appt, onApprove, onCancel, onOpen }) {
   return (
     <div className={cn("border-b border-border px-3 py-2.5 last:border-0", !n.read && "bg-primary-tint")}>
       <div className="text-sm font-semibold text-card-foreground">{title}</div>
-      <div className="mt-0.5 text-xs text-muted">{n.message}</div>
+      <div className="mt-0.5 text-meta text-muted">{n.message}</div>
       {appt && (
         <>
-          <div className="mt-1 text-xs text-muted">
+          <div className="mt-1 text-meta text-muted">
             {fmtDateLong(appt.date, lang)}{appt.time ? " · " + appt.time : ""}
           </div>
           {!rescheduling && (appt.status === "requested" || appt.status === "scheduled") && (
@@ -151,7 +151,7 @@ export default function NotificationBell({ className, side = "bottom" }) {
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <span className="text-sm font-bold">{t("notificationsTitle")}</span>
             {unreadCount > 0 && (
-              <button type="button" onClick={markAllNotifsRead} className="min-h-0 border-0 bg-transparent p-0 text-xs font-semibold text-primary hover:underline">
+              <button type="button" onClick={markAllNotifsRead} className="min-h-0 border-0 bg-transparent p-0 text-meta font-semibold text-primary hover:underline">
                 {t("notificationsMarkAllRead")}
               </button>
             )}

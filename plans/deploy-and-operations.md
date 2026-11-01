@@ -51,7 +51,7 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 
 ## 2. Migration order
 
-`supabase/migrations/` is the source of truth, and the files apply in filename (timestamp) order. `supabase db reset --local` replays all 71 in that order on an empty database (tested 2026-10-29, then all 17 SQL checks pass).
+`supabase/migrations/` is the source of truth, and the files apply in filename (timestamp) order. `supabase db reset --local` replays all 72 in that order on an empty database (71 tested 2026-10-29, then all 17 SQL checks pass; `c1` tested on its own 2026-10-30).
 
 **Rules that apply to every hosted change** (from `goals.md`): a `begin … rollback` dry run of the migration plus its probe in `supabase/tests/`, then explicit approval, then apply. Rollback scripts live in `supabase/rollback/`.
 
@@ -68,10 +68,12 @@ Until both exist, the job does nothing. Emails stay queued and the app says emai
 | `…20261028030000_t3_receptionist_check_in_only` | **Applied 2026-10-28.** Receptionists lose participant records. A signed-in receptionist needs this branch's app (kiosk-roster fallback) for the student roster |
 | `…20261028040000_t4_staff_report_rules` | **Applied 2026-10-28.** Report period, revision, schedule-lock, attachment and DST rules. Reviewers need this branch's app to see reports in revision |
 | `…20261028050000_t5_notifications_read_only` … `…20261028070000_t7_calendar_privacy` | **Applied 2026-10-28**, after the app (PR #66). Owner decisions from the live security checks; see `security-decisions-2026-10-28.md`. The throttle's off-switch is in that file |
-| `…20261029010000_t8_rate_limit_hardening` | **Not on live.** Fixes four t6 problems found 2026-10-29 (race, signed-in bypass, spoofable fallback IP, no cleanup) and raises the kiosk poll limits. Needs a dry run and approval; see [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md) |
+| `…20261029010000_t8_rate_limit_hardening` | **On live** (recorded by 2026-10-30). Fixes four t6 problems found 2026-10-29 (race, signed-in bypass, spoofable fallback IP, no cleanup) and raises the kiosk poll limits; see [launch-readiness-2026-10-29.md](launch-readiness-2026-10-29.md) |
+| `…20261030010000_c1_communications` | **Applied 2026-10-30** (approved), before the app (PR #75). Rolled-back dry run with `c1_communications_check.sql` passed, then applied in one transaction, then the checks passed again on live. Its `schema_migrations.statements` holds a one-line pointer to the file, not the full SQL. Rollback: `supabase/rollback/c1_communications_down.sql`. See [communications-module.md](communications-module.md) |
 
-**Which files are on live (checked 2026-10-29, read-only):**
-- Live records 70 versions, `20260714145927` … `20261028070000`, each matching a file here. Only `t8` (`20261029010000`) is pending.
+**Which files are on live (checked 2026-10-29, read-only; updated 2026-10-30):**
+- Live records 72 versions, `20260714145927` … `20261030010000`, each matching a file here. None is pending. (On 2026-10-29 it recorded 70, with `t8` pending; `t8` and `c1` have been applied since.)
+- The comparison below was made on 2026-10-29, before `t8` and `c1`.
 - **What is applied matches the repo.** 864 items compared with a fresh local replay: 212 policies, the RLS flags on 78 tables, 300 grant sets, 144 functions, 97 triggers, 3 cron jobs, 2 buckets, 27 realtime tables and the PostgREST hook. Two functions differ:
   - `assert_system_admin_remains`: the documented bootstrap edit to `p1b` (local only; live never takes that branch).
   - `public_register_case_client`: comments only.

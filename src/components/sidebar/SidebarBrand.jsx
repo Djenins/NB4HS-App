@@ -42,7 +42,7 @@ export default function SidebarBrand({ collapsed, drawer, appTitle, onToggle, on
       <div className={cn(TILE, "h-11 px-2")}>
         <img src={LOGO_URL} alt={ORG.name} className="h-[30px] w-auto" />
       </div>
-      <div className="min-w-0 flex-1 text-[12px] font-medium leading-tight text-sb-muted">{appTitle}</div>
+      <div className="min-w-0 flex-1 text-meta font-medium leading-tight text-sb-muted">{appTitle}</div>
       <button
         type="button"
         onClick={drawer ? onClose : onToggle}

@@ -28,7 +28,7 @@ function categoryLabel(t, key) {
 function Field({ id, label, required, children }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-card-foreground">
+      <label htmlFor={id} className="mb-1 block text-meta font-semibold text-card-foreground">
         {label}{required ? <span className="text-accent"> *</span> : null}
       </label>
       {children}

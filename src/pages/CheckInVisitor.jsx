@@ -124,7 +124,7 @@ export default function CheckInVisitor() {
 
   return (
     <div className="kiosk-checkin flex min-h-0 w-full flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-[22px] sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
+      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-surface sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
         {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
 
         <form
@@ -167,7 +167,7 @@ export default function CheckInVisitor() {
           />
         </form>
 
-        <p className="mt-2 hidden shrink-0 text-center text-[0.9rem] text-muted lg:block">{t("kioskFooterWelcome")}</p>
+        <p className="mt-2 hidden shrink-0 text-center text-touch-label text-muted lg:block">{t("kioskFooterWelcome")}</p>
       </div>
     </div>
   );

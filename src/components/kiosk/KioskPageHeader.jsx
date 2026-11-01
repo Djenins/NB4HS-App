@@ -12,10 +12,10 @@ export default function KioskPageHeader({ icon: TitleIcon, title, description, a
           <TitleIcon strokeWidth={2.4} aria-hidden="true" className="h-[22px] w-[22px] sm:h-9 sm:w-9" />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="appt-h1 m-0 text-[1.375rem] font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-[2.3rem] xl:text-[2.6rem]">
+          <h1 className="appt-h1 m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-hero xl:text-touch-hero">
             {title}
           </h1>
-          <p className="appt-lede m-0 mt-1 max-w-[60ch] text-[0.95rem] leading-snug sm:mt-1.5 text-muted sm:text-[1.12rem]">
+          <p className="appt-lede m-0 mt-1 max-w-[60ch] text-touch-label leading-snug sm:mt-1.5 text-muted sm:text-touch-lead">
             {description}
           </p>
         </div>

@@ -50,6 +50,7 @@ import { EmptyState } from "../components/ui/empty-state.jsx";
 import { KpiCard } from "../components/ui/kpi-card.jsx";
 import { PageHeader } from "../components/ui/page-header.jsx";
 import { SectionCard } from "../components/ui/section-card.jsx";
+import WorkforceNav from "../components/WorkforceNav.jsx";
 
 const ACTIVITY_ICON = { opening: FileText, referral: UserPlus, interview: CalendarClock, placement: CheckCircle2, followup: Phone };
 
@@ -108,6 +109,7 @@ export default function WorkforceDashboard() {
 
   return (
     <>
+      <WorkforceNav value="workforcedashboard" />
       <PageHeader title={t("workforceDashboardTitle")} description={t("workforceDashboardDesc")} />
 
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
