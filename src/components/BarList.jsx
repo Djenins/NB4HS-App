@@ -1,5 +1,7 @@
-// BarList.jsx -- a ranked list of horizontal bars: label and value on one
-// line, a thin bar underneath. Used for ranked categories (services, staff,
+// BarList.jsx -- a ranked list of horizontal bars, in the inset-list style of
+// Apple's Screen Time breakdowns: label, a capsule bar and the value on one
+// row (the bar drops under the label on phones), no dividers, and bars that
+// grow in once on first paint. Used for ranked categories (services, staff,
 // cities, grants, SNAP breakdowns) where a column chart would have to drop or
 // truncate long, translated labels. Every value is printed beside its bar, so
 // nothing hides behind a tooltip.
@@ -29,21 +31,21 @@ export default function BarList({ items, empty, tone = "info", label }) {
   if (!items || !items.length) return empty || <EmptyState compact title={t("noReportDataMessage")} />;
   const max = items.reduce((m, i) => Math.max(m, Number(i.count) || 0), 0) || 1;
   return (
-    <ul className="m-0 flex list-none flex-col gap-3 p-0" aria-label={label || undefined}>
+    <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label={label || undefined}>
       {items.map((i, idx) => {
         const count = Number(i.count) || 0;
         // A non-zero value always shows a sliver of bar.
-        const pct = count > 0 ? Math.max(1, Math.round((count / max) * 100)) : 0;
+        const pct = count > 0 ? Math.max(2, Math.round((count / max) * 100)) : 0;
         return (
-          <li key={idx} className="m-0">
-            <div className="flex items-baseline justify-between gap-3 text-ui">
-              <span className="min-w-0 break-words text-card-foreground">{i.label}</span>
-              <span className="shrink-0 font-semibold tabular-nums text-card-foreground">{i.count}</span>
-            </div>
-            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-chip bg-surface-sunken" aria-hidden="true">
+          // One row: label, bar, value from sm; on phones the bar drops
+          // under the label so long translated labels keep their width.
+          <li key={idx} className="m-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 py-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_2.5rem]">
+            <span className="min-w-0 break-words text-body text-card-foreground">{i.label}</span>
+            <span className="row-start-2 col-span-2 block h-2 w-full overflow-hidden rounded-chip bg-surface-sunken sm:col-span-1 sm:col-start-2 sm:row-start-1" aria-hidden="true">
               {/* width is the data value, so it stays inline */}
-              <div className={cn("h-full rounded-chip", FILL[tone] || FILL.info)} style={{ width: pct + "%" }} />
-            </div>
+              <span className={cn("bar-list-fill block h-full rounded-chip", FILL[tone] || FILL.info)} style={{ width: pct + "%" }} />
+            </span>
+            <span className="col-start-2 row-start-1 text-right text-body font-semibold tabular-nums text-card-foreground sm:col-start-3">{i.count}</span>
           </li>
         );
       })}
