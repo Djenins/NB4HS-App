@@ -1,22 +1,22 @@
-// CheckInVisitor.jsx -- the full visitor check-in form, laid out as a
-// landscape self-service kiosk (sidebar | form | action panel) instead of
-// the old single 640px column. This pass is UI only: fields are still
-// uncontrolled and read via FormData on submit (except the service/staff
-// selects, which need state to toggle their "other, please specify"
-// inputs), the validation rules, the record shape handed to createVisit(),
-// and the navigate-to-/checkin/success flow are all unchanged. The one
-// behavioural addition is cosmetic-adjacent: the same validation results
-// that already drove the toast + red borders now also render a message
-// under each offending field, and Submit is disabled while the insert is
-// in flight so a double-tap can't create two visits.
+// CheckInVisitor.jsx -- the full visitor check-in form on the kiosk, laid
+// out to fit one screen with no scrolling: a title row, then three columns --
+// Visitor Information | Address | Visit Details with the help note and
+// Submit (two columns on narrower screens). Date and time aren't asked for: the kiosk's top
+// bar shows them and the record stamps its own on submit. Phones are too
+// short for all of it and stack the cards in one scrolling column.
+//
+// Fields are uncontrolled and read via FormData on submit (except the
+// service/staff selects, which need state for their "other, please specify"
+// inputs). Validation messages render under each field, and Submit is
+// disabled while the insert is in flight so a double-tap can't create two
+// visits.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ClipboardList, MapPin, UserRound } from "lucide-react";
+import { CircleHelp, UserRoundCheck } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
-import { activeServiceList, activeStaffList, fmtDateLong, fmtTime, todayStr, uid } from "../lib/utils.js";
+import { activeServiceList, activeStaffList, todayStr, uid } from "../lib/utils.js";
 import { createVisit } from "../lib/checkinData.js";
-import KioskSidebar from "../components/kiosk/KioskSidebar.jsx";
-import KioskActionPanel from "../components/kiosk/KioskActionPanel.jsx";
+import SubmitCheckInButton from "../components/kiosk/SubmitCheckInButton.jsx";
 import VisitorInformationSection from "../components/kiosk/VisitorInformationSection.jsx";
 import AddressSection from "../components/kiosk/AddressSection.jsx";
 import VisitDetailsSection from "../components/kiosk/VisitDetailsSection.jsx";
@@ -33,16 +33,9 @@ export default function CheckInVisitor() {
   // unchanged; the value just says *why* the field failed.
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
-  const [activeStep, setActiveStep] = useState("visitor");
 
   const services = activeServiceList(data.customServices, data.disabledServices);
   const staffList = activeStaffList(data.customStaff, data.disabledStaff);
-
-  const sectionRefs = {
-    visitor: useRef(null),
-    address: useRef(null),
-    visit: useRef(null)
-  };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -96,79 +89,78 @@ export default function CheckInVisitor() {
     }
   }
 
-  const steps = [
-    { id: "visitor", number: "01", icon: UserRound, title: t("sectionVisitorInfo"), description: t("sectionVisitorInfoDesc") },
-    { id: "address", number: "02", icon: MapPin, title: t("sectionAddress"), description: t("sectionAddressDesc") },
-    { id: "visit", number: "03", icon: ClipboardList, title: t("sectionVisitDetails"), description: t("kioskStepVisitDetailsDesc") }
-  ];
-
-  // Step cards double as anchor navigation; focusing any control inside a
-  // section makes that section's card the active one.
-  function goToStep(id) {
-    setActiveStep(id);
-    const el = sectionRefs[id].current;
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  function handleFocusIn(e) {
-    const match = steps.find((s) => {
-      const el = sectionRefs[s.id].current;
-      return el && el.contains(e.target);
-    });
-    if (match && match.id !== activeStep) setActiveStep(match.id);
-  }
-
-
-  // Shown (read-only) in the Visitor Information section's Date / Time In.
-  const dateValue = fmtDateLong(todayStr(), lang);
-  const timeValue = fmtTime(new Date().toISOString());
-
   return (
-    <div className="kiosk-checkin flex min-h-0 w-full flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[1680px] min-h-0 flex-1 flex-col rounded-surface sm:border sm:border-border sm:bg-card sm:p-5 sm:shadow-card">
-        {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
-
-        <form
-          ref={formRef}
-          onSubmit={handleSubmit}
-          onFocus={handleFocusIn}
-          noValidate
-          className="flex min-h-0 flex-1 flex-col gap-5 lg:grid lg:grid-cols-[minmax(210px,19%)_minmax(0,1fr)_minmax(240px,20%)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 xl:gap-6"
-        >
-          <KioskSidebar
-            title={t("checkInFormTitle")}
-            subtitle={t("welcome") + "! " + t("checkInFormSubtitle")}
-            steps={steps}
-            activeStep={activeStep}
-            onStepSelect={goToStep}
-            helpTitle={t("landingNeedHelp")}
-            helpText={t("landingAskStaff")}
-          />
-
-          <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1.5">
-            <VisitorInformationSection
-              id="kiosk-step-visitor" sectionRef={sectionRefs.visitor}
-              t={t} errors={errors} dateValue={dateValue} timeValue={timeValue}
-            />
-            <AddressSection id="kiosk-step-address" sectionRef={sectionRefs.address} t={t} errors={errors} />
-            <VisitDetailsSection
-              id="kiosk-step-visit" sectionRef={sectionRefs.visit}
-              t={t} lang={lang} errors={errors}
-              services={services} staffList={staffList}
-              service={service} onServiceChange={(e) => setService(e.target.value)}
-              staff={staff} onStaffChange={(e) => setStaff(e.target.value)}
-            />
+    // Where Shell fixes <main> to the window (main--kiosk-form), the layout
+    // is sized to fit it; overflow-y-auto is only a safety net for a screen
+    // shorter than the kiosk it was designed for.
+    <div className="kiosk-checkin flex w-full flex-1 flex-col [@media(min-width:1024px)_and_(min-height:620px)]:min-h-0 [@media(min-width:1024px)_and_(min-height:620px)]:overflow-y-auto">
+      {/* Back, clock and language live in the shared KioskTopBar (Shell.jsx). */}
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        noValidate
+        className="mx-auto flex w-full max-w-6xl flex-col gap-4"
+      >
+        <header className="flex items-center gap-3 lg:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
+            <UserRoundCheck strokeWidth={2} aria-hidden="true" className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="m-0 text-touch-heading font-extrabold leading-tight tracking-tight text-navy dark:text-[color:var(--text)] sm:text-touch-title">{t("checkInFormTitle")}</h1>
+            <p className="m-0 text-touch-label leading-snug text-muted">{t("welcome") + "! " + t("checkInFormSubtitle")}</p>
           </div>
+          </div>
+          {/* On wide screens the help note sits up here, so the Visit Details
+              column only has to hold Submit; phones show it by Submit. */}
+          <div className="hidden shrink-0 rounded-touch border border-border bg-card px-4 py-3 shadow-card lg:block">
+            <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
+            <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span><span className="font-semibold text-card-foreground">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
+          </p>
+          </div>
+        </header>
 
-          <KioskActionPanel
-            title={t("thankYou")}
-            description={t("thankYouDesc")}
-            submitLabel={t("submit")}
-            busy={busy}
-          />
-        </form>
-
-        <p className="mt-2 hidden shrink-0 text-center text-touch-label text-muted lg:block">{t("kioskFooterWelcome")}</p>
-      </div>
+        {/* Three columns when the form is wide enough (Visitor | Address |
+            Visit Details + Submit), two on narrower screens, and a plain
+            stack on phones (a grid would trap the sticky Submit bar in its
+            own row).
+            The outer div is the size container the grid reads; each column
+            is one too, so its fields pick their own layout. */}
+        <div className="[container-type:inline-size]">
+          <div className="flex flex-col gap-4 [@container(min-width:40rem)]:grid [@container(min-width:40rem)]:grid-cols-2 [@container(min-width:40rem)]:items-start [@container(min-width:50rem)]:grid-cols-3">
+            <div className="[container-type:inline-size]">
+              <VisitorInformationSection id="kiosk-step-visitor" t={t} errors={errors} />
+            </div>
+            <div className="[container-type:inline-size]">
+              <AddressSection id="kiosk-step-address" t={t} errors={errors} />
+            </div>
+            {/* "contents" on phones: the column's box disappears so the Submit
+                bar's sticky edge is the whole form, not just this column. */}
+            <div className="contents lg:flex lg:flex-col lg:gap-4 lg:[container-type:inline-size]">
+              <VisitDetailsSection
+                id="kiosk-step-visit"
+                t={t} lang={lang} errors={errors}
+                services={services} staffList={staffList}
+                service={service} onServiceChange={(e) => setService(e.target.value)}
+                staff={staff} onStaffChange={(e) => setStaff(e.target.value)}
+              />
+              {/* On phones this bar is pinned to the bottom of the screen so
+                  Submit stays in reach while the cards scroll; on wide
+                  screens it's just the button under Visit Details. */}
+              <div className="sticky bottom-0 z-10 -mx-3 flex flex-col gap-3 border-t border-border bg-background px-3 py-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
+                <div className="lg:hidden">
+                  <p className="m-0 flex items-start gap-2.5 text-touch-label leading-snug text-muted">
+                    <CircleHelp aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <span><span className="font-semibold text-card-foreground">{t("landingNeedHelp")}</span> {t("landingAskStaff")}</span>
+                  </p>
+                </div>
+                <SubmitCheckInButton label={t("submit")} busy={busy} className="min-h-[60px] xl:min-h-[64px]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
