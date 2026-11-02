@@ -3121,6 +3121,12 @@ export function isClientFacingPath(pathname) {
   });
 }
 
+// Kreyòl and French load on demand: the build moves them out of STR into
+// their own chunks (vite-i18n-split.js) and replaces these two stubs. As
+// written here -- in tests -- every language is already in STR.
+export function languagesLoaded() { return true; }
+export function loadLanguages() { return Promise.resolve(); }
+
 export function t(key, lang) {
   var entry = STR[key];
   if (!entry) return key;

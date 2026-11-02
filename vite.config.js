@@ -1,11 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import i18nSplit from "./vite-i18n-split.js";
 
-// Standard Vite + React setup, nothing custom. See README-Dev.md for why
-// this project exists alongside the buildless NB4HS-App version, and for
-// exact run instructions.
+// Standard Vite + React setup plus one plugin, i18nSplit, which ships
+// Kreyòl and French as on-demand chunks (see vite-i18n-split.js). See
+// README-Dev.md for exact run instructions.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), i18nSplit()],
   server: {
     port: 5173
   },
@@ -28,6 +29,7 @@ export default defineConfig({
           if (/node_modules\/(@radix-ui|@floating-ui|lucide-react|tailwind-merge|clsx|class-variance-authority)\//.test(id)) return "ui";
           if (/node_modules\/(recharts|d3-|victory-vendor)/.test(id)) return "charts";
           if (/\/src\/lib\/i18n\.js$/.test(id)) return "i18n";
+          if (id.startsWith("\0virtual:i18n-lang/")) return "i18n-" + id.slice("\0virtual:i18n-lang/".length);
         }
       }
     }
