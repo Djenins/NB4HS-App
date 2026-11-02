@@ -37,7 +37,6 @@ import { navPath } from "../lib/nav.js";
 import { fetchMyPermissions } from "../lib/permissions.js";
 import { resolveNavItems } from "../lib/useNavItems.js";
 import { AUTH_MODEL, landingItem } from "../lib/workspaces.js";
-import { totalEnrolledCount } from "../lib/students.js";
 import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/supabaseAuth.js";
 import { BUTTON_RESET, Button } from "../components/ui/button.jsx";
 import { CONTROL } from "../components/ui/field.jsx";
@@ -125,7 +124,7 @@ export default function StaffLogin() {
 
   const stats = [
     { icon: Calendar, num: (data.classes || []).length, label: t("landingClassesOfferedLabel") },
-    { icon: GraduationCap, num: totalEnrolledCount(data.students), label: t("landingStudentsEnrolledLabel") },
+    { icon: GraduationCap, num: data.studentsEnrolled, label: t("landingStudentsEnrolledLabel") },
     { icon: Users, num: (data.visits || []).length, label: t("landingVisitsOnFileLabel") }
   ];
 

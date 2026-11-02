@@ -18,18 +18,88 @@ import { CalendarX, GraduationCap, UserRoundSearch } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { classByKey, classesMeetingToday, meetingDaysLabel, studentAlreadyCheckedInToday, studentsForClass } from "../lib/students.js";
 import { todayStr } from "../lib/utils.js";
-import { checkInStudentVisit } from "../lib/checkinData.js";
+import { checkInStudentVisit, selfCheckInStudent } from "../lib/checkinData.js";
+import { rememberMyVisit } from "../lib/kioskDevice.js";
 import KioskSidebar from "../components/kiosk/KioskSidebar.jsx";
 import KioskActionPanel from "../components/kiosk/KioskActionPanel.jsx";
 import ClassRosterSection from "../components/kiosk/ClassRosterSection.jsx";
+import KioskField, { KIOSK_CONTROL, KioskFieldError, KioskLabel } from "../components/kiosk/KioskField.jsx";
+import KioskSection from "../components/kiosk/KioskSection.jsx";
+import SubmitCheckInButton from "../components/kiosk/SubmitCheckInButton.jsx";
+import { cn } from "../lib/cn.js";
+
+// A client's own phone (not a paired front-desk tablet) never gets the class
+// rosters (k1_kiosk_devices), so a student finds themselves by name and the
+// last four digits of the phone number on file instead. The phone keeps the
+// visit so it can check out later.
+function PhoneStudentForm({ t, onDone, showToast }) {
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const firstName = String(form.get("firstName") || "").trim();
+    const lastName = String(form.get("lastName") || "").trim();
+    const last4 = String(form.get("phoneLast4") || "").replace(/\D/g, "");
+    const errs = {};
+    if (!firstName) errs.firstName = t("fieldRequired");
+    if (!lastName) errs.lastName = t("fieldRequired");
+    if (last4.length !== 4) errs.phoneLast4 = t("phoneLast4Invalid");
+    setErrors(errs);
+    setNotFound(false);
+    if (Object.keys(errs).length) return;
+    setBusy(true);
+    try {
+      const res = await selfCheckInStudent(firstName, lastName, last4, todayStr());
+      if (res.status === "already") { showToast(t("alreadyCheckedInToday")); return; }
+      if (res.status !== "ok") { setNotFound(true); return; }
+      rememberMyVisit(res.visit);
+      onDone(res.visit);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <KioskSection icon={GraduationCap} tone="primary" title={t("studentCheckInTitle")} subtitle={t("kioskStudentPhoneLead")}>
+        <div className="grid gap-x-4 gap-y-3 [@container(min-width:28rem)]:grid-cols-2">
+          <KioskField name="firstName" label={t("firstName")} required placeholder={t("phFirstName")} error={errors.firstName} />
+          <KioskField name="lastName" label={t("lastName")} required placeholder={t("phLastName")} error={errors.lastName} />
+          <div className="min-w-0">
+            <KioskLabel htmlFor="checkin-field-phoneLast4" required>{t("phoneLast4Label")}</KioskLabel>
+            <input
+              id="checkin-field-phoneLast4"
+              name="phoneLast4"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              placeholder="1234"
+              aria-invalid={errors.phoneLast4 ? "true" : undefined}
+              aria-describedby={errors.phoneLast4 ? "checkin-field-phoneLast4-error" : undefined}
+              className={cn(KIOSK_CONTROL, "w-full tabular-nums", errors.phoneLast4 && "field-invalid")}
+            />
+            <KioskFieldError id="checkin-field-phoneLast4-error">{errors.phoneLast4}</KioskFieldError>
+          </div>
+        </div>
+        {notFound && <p role="alert" className="m-0 mt-4 text-touch-label font-semibold text-tone-danger-ink">{t("studentNotFoundByPhone")}</p>}
+      </KioskSection>
+      <SubmitCheckInButton label={t("submit")} busy={busy} className="min-h-[60px] xl:min-h-[64px]" />
+    </form>
+  );
+}
 
 export default function CheckInStudent() {
-  const { data, lang, showToast } = useApp();
+  const { data, lang, showToast, session, kioskPaired } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [submittingId, setSubmittingId] = useState(null);
   const [activeClass, setActiveClass] = useState(null);
   const sectionRefs = useRef({});
+  const phoneMode = !session && !kioskPaired;
 
   const today = classesMeetingToday(data.classes);
 
@@ -94,7 +164,7 @@ export default function CheckInStudent() {
         <div className="flex min-h-0 flex-1 flex-col gap-5 lg:grid lg:grid-cols-[minmax(210px,19%)_minmax(0,1fr)_minmax(240px,20%)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 xl:gap-6">
           <KioskSidebar
             title={t("studentCheckInTitle")}
-            subtitle={t("selectYourName")}
+            subtitle={phoneMode ? t("kioskStudentPhoneLead") : t("selectYourName")}
             icon={GraduationCap}
             steps={steps}
             activeStep={currentClass}
@@ -105,7 +175,13 @@ export default function CheckInStudent() {
           />
 
           <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1.5">
-            {today.length ? (
+            {phoneMode ? (
+              <PhoneStudentForm
+                t={t}
+                showToast={showToast}
+                onDone={(visit) => navigate("/checkin/success", { state: { lastCheckInId: visit.id, kind: "student", className: visit.className } })}
+              />
+            ) : today.length ? (
               today.map((c, i) => (
                 <ClassRosterSection
                   key={c.key}
@@ -133,7 +209,7 @@ export default function CheckInStudent() {
 
           <KioskActionPanel
             title={t("kioskStudentPanelTitle")}
-            description={t("kioskStudentPanelDesc")}
+            description={phoneMode ? t("kioskStudentPhoneLead") : t("kioskStudentPanelDesc")}
             footer={
               <button
                 type="button"

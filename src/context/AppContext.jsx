@@ -18,9 +18,12 @@ import { useLocation } from "react-router-dom";
 import { isClientFacingPath, t } from "../lib/i18n.js";
 import { applyTheme, effectiveClosingTime, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
 import {
-  checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudents, fetchVisitCount, fetchVisits, subscribeTable
+  checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudentCount, fetchStudents, fetchVisitCount, fetchVisits,
+  subscribeTable
 } from "../lib/checkinData.js";
 import { checkOutInOrder, keepOnFailure } from "../lib/kioskSync.js";
+import { isKioskPaired, myVisits } from "../lib/kioskDevice.js";
+import { totalEnrolledCount } from "../lib/students.js";
 import { todayStr } from "../lib/utils.js";
 import {
   fetchAllPlacementCheckins, fetchAppointments, fetchCaseClients, fetchClients, fetchCustomOptions, fetchDisabledOptionKeys,
@@ -168,6 +171,7 @@ export function AppProvider({ children }) {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [kioskVisitCount, setKioskVisitCount] = useState(0);
+  const [kioskStudentCount, setKioskStudentCount] = useState(0);
 
   // Signed-in staff read the tables directly. A signed-out kiosk has no
   // SELECT on visits/students (stage0b migration), so it
@@ -175,13 +179,19 @@ export function AppProvider({ children }) {
   // details -- under the same `visits`/`students` keys, and polls rather
   // than subscribing (realtime only delivers rows the caller can SELECT).
   const signedIn = !!session;
-  const loadVisits = useCallback(() => (signedIn ? fetchVisits() : fetchKioskVisits(todayStr())), [signedIn]);
+  // Only a paired front-desk tablet gets the name lists (k1). Any other
+  // signed-out browser -- a client's phone -- holds just the visits it
+  // checked in itself, and no roster.
+  const kioskPaired = isKioskPaired();
+  const loadVisits = useCallback(() => (signedIn
+    ? fetchVisits()
+    : kioskPaired ? fetchKioskVisits(todayStr()) : Promise.resolve(myVisits())), [signedIn, kioskPaired]);
   // Staff who can't read the students table (receptionists, since t3) get
   // the kiosk's roster for check-in instead. It's only empty when there are
   // no students at all, so it never hides rows from someone who can read them.
   const loadStudents = useCallback(() => (signedIn
     ? fetchStudents().then((rows) => (rows && rows.length ? rows : fetchKioskRoster()))
-    : fetchKioskRoster()), [signedIn]);
+    : kioskPaired ? fetchKioskRoster() : Promise.resolve([])), [signedIn, kioskPaired]);
 
   useEffect(() => {
     if (authLoading) return undefined;
@@ -190,6 +200,7 @@ export function AppProvider({ children }) {
     loadStudents().then((rows) => { if (!cancelled) keepOnFailure(setStudents)(rows); });
     fetchClasses().then((rows) => { if (!cancelled) setClasses(rows); });
     if (!signedIn) fetchVisitCount().then((n) => { if (!cancelled) setKioskVisitCount(n); });
+    if (!signedIn) fetchStudentCount().then((n) => { if (!cancelled) setKioskStudentCount(n); });
 
     if (!signedIn) {
       const id = setInterval(() => {
@@ -411,12 +422,15 @@ export function AppProvider({ children }) {
       // Landing-page "Visits on File": the kiosk only holds today's open
       // visits, so it gets the total from public_visit_count() instead.
       visitsOnFile: signedIn ? visits.length : kioskVisitCount,
+      // Same for "Students Enrolled": only staff and paired tablets hold
+      // the roster, so everyone else gets public_student_count().
+      studentsEnrolled: signedIn ? totalEnrolledCount(students) : kioskStudentCount,
       clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles, programRoles
     }),
     [
-      localData, visits, students, classes, signedIn, kioskVisitCount, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
+      localData, visits, students, classes, signedIn, kioskVisitCount, kioskStudentCount, clients, caseClients, jobClients, foodClients, employers, jobOpenings, referrals, placements, placementCheckins, workforceRoleAccess, appointments,
       customServices, customStaff, customIndustries, disabledServices, disabledStaff, disabledIndustries,
       currentSession, sessionHistory, pastSessionStudents, profiles, programRoles
     ]
@@ -536,7 +550,7 @@ export function AppProvider({ children }) {
     config, updateConfig, toggleTheme,
     lang, setLang,
     session, logout, authLoading,
-    kiosk, setKiosk,
+    kiosk, setKiosk, kioskPaired,
     toast, showToast,
     confirmState, requestConfirm, resolveConfirm,
     notifications, markNotifRead, markAllNotifsRead,
@@ -544,7 +558,7 @@ export function AppProvider({ children }) {
     permissions, permissionsLoaded, permissionsFailed, can,
     orgSettings, refetchOrgSettings
   }), [
-    data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, toast, showToast,
+    data, setData, config, updateConfig, toggleTheme, lang, session, logout, authLoading, kiosk, kioskPaired, toast, showToast,
     confirmState, requestConfirm, resolveConfirm, notifications, markNotifRead, markAllNotifsRead, refetchStudents,
     refetchVisits, refetchProgramRoles, permissions, permissionsLoaded, permissionsFailed, can, orgSettings, refetchOrgSettings
   ]);

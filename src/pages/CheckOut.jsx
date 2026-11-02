@@ -48,7 +48,9 @@ function dateLabel(dateStr, lang, t) {
 }
 
 export default function CheckOut() {
-  const { data, lang, kiosk, session, showToast, refetchVisits } = useApp();
+  // An unpaired phone's data.visits holds only the visits it checked in
+  // itself (kioskDevice.js), so the tap-your-name list below is just those.
+  const { data, lang, kiosk, kioskPaired, session, showToast, refetchVisits } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -144,7 +146,7 @@ export default function CheckOut() {
             </div>
           ) : (
             <div className="mt-5 rounded-surface border border-dashed border-border bg-surface-sunken">
-              <EmptyState compact variant={q ? "no-results" : "none"} title={q ? t("noOneFound") : t("checkOutKioskEmpty")} />
+              <EmptyState compact variant={q ? "no-results" : "none"} title={q ? t("noOneFound") : kioskPaired ? t("checkOutKioskEmpty") : t("checkOutPhoneEmpty")} />
             </div>
           )}
         </div>
