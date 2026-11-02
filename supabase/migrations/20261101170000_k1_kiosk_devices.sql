@@ -1,6 +1,8 @@
 -- k1 -- only paired front-desk tablets see the kiosk name lists
 -- (security audit 2026-11-01, finding 1: plans/security-audit-2026-11.md).
--- NOT YET APPLIED to live. Tested on the local stack with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-11-01 (version 20261101170000) from
+-- the SQL Editor, then recorded in the migration history; every object was
+-- confirmed present on live afterwards. Tested on the local stack with
 -- supabase/tests/k1_kiosk_devices_check.sql. Undo with
 -- supabase/rollback/k1_kiosk_devices_down.sql.
 --

@@ -31,7 +31,8 @@ in the dashboard, or set them again when NB4HS gets its own project.
 ### 1. HIGH — Kiosk functions are open to the whole internet
 
 **Status:** fixed in `k1_kiosk_devices` (tablet pairing; phones see no
-names). Tested on the local stack, not yet applied to live.
+names). Applied to live 2026-11-01; tablets still need pairing once the
+app is deployed.
 
 Kiosk mode means "nobody signed in": anyone who opens `/kiosk`, or calls
 the API with the public anon key, is the kiosk. The anon key ships in the
