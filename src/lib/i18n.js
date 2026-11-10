@@ -3281,7 +3281,7 @@ export var STR = {
 // staff sign-in page, so it isn't on this list.
 // Every staff screen (the CRM) is always English, whatever language was last
 // picked -- AppContext applies this, so pages just use useT() as before.
-var CLIENT_PATHS = ["/kiosk", "/checkin", "/checkout", "/appointments", "/register", "/unsubscribe", "/food-signup"];
+var CLIENT_PATHS = ["/kiosk", "/checkin", "/checkout", "/appointments", "/register", "/unsubscribe", "/food-signup", "/f"];
 export function isClientFacingPath(pathname) {
   return CLIENT_PATHS.some(function (p) {
     return pathname === p || pathname.indexOf(p + "/") === 0;

@@ -295,7 +295,7 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
   const [busy, setBusy] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editLimit, setEditLimit] = useState(false);
-  const url = foodSignupUrl(ev.id);
+  const url = foodSignupUrl(ev);
   const full = !!ev.signupLimit && ev.count >= ev.signupLimit;
 
   // Load the list when it's opened, and keep it current while open.
