@@ -19,67 +19,90 @@ declare
   ev uuid;
   n int;
   j jsonb;
+  s public.food_signups;
   sig text := 'data:image/png;base64,iVBORw0KGgo=';
+  person jsonb := '{"first_name":"Dryrun","last_name":"Zzfood","phone":"(401) 555-0199","street":"12 Main Street","unit":"Apt. 2","city":"Providence","household_size":"3"}';
 begin
-  -- Staff create an event.
+  -- Address keys: same household however it's typed; different units differ.
+  if public.food_address_key('12 Main Street, Apt. 2', '') <> public.food_address_key('12 MAIN ST', '#2') then raise exception 'address key: unit in street'; end if;
+  if public.food_address_key('45 North Avenue', 'Unit 3B') <> public.food_address_key('45 n. ave', 'apt 3b') then raise exception 'address key: abbreviations'; end if;
+  if public.food_address_key('12 Main St', '2') = public.food_address_key('12 Main St', '3') then raise exception 'address key: units should differ'; end if;
+
   perform pg_temp.as_user(admin);
   set local role authenticated;
   insert into public.food_signin_events (occasion, event_date) values ('thanksgiving', current_date) returning id into ev;
   reset role;
 
-  -- Anyone can read the heading and sign in.
+  -- Public sign-up.
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   set local role anon;
   j := public.public_food_event(ev);
-  if j->>'occasion' <> 'thanksgiving' or (j->>'is_open')::boolean is not true then raise exception 'event heading wrong: %', j; end if;
+  if j->>'occasion' <> 'thanksgiving' then raise exception 'event heading wrong: %', j; end if;
   if public.public_food_event(gen_random_uuid()) is not null then raise exception 'unknown event should be null'; end if;
-  perform public.public_food_signin(ev, jsonb_build_object('name', 'Marie Jean', 'address', '1 Main St', 'phone', '401-555-0100', 'signature', sig));
+  j := public.public_food_signup(ev, person);
+  if j->>'status' <> 'ok' then raise exception 'first sign-up: %', j; end if;
+  -- Same person again (phone typed differently).
+  j := public.public_food_signup(ev, person || '{"phone":"401.555.0199"}');
+  if j->>'status' <> 'already' then raise exception 'repeat sign-up: %', j; end if;
+  -- Someone else at the same address, typed differently.
+  j := public.public_food_signup(ev, '{"first_name":"Other","last_name":"Zzfood","phone":"4015550198","street":"12 main st #2"}');
+  if j->>'status' <> 'duplicate_address' then raise exception 'duplicate address: %', j; end if;
+  -- Same building, different unit, is fine.
+  j := public.public_food_signup(ev, '{"first_name":"Neighbor","last_name":"Zzfood","phone":"4015550197","street":"12 Main St","unit":"3"}');
+  if j->>'status' <> 'ok' then raise exception 'other unit: %', j; end if;
 
-  -- ... but can't read sign-ins back or write the tables directly.
+  -- Can't read sign-ups back or call the staff functions.
   begin
-    perform count(*) from public.food_signins;
-    raise exception 'anon read food_signins';
+    perform count(*) from public.food_signups;
+    raise exception 'anon read food_signups';
   exception when insufficient_privilege then null;
   end;
   begin
-    insert into public.food_signins (event_id, name, signature) values (ev, 'x', sig);
-    raise exception 'anon inserted food_signins';
+    perform public.food_signup_pickup(gen_random_uuid(), sig, 'x');
+    raise exception 'anon ran pickup';
   exception when insufficient_privilege then null;
   end;
-
-  -- Bad input is refused.
+  -- Bad input.
   begin
-    perform public.public_food_signin(ev, jsonb_build_object('name', '', 'signature', sig));
-    raise exception 'empty name accepted';
-  exception when invalid_parameter_value then null;
-  end;
-  begin
-    perform public.public_food_signin(ev, jsonb_build_object('name', 'A', 'signature', 'javascript:alert(1)'));
-    raise exception 'bad signature accepted';
-  exception when invalid_parameter_value then null;
-  end;
-  begin
-    perform public.public_food_signin(ev, jsonb_build_object('name', 'A', 'phone', 'call me', 'signature', sig));
+    perform public.public_food_signup(ev, '{"first_name":"A","last_name":"B","phone":"12","street":"1 X St"}');
     raise exception 'bad phone accepted';
   exception when invalid_parameter_value then null;
   end;
   reset role;
 
-  -- Closed events take no more sign-ins.
+  -- The household was matched/created and linked.
+  select count(*) into n from public.food_signups su join public.food_clients fc on fc.id = su.food_client_id
+   where su.event_id = ev and fc.household_size = '3';
+  if n <> 1 then raise exception 'household not linked (%)', n; end if;
+
+  -- Closed: no more sign-ups.
   update public.food_signin_events set is_open = false where id = ev;
   set local role anon;
-  begin
-    perform public.public_food_signin(ev, jsonb_build_object('name', 'Late', 'signature', sig));
-    raise exception 'closed event accepted a sign-in';
-  exception when no_data_found then null;
-  end;
+  j := public.public_food_signup(ev, '{"first_name":"Late","last_name":"Zzfood","phone":"4015550196","street":"99 Elm St"}');
+  if j->>'status' <> 'closed' then raise exception 'closed event: %', j; end if;
   reset role;
 
-  -- Staff see the one sign-in.
+  -- Staff: see both sign-ups, can't write the table directly, pick up via the function.
   perform pg_temp.as_user(admin);
   set local role authenticated;
-  select count(*) into n from public.food_signins where event_id = ev;
-  if n <> 1 then raise exception 'staff should see 1 sign-in, saw %', n; end if;
+  select count(*) into n from public.food_signups where event_id = ev;
+  if n <> 2 then raise exception 'staff should see 2 sign-ups, saw %', n; end if;
+  begin
+    update public.food_signups set picked_up_at = now() where event_id = ev;
+    raise exception 'staff updated food_signups directly';
+  exception when insufficient_privilege then null;
+  end;
+  select * into s from public.food_signups where event_id = ev and first_name = 'Dryrun';
+  s := public.food_signup_pickup(s.id, sig, 'Thanksgiving Food Distribution');
+  if s.picked_up_at is null or s.distribution_id is null then raise exception 'pickup not recorded'; end if;
+  if not exists (select 1 from public.food_distributions where id = s.distribution_id and food_client_id = s.food_client_id) then raise exception 'distribution not logged'; end if;
+  begin
+    perform public.food_signup_pickup(s.id, sig, 'x');
+    raise exception 'double pickup accepted';
+  exception when unique_violation then null;
+  end;
+  s := public.food_signup_undo_pickup(s.id);
+  if s.picked_up_at is not null or s.signature is not null then raise exception 'undo failed'; end if;
   reset role;
 
   raise exception 'F1_CHECKS_PASSED';

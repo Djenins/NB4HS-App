@@ -1,31 +1,224 @@
-// FoodOnlineSignins.jsx -- the online half of Food Distribution > Sign-in
-// Forms. Staff turn the form set up above it (occasion, date, location,
-// language) into a public sign-in link + QR code (pages/FoodSignIn.jsx),
-// watch sign-ins arrive, close the link when the distribution ends, and
-// download everyone who signed as a filled sign-in sheet -- the same PDF as
-// the paper one, with each row's typed answers and drawn signature.
+// FoodOnlineSignins.jsx -- sign-up and day-of sign-in for a distribution,
+// under the form builder in Food Distribution > Sign-in Forms.
+//
+//  * Staff turn the form set up above (occasion, date, location, language)
+//    into a public sign-up link + QR code (pages/FoodSignUp.jsx). Clients
+//    sign up ahead of the day; one sign-up per address.
+//  * On the day, staff open the list, find the client by name or phone,
+//    confirm it's them, and the client signs on the tablet. That marks the
+//    pickup and logs it in the household's pickup history.
+//  * The signed sheet PDF is the paper sign-in sheet with every sign-up
+//    filled in and the signatures of those who picked up.
 // Staff-only screen: English in every language.
-import { useEffect, useState } from "react";
-import { ChevronDown, Copy, ExternalLink, FileDown, Globe, Lock, LockOpen, QrCode, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  CheckCircle2, ChevronDown, Copy, ExternalLink, FileDown, Globe, Lock, LockOpen, PenLine, QrCode, Trash2, Undo2,
+} from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { fmtDateLong } from "../lib/utils.js";
 import { formTitle, pdfFileName } from "../lib/foodSignInForm.js";
 import {
-  createFoodSigninEvent, deleteFoodSignin, deleteFoodSigninEvent, fetchFoodSigninEvents, fetchFoodSignins,
-  foodSigninUrl, setFoodSigninEventOpen,
+  createFoodSigninEvent, deleteFoodSigninEvent, deleteFoodSignup, fetchFoodSigninEvents, fetchFoodSignups,
+  foodSignupUrl, pickUpFoodSignup, setFoodSigninEventOpen, signupAddress, signupMatches, signupName, undoFoodSignupPickup,
 } from "../lib/foodSigninData.js";
 import { subscribeClientsTable } from "../lib/clientsData.js";
 import { cn } from "../lib/cn.js";
+import SignaturePad from "./SignaturePad.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { Button } from "./ui/button.jsx";
 import { ConfirmDialog } from "./ui/confirm-dialog.jsx";
+import { Dialog } from "./ui/dialog.jsx";
 import { EmptyState } from "./ui/empty-state.jsx";
 import { IconButton } from "./ui/icon-button.jsx";
+import { SearchInput } from "./ui/search-input.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
+import { SegmentedControl } from "./ui/segmented-control.jsx";
 import { Skeleton } from "./ui/skeleton.jsx";
 
 function qrSrc(url) {
   return "https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=M&data=" + encodeURIComponent(url);
+}
+const timeOf = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+// The day-of check: staff read back the name and address, the client signs.
+function PickupDialog({ signup, items, onClose, onDone }) {
+  const { showToast } = useApp();
+  const t = useT();
+  const padRef = useRef(null);
+  const [hasInk, setHasInk] = useState(false);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    const pad = padRef.current;
+    if (!pad || pad.isEmpty()) { setError(t("fsoSignFirst")); return; }
+    setSaving(true);
+    try {
+      const updated = await pickUpFoodSignup(signup.id, pad.toDataURL(), items);
+      showToast(t("fsoPickedUpToast").replace("{name}", signupName(signup)));
+      onDone(updated);
+    } catch (err) {
+      console.warn("pickUpFoodSignup failed", err);
+      setError(t(err && err.code === "23505" ? "fsoAlreadyPickedUp" : "fsoActionFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={t("fsoPickupTitle")}
+      description={t("fsoPickupDesc")}
+      size="lg"
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit, noValidate: true }}
+      footer={(
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>{t("cancelLabel")}</Button>
+          <Button type="submit" loading={saving}><CheckCircle2 className="h-4 w-4" aria-hidden="true" />{t("fsoConfirmPickup")}</Button>
+        </>
+      )}
+    >
+      <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-body">
+        <dt className="text-muted">{t("ffName")}</dt><dd className="m-0 text-section font-semibold">{signupName(signup)}</dd>
+        <dt className="text-muted">{t("ffAddress")}</dt><dd className="m-0">{signupAddress(signup)}</dd>
+        <dt className="text-muted">{t("ffPhone")}</dt><dd className="m-0 tabular-nums">{signup.phone}</dd>
+        {signup.householdSize ? (<><dt className="text-muted">{t("householdSizeLabel")}</dt><dd className="m-0">{signup.householdSize}</dd></>) : null}
+      </dl>
+      <div className="mt-4">
+        <SignaturePad
+          ref={padRef}
+          label={t("fsoSignPadLabel")}
+          placeholder={t("fsoSignPadPlaceholder")}
+          onChange={(inked) => { setHasInk(inked); if (inked) setError(""); }}
+        />
+        <div className="mt-2 flex items-start justify-between gap-3">
+          {error ? <p role="alert" className="m-0 text-meta font-semibold text-tone-danger-ink">{error}</p> : <span />}
+          {hasInk ? <Button type="button" variant="ghost" size="sm" onClick={() => padRef.current.clear()}>{t("fsoClearSignature")}</Button> : null}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+function SignupList({ ev, signups, setSignups, onCounts }) {
+  const { showToast } = useApp();
+  const t = useT();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("waiting");
+  const [picking, setPicking] = useState(null);
+  const [confirm, setConfirm] = useState(null); // { kind: "undo" | "remove", signup }
+  const [busy, setBusy] = useState(false);
+  // What the household's pickup log shows: "Thanksgiving Food Distribution".
+  const items = formTitle(ev.occasion, ev.customOccasion, "en").replace(/ Form$/, "");
+
+  const replaceRow = (row) => setSignups((prev) => prev.map((s) => (s.id === row.id ? row : s)));
+  const shown = (signups || [])
+    .filter((s) => filter === "all" || (filter === "waiting" ? !s.pickedUpAt : !!s.pickedUpAt))
+    .filter((s) => signupMatches(s, query));
+
+  useEffect(() => {
+    if (signups) onCounts(signups.length, signups.filter((s) => s.pickedUpAt).length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signups]);
+
+  async function runConfirm() {
+    const { kind, signup } = confirm;
+    setBusy(true);
+    try {
+      if (kind === "undo") replaceRow(await undoFoodSignupPickup(signup.id));
+      else { await deleteFoodSignup(signup.id); setSignups((prev) => prev.filter((s) => s.id !== signup.id)); }
+      setConfirm(null);
+    } catch (e) { showToast(t("fsoActionFailed")); }
+    finally { setBusy(false); }
+  }
+
+  if (signups === null) return <div className="mt-3 space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>;
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          className="min-w-0 flex-1 basis-64"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
+          clearLabel={t("fsoClearSearch")}
+          placeholder={t("fsoSearchPlaceholder")}
+          aria-label={t("fsoSearchPlaceholder")}
+        />
+        <SegmentedControl
+          label={t("fsoFilterLabel")}
+          size="sm"
+          value={filter}
+          onChange={setFilter}
+          options={[{ value: "waiting", label: t("fsoFilterWaiting") }, { value: "picked", label: t("fsoFilterPicked") }, { value: "all", label: t("fsoFilterAll") }]}
+        />
+      </div>
+
+      {shown.length ? (
+        <ul className="m-0 list-none divide-y divide-line-subtle rounded-control border border-border p-0">
+          {shown.map((s) => (
+            <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
+              <div className="min-w-0 flex-1 basis-60">
+                <div className="font-semibold text-card-foreground">{signupName(s)}</div>
+                <div className="text-meta text-muted">
+                  {signupAddress(s)} · <span className="tabular-nums">{s.phone}</span>
+                  {s.householdSize ? " · " + t("fsoHouseholdOf").replace("{n}", s.householdSize) : ""}
+                </div>
+              </div>
+              {s.pickedUpAt ? (
+                <div className="flex items-center gap-3">
+                  {s.signature ? <img src={s.signature} alt={t("fsoSignatureAlt").replace("{name}", signupName(s))} className="h-8 max-w-[120px] rounded bg-white object-contain" /> : null}
+                  <Badge variant="success" dot>{t("fsoPickedUpAt").replace("{time}", timeOf(s.pickedUpAt))}</Badge>
+                  <IconButton label={t("fsoUndoPickup").replace("{name}", signupName(s))} size="sm" onClick={() => setConfirm({ kind: "undo", signup: s })}>
+                    <Undo2 aria-hidden="true" />
+                  </IconButton>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" onClick={() => setPicking(s)}><PenLine className="h-4 w-4" aria-hidden="true" />{t("fsoSignInBtn")}</Button>
+                  <IconButton label={t("fsoRemoveSignup").replace("{name}", signupName(s))} size="sm" onClick={() => setConfirm({ kind: "remove", signup: s })}>
+                    <Trash2 aria-hidden="true" />
+                  </IconButton>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          compact
+          title={t(!signups.length ? "fsoNoSignups" : query ? "fsoNoMatches" : filter === "waiting" ? "fsoAllPickedUp" : "fsoNonePickedUp")}
+          description={t(!signups.length ? "fsoNoSignupsHint" : query ? "fsoNoMatchesHint" : filter === "waiting" ? "fsoAllPickedUpHint" : "fsoNonePickedUpHint")}
+          className="rounded-control border border-border py-6"
+        />
+      )}
+
+      {picking ? (
+        <PickupDialog
+          signup={picking}
+          items={items}
+          onClose={() => setPicking(null)}
+          onDone={(row) => { replaceRow(row); setPicking(null); setQuery(""); }}
+        />
+      ) : null}
+      <ConfirmDialog
+        open={!!confirm}
+        onClose={() => setConfirm(null)}
+        onConfirm={runConfirm}
+        danger={confirm && confirm.kind === "remove"}
+        loading={busy}
+        title={t(confirm && confirm.kind === "undo" ? "fsoUndoTitle" : "fsoRemoveTitle")}
+        description={t(confirm && confirm.kind === "undo" ? "fsoUndoDesc" : "fsoRemoveDesc")}
+        confirmLabel={t(confirm && confirm.kind === "undo" ? "fsoUndoConfirm" : "deleteLabel")}
+      />
+    </div>
+  );
 }
 
 function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
@@ -33,18 +226,18 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
   const [showQr, setShowQr] = useState(false);
-  const [signins, setSignins] = useState(null);
+  const [signups, setSignups] = useState(null);
   const [busy, setBusy] = useState("");
-  const [confirm, setConfirm] = useState(null); // { kind: "event" } | { kind: "signin", id }
-  const url = foodSigninUrl(ev.id);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const url = foodSignupUrl(ev.id);
 
   // Load the list when it's opened, and keep it current while open.
   useEffect(() => {
     if (!expanded) return undefined;
     let cancelled = false;
-    const load = () => fetchFoodSignins(ev.id).then((rows) => { if (!cancelled) setSignins(rows); });
+    const load = () => fetchFoodSignups(ev.id).then((rows) => { if (!cancelled) setSignups(rows); });
     load();
-    const unsub = subscribeClientsTable("food_signins", load);
+    const unsub = subscribeClientsTable("food_signups", load);
     return () => { cancelled = true; unsub(); };
   }, [expanded, ev.id]);
 
@@ -58,31 +251,22 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
     catch (e) { showToast(t("fsoActionFailed")); }
     finally { setBusy(""); }
   }
-  async function downloadFilled() {
+  async function downloadSheet() {
     setBusy("pdf");
     try {
-      const rows = signins || await fetchFoodSignins(ev.id);
+      const rows = signups || await fetchFoodSignups(ev.id);
+      const entries = rows.map((s) => ({ name: signupName(s), address: signupAddress(s), phone: s.phone, signature: s.signature }));
       const opts = { layout: "sheet", lang: ev.lang, occasion: ev.occasion, customOccasion: ev.customOccasion, date: ev.date, location: ev.location, pages: 1 };
-      const doc = buildPdf(Object.assign({}, opts, { entries: rows }));
+      const doc = buildPdf(Object.assign({}, opts, { entries }));
       if (doc) doc.save(pdfFileName(opts).replace(/\.pdf$/, "-signed.pdf"));
     } finally { setBusy(""); }
   }
-  async function confirmDelete() {
-    const c = confirm;
+  async function removeEvent() {
     setBusy("delete");
-    try {
-      if (c.kind === "event") { await deleteFoodSigninEvent(ev.id); onDeleted(ev.id); }
-      else {
-        await deleteFoodSignin(c.id);
-        setSignins((prev) => (prev || []).filter((s) => s.id !== c.id));
-        onChanged(Object.assign({}, ev, { count: Math.max(0, ev.count - 1) }));
-      }
-      setConfirm(null);
-    } catch (e) { showToast(t("fsoActionFailed")); }
-    finally { setBusy(""); }
+    try { await deleteFoodSigninEvent(ev.id); onDeleted(ev.id); }
+    catch (e) { showToast(t("fsoActionFailed")); setBusy(""); }
   }
 
-  const count = signins ? signins.length : ev.count;
   const meta = [ev.date ? fmtDateLong(ev.date) : "", ev.location].filter(Boolean).join(" · ");
 
   return (
@@ -91,10 +275,10 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
         <div className="min-w-0 flex-1 basis-64">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-ui font-semibold text-card-foreground">{formTitle(ev.occasion, ev.customOccasion, "en")}</span>
-            <Badge variant={ev.isOpen ? "success" : "neutral"} dot>{t(ev.isOpen ? "fsoOpen" : "fsoClosed")}</Badge>
+            <Badge variant={ev.isOpen ? "success" : "neutral"} dot>{t(ev.isOpen ? "fsoSignupOpen" : "fsoSignupClosed")}</Badge>
           </div>
           <div className="mt-0.5 text-meta tabular-nums text-muted">
-            {meta ? meta + " · " : ""}{t("fsoSignedCount").replace("{n}", count)}
+            {meta ? meta + " · " : ""}{t("fsoCounts").replace("{n}", ev.count).replace("{m}", ev.pickedUp)}
           </div>
           <div className="mt-1 break-all text-meta text-muted">{url}</div>
         </div>
@@ -105,7 +289,7 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
           <IconButton label={t(ev.isOpen ? "fsoCloseBtn" : "fsoReopenBtn")} variant="secondary" onClick={toggleOpen} disabled={busy === "open"}>
             {ev.isOpen ? <Lock className="h-4 w-4" aria-hidden="true" /> : <LockOpen className="h-4 w-4" aria-hidden="true" />}
           </IconButton>
-          <IconButton label={t("fsoDeleteEvent")} variant="secondary" onClick={() => setConfirm({ kind: "event" })}><Trash2 className="h-4 w-4" aria-hidden="true" /></IconButton>
+          <IconButton label={t("fsoDeleteEvent")} variant="secondary" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4" aria-hidden="true" /></IconButton>
         </div>
       </div>
 
@@ -117,64 +301,32 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+        <Button variant={expanded ? "secondary" : "primary"} size="sm" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
           <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} aria-hidden="true" />
           {t(expanded ? "fsoHideList" : "fsoShowList")}
         </Button>
-        <Button variant="secondary" size="sm" onClick={downloadFilled} loading={busy === "pdf"} disabled={!count}>
+        <Button variant="secondary" size="sm" onClick={downloadSheet} loading={busy === "pdf"} disabled={!ev.count}>
           <FileDown className="h-4 w-4" aria-hidden="true" />{t("fsoDownloadFilled")}
         </Button>
       </div>
 
       {expanded ? (
-        <div className="mt-3 overflow-x-auto rounded-control border border-border">
-          {signins === null ? (
-            <div className="space-y-2 p-3"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
-          ) : signins.length ? (
-            <table className="w-full min-w-[640px] border-collapse text-left text-meta">
-              <thead className="bg-surface-sunken text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-semibold">#</th>
-                  <th className="px-3 py-2 font-semibold">{t("ffName")}</th>
-                  <th className="px-3 py-2 font-semibold">{t("ffAddress")}</th>
-                  <th className="px-3 py-2 font-semibold">{t("ffPhone")}</th>
-                  <th className="px-3 py-2 font-semibold">{t("ffSignature")}</th>
-                  <th className="px-3 py-2 font-semibold">{t("fsoTimeCol")}</th>
-                  <th className="px-3 py-2"><span className="sr-only">{t("fsoActionsCol")}</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {signins.map((s, i) => (
-                  <tr key={s.id} className="border-t border-line-subtle align-middle text-card-foreground">
-                    <td className="px-3 py-2 tabular-nums text-muted">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium">{s.name}</td>
-                    <td className="px-3 py-2">{s.address || "—"}</td>
-                    <td className="whitespace-nowrap px-3 py-2 tabular-nums">{s.phone || "—"}</td>
-                    <td className="px-3 py-2"><img src={s.signature} alt={t("fsoSignatureAlt").replace("{name}", s.name)} className="h-8 max-w-[140px] rounded bg-white object-contain" /></td>
-                    <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted">{new Date(s.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</td>
-                    <td className="px-3 py-2 text-right">
-                      <IconButton label={t("fsoDeleteSignin").replace("{name}", s.name)} variant="ghost" size="sm" onClick={() => setConfirm({ kind: "signin", id: s.id })}>
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </IconButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <EmptyState compact title={t("fsoNoSignins")} description={t("fsoNoSigninsHint")} className="py-6" />
-          )}
-        </div>
+        <SignupList
+          ev={ev}
+          signups={signups}
+          setSignups={setSignups}
+          onCounts={(count, pickedUp) => { if (count !== ev.count || pickedUp !== ev.pickedUp) onChanged(Object.assign({}, ev, { count, pickedUp })); }}
+        />
       ) : null}
 
       <ConfirmDialog
-        open={!!confirm}
-        onClose={() => setConfirm(null)}
-        onConfirm={confirmDelete}
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={removeEvent}
         danger
         loading={busy === "delete"}
-        title={t(confirm && confirm.kind === "event" ? "fsoDeleteEventTitle" : "fsoDeleteSigninTitle")}
-        description={t(confirm && confirm.kind === "event" ? "fsoDeleteEventDesc" : "fsoDeleteSigninDesc")}
+        title={t("fsoDeleteEventTitle")}
+        description={t("fsoDeleteEventDesc")}
         confirmLabel={t("deleteLabel")}
       />
     </li>
@@ -191,8 +343,8 @@ export default function FoodOnlineSignins({ formOpts, buildPdf }) {
     let cancelled = false;
     const load = () => fetchFoodSigninEvents().then((rows) => { if (!cancelled) setEvents(rows); });
     load();
-    // Sign-in counts tick up as clients sign.
-    const unsub = subscribeClientsTable("food_signins", load);
+    // Counts tick up as clients sign up and pick up.
+    const unsub = subscribeClientsTable("food_signups", load);
     return () => { cancelled = true; unsub(); };
   }, []);
 

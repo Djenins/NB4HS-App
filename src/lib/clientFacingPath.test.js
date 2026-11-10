@@ -4,7 +4,7 @@ import { isClientFacingPath } from "./i18n.js";
 describe("isClientFacingPath", () => {
   it("treats the public and kiosk screens as client-facing", () => {
     ["/kiosk", "/checkin", "/checkin/visitor", "/checkout", "/checkout/scan-success", "/appointments/request",
-      "/appointments/lookup", "/register", "/register/success", "/unsubscribe", "/food-signin/abc"].forEach((p) => expect(isClientFacingPath(p)).toBe(true));
+      "/appointments/lookup", "/register", "/register/success", "/unsubscribe", "/food-signup/abc"].forEach((p) => expect(isClientFacingPath(p)).toBe(true));
   });
 
   it("keeps every staff screen English-only", () => {
