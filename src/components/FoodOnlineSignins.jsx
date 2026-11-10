@@ -12,14 +12,14 @@
 // Staff-only screen: English in every language.
 import { useEffect, useRef, useState } from "react";
 import {
-  CheckCircle2, ChevronDown, Copy, ExternalLink, FileDown, Globe, Lock, LockOpen, PenLine, QrCode, Trash2, Undo2,
+  CheckCircle2, ChevronDown, Copy, ExternalLink, FileDown, Globe, Lock, LockOpen, PenLine, QrCode, Trash2, Undo2, Users,
 } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { fmtDateLong } from "../lib/utils.js";
-import { formTitle, pdfFileName } from "../lib/foodSignInForm.js";
+import { PROGRAM_LABEL, formTitle, pdfFileName, programAsksSnap } from "../lib/foodSignInForm.js";
 import {
   createFoodSigninEvent, deleteFoodSigninEvent, deleteFoodSignup, fetchFoodSigninEvents, fetchFoodSignups,
-  foodSignupUrl, pickUpFoodSignup, setFoodSigninEventOpen, signupAddress, signupMatches, signupName, undoFoodSignupPickup,
+  foodSignupUrl, parseSignupLimit, pickUpFoodSignup, setFoodSigninEventLimit, setFoodSigninEventOpen, signupAddress, signupMatches, signupName, undoFoodSignupPickup,
 } from "../lib/foodSigninData.js";
 import { subscribeClientsTable } from "../lib/clientsData.js";
 import { cn } from "../lib/cn.js";
@@ -29,6 +29,7 @@ import { Button } from "./ui/button.jsx";
 import { ConfirmDialog } from "./ui/confirm-dialog.jsx";
 import { Dialog } from "./ui/dialog.jsx";
 import { EmptyState } from "./ui/empty-state.jsx";
+import { Field, Input } from "./ui/field.jsx";
 import { IconButton } from "./ui/icon-button.jsx";
 import { SearchInput } from "./ui/search-input.jsx";
 import { SectionCard } from "./ui/section-card.jsx";
@@ -38,6 +39,68 @@ import { Skeleton } from "./ui/skeleton.jsx";
 function qrSrc(url) {
   return "https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=M&data=" + encodeURIComponent(url);
 }
+// "Thanksgiving Food Distribution" (+ " – CDBG"): the event's name in staff
+// lists and what goes in the household's pickup log.
+function eventName(ev) {
+  return formTitle(ev.occasion, ev.customOccasion, "en").replace(/ Form$/, "") + (ev.program === "cdbg" ? " – CDBG" : "");
+}
+
+function SnapBadge({ s }) {
+  const t = useT();
+  if (s.wantsSnapHelp === "yes") return <Badge variant="info">{t("fsoSnapSent")}</Badge>;
+  if (s.hasSnap === "yes") return <Badge variant="neutral">{t("fsoSnapHas")}</Badge>;
+  if (s.hasSnap === "no") return <Badge variant="neutral">{t("fsoSnapNo")}</Badge>;
+  return null;
+}
+
+// Change (or clear) an event's sign-up limit.
+function LimitDialog({ ev, onClose, onSaved }) {
+  const { showToast } = useApp();
+  const t = useT();
+  const [value, setValue] = useState(ev.signupLimit ? String(ev.signupLimit) : "");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    const limit = parseSignupLimit(value);
+    if (limit === undefined) { setError(t("fsoLimitInvalid")); return; }
+    setSaving(true);
+    try {
+      await setFoodSigninEventLimit(ev.id, limit);
+      showToast(t("fsoLimitSaved"));
+      onSaved(limit);
+    } catch (err) {
+      console.warn("setFoodSigninEventLimit failed", err);
+      setError(t("fsoActionFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={t("fsoLimitTitle")}
+      description={t("fsoLimitDesc")}
+      closeLabel={t("closeLabel")}
+      as="form"
+      panelProps={{ onSubmit: submit, noValidate: true }}
+      footer={(
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>{t("cancelLabel")}</Button>
+          <Button type="submit" loading={saving}>{t("saveLabel")}</Button>
+        </>
+      )}
+    >
+      <Field label={t("fsoLimitLabel")} htmlFor={"limit-" + ev.id} error={error || undefined}>
+        <Input id={"limit-" + ev.id} inputMode="numeric" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} maxLength={6} className="max-w-[10rem]" autoFocus />
+      </Field>
+    </Dialog>
+  );
+}
+
 const timeOf = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 // The day-of check: staff read back the name and address, the client signs.
@@ -114,7 +177,8 @@ function SignupList({ ev, signups, setSignups, onCounts }) {
   const [confirm, setConfirm] = useState(null); // { kind: "undo" | "remove", signup }
   const [busy, setBusy] = useState(false);
   // What the household's pickup log shows: "Thanksgiving Food Distribution".
-  const items = formTitle(ev.occasion, ev.customOccasion, "en").replace(/ Form$/, "");
+  const items = eventName(ev);
+  const asksSnap = programAsksSnap(ev.program);
 
   const replaceRow = (row) => setSignups((prev) => prev.map((s) => (s.id === row.id ? row : s)));
   const shown = (signups || [])
@@ -170,6 +234,7 @@ function SignupList({ ev, signups, setSignups, onCounts }) {
                   {signupAddress(s)} · <span className="tabular-nums">{s.phone}</span>
                   {s.householdSize ? " · " + t("fsoHouseholdOf").replace("{n}", s.householdSize) : ""}
                 </div>
+                {asksSnap && s.hasSnap ? <div className="mt-1"><SnapBadge s={s} /></div> : null}
               </div>
               {s.pickedUpAt ? (
                 <div className="flex items-center gap-3">
@@ -229,7 +294,9 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
   const [signups, setSignups] = useState(null);
   const [busy, setBusy] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editLimit, setEditLimit] = useState(false);
   const url = foodSignupUrl(ev.id);
+  const full = !!ev.signupLimit && ev.count >= ev.signupLimit;
 
   // Load the list when it's opened, and keep it current while open.
   useEffect(() => {
@@ -255,8 +322,10 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
     setBusy("pdf");
     try {
       const rows = signups || await fetchFoodSignups(ev.id);
-      const entries = rows.map((s) => ({ name: signupName(s), address: signupAddress(s), phone: s.phone, signature: s.signature }));
-      const opts = { layout: "sheet", lang: ev.lang, occasion: ev.occasion, customOccasion: ev.customOccasion, date: ev.date, location: ev.location, pages: 1 };
+      const entries = rows.map((s) => ({
+        name: signupName(s), address: signupAddress(s), phone: s.phone, hasSnap: s.hasSnap, wantsSnapHelp: s.wantsSnapHelp, signature: s.signature,
+      }));
+      const opts = { layout: "sheet", program: ev.program, lang: ev.lang, occasion: ev.occasion, customOccasion: ev.customOccasion, date: ev.date, location: ev.location, pages: 1 };
       const doc = buildPdf(Object.assign({}, opts, { entries }));
       if (doc) doc.save(pdfFileName(opts).replace(/\.pdf$/, "-signed.pdf"));
     } finally { setBusy(""); }
@@ -275,10 +344,14 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
         <div className="min-w-0 flex-1 basis-64">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-ui font-semibold text-card-foreground">{formTitle(ev.occasion, ev.customOccasion, "en")}</span>
-            <Badge variant={ev.isOpen ? "success" : "neutral"} dot>{t(ev.isOpen ? "fsoSignupOpen" : "fsoSignupClosed")}</Badge>
+            <Badge variant="info">{PROGRAM_LABEL[ev.program] || ev.program}</Badge>
+            <Badge variant={ev.isOpen && !full ? "success" : "neutral"} dot>{t(!ev.isOpen ? "fsoSignupClosed" : full ? "fsoFull" : "fsoSignupOpen")}</Badge>
           </div>
           <div className="mt-0.5 text-meta tabular-nums text-muted">
-            {meta ? meta + " · " : ""}{t("fsoCounts").replace("{n}", ev.count).replace("{m}", ev.pickedUp)}
+            {meta ? meta + " · " : ""}
+            {ev.signupLimit
+              ? t("fsoCountsLimit").replace("{n}", ev.count).replace("{limit}", ev.signupLimit).replace("{m}", ev.pickedUp)
+              : t("fsoCounts").replace("{n}", ev.count).replace("{m}", ev.pickedUp)}
           </div>
           <div className="mt-1 break-all text-meta text-muted">{url}</div>
         </div>
@@ -286,6 +359,7 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
           <IconButton label={t("fsoCopyLink")} variant="secondary" onClick={copyLink}><Copy className="h-4 w-4" aria-hidden="true" /></IconButton>
           <IconButton label={t("fsoOpenLink")} variant="secondary" onClick={() => window.open(url, "_blank", "noopener")}><ExternalLink className="h-4 w-4" aria-hidden="true" /></IconButton>
           <IconButton label={t("fsoShowQr")} variant="secondary" aria-pressed={showQr} onClick={() => setShowQr((v) => !v)}><QrCode className="h-4 w-4" aria-hidden="true" /></IconButton>
+          <IconButton label={t("fsoChangeLimit")} variant="secondary" onClick={() => setEditLimit(true)}><Users className="h-4 w-4" aria-hidden="true" /></IconButton>
           <IconButton label={t(ev.isOpen ? "fsoCloseBtn" : "fsoReopenBtn")} variant="secondary" onClick={toggleOpen} disabled={busy === "open"}>
             {ev.isOpen ? <Lock className="h-4 w-4" aria-hidden="true" /> : <LockOpen className="h-4 w-4" aria-hidden="true" />}
           </IconButton>
@@ -319,6 +393,13 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
         />
       ) : null}
 
+      {editLimit ? (
+        <LimitDialog
+          ev={ev}
+          onClose={() => setEditLimit(false)}
+          onSaved={(limit) => { setEditLimit(false); onChanged(Object.assign({}, ev, { signupLimit: limit })); }}
+        />
+      ) : null}
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
@@ -349,6 +430,7 @@ export default function FoodOnlineSignins({ formOpts, buildPdf }) {
   }, []);
 
   async function create() {
+    if (formOpts.signupLimit === undefined) { showToast(t("fsoLimitInvalid")); return; }
     setCreating(true);
     try {
       const ev = await createFoodSigninEvent(formOpts);
@@ -368,7 +450,7 @@ export default function FoodOnlineSignins({ formOpts, buildPdf }) {
   return (
     <SectionCard
       title={t("fsoTitle")}
-      description={t("fsoDesc").replace("{title}", formTitle(formOpts.occasion, formOpts.customOccasion, "en"))}
+      description={t("fsoDesc").replace("{title}", eventName(formOpts))}
       action={<Button onClick={create} loading={creating}><Globe className="h-4 w-4" aria-hidden="true" />{t("fsoCreateBtn")}</Button>}
     >
       {events === null ? (

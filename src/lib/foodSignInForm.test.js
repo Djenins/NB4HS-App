@@ -58,4 +58,24 @@ describe("food distribution form", () => {
     expect(out).not.toContain("(row1_name)");
     expect(out).toContain("(row15_name)");
   });
+
+  it("gives each program its own form", () => {
+    expect(formTitles({ occasion: "thanksgiving", lang: "en", program: "cdbg" })).toEqual(["Thanksgiving Food Distribution Form – CDBG"]);
+    expect(formTitles({ occasion: "thanksgiving", lang: "en", program: "regular" })).toEqual(["Thanksgiving Food Distribution Form"]);
+    expect(pdfFileName({ occasion: "general", program: "cdbg" })).toBe("food-distribution-form-cdbg.pdf");
+    // The Regular form asks about SNAP; CDBG doesn't.
+    const regular = buildFoodFormPdf(jsPDF, { layout: "individual", program: "regular", lang: "en", occasion: "general", pages: 1, logo: null }).output();
+    expect(regular).toContain("(form1_snap_yes)");
+    expect(regular).toContain("(form1_apply_no)");
+    const cdbg = buildFoodFormPdf(jsPDF, { layout: "individual", program: "cdbg", lang: "en", occasion: "general", pages: 1, logo: null }).output();
+    expect(cdbg).not.toContain("_snap_");
+    const sheet = buildFoodFormPdf(jsPDF, { layout: "sheet", program: "regular", lang: "en+ht", occasion: "general", pages: 1, logo: null }).output();
+    expect(sheet).toContain("(row12_apply_yes)");
+    expect(sheet).toContain("(row1_signature)");
+  });
+
+  it("prints a label once when it's the same in both languages", () => {
+    expect(label("ffSnapCol", "en+ht")).toBe("SNAP?");
+    expect(label("ffYes", "en+ht")).toBe("Yes / Wi");
+  });
 });

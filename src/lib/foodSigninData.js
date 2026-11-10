@@ -10,6 +10,7 @@ export function eventFromRow(r) {
   return {
     id: r.id, occasion: r.occasion, customOccasion: r.custom_occasion || "", date: r.event_date || "",
     location: r.location || "", lang: r.lang, isOpen: r.is_open, createdAt: r.created_at,
+    program: r.program || "regular", signupLimit: r.signup_limit || null, isFull: !!r.is_full,
   };
 }
 export function signupFromRow(r) {
@@ -18,6 +19,7 @@ export function signupFromRow(r) {
     firstName: r.first_name, lastName: r.last_name, phone: r.phone,
     street: r.street, unit: r.unit || "", city: r.city || "", zip: r.zip || "", householdSize: r.household_size || "",
     signedUpAt: r.signed_up_at, pickedUpAt: r.picked_up_at || "", signature: r.signature || "",
+    hasSnap: r.has_snap || "", wantsSnapHelp: r.wants_snap_help || "", snapTaskId: r.snap_task_id || null,
   };
 }
 
@@ -40,6 +42,16 @@ export function signupMatches(s, query) {
   return q.split(/\s+/).every((part) => name.includes(part));
 }
 
+// Staff input for the sign-up limit: "" means no limit; otherwise a whole
+// number from 1 to 10,000. Returns undefined when the input isn't valid.
+export function parseSignupLimit(input) {
+  const v = String(input == null ? "" : input).trim().replace(/,/g, "");
+  if (!v) return null;
+  if (!/^\d+$/.test(v)) return undefined;
+  const n = Number(v);
+  return n >= 1 && n <= 10000 ? n : undefined;
+}
+
 // The public sign-up link for an event; the uuid is the only key.
 export function foodSignupUrl(eventId, origin) {
   return (origin || window.location.origin) + "/food-signup/" + eventId;
@@ -57,13 +69,18 @@ export async function fetchFoodSigninEvents() {
 export async function createFoodSigninEvent(fields) {
   const { data, error } = await supabase.from("food_signin_events").insert({
     occasion: fields.occasion, custom_occasion: fields.customOccasion || "", event_date: fields.date || null,
-    location: fields.location || "", lang: fields.lang,
+    location: fields.location || "", lang: fields.lang, program: fields.program || "regular",
+    signup_limit: fields.signupLimit || null,
   }).select().single();
   if (error) throw error;
   return Object.assign(eventFromRow(data), { count: 0, pickedUp: 0 });
 }
 export async function setFoodSigninEventOpen(id, isOpen) {
   const { error } = await supabase.from("food_signin_events").update({ is_open: isOpen }).eq("id", id);
+  if (error) throw error;
+}
+export async function setFoodSigninEventLimit(id, limit) {
+  const { error } = await supabase.from("food_signin_events").update({ signup_limit: limit || null }).eq("id", id);
   if (error) throw error;
 }
 export async function deleteFoodSigninEvent(id) {
@@ -96,13 +113,15 @@ export async function publicFoodEvent(id) {
   if (error) throw error;
   return data ? eventFromRow(data) : null;
 }
-// Resolves to "ok" | "already" | "duplicate_address" | "closed".
+// Resolves to "ok" | "already" | "duplicate_address" | "closed" | "full".
 export async function publicFoodSignup(eventId, fields) {
   const { data, error } = await supabase.rpc("public_food_signup", {
     p_event: eventId,
     p: {
       first_name: fields.firstName, last_name: fields.lastName, phone: fields.phone,
       street: fields.street, unit: fields.unit, city: fields.city, zip: fields.zip, household_size: fields.householdSize,
+      has_snap: fields.hasSnap || "", wants_snap_help: fields.hasSnap === "no" ? (fields.wantsSnapHelp || "") : "",
+      lang: fields.lang || "",
     },
   });
   if (error) throw error;
