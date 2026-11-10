@@ -1,7 +1,8 @@
 -- f2 -- food distribution programs, a sign-up limit, and the SNAP questions.
--- NOT YET APPLIED to live. Undo with
--- supabase/rollback/f2_food_programs_snap_down.sql; checks in
--- supabase/tests/f2_food_programs_check.sql.
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-11-10 (version 20261112090000) after
+-- a rolled-back dry run on live with supabase/tests/f2_food_programs_check.sql;
+-- the f1 checks passed against live afterwards (rolled back, nothing kept).
+-- Undo with supabase/rollback/f2_food_programs_snap_down.sql.
 --
 -- 1. Every distribution (food_signin_events) belongs to a program, and each
 --    program has its own form:
