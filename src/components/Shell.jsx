@@ -26,6 +26,7 @@ import { isClientFacingPath } from "../lib/i18n.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_URL } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
+import RouteErrorBoundary from "./RouteErrorBoundary.jsx";
 import { navLabel } from "../lib/nav.js";
 import { useNavItems } from "../lib/useNavItems.js";
 import { navKeyForPath, visibleWorkspaces, workspaceOfItem } from "../lib/workspaces.js";
@@ -324,9 +325,11 @@ export default function Shell() {
               <Outlet />
             ) : (
               <main ref={mainRef} id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
-                <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
-                  <Outlet />
-                </Suspense>
+                <RouteErrorBoundary key={location.pathname}>
+                  <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
+                    <Outlet />
+                  </Suspense>
+                </RouteErrorBoundary>
               </main>
             )}
 
