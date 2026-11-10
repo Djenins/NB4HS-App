@@ -1723,6 +1723,10 @@ export var STR = {
   fsoRemoveDesc: { en: "They're taken off this distribution's list and their address frees up. Their household record stays.", ht: "They're taken off this distribution's list and their address frees up. Their household record stays.", fr: "They're taken off this distribution's list and their address frees up. Their household record stays." },
   fsoDeleteEventTitle: { en: "Delete this distribution's sign-up?", ht: "Delete this distribution's sign-up?", fr: "Delete this distribution's sign-up?" },
   fsoDeleteEventDesc: { en: "The link stops working and every sign-up is removed. Pickups already logged stay in each household's history. This can't be undone.", ht: "The link stops working and every sign-up is removed. Pickups already logged stay in each household's history. This can't be undone.", fr: "The link stops working and every sign-up is removed. Pickups already logged stay in each household's history. This can't be undone." },
+  // Shown instead of a blank page when a page fails (RouteErrorBoundary.jsx); can appear on client screens, so translated.
+  routeErrorTitle: { en: "This page didn't load", ht: "Paj sa a pa t chaje", fr: "Cette page ne s'est pas chargée" },
+  routeErrorDesc: { en: "Something went wrong while opening this page. Reload to try again.", ht: "Gen yon pwoblèm lè paj sa a t ap louvri. Rechaje pou eseye ankò.", fr: "Un problème est survenu à l'ouverture de cette page. Rechargez pour réessayer." },
+  routeErrorReload: { en: "Reload", ht: "Rechaje", fr: "Recharger" },
   dashSectionFoodDistribution: { en: "Food Distribution", ht: "Distribisyon Manje", fr: "Distribution de Nourriture" },
   distributionsWeekLabel: { en: "Distributions This Week", ht: "Distribisyon Semèn Sa a", fr: "Distributions Cette Semaine" },
   distributionsMonthLabel: { en: "Distributions This Month", ht: "Distribisyon Mwa Sa a", fr: "Distributions Ce Mois" },
