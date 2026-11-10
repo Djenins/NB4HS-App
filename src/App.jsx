@@ -31,6 +31,7 @@ import ApptRequestSuccess from "./pages/ApptRequestSuccess.jsx";
 import AppointmentLookup from "./pages/AppointmentLookup.jsx";
 import ClientRegister from "./pages/ClientRegister.jsx";
 import ClientRegisterSuccess from "./pages/ClientRegisterSuccess.jsx";
+import FoodSignIn from "./pages/FoodSignIn.jsx";
 import { navPath } from "./lib/nav.js";
 import { useNavItems } from "./lib/useNavItems.js";
 import { landingItem } from "./lib/workspaces.js";
@@ -149,6 +150,7 @@ export default function App() {
           <Route path="/appointments/lookup" element={<AppointmentLookup />} />
           <Route path="/register" element={<ClientRegister />} />
           <Route path="/register/success" element={<ClientRegisterSuccess />} />
+          <Route path="/food-signin/:eventId" element={<FoodSignIn />} />
           <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
           <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
           <Route path="/communications/:section?" element={<RequireRoute routeKey="communications"><Communications /></RequireRoute>} />

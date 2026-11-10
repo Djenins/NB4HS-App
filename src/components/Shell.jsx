@@ -162,7 +162,10 @@ export default function Shell() {
   // refreshed, or followed a bookmark) is using the kiosk, so give them the
   // kiosk version of it. Registration is the exception: its QR code is for
   // signing up from home, and a kiosk registration also checks you in.
-  const anonClientScreen = !authLoading && !session && isClientFacingPath(location.pathname) && location.pathname.indexOf("/register") !== 0;
+  // Food distribution sign-in is the same: its link is opened on a client's
+  // phone or a tablet passed down the line, and loops back to its own form.
+  const anonClientScreen = !authLoading && !session && isClientFacingPath(location.pathname)
+    && location.pathname.indexOf("/register") !== 0 && location.pathname.indexOf("/food-signin/") !== 0;
   // And the reverse: a signed-in staff member who opened the kiosk in this
   // tab and then goes to a staff screen leaves kiosk mode (it's remembered
   // for the tab, so it would otherwise hide the sidebar until the tab closes).
@@ -204,7 +207,8 @@ export default function Shell() {
   // ApptRequestSuccess.jsx) and carry their own logo/Back/language header for
   // the same reason -- see main--appt-request in main.css.
   // ClientRegister.jsx / ClientRegisterSuccess.jsx reuse the same frame.
-  const isApptRequest = location.pathname.indexOf("/appointments/request") === 0 || isClientRegister;
+  const isApptRequest = location.pathname.indexOf("/appointments/request") === 0 || isClientRegister
+    || location.pathname.indexOf("/food-signin/") === 0;
   // The shared calendar is an internal productivity screen whose week grid
   // needs the whole content column rather than <main>'s 1200px reading
   // measure -- see main--calendar in main.css. It keeps Shell's topbar; only
