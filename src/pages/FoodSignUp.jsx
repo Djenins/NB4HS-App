@@ -41,6 +41,8 @@ export default function FoodSignUp() {
   const t = useT();
   const formRef = useRef(null);
   const [event, setEvent] = useState(undefined); // undefined loading, null not found
+  // Errors hold i18n keys, not text, so they follow the language picker
+  // if the client switches language after pressing Sign Up.
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -82,8 +84,8 @@ export default function FoodSignUp() {
       street: val("street"), unit: val("unit"), city: val("city"), zip: val("zip"), householdSize: val("householdSize"),
     };
     const errMap = {};
-    ["firstName", "lastName", "phone", "street"].forEach((f) => { if (!fields[f]) errMap[f] = t("fieldRequired"); });
-    if (fields.phone && !PHONE_RE.test(fields.phone)) errMap.phone = t("registerPhoneInvalid");
+    ["firstName", "lastName", "phone", "street"].forEach((f) => { if (!fields[f]) errMap[f] = "fieldRequired"; });
+    if (fields.phone && !PHONE_RE.test(fields.phone)) errMap.phone = "registerPhoneInvalid";
     if (Object.keys(errMap).length) {
       setErrors(errMap);
       setSubmitError("");
@@ -102,12 +104,12 @@ export default function FoodSignUp() {
       if (status === "ok" || status === "already") setResult(status);
       else if (status === "closed") setEvent(Object.assign({}, event, { isOpen: false }));
       else if (status === "duplicate_address") {
-        setErrors({ street: t("fsDuplicateAddressShort") });
-        setSubmitError(t("fsDuplicateAddress"));
+        setErrors({ street: "fsDuplicateAddressShort" });
+        setSubmitError("fsDuplicateAddress");
       }
     } catch (err) {
       console.warn("publicFoodSignup failed", err);
-      setSubmitError(t("fsErrorDesc"));
+      setSubmitError("fsErrorDesc");
       showToast(t("fsErrorDesc"));
     } finally {
       setBusy(false);
@@ -169,10 +171,10 @@ export default function FoodSignUp() {
                 <ApptRequestCard id="food-signup-info" icon={UserRound} title={t("fsYourInfoTitle")} description={t("fsYourInfoDesc")} open={open.info} onToggle={() => toggle("info")}>
                   <div className="grid gap-x-4 gap-y-3">
                     <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 sm:gap-x-5">
-                      <ApptField name="firstName" label={t("firstName")} required error={errors.firstName} autoComplete="given-name" />
-                      <ApptField name="lastName" label={t("lastName")} required error={errors.lastName} autoComplete="family-name" />
+                      <ApptField name="firstName" label={t("firstName")} required error={errors.firstName && t(errors.firstName)} autoComplete="given-name" />
+                      <ApptField name="lastName" label={t("lastName")} required error={errors.lastName && t(errors.lastName)} autoComplete="family-name" />
                     </div>
-                    <ApptField name="phone" type="tel" label={t("ffPhone")} required error={errors.phone} autoComplete="tel" />
+                    <ApptField name="phone" type="tel" label={t("ffPhone")} required error={errors.phone && t(errors.phone)} autoComplete="tel" />
                     <ApptSelect name="householdSize" label={t("householdSizeLabel")} defaultValue="">
                       <option value="">{t("pleaseSelect")}</option>
                       {HOUSEHOLD_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -184,7 +186,7 @@ export default function FoodSignUp() {
                   <ApptRequestCard id="food-signup-address" icon={Home} title={t("fsAddressTitle")} description={t("fsAddressDesc")} open={open.address} onToggle={() => toggle("address")}>
                     <div className="grid gap-x-4 gap-y-3">
                       <ApptField
-                        name="street" label={t("address")} required error={errors.street} placeholder={t("streetAddressPlaceholder")}
+                        name="street" label={t("address")} required error={errors.street && t(errors.street)} placeholder={t("streetAddressPlaceholder")}
                         onAddressSelect={(a) => {
                           const form = formRef.current;
                           if (!form) return;
@@ -200,7 +202,7 @@ export default function FoodSignUp() {
                     </div>
                   </ApptRequestCard>
 
-                  {submitError ? <Notice>{submitError}</Notice> : null}
+                  {submitError ? <Notice>{t(submitError)}</Notice> : null}
                   <AppointmentSubmitButton label={t("fsSubmit")} busyLabel={t("fsSubmitting")} busy={busy} />
                 </div>
               </div>
