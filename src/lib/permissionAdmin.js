@@ -204,6 +204,15 @@ export function auditCsv(events, nameOf) {
 
 // ---------- data ----------
 
+// Programs in which this person holds at least one permission, from their
+// effective permissions. A program they can open but hold nothing in shows
+// no page at all, so the Program Access tab warns about it.
+export function programsWithPermissions(effective) {
+  const out = {};
+  (effective || []).forEach((e) => { if (e.programKey) out[e.programKey] = true; });
+  return out;
+}
+
 export async function fetchUserAccess(userId) {
   const [eff, ovr] = await Promise.all([
     supabase.from("user_effective_permissions").select("permission_key, program_key, scope, sources").eq("user_id", userId),
