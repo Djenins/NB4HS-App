@@ -123,7 +123,7 @@ export default function FoodSignInFormCard() {
   const pageCount = Number(pages) || 1;
   const pagesHint = layout === "sheet"
     ? t("ffPagesHintSheet").replace("{rows}", SHEET_ROWS_PER_PAGE).replace("{total}", SHEET_ROWS_PER_PAGE * pageCount)
-    : t("ffPagesHintIndividual").replace("{total}", 2 * pageCount);
+    : t("ffPagesHintIndividual").replace("{total}", pageCount);
 
   return (
     <div className="space-y-6">
