@@ -302,7 +302,7 @@ export default function Shell() {
                   <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
                     <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-meta text-muted">
                       <li className="truncate">{t(crumbWorkspace.label)}</li>
-                      <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                      <li aria-hidden="true" className="flex"><ChevronRight className="h-3.5 w-3.5" /></li>
                       <li className="truncate font-semibold text-card-foreground" aria-current="page">{crumbLabel}</li>
                     </ol>
                   </nav>

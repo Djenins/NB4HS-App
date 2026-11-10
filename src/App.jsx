@@ -68,6 +68,7 @@ const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
 const WorkforceAppointments = lazy(() => import("./pages/WorkforceAppointments.jsx"));
 const Outreach = lazy(() => import("./pages/Outreach.jsx"));
 const MyReports = lazy(() => import("./pages/MyReports.jsx"));
+const Mileage = lazy(() => import("./pages/Mileage.jsx"));
 const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
@@ -163,6 +164,7 @@ export default function App() {
           <Route path="/case-management/:section?" element={<RequireRoute routeKey="casemanagement"><CaseManagement /></RequireRoute>} />
           <Route path="/myreports" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
           <Route path="/myreports/:reportId" element={<RequireRoute routeKey="myreports"><MyReports /></RequireRoute>} />
+          <Route path="/mileage" element={<RequireRoute routeKey="mileage"><Mileage /></RequireRoute>} />
           <Route path="/staffreports" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
           <Route path="/staffreports/:reportId" element={<RequireRoute routeKey="staffreports"><StaffReports /></RequireRoute>} />
           {/* Outreach is the engine; each Outreach program is its own workspace (D3). */}
