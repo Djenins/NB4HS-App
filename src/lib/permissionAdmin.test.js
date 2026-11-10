@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./supabase.js", () => ({ supabase: null }));
 const {
-  auditCsv, auditRecordLabel, diffDraft, draftList, isHighRisk, permissionState, permissionTree, previewPayload, programOf, roleDraft,
+  auditCsv, auditRecordLabel, diffDraft, draftList, isHighRisk, permissionState, permissionTree, previewPayload, programOf, programsWithPermissions, roleDraft,
   roleEditable, summarizePreview, summarizeRolePreview, valueDiff
 } = await import("./permissionAdmin.js");
 const { effectiveClosingTime } = await import("./storage.js");
@@ -170,5 +170,18 @@ describe("closing time", () => {
     expect(effectiveClosingTime({ closing_time: "18:30" }, { closingTime: "17:00" })).toBe("18:30");
     expect(effectiveClosingTime({}, { closingTime: "16:00" })).toBe("16:00");
     expect(effectiveClosingTime({ closing_time: "late" }, {})).toBe("17:00");
+  });
+});
+
+describe("program access without permissions", () => {
+  it("lists the programs a person holds any permission in", () => {
+    const effective = [
+      { permissionKey: "dashboard.view", programKey: "" },
+      { permissionKey: "snap.view", programKey: "snap" },
+      { permissionKey: "snap.cases.view", programKey: "snap" },
+      { permissionKey: "students.view", programKey: "students" },
+    ];
+    expect(programsWithPermissions(effective)).toEqual({ snap: true, students: true });
+    expect(programsWithPermissions(null)).toEqual({});
   });
 });

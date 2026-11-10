@@ -445,7 +445,7 @@ export default function AdminUserProfile({ userId }) {
       <TabPanel idBase="account" value={tab} className="pt-6">
         {tab === "profile" ? <ProfileTab account={account} isSelf={isSelf} onChanged={reload} /> : null}
         {tab === "positions" ? <PositionsTab account={account} positions={positions} onChanged={reload} /> : null}
-        {tab === "programs" ? <ProgramAccessTab account={account} isSelf={isSelf} catalog={catalog} /> : null}
+        {tab === "programs" ? <ProgramAccessTab account={account} isSelf={isSelf} catalog={catalog} onOpenPermissions={() => setTab("permissions")} /> : null}
         {tab === "roles" ? <RolesTab account={account} isSelf={isSelf} catalog={catalog} onChanged={reload} /> : null}
         {tab === "permissions" ? <PermissionsTab account={account} isSelf={isSelf} catalog={catalog} /> : null}
       </TabPanel>
