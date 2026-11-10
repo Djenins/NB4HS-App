@@ -1639,7 +1639,7 @@ export var STR = {
   ffLocationLabel: { en: "Location (optional)", ht: "Location (optional)", fr: "Location (optional)" },
   ffPagesLabel: { en: "Pages", ht: "Pages", fr: "Pages" },
   ffPagesHintSheet: { en: "{rows} households per page · {total} lines in all", ht: "{rows} households per page · {total} lines in all", fr: "{rows} households per page · {total} lines in all" },
-  ffPagesHintIndividual: { en: "2 forms per page · {total} forms in all", ht: "2 forms per page · {total} forms in all", fr: "2 forms per page · {total} forms in all" },
+  ffPagesHintIndividual: { en: "1 form per page · {total} forms in all", ht: "1 form per page · {total} forms in all", fr: "1 form per page · {total} forms in all" },
   ffPrintBtn: { en: "Print", ht: "Print", fr: "Print" },
   ffDownloadBtn: { en: "Download PDF", ht: "Download PDF", fr: "Download PDF" },
   ffPreviewLabel: { en: "Preview", ht: "Preview", fr: "Preview" },

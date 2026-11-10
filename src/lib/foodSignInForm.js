@@ -7,8 +7,7 @@
 // Two layouts:
 //  - "sheet":      landscape sign-in sheet, one row per household, numbered
 //                  across pages.
-//  - "individual": portrait, two half-page forms per sheet with a cut line,
-//                  one per household.
+//  - "individual": portrait, one full-page form per household.
 //
 // The paper is client-facing, so its wording is translated (en/ht/fr) and can
 // be printed bilingual ("en+ht", "en+fr"). The staff controls around it are
@@ -260,51 +259,42 @@ function buildSheet(doc, opts) {
 }
 
 function buildIndividual(doc, opts) {
-  const width = 612, height = 792, halfH = height / 2;
-  const left = MARGIN + 6, right = width - MARGIN - 6, w = right - left;
+  const width = 612, height = 792;
+  const left = MARGIN + 18, right = width - MARGIN - 18, w = right - left;
   const lang = opts.lang;
   const pages = opts.pages;
+  const GAP = 74; // room to write by hand between lines
 
-  const drawForm = (top, id) => {
-    let y = drawHeader(doc, opts, top + 26, left, right);
-    y = Math.max(y + 10, top + 128);
+  for (let p = 0; p < pages; p++) {
+    if (p > 0) doc.addPage("letter", "portrait");
+    const id = "form" + (p + 1);
+    let y = drawHeader(doc, opts, 48, left, right);
+    y = Math.max(y + 24, 190);
     drawLabeledLine(doc, label("ffDate", lang), formatFormDate(opts.date, lang), left, y, w * 0.45, id + "_date");
     if ((opts.location || "").trim()) {
       drawLabeledLine(doc, label("ffLocation", lang), opts.location.trim(), left + w * 0.5, y, w * 0.5);
     }
-    y += 34;
+    y += GAP + 10;
     drawLabeledLine(doc, label("ffName", lang), "", left, y, w, id + "_name");
-    y += 34;
+    y += GAP;
     drawLabeledLine(doc, label("ffAddress", lang), "", left, y, w, id + "_address");
-    y += 30;
+    y += GAP - 14;
     doc.setDrawColor(...RULE);
     doc.line(left, y + 3, right, y + 3);
     addField(doc, id + "_address2", left + 2, y + 2, w - 4, 10);
-    y += 34;
+    y += GAP;
     drawLabeledLine(doc, label("ffPhone", lang), "", left, y, w * 0.6, id + "_phone");
-    y += 30;
+    y += GAP + 6;
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(...MUTED);
     langList(lang).forEach((l) => {
       doc.text(doc.splitTextToSize(t("ffAcknowledge", l), w), left, y);
-      y += 12;
+      y += 14;
     });
-    y += 22;
+    y += GAP;
     drawLabeledLine(doc, label("ffSignature", lang), "", left, y, w, id + "_signature");
-  };
-
-  for (let p = 0; p < pages; p++) {
-    if (p > 0) doc.addPage("letter", "portrait");
-    drawForm(0, "form" + (2 * p + 1));
-    // Cut line between the two forms
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.5);
-    doc.setLineDashPattern([4, 3], 0);
-    doc.line(18, halfH, width - 18, halfH);
-    doc.setLineDashPattern([], 0);
-    doc.setLineWidth(0.6);
-    drawForm(halfH, "form" + (2 * p + 2));
+    drawFooter(doc, opts, p + 1, pages, width, height);
   }
 }
 

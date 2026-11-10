@@ -43,8 +43,11 @@ describe("food distribution form", () => {
     expect(out).toContain("/AcroForm");
     expect(out).toContain("(row1_name)");
     expect(out).toContain("(row12_signature)");
-    const single = buildFoodFormPdf(jsPDF, { layout: "individual", lang: "en", occasion: "general", pages: 1, logo: null });
-    expect(single.output()).toContain("(form2_phone)");
+    const single = buildFoodFormPdf(jsPDF, { layout: "individual", lang: "en", occasion: "general", pages: 2, logo: null });
+    const singleOut = single.output();
+    expect(singleOut).toContain("(form1_phone)");
+    expect(singleOut).toContain("(form2_phone)");
+    expect(singleOut).not.toContain("(form3_phone)");
   });
 
   it("prints online answers into the sheet and grows it to fit", () => {
