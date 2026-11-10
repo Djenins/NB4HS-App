@@ -8,7 +8,7 @@ import { supabase } from "./supabase.js";
 
 export function eventFromRow(r) {
   return {
-    id: r.id, occasion: r.occasion, customOccasion: r.custom_occasion || "", date: r.event_date || "",
+    id: r.id, shortCode: r.short_code || "", occasion: r.occasion, customOccasion: r.custom_occasion || "", date: r.event_date || "",
     location: r.location || "", lang: r.lang, isOpen: r.is_open, createdAt: r.created_at,
     program: r.program || "regular", signupLimit: r.signup_limit || null, isFull: !!r.is_full,
   };
@@ -52,9 +52,12 @@ export function parseSignupLimit(input) {
   return n >= 1 && n <= 10000 ? n : undefined;
 }
 
-// The public sign-up link for an event; the uuid is the only key.
-export function foodSignupUrl(eventId, origin) {
-  return (origin || window.location.origin) + "/food-signup/" + eventId;
+// The public sign-up link for an event: the short /f/<code> form (migration
+// f2_food_signup_short_codes), or the original /food-signup/<uuid>, which
+// still works.
+export function foodSignupUrl(ev, origin) {
+  const base = origin || window.location.origin;
+  return ev.shortCode ? base + "/f/" + ev.shortCode : base + "/food-signup/" + ev.id;
 }
 
 export async function fetchFoodSigninEvents() {
@@ -110,6 +113,12 @@ export async function undoFoodSignupPickup(id) {
 // Public: null when the link is wrong.
 export async function publicFoodEvent(id) {
   const { data, error } = await supabase.rpc("public_food_event", { p_id: id });
+  if (error) throw error;
+  return data ? eventFromRow(data) : null;
+}
+// Public, from a short link: the same, with the event's id.
+export async function publicFoodEventByCode(code) {
+  const { data, error } = await supabase.rpc("public_food_event_code", { p_code: code });
   if (error) throw error;
   return data ? eventFromRow(data) : null;
 }

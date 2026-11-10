@@ -1,6 +1,7 @@
 // FoodSignUp.jsx -- public sign-up for a food distribution, ahead of the
 // day. No login: staff create the distribution in Food Distribution >
-// Sign-in Forms and share its link or QR code (/food-signup/<event id>).
+// Sign-in Forms and share its link or QR code (/f/<short code>, or the
+// original /food-signup/<event id>).
 // The client gives their name, phone, address (with apartment/unit) and
 // household size; the server matches them to their client record by name +
 // phone and allows one sign-up per address. On the day, staff find them by
@@ -21,7 +22,7 @@ import { CalendarDays, Check, HandHeart, Home, MapPin, ShoppingBasket, TriangleA
 import { useApp, useT } from "../context/AppContext.jsx";
 import { formTitle, formatFormDate, programAsksSnap } from "../lib/foodSignInForm.js";
 import { cn } from "../lib/cn.js";
-import { publicFoodEvent, publicFoodSignup } from "../lib/foodSigninData.js";
+import { publicFoodEvent, publicFoodEventByCode, publicFoodSignup } from "../lib/foodSigninData.js";
 import KioskPageHeader from "../components/kiosk/KioskPageHeader.jsx";
 import KioskResult, { RESULT_PRIMARY_BTN } from "../components/kiosk/KioskResult.jsx";
 import ApptRequestCard from "../components/appointment/ApptRequestCard.jsx";
@@ -79,7 +80,7 @@ function YesNo({ id, question, value, onChange, error }) {
 }
 
 export default function FoodSignUp() {
-  const { eventId } = useParams();
+  const { eventId: idParam, code } = useParams();
   const { lang, setLang, showToast } = useApp();
   const t = useT();
   const formRef = useRef(null);
@@ -100,10 +101,10 @@ export default function FoodSignUp() {
 
   useEffect(() => {
     let cancelled = false;
-    publicFoodEvent(eventId)
+    (code ? publicFoodEventByCode(code) : publicFoodEvent(idParam))
       .then((ev) => {
         if (cancelled) return;
-        setEvent(ev);
+        setEvent(ev && Object.assign({}, ev, { id: ev.id || idParam }));
         // Open in the language staff chose for the form; the client can
         // still switch with the language picker.
         const first = ev && ev.lang ? ev.lang.split("+")[0] : "en";
@@ -112,7 +113,7 @@ export default function FoodSignUp() {
       .catch(() => { if (!cancelled) setEvent(null); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [idParam, code]);
 
   function nextPerson() {
     setResult("");
@@ -155,7 +156,7 @@ export default function FoodSignUp() {
     setSubmitError("");
     setBusy(true);
     try {
-      const status = await publicFoodSignup(eventId, fields);
+      const status = await publicFoodSignup(event.id, fields);
       if (status === "ok" || status === "already") {
         setSnapSent(status === "ok" && fields.wantsSnapHelp === "yes");
         setResult(status);

@@ -152,6 +152,7 @@ export default function App() {
           <Route path="/register" element={<ClientRegister />} />
           <Route path="/register/success" element={<ClientRegisterSuccess />} />
           <Route path="/food-signup/:eventId" element={<FoodSignUp />} />
+          <Route path="/f/:code" element={<FoodSignUp />} />
           <Route path="/search" element={<RequireRoute routeKey="search"><Search /></RequireRoute>} />
           <Route path="/reports" element={<RequireRoute routeKey="reports"><Reports /></RequireRoute>} />
           <Route path="/communications/:section?" element={<RequireRoute routeKey="communications"><Communications /></RequireRoute>} />
