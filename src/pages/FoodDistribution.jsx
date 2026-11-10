@@ -21,7 +21,7 @@
 // rules for what is required.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { BarChart3, Download, FileUp, Home, LayoutGrid, Plus, Ruler, ShoppingBasket, ShoppingCart, Trash2, Users } from "lucide-react";
+import { BarChart3, Download, FileSignature, FileUp, Home, LayoutGrid, Plus, Ruler, ShoppingBasket, ShoppingCart, Trash2, Users } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientDisplayName, clientMatchesSearch, downloadFoodClientTemplate,
@@ -37,6 +37,7 @@ import AddressInput from "../components/AddressInput.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
+import FoodSignInFormCard from "../components/FoodSignInFormCard.jsx";
 import FoodClientCard, { FoodClientDrawer, foodClientColumns } from "../components/FoodClientCard.jsx";
 import ModuleNav from "../components/ModuleNav.jsx";
 import Pagination from "../components/Pagination.jsx";
@@ -340,12 +341,14 @@ function ExportData() {
 }
 
 // The module's own menu (ModuleNav, same strip as Outreach/Workforce and
-// Case Management): Dashboard / Households / Distributions / Export, one URL
+// Case Management): Dashboard / Households / Distributions / Sign-in Forms /
+// Export, one URL
 // per section (/food/:section).
 const SECTIONS = [
   { key: "dashboard", label: "snapSectionDashboard", icon: LayoutGrid },
   { key: "households", label: "foodSectionHouseholds", icon: Home },
   { key: "distributions", label: "foodSectionDistributions", icon: ShoppingBasket },
+  { key: "forms", label: "foodSectionForms", icon: FileSignature },
   { key: "export", label: "exportDataTitle", icon: Download }
 ];
 const LOG_PRESETS = ["week", "month", "quarter", "year"];
@@ -653,6 +656,7 @@ export default function FoodDistribution() {
       {section === "dashboard" && <FoodDashboard foodClients={foodClients} onNavigate={go} />}
       {section === "households" && <FoodHouseholds foodClients={foodClients} />}
       {section === "distributions" && <DistributionLog foodClients={foodClients} />}
+      {section === "forms" && <FoodSignInFormCard />}
       {section === "export" && <ExportData />}
     </>
   );
