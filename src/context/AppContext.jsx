@@ -31,7 +31,7 @@ import {
   subscribeClientsTable
 } from "../lib/clientsData.js";
 import { fetchCurrentSession, fetchPastSessionStudents, fetchSessionHistory } from "../lib/sessionsData.js";
-import { fetchAllProfiles, fetchProfile, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
+import { fetchAllProfiles, fetchProfile, mfaStep, onAuthStateChange, profileToSession, signOut as supabaseSignOut } from "../lib/supabaseAuth.js";
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from "../lib/notificationsData.js";
 import { fetchMyProgramRoles } from "../lib/programStaff.js";
 import { can as canPermission, fetchMyPermissions } from "../lib/permissions.js";
@@ -142,6 +142,9 @@ export function AppProvider({ children }) {
       setTimeout(async () => {
         let profile = null;
         try {
+          // A password-only (aal1) session isn't signed in yet: StaffLogin
+          // asks for the authenticator code, or sets one up, first (s1).
+          if ((await mfaStep()) !== "done") return;
           profile = await fetchProfile(authSession.user.id);
         } finally {
           // finally, not just the happy path: if the profile query throws

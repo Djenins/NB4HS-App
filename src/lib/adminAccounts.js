@@ -137,7 +137,7 @@ export async function revokeSessions(userId, reason) {
   return data;
 }
 
-// The admin-users Edge Function (invite, resend_invite, password_reset).
+// The admin-users Edge Function (invite, resend_invite, password_reset, mfa_reset).
 // Errors come back as { error, detail } with an HTTP status; surface them as
 // thrown objects adminErrorKey() understands.
 async function callAccountsFunction(body) {
@@ -158,6 +158,10 @@ export function resendInvite(userId, delivery, reason) {
 
 export function sendPasswordReset(userId, reason) {
   return callAccountsFunction({ action: "password_reset", user_id: userId, reason });
+}
+
+export function resetTwoStep(userId, reason) {
+  return callAccountsFunction({ action: "mfa_reset", user_id: userId, reason });
 }
 
 export async function updateAccountProfile(userId, patch) {

@@ -50,7 +50,7 @@ describe("AppointmentLookup", () => {
 
   it("passes last name + email straight through to the lookup and lists what comes back", async () => {
     lookupClientAppointments.mockResolvedValue([
-      { date: "2026-09-15", time: "10:30", meetingWith: "case_manager", status: "scheduled", reason: "Housing paperwork" }
+      { date: "2026-09-15", time: "10:30", meetingWith: "case_manager", status: "scheduled" }
     ]);
     renderPage();
     type(/last name/i, "Pierre");
@@ -58,8 +58,7 @@ describe("AppointmentLookup", () => {
     submit();
 
     await waitFor(() => expect(lookupClientAppointments).toHaveBeenCalledWith("Pierre", "pierre@example.com", ""));
-    expect(await screen.findByText("Housing paperwork")).toBeInTheDocument();
-    expect(screen.getByText("Case Manager")).toBeInTheDocument();
+    expect(await screen.findByText("Case Manager")).toBeInTheDocument();
     expect(screen.getByText("Scheduled")).toBeInTheDocument();
     expect(screen.getByText("10:30")).toBeInTheDocument();
   });

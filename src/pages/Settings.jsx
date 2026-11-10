@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 import { Boxes, Briefcase, Building2, Car, CheckCircle2, Clock, ListChecks, MonitorSmartphone, Power, PowerOff, ShieldCheck, UserRound, Users } from "lucide-react";
 import KioskTabletsCard from "../components/KioskTabletsCard.jsx";
 import MileageRateCard from "../components/MileageRateCard.jsx";
+import TwoStepSignInCard from "../components/TwoStepSignInCard.jsx";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { setWorkforceRoleAccess } from "../lib/clientsData.js";
 import { saveAppSetting } from "../lib/permissionAdmin.js";
@@ -124,6 +125,8 @@ export default function Settings() {
         </SectionCard>
 
         {can("admin.settings.manage") && <KioskTabletsCard title={<SectionTitle icon={MonitorSmartphone}>{t("kioskTabletsTitle")}</SectionTitle>} />}
+
+        {can("admin.settings.manage") && <TwoStepSignInCard title={<SectionTitle icon={ShieldCheck}>Two-step sign-in</SectionTitle>} />}
 
         {can("admin.settings.manage") && <MileageRateCard title={<SectionTitle icon={Car}>Mileage reimbursement rate</SectionTitle>} />}
 
