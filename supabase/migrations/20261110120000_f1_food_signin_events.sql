@@ -1,6 +1,8 @@
 -- f1 -- sign-up ahead of a food distribution, sign-in on the day.
--- NOT YET APPLIED to live. Tested on the local stack with
--- supabase/tests/f1_food_signin_check.sql. Undo with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-11-10 (version 20261110120000) after
+-- a rolled-back dry run on live, then recorded in the migration history;
+-- supabase/tests/f1_food_signin_check.sql passed against live afterwards
+-- (rolled back, nothing kept). Undo with
 -- supabase/rollback/f1_food_signin_events_down.sql.
 --
 -- Staff create a distribution event (Thanksgiving, Christmas, ...) in Food
