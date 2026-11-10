@@ -13,8 +13,9 @@
 // an actual data wipe.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Boxes, Briefcase, Building2, CheckCircle2, Clock, ListChecks, MonitorSmartphone, Power, PowerOff, ShieldCheck, UserRound, Users } from "lucide-react";
+import { Boxes, Briefcase, Building2, Car, CheckCircle2, Clock, ListChecks, MonitorSmartphone, Power, PowerOff, ShieldCheck, UserRound, Users } from "lucide-react";
 import KioskTabletsCard from "../components/KioskTabletsCard.jsx";
+import MileageRateCard from "../components/MileageRateCard.jsx";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { setWorkforceRoleAccess } from "../lib/clientsData.js";
 import { saveAppSetting } from "../lib/permissionAdmin.js";
@@ -123,6 +124,8 @@ export default function Settings() {
         </SectionCard>
 
         {can("admin.settings.manage") && <KioskTabletsCard title={<SectionTitle icon={MonitorSmartphone}>{t("kioskTabletsTitle")}</SectionTitle>} />}
+
+        {can("admin.settings.manage") && <MileageRateCard title={<SectionTitle icon={Car}>Mileage reimbursement rate</SectionTitle>} />}
 
         <SectionCard title={<SectionTitle icon={ShieldCheck}>{t("rolePermissions")}</SectionTitle>}>
           <ul className="m-0 list-none divide-y divide-line-subtle p-0">
