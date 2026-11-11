@@ -3,10 +3,11 @@
 // this strip is how people move between its pages. Each Workforce page
 // keeps its own guarded route (/workforce/...), so the menu is rendered by
 // every list page and only lists the pages the signed-in user may open.
-// Appointments isn't a nav key of its own: it goes with Job Seekers (same
+// Staff & Access (STAFF_PATH) closes the strip for whoever can see staff
+// accounts. Appointments isn't a nav key of its own: it goes with Job Seekers (same
 // access) and carries the count of requests waiting for a job developer --
 // the same number as the sidebar's Workforce badge.
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { pendingApptCount } from "../lib/appointments.js";
@@ -14,6 +15,7 @@ import { navLabel, navPath } from "../lib/nav.js";
 import { NAV_ICONS } from "../lib/navIcons.js";
 import { useNavItems } from "../lib/useNavItems.js";
 import ModuleNav from "./ModuleNav.jsx";
+import { programStaffVisible } from "./ProgramStaffAccess.jsx";
 
 const WORKFORCE_KEYS = [
   "workforcedashboard", "jobdeveloper", "employers", "jobopenings",
@@ -21,9 +23,10 @@ const WORKFORCE_KEYS = [
 ];
 
 export const APPOINTMENTS_PATH = "/workforce/appointments";
+export const STAFF_PATH = "/workforce/staff";
 
 export default function WorkforceNav({ value }) {
-  const { lang, data } = useApp();
+  const { lang, data, can } = useApp();
   const t = useT();
   const navigate = useNavigate();
   const { items } = useNavItems();
@@ -37,6 +40,9 @@ export default function WorkforceNav({ value }) {
       });
     }
   });
+  if (programStaffVisible(can)) {
+    entries.push({ key: "staff", label: t("snapSectionStaff"), icon: ShieldCheck, to: STAFF_PATH });
+  }
   return (
     <ModuleNav
       label={navLabel("workforce", lang)}

@@ -66,6 +66,7 @@ const Placements = lazy(() => import("./pages/Placements.jsx"));
 const PlacementDetail = lazy(() => import("./pages/PlacementDetail.jsx"));
 const WorkforceReports = lazy(() => import("./pages/WorkforceReports.jsx"));
 const WorkforceAppointments = lazy(() => import("./pages/WorkforceAppointments.jsx"));
+const WorkforceStaff = lazy(() => import("./pages/WorkforceStaff.jsx"));
 const Outreach = lazy(() => import("./pages/Outreach.jsx"));
 const MyReports = lazy(() => import("./pages/MyReports.jsx"));
 const StaffReports = lazy(() => import("./pages/StaffReports.jsx"));
@@ -174,6 +175,7 @@ export default function App() {
           <Route path="/workforce/employers" element={<RequireRoute routeKey="employers"><Employers /></RequireRoute>} />
           <Route path="/workforce/employers/:employerId" element={<RequireRoute routeKey="employers"><EmployerProfile /></RequireRoute>} />
           <Route path="/workforce/jobs" element={<RequireRoute routeKey="jobopenings"><JobOpenings /></RequireRoute>} />
+          <Route path="/workforce/staff" element={<RequireRoute routeKey="workforcedashboard"><WorkforceStaff /></RequireRoute>} />
           <Route path="/workforce/matching" element={<RequireRoute routeKey="candidatematching"><CandidateMatching /></RequireRoute>} />
           <Route path="/workforce/referrals" element={<RequireRoute routeKey="referrals"><Referrals /></RequireRoute>} />
           <Route path="/workforce/placements" element={<RequireRoute routeKey="placements"><Placements /></RequireRoute>} />

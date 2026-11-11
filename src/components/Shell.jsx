@@ -42,7 +42,7 @@ import { sidebarSections } from "./sidebar/sidebarNav.js";
 import KioskTopBar from "./kiosk/KioskTopBar.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
-import { APPOINTMENTS_PATH } from "./WorkforceNav.jsx";
+import { APPOINTMENTS_PATH, STAFF_PATH } from "./WorkforceNav.jsx";
 
 // Shown while a lazily-loaded staff page's chunk is fetched. On a normal
 // connection that's under the 300ms delay in .route-loading, so nothing
@@ -244,7 +244,9 @@ export default function Shell() {
   const crumbWorkspace = pageKey ? visibleWorkspaces(items).find((w) => w.key === (workspaceOfItem(pageKey) || "home")) : null;
   // Workforce's Appointments section has no nav key of its own (it rides on
   // Job Seekers' access), so name it here rather than as the dashboard.
-  const crumbLabel = location.pathname === APPOINTMENTS_PATH ? t("appointmentsTitle") : navLabel(pageKey, lang);
+  const crumbLabel = location.pathname === APPOINTMENTS_PATH ? t("appointmentsTitle")
+    : location.pathname === STAFF_PATH ? t("snapSectionStaff")
+    : navLabel(pageKey, lang);
 
   return (
     <Fragment>

@@ -2,9 +2,10 @@
 // pages/Students.jsx (/students/:section) and pages/Assessments.jsx, which
 // keeps its own guarded route at /students/assessments (App.jsx). The
 // Assessments item only shows for people who can open that page.
-import { CalendarRange, ClipboardCheck, LayoutGrid, ListOrdered, School, Users } from "lucide-react";
+import { CalendarRange, ClipboardCheck, LayoutGrid, ListOrdered, School, ShieldCheck, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useT } from "../context/AppContext.jsx";
+import { useApp, useT } from "../context/AppContext.jsx";
+import { programStaffVisible } from "./ProgramStaffAccess.jsx";
 import { useNavItems } from "../lib/useNavItems.js";
 import ModuleNav from "./ModuleNav.jsx";
 
@@ -14,14 +15,17 @@ export const ADULT_ED_SECTIONS = [
   { key: "classrooms", label: "classroomsHeading", icon: School },
   { key: "waitinglist", label: "waitingList", icon: ListOrdered },
   { key: "assessments", label: "navAssessments", icon: ClipboardCheck },
-  { key: "sessions", label: "adultEdSectionSessions", icon: CalendarRange }
+  { key: "sessions", label: "adultEdSectionSessions", icon: CalendarRange },
+  { key: "staff", label: "snapSectionStaff", icon: ShieldCheck }
 ];
 
 export default function AdultEdNav({ value }) {
   const t = useT();
+  const { can } = useApp();
   const navigate = useNavigate();
   const { items } = useNavItems();
-  const visible = ADULT_ED_SECTIONS.filter((s) => s.key !== "assessments" || items.indexOf("assessments") !== -1);
+  const visible = ADULT_ED_SECTIONS.filter((s) =>
+    (s.key !== "assessments" || items.indexOf("assessments") !== -1) && (s.key !== "staff" || programStaffVisible(can)));
   return (
     <ModuleNav
       label={t("navAdultEducation")}

@@ -42,6 +42,7 @@ import {
 } from "../lib/students.js";
 import AddressInput from "../components/AddressInput.jsx";
 import AdultEdNav, { ADULT_ED_SECTIONS } from "../components/AdultEdNav.jsx";
+import ProgramStaffAccess, { programStaffVisible } from "../components/ProgramStaffAccess.jsx";
 import BulkActionsBar from "../components/BulkActionsBar.jsx";
 import DatePicker from "../components/DatePicker.jsx";
 import DuplicateClientWarning from "../components/DuplicateClientWarning.jsx";
@@ -1373,7 +1374,7 @@ function SessionsSection() {
 }
 
 export default function Students() {
-  const { data, lang } = useApp();
+  const { data, lang, can } = useApp();
   const t = useT();
   const params = useParams();
   const location = useLocation();
@@ -1407,7 +1408,8 @@ export default function Students() {
   }
 
   const fallback = presetSearch !== null ? "students" : "dashboard";
-  const section = SECTION_KEYS.indexOf(params.section) !== -1 ? params.section : fallback;
+  const allowed = SECTION_KEYS.filter((k) => k !== "staff" || programStaffVisible(can));
+  const section = allowed.indexOf(params.section) !== -1 ? params.section : fallback;
   const go = (key) => navigate("/students/" + key);
   const term = search.trim().toLowerCase();
   const session = data.currentSession || {};
@@ -1422,7 +1424,7 @@ export default function Students() {
   return (
     <>
       <AdultEdNav value={section} />
-      <PageHeader
+      {section !== "staff" && <PageHeader
         title={t("navAdultEducation")}
         description={t("adultEdPageSubtitle")}
         meta={
@@ -1432,7 +1434,7 @@ export default function Students() {
             <span className="font-semibold tabular-nums text-card-foreground">{fmtDateLong(session.startDate, lang)} – {fmtDateLong(session.endDate, lang)}</span>
           </span>
         }
-      />
+      />}
 
       {section === "dashboard" && <AdultEdDashboard courses={courses} onNavigate={go} />}
 
@@ -1467,6 +1469,8 @@ export default function Students() {
       )}
 
       {section === "sessions" && <SessionsSection />}
+
+      {section === "staff" && <ProgramStaffAccess program="students" programName={t("navAdultEducation")} />}
     </>
   );
 }

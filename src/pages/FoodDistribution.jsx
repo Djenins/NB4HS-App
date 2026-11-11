@@ -21,7 +21,8 @@
 // rules for what is required.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { BarChart3, Download, FileSignature, FileUp, Home, LayoutGrid, Plus, Ruler, ShoppingBasket, ShoppingCart, Trash2, Users } from "lucide-react";
+import { BarChart3, Download, FileSignature, FileUp, Home, LayoutGrid, Plus, Ruler, ShieldCheck, ShoppingBasket, ShoppingCart, Trash2, Users } from "lucide-react";
+import ProgramStaffAccess, { programStaffVisible } from "../components/ProgramStaffAccess.jsx";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
   allDistributions, buildClient, buildImportedFoodClients, clientDisplayName, clientMatchesSearch, downloadFoodClientTemplate,
@@ -349,7 +350,8 @@ const SECTIONS = [
   { key: "households", label: "foodSectionHouseholds", icon: Home },
   { key: "distributions", label: "foodSectionDistributions", icon: ShoppingBasket },
   { key: "forms", label: "foodSectionForms", icon: FileSignature },
-  { key: "export", label: "exportDataTitle", icon: Download }
+  { key: "export", label: "exportDataTitle", icon: Download },
+  { key: "staff", label: "snapSectionStaff", icon: ShieldCheck }
 ];
 const LOG_PRESETS = ["week", "month", "quarter", "year"];
 
@@ -619,7 +621,7 @@ function FoodHouseholds({ foodClients }) {
 }
 
 export default function FoodDistribution() {
-  const { data } = useApp();
+  const { data, can } = useApp();
   const t = useT();
   const params = useParams();
   const navigate = useNavigate();
@@ -640,24 +642,26 @@ export default function FoodDistribution() {
   const foodClients = (data.foodClients || []).map((c) => Object.assign({}, c, {
     distributions: allDists.filter((d) => d.foodClientId === c.id)
   }));
-  const section = SECTIONS.some((s) => s.key === params.section) ? params.section : "dashboard";
+  const visible = SECTIONS.filter((s) => s.key !== "staff" || programStaffVisible(can));
+  const section = visible.some((s) => s.key === params.section) ? params.section : "dashboard";
   const go = (key) => navigate("/food/" + key);
 
   return (
     <>
       <ModuleNav
         label={t("navFoodDistribution")}
-        items={SECTIONS.map((s) => ({ key: s.key, label: t(s.label), icon: s.icon }))}
+        items={visible.map((s) => ({ key: s.key, label: t(s.label), icon: s.icon }))}
         value={section}
         onChange={go}
       />
-      <PageHeader title={t("foodDistributionTitle")} description={t("foodDistributionDesc")} />
+      {section !== "staff" && <PageHeader title={t("foodDistributionTitle")} description={t("foodDistributionDesc")} />}
 
       {section === "dashboard" && <FoodDashboard foodClients={foodClients} onNavigate={go} />}
       {section === "households" && <FoodHouseholds foodClients={foodClients} />}
       {section === "distributions" && <DistributionLog foodClients={foodClients} />}
       {section === "forms" && <FoodSignInFormCard />}
       {section === "export" && <ExportData />}
+      {section === "staff" && <ProgramStaffAccess program="food_distribution" programName={t("navFoodDistribution")} />}
     </>
   );
 }
