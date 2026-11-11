@@ -1,5 +1,8 @@
 -- m1 -- staff mileage log (My Mileage).
--- NOT YET APPLIED to live. Tested on the local stack with
+-- APPLIED to vkbzarlkqzvhsfdmxyyq 2026-11-10 (version 20261111090000) in one
+-- transaction, then recorded in the migration history; the table, policies,
+-- triggers, grants and the mileage_rate setting were confirmed on live
+-- afterwards. Tested on the local stack with
 -- supabase/tests/m1_mileage_check.sql. Undo with
 -- supabase/rollback/m1_mileage_log_down.sql.
 --

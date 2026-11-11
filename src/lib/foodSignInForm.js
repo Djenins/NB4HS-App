@@ -7,8 +7,7 @@
 // Two layouts:
 //  - "sheet":      landscape sign-in sheet, one row per household, numbered
 //                  across pages.
-//  - "individual": portrait, two half-page forms per sheet with a cut line,
-//                  one per household.
+//  - "individual": portrait, one full-page form per household.
 //
 // The paper is client-facing, so its wording is translated (en/ht/fr) and can
 // be printed bilingual ("en+ht", "en+fr"). The staff controls around it are
@@ -18,6 +17,14 @@ import { t } from "./i18n.js";
 
 export const FORM_LANGS = ["en", "ht", "fr", "en+ht", "en+fr"];
 export const OCCASIONS = ["general", "thanksgiving", "christmas", "easter", "backToSchool", "monthly", "custom"];
+// Food distribution programs; each has its own form. Regular asks the two
+// SNAP questions; CDBG (CDBG-funded distributions) doesn't. The database
+// check on food_signin_events.program lists the same keys.
+export const FOOD_PROGRAMS = ["regular", "cdbg"];
+export const PROGRAM_LABEL = { regular: "Regular", cdbg: "CDBG" };
+export function programAsksSnap(program) {
+  return (program || "regular") === "regular";
+}
 
 const OCCASION_KEY = {
   thanksgiving: "ffOccThanksgiving",
@@ -49,14 +56,16 @@ export function formTitle(occasion, custom, lang) {
   return t("ffTitleWithOccasion", lang).replace("{occasion}", name);
 }
 
-// One title line per language of the form.
+// One title line per language of the form; a CDBG form says so in its title.
 export function formTitles(opts) {
-  return langList(opts.lang).map((l) => formTitle(opts.occasion, opts.customOccasion, l));
+  const suffix = opts.program === "cdbg" ? " – CDBG" : "";
+  return langList(opts.lang).map((l) => formTitle(opts.occasion, opts.customOccasion, l) + suffix);
 }
 
-// A field label in every language of the form: "Name / Non".
+// A field label in every language of the form: "Name / Non". A word that's
+// the same in both ("SNAP?") is printed once.
 export function label(key, lang) {
-  return langList(lang).map((l) => t(key, l)).join(" / ");
+  return langList(lang).map((l) => t(key, l)).filter((v, i, all) => all.indexOf(v) === i).join(" / ");
 }
 
 // YYYY-MM-DD -> a long date in the form's first language. Parsed as a local
@@ -72,7 +81,7 @@ export function formatFormDate(iso, lang) {
 }
 
 export function pdfFileName(opts) {
-  const base = formTitle(opts.occasion, opts.customOccasion, "en")
+  const base = (formTitle(opts.occasion, opts.customOccasion, "en") + (opts.program === "cdbg" ? " cdbg" : ""))
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return (base || "food-distribution-form") + (opts.date ? "-" + opts.date : "") + ".pdf";
@@ -154,6 +163,43 @@ function drawLabeledLine(doc, text, value, x, y, w, fieldName) {
   if (!value && fieldName) addField(doc, fieldName, lx + 2, y + 2, x + w - lx - 4, 10);
 }
 
+// A tick box: a small square to mark by hand, plus a clickable check box
+// over it when the PDF is filled in on screen.
+function drawTickBox(doc, x, y, size, fieldName) {
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.7);
+  doc.rect(x, y - size + 1, size, size);
+  if (fieldName && typeof doc.AcroFormCheckBox === "function") {
+    const cb = new doc.AcroFormCheckBox();
+    cb.fieldName = fieldName;
+    cb.x = x;
+    cb.y = y - size + 1;
+    cb.width = size;
+    cb.height = size;
+    doc.addField(cb);
+  }
+}
+
+// "Do you have SNAP? / Èske ou gen SNAP?" then "[ ] Yes / Wi   [ ] No / Non"
+// on the line below. Returns the y after it.
+function drawYesNoQuestion(doc, question, lang, x, y, w, fieldName) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...INK);
+  const lines = doc.splitTextToSize(question, w);
+  doc.text(lines, x, y);
+  y += lines.length * 13 + 9;
+  doc.setFont("helvetica", "normal");
+  let bx = x + 4;
+  ["ffYes", "ffNo"].forEach((k) => {
+    drawTickBox(doc, bx, y, 11, fieldName ? fieldName + "_" + (k === "ffYes" ? "yes" : "no") : null);
+    doc.setTextColor(...INK);
+    doc.text(label(k, lang), bx + 17, y);
+    bx += 17 + doc.getTextWidth(label(k, lang)) + 36;
+  });
+  return y;
+}
+
 // Fit a typed value into a table cell: shrink a little, then cut with "…".
 function fitText(doc, text, maxW) {
   let size = 10;
@@ -187,10 +233,15 @@ function buildSheet(doc, opts) {
   const { width, height } = SHEET;
   const left = MARGIN, right = width - MARGIN, tableW = right - left;
   const lang = opts.lang;
-  // # | Name | Address | Phone | Signature
-  const fixed = [28, 175, 235, 110];
+  // # | Name | Address | Phone | [SNAP? | Apply?] | Signature
+  const snap = programAsksSnap(opts.program);
+  const fixed = snap ? [28, 158, 200, 100, 52, 52] : [28, 175, 235, 110];
   const cols = fixed.concat([tableW - fixed.reduce((a, b) => a + b, 0)]);
-  const heads = ["#", label("ffName", lang), label("ffAddress", lang), label("ffPhone", lang), label("ffSignature", lang)];
+  const heads = ["#", label("ffName", lang), label("ffAddress", lang), label("ffPhone", lang)]
+    .concat(snap ? [label("ffSnapCol", lang), label("ffApplyCol", lang)] : [])
+    .concat([label("ffSignature", lang)]);
+  const sigCol = cols.length - 1;
+  const firstLang = langList(lang)[0];
   const entries = opts.entries || [];
   const pages = Math.max(opts.pages, Math.ceil(entries.length / SHEET_ROWS_PER_PAGE));
 
@@ -210,11 +261,19 @@ function buildSheet(doc, opts) {
     doc.setLineWidth(0.6);
     doc.rect(left, y, tableW, SHEET.headRowH, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(heads.some((h) => h.length > 18) ? 8.5 : 10);
+    const headSize = heads.some((h) => h.length > 18) ? 8.5 : 10;
     doc.setTextColor(...INK);
     let x = left;
     heads.forEach((h, i) => {
-      doc.text(h, i === 0 ? x + cols[0] / 2 : x + 6, y + 14.5, i === 0 ? { align: "center" } : undefined);
+      // The narrow SNAP columns stack their languages.
+      const parts = h.split(" / ");
+      if (doc.setFontSize(headSize).getTextWidth(h) > cols[i] - 8 && parts.length > 1) {
+        doc.setFontSize(7.5);
+        parts.slice(0, 2).forEach((part, k) => doc.text(part, x + 5, y + 9 + k * 8.5));
+      } else {
+        doc.setFontSize(headSize);
+        doc.text(h, i === 0 ? x + cols[0] / 2 : x + 6, y + 14.5, i === 0 ? { align: "center" } : undefined);
+      }
       x += cols[i];
     });
     y += SHEET.headRowH;
@@ -230,89 +289,121 @@ function buildSheet(doc, opts) {
       doc.setFontSize(9);
       doc.text(String(n), left + cols[0] / 2, y + SHEET.rowH / 2 + 3, { align: "center" });
       const entry = entries[n - 1];
-      const cellX = [1, 2, 3, 4].map((c) => left + cols.slice(0, c).reduce((a, b) => a + b, 0));
+      const cellX = cols.slice(1).map((_, c) => left + cols.slice(0, c + 1).reduce((a, b) => a + b, 0));
       const baseline = y + SHEET.rowH / 2 + 3.5;
+      const textKeys = ["name", "address", "phone"];
+      const snapKeys = snap ? ["hasSnap", "wantsSnapHelp"] : [];
       if (entry) {
         // A row someone filled in online: their typed answers and drawn signature.
         doc.setTextColor(...INK);
-        ["name", "address", "phone"].forEach((k, i) => {
+        textKeys.forEach((k, i) => {
           const value = fitText(doc, String(entry[k] || ""), cols[i + 1] - 12);
           doc.text(value, cellX[i] + 6, baseline);
         });
+        snapKeys.forEach((k, i) => {
+          const v = entry[k] === "yes" ? t("ffYes", firstLang) : entry[k] === "no" ? t("ffNo", firstLang) : "";
+          if (v) doc.text(fitText(doc, v, cols[4 + i] - 12), cellX[3 + i] + 6, baseline);
+        });
         doc.setFontSize(9);
-        if (entry.signature) drawSignatureImage(doc, entry.signature, cellX[3] + 6, y + 3, cols[4] - 12, SHEET.rowH - 6, "sig-" + n);
+        if (entry.signature) drawSignatureImage(doc, entry.signature, cellX[sigCol - 1] + 6, y + 3, cols[sigCol] - 12, SHEET.rowH - 6, "sig-" + n);
       } else {
-        ["name", "address", "phone", "signature"].forEach((k, i) => {
-          addField(doc, "row" + n + "_" + k, cellX[i] + 3, baseline + 3.5, cols[i + 1] - 6, 10);
+        textKeys.concat(["signature"]).forEach((k, i) => {
+          const c = k === "signature" ? sigCol - 1 : i;
+          addField(doc, "row" + n + "_" + k, cellX[c] + 3, baseline + 3.5, cols[c + 1] - 6, 10);
+        });
+        // Yes / No tick boxes, with the first language's initials.
+        snapKeys.forEach((k, i) => {
+          let bx = cellX[3 + i] + 5;
+          doc.setFont("helvetica", "normal");
+          ["ffYesShort", "ffNoShort"].forEach((lk, j) => {
+            doc.setFontSize(8);
+            doc.setTextColor(...MUTED);
+            doc.text(t(lk, firstLang), bx, baseline);
+            bx += doc.getTextWidth(t(lk, firstLang)) + 2;
+            drawTickBox(doc, bx, baseline + 0.5, 8, "row" + n + "_" + (k === "hasSnap" ? "snap" : "apply") + "_" + (j === 0 ? "yes" : "no"));
+            bx += 13;
+          });
         });
       }
       y += SHEET.rowH;
     }
     // Column rules, top of header to bottom of the last row
     const tableTop = SHEET.headerBottom;
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.6);
     x = left;
     for (let i = 0; i < cols.length - 1; i++) {
       x += cols[i];
       doc.line(x, tableTop, x, y);
+    }
+    // What the SNAP columns ask, under the table.
+    if (snap) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      langList(lang).forEach((l, k) => doc.text(t("ffSnapLegend", l), left, y + 14 + k * 10));
     }
     drawFooter(doc, opts, p + 1, pages, width, height);
   }
 }
 
 function buildIndividual(doc, opts) {
-  const width = 612, height = 792, halfH = height / 2;
-  const left = MARGIN + 6, right = width - MARGIN - 6, w = right - left;
+  const width = 612, height = 792;
+  const left = MARGIN + 18, right = width - MARGIN - 18, w = right - left;
   const lang = opts.lang;
   const pages = opts.pages;
+  const snap = programAsksSnap(opts.program);
+  // Room to write by hand between lines; the Regular form has two more questions.
+  const GAP = snap ? 56 : 74;
 
-  const drawForm = (top, id) => {
-    let y = drawHeader(doc, opts, top + 26, left, right);
-    y = Math.max(y + 10, top + 128);
+  for (let p = 0; p < pages; p++) {
+    if (p > 0) doc.addPage("letter", "portrait");
+    const id = "form" + (p + 1);
+    let y = drawHeader(doc, opts, 48, left, right);
+    y = Math.max(y + 24, 190);
     drawLabeledLine(doc, label("ffDate", lang), formatFormDate(opts.date, lang), left, y, w * 0.45, id + "_date");
     if ((opts.location || "").trim()) {
       drawLabeledLine(doc, label("ffLocation", lang), opts.location.trim(), left + w * 0.5, y, w * 0.5);
     }
-    y += 34;
+    y += GAP + 10;
     drawLabeledLine(doc, label("ffName", lang), "", left, y, w, id + "_name");
-    y += 34;
+    y += GAP;
     drawLabeledLine(doc, label("ffAddress", lang), "", left, y, w, id + "_address");
-    y += 30;
+    y += GAP - 14;
     doc.setDrawColor(...RULE);
     doc.line(left, y + 3, right, y + 3);
     addField(doc, id + "_address2", left + 2, y + 2, w - 4, 10);
-    y += 34;
+    y += GAP;
     drawLabeledLine(doc, label("ffPhone", lang), "", left, y, w * 0.6, id + "_phone");
-    y += 30;
+    if (snap) {
+      y += GAP - 8;
+      y = drawYesNoQuestion(doc, label("ffSnapQ", lang), lang, left, y, w, id + "_snap");
+      y += 34;
+      y = drawYesNoQuestion(doc, label("ffApplyQ", lang), lang, left, y, w, id + "_apply");
+      y += GAP - 14;
+    } else {
+      y += GAP + 6;
+    }
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(...MUTED);
     langList(lang).forEach((l) => {
       doc.text(doc.splitTextToSize(t("ffAcknowledge", l), w), left, y);
-      y += 12;
+      y += 14;
     });
-    y += 22;
+    y += GAP;
     drawLabeledLine(doc, label("ffSignature", lang), "", left, y, w, id + "_signature");
-  };
-
-  for (let p = 0; p < pages; p++) {
-    if (p > 0) doc.addPage("letter", "portrait");
-    drawForm(0, "form" + (2 * p + 1));
-    // Cut line between the two forms
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.5);
-    doc.setLineDashPattern([4, 3], 0);
-    doc.line(18, halfH, width - 18, halfH);
-    doc.setLineDashPattern([], 0);
-    doc.setLineWidth(0.6);
-    drawForm(halfH, "form" + (2 * p + 2));
+    drawFooter(doc, opts, p + 1, pages, width, height);
   }
 }
 
 // jsPDF is passed in (it's loaded lazily by the page). opts:
-//   layout: "sheet" | "individual", lang: one of FORM_LANGS,
+//   layout: "sheet" | "individual", lang: one of FORM_LANGS, program: one of
+//   FOOD_PROGRAMS (default "regular"),
 //   occasion: one of OCCASIONS, customOccasion, date (YYYY-MM-DD or ""),
 //   location, pages (1-20), logo: { dataUrl, width, height } | null,
-//   entries (sheet only): [{ name, address, phone, signature (PNG data URL) }]
+//   entries (sheet only): [{ name, address, phone, hasSnap, wantsSnapHelp,
+//   signature (PNG data URL) }]
 //   -- answers given online, printed into the rows; the sheet grows to fit.
 // Blank lines carry typeable fields, so the PDF can be filled on screen too.
 export function buildFoodFormPdf(JsPDF, raw) {

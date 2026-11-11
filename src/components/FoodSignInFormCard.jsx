@@ -9,8 +9,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Download, Printer } from "lucide-react";
 import { useApp, useT } from "../context/AppContext.jsx";
 import {
-  FORM_LANGS, OCCASIONS, SHEET_ROWS_PER_PAGE, buildFoodFormPdf, pdfFileName,
+  FOOD_PROGRAMS, FORM_LANGS, OCCASIONS, SHEET_ROWS_PER_PAGE, buildFoodFormPdf, pdfFileName,
 } from "../lib/foodSignInForm.js";
+import { parseSignupLimit } from "../lib/foodSigninData.js";
 import { LOGO_URL } from "../lib/logo.js";
 import DatePicker from "./DatePicker.jsx";
 import FoodOnlineSignins from "./FoodOnlineSignins.jsx";
@@ -24,6 +25,7 @@ const OCCASION_LABEL = {
   general: "ffOccGeneral", thanksgiving: "ffOccThanksgiving", christmas: "ffOccChristmas", easter: "ffOccEaster",
   backToSchool: "ffOccBackToSchool", monthly: "ffOccMonthly", custom: "ffOccCustom",
 };
+const PROGRAM_LABEL_KEY = { regular: "ffProgramRegular", cdbg: "ffProgramCdbg" };
 const LANG_LABEL = { en: "ffLangEn", ht: "ffLangHt", fr: "ffLangFr", "en+ht": "ffLangEnHt", "en+fr": "ffLangEnFr" };
 
 // The logo as a data URL plus its size, so jsPDF can embed it -- scaled down
@@ -64,6 +66,7 @@ export default function FoodSignInFormCard() {
   const { showToast } = useApp();
   const t = useT();
   const idBase = useId();
+  const [program, setProgram] = useState("regular");
   const [occasion, setOccasion] = useState(seasonalOccasion);
   const [customOccasion, setCustomOccasion] = useState("");
   const [layout, setLayout] = useState("sheet");
@@ -71,6 +74,7 @@ export default function FoodSignInFormCard() {
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [pages, setPages] = useState("1");
+  const [limit, setLimit] = useState("");
   const [ready, setReady] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
   const libs = useRef({ JsPDF: null, logo: null });
@@ -85,7 +89,8 @@ export default function FoodSignInFormCard() {
     return () => { cancelled = true; };
   }, []);
 
-  const opts = { layout, lang, occasion, customOccasion, date, location, pages: Number(pages) || 1 };
+  const opts = { program, layout, lang, occasion, customOccasion, date, location, pages: Number(pages) || 1 };
+  const parsedLimit = parseSignupLimit(limit);
 
   // Synchronous once jsPDF is loaded, so Print can open its window inside
   // the click (pop-up blockers allow that, not one opened after an await).
@@ -123,13 +128,25 @@ export default function FoodSignInFormCard() {
   const pageCount = Number(pages) || 1;
   const pagesHint = layout === "sheet"
     ? t("ffPagesHintSheet").replace("{rows}", SHEET_ROWS_PER_PAGE).replace("{total}", SHEET_ROWS_PER_PAGE * pageCount)
-    : t("ffPagesHintIndividual").replace("{total}", 2 * pageCount);
+    : t("ffPagesHintIndividual").replace("{total}", pageCount);
 
   return (
     <div className="space-y-6">
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
       <SectionCard className="xl:col-span-2" title={t("ffCardTitle")} description={t("ffCardDesc")}>
         <div className="space-y-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-meta font-semibold text-card-foreground">{t("ffProgramLabel")}</span>
+            <SegmentedControl
+              label={t("ffProgramLabel")}
+              className="self-start"
+              value={program}
+              onChange={setProgram}
+              options={FOOD_PROGRAMS.map((p) => ({ value: p, label: t(PROGRAM_LABEL_KEY[p]) }))}
+            />
+            <span className="text-meta text-muted">{t("ffProgramHint")}</span>
+          </div>
+
           <Field label={t("ffOccasionLabel")} htmlFor={idBase + "-occasion"}>
             <Select id={idBase + "-occasion"} value={occasion} onChange={(e) => setOccasion(e.target.value)}>
               {OCCASIONS.map((o) => <option key={o} value={o}>{t(OCCASION_LABEL[o])}</option>)}
@@ -172,6 +189,15 @@ export default function FoodSignInFormCard() {
             </Select>
           </Field>
 
+          <Field
+            label={t("fsoLimitLabel")}
+            htmlFor={idBase + "-limit"}
+            hint={t("fsoLimitHint")}
+            error={parsedLimit === undefined ? t("fsoLimitInvalid") : undefined}
+          >
+            <Input id={idBase + "-limit"} inputMode="numeric" value={limit} onChange={(e) => setLimit(e.target.value)} maxLength={6} className="max-w-[10rem]" />
+          </Field>
+
           <div className="flex flex-wrap gap-2 pt-1">
             <Button onClick={print} disabled={!ready}><Printer className="h-4 w-4" aria-hidden="true" />{t("ffPrintBtn")}</Button>
             <Button variant="secondary" onClick={download} disabled={!ready}><Download className="h-4 w-4" aria-hidden="true" />{t("ffDownloadBtn")}</Button>
@@ -196,7 +222,7 @@ export default function FoodSignInFormCard() {
         </div>
       </SectionCard>
     </div>
-    <FoodOnlineSignins formOpts={opts} buildPdf={build} />
+    <FoodOnlineSignins formOpts={Object.assign({}, opts, { signupLimit: parsedLimit })} buildPdf={build} />
     </div>
   );
 }

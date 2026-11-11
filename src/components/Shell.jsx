@@ -26,6 +26,7 @@ import { isClientFacingPath } from "../lib/i18n.js";
 import { ORG } from "../lib/constants.js";
 import { LOGO_URL } from "../lib/logo.js";
 import { pendingApptCount } from "../lib/appointments.js";
+import RouteErrorBoundary from "./RouteErrorBoundary.jsx";
 import { navLabel } from "../lib/nav.js";
 import { useNavItems } from "../lib/useNavItems.js";
 import { navKeyForPath, visibleWorkspaces, workspaceOfItem } from "../lib/workspaces.js";
@@ -304,7 +305,7 @@ export default function Shell() {
                   <nav aria-label={t("breadcrumbLabel")} className="no-print min-w-0">
                     <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-meta text-muted">
                       <li className="truncate">{t(crumbWorkspace.label)}</li>
-                      <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                      <li aria-hidden="true" className="flex"><ChevronRight className="h-3.5 w-3.5" /></li>
                       <li className="truncate font-semibold text-card-foreground" aria-current="page">{crumbLabel}</li>
                     </ol>
                   </nav>
@@ -327,9 +328,11 @@ export default function Shell() {
               <Outlet />
             ) : (
               <main ref={mainRef} id="main-content" tabIndex={-1} className={cn(isKioskForm && "main--kiosk-form", isApptLookup && "main--appt-lookup", isApptRequest && "main--appt-request", isCalendar && "main--calendar")}>
-                <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
-                  <Outlet />
-                </Suspense>
+                <RouteErrorBoundary key={location.pathname}>
+                  <Suspense fallback={<RouteLoading label={t("pageLoading")} />}>
+                    <Outlet />
+                  </Suspense>
+                </RouteErrorBoundary>
               </main>
             )}
 

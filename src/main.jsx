@@ -10,6 +10,7 @@ import App from "./App.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
 import Toast from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
+import { reloadOnceForNewDeploy } from "./lib/chunkReload.js";
 // Tailwind loads first (preflight is disabled in tailwind.config.js, so
 // this only adds utility classes -- it can't strip main.css's styling from
 // pages that haven't been touched by the Tailwind/shadcn redesign pass).
@@ -25,6 +26,13 @@ import "./styles/main.css";
 // animations behind the sliding tab and segment indicators) arrives as its
 // own chunk right after first paint instead of riding in the entry bundle. `strict` makes a stray full `motion.*`
 // element throw in dev, so the saving can't silently regress.
+// A deploy renames the page files; a tab opened before it can't load the old
+// ones. Vite reports that here -- reload once to pick up the new version
+// instead of failing (lib/chunkReload.js).
+window.addEventListener("vite:preloadError", (event) => {
+  if (reloadOnceForNewDeploy()) event.preventDefault();
+});
+
 const loadMotionFeatures = () => import("./lib/motionFeatures.js").then((mod) => mod.default);
 
 createRoot(document.getElementById("root")).render(

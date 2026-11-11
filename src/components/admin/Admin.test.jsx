@@ -94,6 +94,28 @@ vi.mock("../../lib/permissionAdmin.js", async (importOriginal) => {
   return Object.assign({}, real, perm);
 });
 
+const lvl = vi.hoisted(() => ({}));
+vi.mock("../../lib/accessLevels.js", async (importOriginal) => {
+  const real = await importOriginal();
+  const access = (levels, frontDesk, admin) => {
+    const a = real.emptyAccess();
+    Object.assign(a.levels, levels);
+    return Object.assign(a, { frontDesk: !!frontDesk, admin: !!admin });
+  };
+  Object.assign(lvl, {
+    LEVELS_BY_USER: {
+      u1: { access: access({ case_management: "manager", students: "manager" }, true), mode: "account_type" },
+      u2: { access: access({ food_distribution: "staff" }), mode: "levels" },
+      me: { access: access({ case_management: "manager" }, true, true), mode: "levels" }
+    },
+    fetchAccessLevels: vi.fn(() => Promise.resolve(lvl.LEVELS_BY_USER)),
+    fetchUserAccessLevels: vi.fn((id) => Promise.resolve(lvl.LEVELS_BY_USER[id] || { access: real.emptyAccess(), mode: "account_type" })),
+    saveAccessLevels: vi.fn(() => Promise.resolve()),
+    switchToAccountType: vi.fn(() => Promise.resolve())
+  });
+  return Object.assign({}, real, lvl);
+});
+
 import AdminUsers from "./AdminUsers.jsx";
 import AdminUserProfile from "./AdminUserProfile.jsx";
 import AdminRoles from "./AdminRoles.jsx";
@@ -110,7 +132,13 @@ beforeEach(() => {
   session = { id: "me", role: "administrator" };
   showToast.mockClear();
   Object.values(lib).forEach((fn) => fn.mockClear && fn.mockClear());
+  Object.values(lvl).forEach((fn) => fn && fn.mockClear && fn.mockClear());
 });
+
+// The old tabs sit behind "Advanced settings" on the Access tab.
+async function openAdvanced() {
+  fireEvent.click(await screen.findByRole("button", { name: tr("accessAdvancedOpen") }));
+}
 
 describe("Staff accounts list", () => {
   it("shows every account with its status and filters by status", async () => {
@@ -119,6 +147,9 @@ describe("Staff accounts list", () => {
     expect(screen.getAllByText(tr("adminStatusInvited")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(tr("adminStatusInactive")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(tr("adminStatusDeactivated")).length).toBeGreaterThan(0);
+    // Access at a glance: each program's level, front desk.
+    expect((await screen.findAllByText(tr("accessProgramCaseManagement") + " · " + tr("accessLevelManager"))).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(tr("accessProgramFood")).length).toBeGreaterThan(0);
     fireEvent.change(screen.getByLabelText(tr("statusLabel")), { target: { value: "inactive" } });
     expect(screen.queryAllByText("Ann Active")).toHaveLength(0);
     expect(screen.getAllByText("Pat Pending").length).toBeGreaterThan(0);
@@ -138,8 +169,12 @@ describe("Staff accounts list", () => {
     expect(within(dialog).getByText(tr("duplicateEmail"))).toBeTruthy();
     fireEvent.change(within(dialog).getByLabelText(/Email/), { target: { value: "new@nb4hs.org" } });
     fireEvent.click(within(dialog).getByRole("button", { name: tr("adminDeliveryLink") }));
+    fireEvent.change(within(dialog).getByLabelText(tr("accessProgramStudents")), { target: { value: "staff" } });
     fireEvent.click(within(dialog).getByRole("button", { name: tr("adminCreateInviteLink") }));
     await waitFor(() => expect(lib.inviteStaff).toHaveBeenCalledWith({ email: "new@nb4hs.org", name: "New Person", role: "staff", delivery: "link" }));
+    // No Administrator switch when inviting; the levels are saved on the new account.
+    expect(within(dialog).queryByRole("switch", { name: tr("accessAdministrator") })).toBeNull();
+    await waitFor(() => expect(lvl.saveAccessLevels).toHaveBeenCalledWith("new", expect.objectContaining({ levels: expect.objectContaining({ students: "staff" }), admin: false }), "Set when invited"));
     expect(await screen.findByDisplayValue("https://example/verify?token=abc")).toBeTruthy();
   });
 });
@@ -178,12 +213,54 @@ describe("One account", () => {
     expect(screen.queryByRole("button", { name: tr("adminSignOutEverywhere") })).toBeNull();
   });
 
-  it("says roles don't change access yet, and only removes hand-given roles", async () => {
+  it("points to the Access tab from Roles, and only removes hand-given roles", async () => {
     renderIn(<AdminUserProfile userId="u1" />);
     await screen.findByRole("heading", { name: "Ann Active" });
+    expect(screen.queryByRole("tab", { name: /Roles/ })).toBeNull();
+    await openAdvanced();
     fireEvent.click(screen.getByRole("tab", { name: /Roles/ }));
     expect(screen.getByText(tr("adminRolesNotLiveTitle"))).toBeTruthy();
     expect(screen.getAllByRole("button", { name: tr("adminRemove") })).toHaveLength(1);
+  });
+});
+
+describe("Access levels", () => {
+  it("starts someone on their account type from what they have today, and switches them on save", async () => {
+    renderIn(<AdminUserProfile userId="u1" />);
+    expect(await screen.findByText(tr("accessFollowsAccountTypeTitle"))).toBeTruthy();
+    expect(screen.getByLabelText(tr("accessProgramCaseManagement")).value).toBe("manager");
+    expect(screen.getByLabelText(tr("accessProgramWorkforce")).value).toBe("none");
+    expect(screen.getByRole("switch", { name: tr("accessFrontDesk") }).getAttribute("aria-checked")).toBe("true");
+    // Saving unchanged levels is the switch itself, so it's allowed.
+    fireEvent.change(screen.getByLabelText(tr("accessProgramWorkforce")), { target: { value: "staff" } });
+    fireEvent.click(screen.getByRole("button", { name: tr("accessSwitch") }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: tr("accessSwitch") }));
+    await waitFor(() => expect(lvl.saveAccessLevels).toHaveBeenCalledWith("u1",
+      expect.objectContaining({ levels: expect.objectContaining({ case_management: "manager", students: "manager", workforce: "staff" }), frontDesk: true, admin: false }), ""));
+  });
+
+  it("saves only after a change for someone on levels, and can go back to the account type", async () => {
+    renderIn(<AdminUserProfile userId="u2" />);
+    const save = await screen.findByRole("button", { name: tr("accessSave") });
+    expect(screen.queryByText(tr("accessFollowsAccountTypeTitle"))).toBeNull();
+    expect(save.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("switch", { name: tr("accessFrontDesk") }));
+    expect(save.disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: tr("accessUndoChanges") }));
+    expect(save.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: tr("accessUseAccountType") }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Back to the old setup" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: tr("accessUseAccountType") }));
+    await waitFor(() => expect(lvl.switchToAccountType).toHaveBeenCalledWith("u2", "Back to the old setup"));
+  });
+
+  it("is read-only on your own account", async () => {
+    renderIn(<AdminUserProfile userId="me" />);
+    await screen.findByText(tr("adminOwnAccountTitle"));
+    expect((await screen.findByLabelText(tr("accessProgramCaseManagement"))).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: tr("accessSave") })).toBeNull();
   });
 });
 
@@ -191,6 +268,7 @@ describe("Program access", () => {
   it("shows automatic access read-only and gives a program with a reason", async () => {
     renderIn(<AdminUserProfile userId="u1" />);
     await screen.findByRole("heading", { name: "Ann Active" });
+    await openAdvanced();
     fireEvent.click(screen.getByRole("tab", { name: tr("adminTabPrograms") }));
     expect(await screen.findByText(tr("adminProgramAutomatic"))).toBeTruthy();
     const buttons = screen.getAllByRole("button", { name: tr("adminGiveAccess") });
@@ -206,6 +284,7 @@ describe("Program access", () => {
   it("offers no changes on your own account", async () => {
     renderIn(<AdminUserProfile userId="me" />);
     await screen.findByText(tr("adminOwnAccountTitle"));
+    await openAdvanced();
     fireEvent.click(screen.getByRole("tab", { name: tr("adminTabPrograms") }));
     await screen.findByText(tr("adminProgramAutomatic"));
     expect(screen.queryByRole("button", { name: tr("adminGiveAccess") })).toBeNull();
@@ -249,6 +328,7 @@ describe("Positions", () => {
 describe("Detailed permissions", () => {
   it("shows where each permission comes from", async () => {
     renderIn(<AdminUserProfile userId="u1" />);
+    await openAdvanced();
     fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
     await screen.findByText("Grade assessments");
     expect(screen.getByText("Program Lead")).toBeTruthy();
@@ -257,6 +337,7 @@ describe("Detailed permissions", () => {
 
   it("stages a sensitive grant, previews it, and needs the typed confirmation and a reason", async () => {
     renderIn(<AdminUserProfile userId="u1" />);
+    await openAdvanced();
     fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
     const trigger = await screen.findByRole("button", { name: tr("adminPermissionActions").replace("{permission}", "Grade assessments") });
     fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
@@ -283,6 +364,7 @@ describe("Detailed permissions", () => {
 
   it("offers no changes on your own account", async () => {
     renderIn(<AdminUserProfile userId="me" />);
+    await openAdvanced();
     fireEvent.click(await screen.findByRole("tab", { name: tr("adminTabPermissions") }));
     await screen.findByText("Grade assessments");
     expect(screen.queryByRole("button", { name: /^Change / })).toBeNull();

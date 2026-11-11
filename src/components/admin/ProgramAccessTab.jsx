@@ -6,9 +6,14 @@
 // Automatic access follows the account type, Workforce access and program
 // staff settings and can't be removed here; an admin can give more, and take
 // back what an admin gave (admin_grant_program / admin_revoke_program).
+//
+// Opening a program grants nothing by itself: without a role or a grant in
+// it, the person still sees no page. Such a program is marked "no
+// permissions yet" with a way to the Detailed Permissions tab.
 import { useCallback, useEffect, useState } from "react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { adminErrorKey, fetchProgramAccess, grantProgram, revokeProgram } from "../../lib/adminAccounts.js";
+import { fetchUserAccess, programsWithPermissions } from "../../lib/permissionAdmin.js";
 import { Alert } from "../ui/alert.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
@@ -16,14 +21,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Skeleton } from "../ui/skeleton.jsx";
 import { ReasonDialog, fmtWhen } from "./adminShared.jsx";
 
-export default function ProgramAccessTab({ account, isSelf, catalog }) {
+export default function ProgramAccessTab({ account, isSelf, catalog, onOpenPermissions }) {
   const { can, lang, data, showToast } = useApp();
   const t = useT();
   const [access, setAccess] = useState(null);
+  const [held, setHeld] = useState(null); // { programKey: true } -- programs with any permission
   const [pending, setPending] = useState(null); // { program, action: "grant" | "revoke" }
 
-  const load = useCallback(() => fetchProgramAccess(account.id).then(setAccess).catch((e) => { setAccess({}); showToast(t(adminErrorKey(e))); }),
-    [account.id, showToast, t]);
+  const load = useCallback(() => Promise.all([
+    fetchProgramAccess(account.id).then(setAccess).catch((e) => { setAccess({}); showToast(t(adminErrorKey(e))); }),
+    // If this fails, rows just show "Can open" as before.
+    fetchUserAccess(account.id).then((a) => setHeld(programsWithPermissions(a.effective))).catch(() => setHeld(null)),
+  ]), [account.id, showToast, t]);
   useEffect(() => { load(); }, [load]);
 
   const editable = can("admin.permissions.assign") && !isSelf;
@@ -48,12 +57,15 @@ export default function ProgramAccessTab({ account, isSelf, catalog }) {
             <ul className="m-0 list-none divide-y divide-line-subtle rounded-control border border-border p-0">
               {programs.map((m) => {
                 const row = access[m.key];
+                const empty = !!row && !!held && !held[m.key];
                 return (
                   <li key={m.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-ui font-semibold text-card-foreground">{m.name}</span>
-                        {row ? <Badge variant="success" dot>{t("adminCanOpen")}</Badge> : <Badge variant="neutral">{t("adminNoAccess")}</Badge>}
+                        {!row ? <Badge variant="neutral">{t("adminNoAccess")}</Badge>
+                          : empty ? <Badge variant="warning" dot>{t("adminNoPermissionsYet")}</Badge>
+                            : <Badge variant="success" dot>{t("adminCanOpen")}</Badge>}
                       </div>
                       {row ? (
                         <div className="mt-0.5 text-meta text-muted">
@@ -62,7 +74,15 @@ export default function ProgramAccessTab({ account, isSelf, catalog }) {
                             : t("adminProgramGiven").replace("{date}", fmtWhen(row.grantedAt, lang)).replace("{name}", nameOf(row.grantedBy) || "—")}
                         </div>
                       ) : null}
+                      {empty ? (
+                        <div className="mt-1 max-w-prose text-meta text-tone-warning-ink">
+                          {t("adminNoPermissionsHint").replace(/\{program\}/g, m.name)}
+                        </div>
+                      ) : null}
                     </div>
+                    {empty && onOpenPermissions ? (
+                      <Button size="sm" variant="secondary" onClick={onOpenPermissions}>{t("adminGrantPermissionsBtn")}</Button>
+                    ) : null}
                     {editable && !row ? (
                       <Button size="sm" variant="secondary" onClick={() => setPending({ program: m, action: "grant" })}>{t("adminGiveAccess")}</Button>
                     ) : null}

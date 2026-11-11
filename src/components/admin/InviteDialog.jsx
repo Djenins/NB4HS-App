@@ -1,5 +1,7 @@
-// InviteDialog.jsx -- "Invite staff": name, email, starting account type and
-// how the invite reaches them. By email, Supabase Auth sends the one-time
+// InviteDialog.jsx -- "Invite staff": name, email, their access levels (one
+// per program, plus Front desk; an admin who can't set levels picks an
+// account type instead) and how the invite reaches them. Administrator is
+// never set here: promoting someone is a separate, confirmed step. By email, Supabase Auth sends the one-time
 // link; "Copy a link" hands it back here once, for when email isn't set up
 // or the person is in the room. Either way they choose their own password
 // on /reset-password -- the admin never sees or sets it.
@@ -7,12 +9,14 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Link2, Mail } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { INVITE_ROLES, adminErrorKey, inviteStaff } from "../../lib/adminAccounts.js";
+import { accountTypeForAccess, emptyAccess, saveAccessLevels } from "../../lib/accessLevels.js";
 import { roleLabel } from "../../lib/utils.js";
 import { Alert } from "../ui/alert.jsx";
 import { Button } from "../ui/button.jsx";
 import { Dialog } from "../ui/dialog.jsx";
 import { Field, Input, Select } from "../ui/field.jsx";
 import { SegmentedControl } from "../ui/segmented-control.jsx";
+import { AccessLevelsForm } from "./AccessLevels.jsx";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -38,7 +42,9 @@ export function InviteLinkPanel({ link }) {
 }
 
 export default function InviteDialog({ open, onClose, existingEmails, onInvited }) {
-  const { lang, showToast } = useApp();
+  const { lang, can, showToast } = useApp();
+  const useLevels = can("admin.permissions.assign");
+  const [access, setAccess] = useState(emptyAccess());
   const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,7 +55,7 @@ export default function InviteDialog({ open, onClose, existingEmails, onInvited 
   const [link, setLink] = useState(null);
 
   useEffect(() => {
-    if (open) { setName(""); setEmail(""); setRole("staff"); setDelivery("email"); setErrors({}); setBusy(false); setLink(null); }
+    if (open) { setName(""); setEmail(""); setRole("staff"); setAccess(emptyAccess()); setDelivery("email"); setErrors({}); setBusy(false); setLink(null); }
   }, [open]);
 
   async function submit(e) {
@@ -63,7 +69,12 @@ export default function InviteDialog({ open, onClose, existingEmails, onInvited 
     if (Object.keys(next).length) return;
     setBusy(true);
     try {
-      const res = await inviteStaff({ email: clean, name: name.trim(), role, delivery });
+      const res = await inviteStaff({ email: clean, name: name.trim(), role: useLevels ? accountTypeForAccess(access) : role, delivery });
+      if (useLevels && res && res.user_id) {
+        // The invite stands even if this fails; the levels can be set on their account.
+        try { await saveAccessLevels(res.user_id, access, "Set when invited"); }
+        catch (err) { showToast(t("accessInviteLevelsFailed")); }
+      }
       onInvited();
       if (res && res.link) { setLink(res.link); }
       else { showToast(t("adminInviteSent").replace("{email}", clean)); onClose(); }
@@ -88,7 +99,7 @@ export default function InviteDialog({ open, onClose, existingEmails, onInvited 
       onClose={busy ? () => {} : onClose}
       title={t("adminInviteStaff")}
       description={t("adminInviteDesc")}
-      size="md"
+      size={useLevels ? "lg" : "md"}
       closeLabel={t("closeLabel")}
       as="form"
       panelProps={{ onSubmit: submit, noValidate: true }}
@@ -109,11 +120,17 @@ export default function InviteDialog({ open, onClose, existingEmails, onInvited 
         <Field label={t("emailAddressCol")} htmlFor="invite-email" error={errors.email} required>
           <Input placeholder={t("phEmail")} id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" aria-invalid={!!errors.email} />
         </Field>
-        <Field label={t("adminAccountTypeLabel")} htmlFor="invite-role" hint={t("adminAccountTypeHint")}>
-          <Select id="invite-role" value={role} onChange={(e) => setRole(e.target.value)}>
-            {INVITE_ROLES.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
-          </Select>
-        </Field>
+        {useLevels ? (
+          <Field label={t("accessTitle")} hint={t("accessInviteHint")}>
+            <AccessLevelsForm value={access} onChange={setAccess} showAdmin={false} idBase="invite-access" />
+          </Field>
+        ) : (
+          <Field label={t("adminAccountTypeLabel")} htmlFor="invite-role" hint={t("adminAccountTypeHint")}>
+            <Select id="invite-role" value={role} onChange={(e) => setRole(e.target.value)}>
+              {INVITE_ROLES.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
+            </Select>
+          </Field>
+        )}
         <Field label={t("adminDeliveryLabel")} hint={delivery === "email" ? t("adminDeliveryEmailHint") : t("adminDeliveryLinkHint")}>
           <SegmentedControl
             className="self-start"

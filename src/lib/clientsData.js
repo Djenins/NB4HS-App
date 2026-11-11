@@ -982,7 +982,11 @@ export async function setWorkforceRoleAccess(role, enabled) {
 
 export function subscribeClientsTable(table, onChange) {
   const channel = supabase
-    .channel(table + "-clients-changes")
+    // A name of its own per call: supabase.channel() hands back an existing
+    // channel with the same name, and adding a listener to one that's
+    // already subscribed throws -- which blanked Food Distribution > Sign-in
+    // Forms when two parts of it watched food_signups at once.
+    .channel(table + "-clients-changes-" + Math.random().toString(36).slice(2))
     .on("postgres_changes", { event: "*", schema: "public", table }, onChange)
     .subscribe();
   return () => supabase.removeChannel(channel);
