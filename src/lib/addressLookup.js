@@ -12,6 +12,11 @@
 //
 // Typed address fragments go to Photon's servers; nothing else about the
 // client (name, phone) is sent.
+//
+// Each address also carries its map point (lat, lon -- the building's, or
+// the street's for a street-level match) and, for a named place (a shop, a
+// clinic, a school), its `name`. Address forms ignore both; My Mileage uses
+// them for place names and driving distance (lib/drivingDistance.js).
 
 var PHOTON_URL = "https://photon.komoot.io/api/";
 var BIAS = "&lat=41.82&lon=-71.41&location_bias_scale=0.1&zoom=10"; // Providence, weighted strongly
@@ -48,6 +53,19 @@ function typedHouseNumber(query) {
 // always take the typed number (their own, if any, belongs to some other
 // building on that street, e.g. a shop).
 function toAddress(props, number, useOwnNumber) {
+  var a = toStreetAddress(props, number, useOwnNumber);
+  if (!a) return null;
+  // A named place: a shop, clinic or school Photon names (it files them as
+  // "house" or "other"), not a street, town or bare house number. A
+  // street-level match borrowing a typed number isn't that place.
+  var named = !!props.name && (props.type === "house" || props.type === "other") &&
+    props.name !== props.street && !/^\d/.test(props.name);
+  if (named && (useOwnNumber || !number)) a.name = props.name;
+  if (props._coords) { a.lon = props._coords[0]; a.lat = props._coords[1]; }
+  return a;
+}
+
+function toStreetAddress(props, number, useOwnNumber) {
   if (props.countrycode && props.countrycode !== "US") return null;
   // A point of interest (shop, bus stop) carries its street separately; a
   // street result is named for itself. Anything else (parks, neighbourhoods)
@@ -62,6 +80,11 @@ function toAddress(props, number, useOwnNumber) {
   return { street: street, city: city, state: state, zip: zip };
 }
 
+// The name of a place, then its address: "CVS Pharmacy, 1 Broad St, ...".
+export function placeLabel(a) {
+  return a.name ? a.name + ", " + addressLabel(a) : addressLabel(a);
+}
+
 export function addressLabel(a) {
   var tail = [a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return tail ? a.street + ", " + tail : a.street;
@@ -73,7 +96,11 @@ async function photon(q, signal) {
   var res = await fetch(PHOTON_URL + "?q=" + encodeURIComponent(q) + "&limit=10&lang=en" + BIAS + BBOX, { signal: signal });
   if (!res.ok) return [];
   var json = await res.json();
-  return (json.features || []).map(function (f) { return f.properties || {}; });
+  return (json.features || []).map(function (f) {
+    var props = Object.assign({}, f.properties || {});
+    if (f.geometry && f.geometry.coordinates) props._coords = f.geometry.coordinates;
+    return props;
+  });
 }
 
 // With a house number typed, Photon only returns buildings whose number
@@ -97,9 +124,13 @@ export async function searchAddresses(query, signal) {
   var out = [];
   exact.concat(streets).forEach(function (a) {
     if (!a) return;
-    var id = addressLabel(a).toLowerCase();
-    if (seen[id]) return;
+    // Two named places can share an address; a nameless copy of a listed
+    // address adds nothing.
+    var id = placeLabel(a).toLowerCase();
+    var plain = "@" + addressLabel(a).toLowerCase();
+    if (seen[id] || (!a.name && seen[plain])) return;
     seen[id] = true;
+    seen[plain] = true;
     out.push(a);
   });
   // Stable sort: Rhode Island first, otherwise keep Photon's order.
