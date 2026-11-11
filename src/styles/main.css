@@ -411,7 +411,11 @@
     height:calc(100dvh - 32px); margin:16px; border-radius:24px; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
     background:var(--bg); border:1px solid var(--sb-border); box-shadow:var(--sb-shadow);
   }
-  .content-col > main{max-width:1200px;}
+  /* Staff screens fill the content column at any window size rather than
+     sitting in a fixed reading measure with empty gutters on wide monitors;
+     the side padding grows a little with the viewport so content never hugs
+     the panel edge. Page grids reflow on their own breakpoints. */
+  .content-col > main{max-width:none; padding:16px clamp(16px, 2vw, 32px);}
   /* Landscape check-in kiosk (CheckInVisitor.jsx). The kiosk form is a
      three-column screen (sidebar | form | action panel), so it opts out of
      <main>'s usual 1200px reading measure; on a landscape-sized viewport it
