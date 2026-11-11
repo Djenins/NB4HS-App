@@ -63,10 +63,13 @@ export default function JobClientListItem({ client, lang, onRemove, selected, on
   return (
     <Card interactive className="p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <input
-          type="checkbox" checked={!!selected} onChange={onToggleSelect} aria-label={name}
-          className="mt-3 h-4 w-4 shrink-0 cursor-pointer accent-primary"
-        />
+        {/* The padded label gives the checkbox a 44px hit area without moving it. */}
+        <label className="-mx-3 -mb-3 flex shrink-0 cursor-pointer p-3">
+          <input
+            type="checkbox" checked={!!selected} onChange={onToggleSelect} aria-label={name}
+            className="h-5 w-5 cursor-pointer accent-primary"
+          />
+        </label>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <button

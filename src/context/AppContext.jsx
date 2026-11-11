@@ -15,7 +15,7 @@
 // enough to seed here rather than block on routing.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { isClientFacingPath, t } from "../lib/i18n.js";
+import { isClientFacingPath, languagesLoaded, loadLanguages, t } from "../lib/i18n.js";
 import { applyTheme, effectiveClosingTime, getConfig, loadData, saveData, setConfig as persistConfig } from "../lib/storage.js";
 import {
   checkOutVisit, fetchClasses, fetchKioskRoster, fetchKioskVisits, fetchStudentCount, fetchStudents, fetchVisitCount, fetchVisits,
@@ -94,7 +94,22 @@ export function AppProvider({ children }) {
   // so `lang` handed to the app below is "en" everywhere else.
   const [clientLang, setLang] = useState("en");
   const location = useLocation();
-  const lang = isClientFacingPath(location.pathname) ? clientLang : "en";
+  const onClientPage = isClientFacingPath(location.pathname);
+  // Kreyòl and French are separate chunks, fetched only on client-facing
+  // pages; until they arrive (a moment, and well before anyone picks one)
+  // the page stays in English.
+  const [extraLangsReady, setExtraLangsReady] = useState(languagesLoaded);
+  useEffect(() => {
+    if (!onClientPage || extraLangsReady) return;
+    let live = true;
+    loadLanguages().then(
+      () => { if (live) setExtraLangsReady(true); },
+      (err) => console.warn("loadLanguages failed", err)
+    );
+    return () => { live = false; };
+    // clientLang: picking a language retries a load that failed (offline kiosk).
+  }, [onClientPage, extraLangsReady, clientLang]);
+  const lang = onClientPage && extraLangsReady ? clientLang : "en";
   // Screen readers pick their voice from <html lang>; keep it on the
   // language the page is actually showing.
   useEffect(() => {

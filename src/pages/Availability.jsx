@@ -189,7 +189,7 @@ function WeeklyGrid({ cells, saved, onChange }) {
         ))}
         {ROWS.map((m, r) => (
           <div key={m} className="contents">
-            <div className="sticky left-0 z-[2] flex h-[34px] items-center justify-end whitespace-nowrap bg-card pr-2 text-meta tabular-nums text-muted">{fmtSlotTime(minToHHMM(m))}</div>
+            <div className="sticky left-0 z-[2] flex h-[34px] items-center [@media(pointer:coarse)]:h-11 justify-end whitespace-nowrap bg-card pr-2 text-meta tabular-nums text-muted">{fmtSlotTime(minToHHMM(m))}</div>
             {DAYS.map((d, c) => {
               const key = cellKey(d.wd, m);
               const on = cells.has(key);
@@ -220,7 +220,7 @@ function WeeklyGrid({ cells, saved, onChange }) {
                   }}
                   className={cn(
                     BUTTON_RESET,
-                    "h-[34px] w-full touch-manipulation rounded-[8px] border transition-colors duration-fast motion-reduce:transition-none",
+                    "h-[34px] w-full touch-manipulation rounded-[8px] [@media(pointer:coarse)]:h-11 border transition-colors duration-fast motion-reduce:transition-none",
                     "focus-visible:relative focus-visible:z-10",
                     FOCUS,
                     CELL[state]

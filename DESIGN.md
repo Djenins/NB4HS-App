@@ -16,7 +16,7 @@ colors:
   surface-sunken: "#F3F5F9"
   surface-overlay: "rgba(15,20,30,.5)"
   text: "#0F172A"
-  muted: "#64748B"
+  muted: "#5B6879"
   text-on-tint: "#5B6879"
   border: "#E5E7EB"
   border-subtle: "#EEF1F7"
@@ -184,6 +184,7 @@ A restrained cool-neutral field carrying one interactive blue, a navy frame, and
 ### Primary
 - **Action Blue** (`primary`): buttons, links, active nav, focus, selected filter chips and segments, charts and icons. Hover deepens to `primary-dark`. Text on a solid blue fill uses `--primary-foreground` (white in light, dark ink in dark mode, where the blue is lightened).
 - **Brand Navy** (`navy`): sidebar and shell chrome, and the text colour of the secondary button. Never an interactive fill.
+- **Sidebar active** (`--sb-active` #DCE8FF fill, `--sb-active-text` = `primary-dark`): the active nav item and the staff initials badge. Plain `primary` is 4.4:1 on that fill, under AA.
 
 ### Secondary
 - **Signal Red** (`accent-red`): errors, validation, destructive actions and overdue work only. Text uses the deeper `accent-red-dark` (the danger ink).
@@ -193,7 +194,7 @@ A restrained cool-neutral field carrying one interactive blue, a navy frame, and
 
 ### Neutral
 - **Page** (`surface-page`), **Card** (`surface-card`), **Sunken Well** (`surface-sunken`, table headers, toolbars, footers of dialogs, disabled inputs), **Scrim** (`surface-overlay`, behind dialogs and drawers).
-- **Ink** (`text`), **Muted** (`muted`, secondary text on a card), **On-Tint** (`text-on-tint`, secondary text on a tone tint, where muted drops below AA).
+- **Ink** (`text`), **Muted** (`muted`, secondary text; clears AA on the page, card, sunken well and every tint, 4.8:1 at its weakest on `primary-tint`), **On-Tint** (`text-on-tint`, the same value today, kept as its own token for text on tone tints).
 - **Lines**: `border` for edges, `border-subtle` for repeated internal rules (table rows, calendar grid), `border-strong` for hover emphasis.
 
 ### Tones
@@ -241,7 +242,7 @@ The client-facing screens are used with a finger, often from arm's length, so th
 
 ## Layout
 
-Content sits in `<main>` with a 16px gutter and a 1200px measure inside the content column; the Calendar runs full width. Tailwind's default breakpoints only (640/768/1024/1280) and its 4px spacing steps.
+Content sits in `<main>` with a 16px gutter and a 1200px measure inside the content column; the Calendar runs full width. Tailwind's default breakpoints only (640/768/1024/1280) and its 4px spacing steps. A `grid` has no default gap: every grid states its own (`gap-*`, or both `gap-x-*` and `gap-y-*`).
 
 - **Page stack:** sections separated by 24px (`mb-6`).
 - **Card padding:** 16px on phones, 20px from sm (FilterBar, results card); SectionCard 20px → 24px at sm.
@@ -322,9 +323,9 @@ Built in `src/components/ui/` (shadcn/cva style). New UI composes these; it does
 - **Do** give every icon-only button a label (IconButton's required `label`; `aria-label` on icon-only segments).
 - **Do** use `tabular-nums` on every number, KPI, time and count.
 - **Do** keep running text at 13px or larger; 12px only for uppercase overlines and badges.
-- **Do** make every target 44px on coarse pointers.
+- **Do** make every target 44px on coarse pointers. When the visible control must stay small (a calendar event's options button, a list checkbox), grow the hit area instead: a padded wrapping `label`, or an `after:-inset-*` pseudo-element on a `relative` button.
 - **Do** use a Drawer to view a record and keep the list in view; reserve Dialog for protected focus.
-- **Do** send every user-facing string through `t()` with entries in en, ht and fr, and leave room for ~30% longer strings.
+- **Do** send every user-facing string through `t()` with entries in en, ht and fr, and leave room for ~30% longer strings. Staff screens repeat English in ht/fr. The build ships Kreyòl and French as separate chunks fetched only on client-facing pages (`vite-i18n-split.js`), so `STR` must stay a plain `{ key: { en, ht, fr } }` literal; `src/lib/i18nSplit.test.js` fails if it doesn't.
 - **Do** give tone surfaces a full hairline in their tone's `border` slot.
 
 ### Don't:
@@ -332,7 +333,7 @@ Built in `src/components/ui/` (shadcn/cva style). New UI composes these; it does
 - **Don't** put thick side-stripe borders on new components. The calendar event card's left kind accent is the calendar's own device and stays there.
 - **Don't** use a modal to show a record that a Drawer could show.
 - **Don't** use red for anything but errors, validation, destructive actions and overdue work, or let gold become a dominant colour.
-- **Don't** use the legacy classes (`.card`, `.btn-*`, `.modal-box`) or rely on the bare `button`/`input`/`h1` tag rules in main.css; they are deprecated and deleted in Phase 4.
+- **Don't** add element styles to main.css. Its base layer is zero-specificity `:where()` resets (headings inherit size and weight, buttons and inputs are bare), so any class wins; size, weight, padding and spacing belong on the element as utilities or in a `ui/` component. The legacy `.card`, `.btn-*`, `.modal-box` and the `.grid` default gap are gone.
 - **Don't** write hex values or Tailwind opacity modifiers on var()-backed colours (`border-primary/25` compiles to nothing); use the pre-blended `*-soft` and tone tokens.
 - **Don't** make cards lift on hover unless the whole card is a link or button.
 - **Don't** apply the staff type ramp to the kiosk or public check-in flows; they keep their own touch scale.

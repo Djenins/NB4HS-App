@@ -48,7 +48,7 @@ function EventOptions({ block, t, onOpen, onEdit, onDuplicate, onDelete, classNa
           type="button"
           aria-label={t("calendarEventActions") + ": " + block.title}
           onClick={(e) => e.stopPropagation()}
-          className={cn(BTN_RESET, "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip text-on-tint transition-colors hover:bg-card hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=open]:bg-card", className)}
+          className={cn(BTN_RESET, "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip text-on-tint after:absolute after:-inset-1.5 after:content-[''] transition-colors hover:bg-card hover:text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=open]:bg-card", className)}
         >
           <MoreVertical className="h-[18px] w-[18px]" />
         </button>

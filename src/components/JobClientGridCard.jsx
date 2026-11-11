@@ -24,7 +24,10 @@ export default function JobClientGridCard({ client, lang, onRemove, selected, on
   return (
     <Card interactive className="flex h-full flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
-        <input type="checkbox" checked={!!selected} onChange={onToggleSelect} aria-label={name} className="h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+        {/* The padded label gives the checkbox a 44px hit area without moving it. */}
+        <label className="-m-3 flex shrink-0 cursor-pointer p-3">
+          <input type="checkbox" checked={!!selected} onChange={onToggleSelect} aria-label={name} className="h-5 w-5 cursor-pointer accent-primary" />
+        </label>
         <div className="flex shrink-0 items-center gap-1">
           {client.nbId && <NbIdBadge nbId={client.nbId} />}
           <IconButton size="sm" label={t("deleteLabel")} onClick={onRemove} className="hover:bg-tone-danger-bg hover:text-tone-danger-ink">
