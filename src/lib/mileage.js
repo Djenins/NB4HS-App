@@ -196,3 +196,39 @@ export async function fetchMileageTeam() {
   if (error) throw error;
   return data || [];
 }
+
+// ---------- emailing the sheet ----------
+
+export const MAX_EMAIL_RECIPIENTS = 5;
+export const MAX_EMAIL_NOTE = 500;
+
+// Staff a sheet can be emailed to: active accounts with an email address,
+// the signed-in person first, then by name.
+export function emailableStaff(profiles, selfId) {
+  return (profiles || [])
+    .filter((p) => p.active !== false && p.email)
+    .slice()
+    .sort((a, b) => (a.id === selfId ? -1 : b.id === selfId ? 1 : (a.name || a.email).localeCompare(b.name || b.email)));
+}
+
+// What to tell the person for each answer of the email-mileage-sheet function.
+export function mileageEmailError(code) {
+  if (code === "email_not_configured") return "Email isn't set up for the app yet, so nothing was sent. Download the PDF and attach it to an email instead.";
+  if (code === "bad_recipients") return "One of the people you picked can't receive email. Pick someone else.";
+  if (code === "forbidden") return "You can't email this person's mileage sheet.";
+  if (code === "pdf_too_large") return "The sheet is too large to email. Download it instead.";
+  if (code === "not_signed_in") return "Your session ended. Sign in again, then try once more.";
+  return "Couldn't send the email. Check your connection and try again.";
+}
+
+// Sends the built PDF (base64, no data: prefix) to the chosen staff through
+// the email-mileage-sheet Edge Function. Throws { code } on failure.
+export async function emailMileageSheet({ staffId, month, recipients, note, fileName, pdfBase64 }) {
+  const { data, error } = await supabase.functions.invoke("email-mileage-sheet", {
+    body: { staffId, month, recipients, note: note || "", fileName, pdf: pdfBase64 }
+  });
+  if (!error) return data;
+  let detail = null;
+  try { detail = error.context && typeof error.context.json === "function" ? await error.context.json() : null; } catch (e) { detail = null; }
+  throw { code: (detail && detail.error) || "send_failed", message: error.message };
+}
