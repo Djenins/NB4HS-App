@@ -104,6 +104,8 @@ export var STR = {
   snapNoClientMatchesHint: { en: "If this is someone new, add them as a new person.", ht: "If this is someone new, add them as a new person.", fr: "If this is someone new, add them as a new person." },
   snapOpenClientProfile: { en: "Client profile", ht: "Client profile", fr: "Client profile" },
   navMyReports: { en: "My Reports", ht: "Rapò Mwen", fr: "Mes rapports" },
+  // Staff-only page: English in every language.
+  navMileage: { en: "My Mileage", ht: "My Mileage", fr: "My Mileage" },
   navStaffReports: { en: "Staff Reports", ht: "Rapò Anplwaye yo", fr: "Rapports du personnel" },
   snapSectionStaff: { en: "Staff & Access", ht: "Anplwaye ak Aksè", fr: "Personnel et accès" },
   snapRoleNone: { en: "No access", ht: "Pa gen aksè", fr: "Aucun accès" },

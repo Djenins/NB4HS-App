@@ -14,6 +14,8 @@ export var NAV_REQUIREMENTS = {
   dashboard: ["dashboard.view"],
   mycaseload: ["my_caseload.view"],
   myreports: ["staff_reports.submit"],
+  // My Mileage: every staff member, the same people who write My Reports.
+  mileage: ["staff_reports.submit"],
   staffreports: ["staff_reports.review", "staff_reports.view_all", "staff_reports.schedule.manage"],
   checkin: ["front_desk.checkin"],
   checkout: ["front_desk.checkout"],
@@ -54,7 +56,7 @@ export var NAV_ORDER = [
   "dashboard", "mycaseload", "checkin", "checkout", "search", "communications", "reports", "fooddistribution", "calendar", "availability",
   "qrcode", "manage", "students", "assessments", "casemanagement", "jobdeveloper",
   "workforcedashboard", "employers", "jobopenings", "candidatematching", "referrals", "placements", "workforcereports",
-  "users", "settings", "outreach", "myreports", "staffreports"
+  "users", "settings", "outreach", "myreports", "mileage", "staffreports"
 ];
 
 // `permissions`: rows from my_permissions() ({ permissionKey, programKey, scope }).
