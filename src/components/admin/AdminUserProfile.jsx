@@ -1,8 +1,11 @@
 // AdminUserProfile.jsx -- one staff account (/admin/users/:id): the
 // lifecycle actions in the header (deactivate, reactivate or activate,
 // resend the invite, send a password reset, sign out everywhere), then tabs:
-//   Profile         name, sign-in email, account type (the legacy role that
-//                   still decides which pages they see) and sign-in history
+//   Access          one level per program plus Front desk and Administrator
+//                   (AccessLevels.jsx) -- the everyday way to set access
+//   Profile         name, sign-in email, job title, account type and
+//                   sign-in history
+// and, behind "Advanced settings" on the Access tab:
 //   Positions       job titles -- describe the work, grant nothing
 //   Program Access  the programs whose permissions count for them
 //   Roles           permission sets under the new access model
@@ -13,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, LogOut, Mail, Plus, Star, Trash2, UserCheck, UserX } from "lucide-react";
+import AccessTab from "./AccessLevels.jsx";
 import PermissionsTab from "./PermissionsTab.jsx";
 import ProgramAccessTab from "./ProgramAccessTab.jsx";
 import { useApp, useT } from "../../context/AppContext.jsx";
@@ -44,15 +48,33 @@ import DatePicker from "../DatePicker.jsx";
 
 // ---------------- Profile tab ----------------
 
-function ProfileTab({ account, isSelf, onChanged }) {
+function ProfileTab({ account, isSelf, positions, onChanged }) {
   const { lang, session, can, data, showToast, requestConfirm } = useApp();
   const t = useT();
+  const primary = account.positions.find((p) => p.isPrimary) || account.positions[0] || null;
+  const canEditTitle = can("admin.positions.manage");
+  const titles = (positions || []).filter((p) => !p.archivedAt || (primary && p.id === primary.id));
   const [name, setName] = useState(account.name);
   const [saving, setSaving] = useState(false);
   useEffect(() => { setName(account.name); }, [account.name]);
 
   // profiles.role changes stay with administrators (the database's rule).
-  const canChangeType = !isSelf && session && session.role === "administrator";
+  // Under access levels the type follows the levels, so it isn't picked here.
+  const onLevels = account.accessMode === "levels";
+  const canChangeType = !isSelf && !onLevels && session && session.role === "administrator";
+
+  async function changeTitle(positionId) {
+    if (!positionId || (primary && positionId === primary.id)) return;
+    try {
+      if (account.positions.some((p) => p.id === positionId)) await setPrimaryPosition(account.id, positionId);
+      else {
+        await addUserPosition(account.id, positionId, account.positions.length === 0);
+        if (account.positions.length) await setPrimaryPosition(account.id, positionId);
+      }
+      showToast(t("adminSaved"));
+      onChanged();
+    } catch (e) { showToast(t(adminErrorKey(e))); }
+  }
   const canEditName = can("admin.users.edit") || isSelf;
   const byName = (id) => {
     const p = (data.profiles || []).find((x) => x.id === id);
@@ -88,7 +110,13 @@ function ProfileTab({ account, isSelf, onChanged }) {
           <Field label={t("emailAddressCol")} htmlFor="profile-email" hint={t("adminEmailHint")}>
             <Input id="profile-email" value={account.email} disabled />
           </Field>
-          <Field label={t("adminAccountTypeLabel")} htmlFor="profile-type" hint={t("adminAccountTypeProfileHint")}>
+          <Field label={t("accessJobTitle")} htmlFor="profile-title" hint={t("accessJobTitleHint")}>
+            <Select id="profile-title" value={primary ? primary.id : ""} onChange={(e) => changeTitle(e.target.value)} disabled={!canEditTitle}>
+              {primary ? null : <option value="">{t("adminChoosePosition")}</option>}
+              {titles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+          <Field label={t("adminAccountTypeLabel")} htmlFor="profile-type" hint={onLevels ? t("accessAccountTypeFromLevels") : t("adminAccountTypeProfileHint")}>
             <Select id="profile-type" value={account.role} onChange={(e) => changeType(e.target.value)} disabled={!canChangeType}>
               {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
             </Select>
@@ -332,7 +360,8 @@ export default function AdminUserProfile({ userId }) {
   const [account, setAccount] = useState(undefined);
   const [catalog, setCatalog] = useState(null);
   const [positions, setPositions] = useState(null);
-  const [tab, setTab] = useState("profile");
+  const [tab, setTab] = useState("access");
+  const [advanced, setAdvanced] = useState(false);
   const [dialog, setDialog] = useState(null);
   const [resendDelivery, setResendDelivery] = useState("email");
   const [inviteLink, setInviteLink] = useState(null);
@@ -435,15 +464,18 @@ export default function AdminUserProfile({ userId }) {
         value={tab}
         onChange={setTab}
         items={[
-          { value: "profile", label: t("adminTabProfile") },
+          { value: "access", label: t("accessTab") },
+          { value: "profile", label: t("adminTabProfile") }
+        ].concat(advanced ? [
           { value: "positions", label: t("adminSectionPositions"), count: account.positions.length },
           { value: "programs", label: t("adminTabPrograms") },
           { value: "roles", label: t("adminSectionRoles"), count: account.roles.filter((r) => r.source === "admin").length },
           { value: "permissions", label: t("adminTabPermissions") }
-        ]}
+        ] : [])}
       />
       <TabPanel idBase="account" value={tab} className="pt-6">
-        {tab === "profile" ? <ProfileTab account={account} isSelf={isSelf} onChanged={reload} /> : null}
+        {tab === "access" ? <AccessTab account={account} isSelf={isSelf} onChanged={reload} onOpenAdvanced={() => { setAdvanced(true); setTab("roles"); }} /> : null}
+        {tab === "profile" ? <ProfileTab account={account} isSelf={isSelf} positions={positions} onChanged={reload} /> : null}
         {tab === "positions" ? <PositionsTab account={account} positions={positions} onChanged={reload} /> : null}
         {tab === "programs" ? <ProgramAccessTab account={account} isSelf={isSelf} catalog={catalog} onOpenPermissions={() => setTab("permissions")} /> : null}
         {tab === "roles" ? <RolesTab account={account} isSelf={isSelf} catalog={catalog} onChanged={reload} /> : null}
