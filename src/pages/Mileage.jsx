@@ -132,8 +132,11 @@ function TripDialog({ open, editing, initial, places, saving, onClose, onSave })
           <Input id="ml-miles" type="number" inputMode="decimal" step="0.1" min="0.1" max="1000" className="tabular-nums"
             value={form.miles} onChange={set("miles")} aria-invalid={!!errors.miles} />
         </Field>
-        <div className="flex items-center sm:pt-7">
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-ui font-semibold text-card-foreground">
+        {/* Same shape as a Field (label row, then the control) so the
+            checkbox lines up with the Miles input beside it. */}
+        <div className="flex flex-col gap-1.5">
+          <span aria-hidden="true" className="hidden text-meta font-semibold sm:block">&nbsp;</span>
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-ui font-semibold text-card-foreground sm:min-h-0 sm:h-10 [@media(pointer:coarse)]:sm:h-11">
             <input type="checkbox" className="h-5 w-5 accent-primary" checked={form.roundTrip} onChange={set("roundTrip")} />
             Round trip (there and back)
           </label>
