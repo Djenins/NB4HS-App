@@ -13,8 +13,9 @@ import { useId, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Building2, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, ClipboardList, Clock3, Download, FileUp, LayoutGrid,
-  Plus, Trash2, UserCheck, UserPlus, Users, UsersRound
+  Plus, Trash2, UserCheck, UserPlus, Users, UsersRound, ShieldCheck
 } from "lucide-react";
+import ProgramStaffAccess, { programStaffVisible } from "../components/ProgramStaffAccess.jsx";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { CASE_SERVICES, IMMIGRATION_STATUSES } from "../lib/constants.js";
 import { activeCaseManagers } from "../lib/appointments.js";
@@ -287,7 +288,8 @@ const SECTIONS = [
   { key: "clients", label: "caseSectionClients", icon: UsersRound },
   { key: "resources", label: "caseSectionResources", icon: Building2 },
   { key: "intakes", label: "caseSectionIntakes", icon: ClipboardList },
-  { key: "appointments", label: "caseSectionAppointments", icon: CalendarDays }
+  { key: "appointments", label: "caseSectionAppointments", icon: CalendarDays },
+  { key: "staff", label: "snapSectionStaff", icon: ShieldCheck }
 ];
 
 function QuickAction({ icon: Icon, title, desc, onClick }) {
@@ -510,7 +512,7 @@ function CaseClients({ onImported }) {
 }
 
 export default function CaseManagement() {
-  const { data, session } = useApp();
+  const { data, session, can } = useApp();
   const t = useT();
   const params = useParams();
   const location = useLocation();
@@ -519,7 +521,7 @@ export default function CaseManagement() {
   const [importedCount, setImportedCount] = useState(0);
   const [intakeCollapsed, setIntakeCollapsed] = useState(false);
 
-  const visible = SECTIONS.filter((s) => s.key !== "intakes" || canUseIntakeForm);
+  const visible = SECTIONS.filter((s) => (s.key !== "intakes" || canUseIntakeForm) && (s.key !== "staff" || programStaffVisible(can)));
   // ClientHeader's "Schedule Appointment" (ClientProfile.jsx) navigates here
   // with this state to land directly on a pre-filled appointments form --
   // see AppointmentsSection.jsx's initialClientId prop for the pre-fill half.
@@ -537,7 +539,8 @@ export default function CaseManagement() {
         value={section}
         onChange={go}
       />
-      <PageHeader title={t("caseManagementTitle")} description={t("caseManagementPageSubtitle")} />
+      {section !== "staff" && <PageHeader title={t("caseManagementTitle")} description={t("caseManagementPageSubtitle")} />}
+      {section === "staff" && <ProgramStaffAccess program="case_management" programName={t("navCaseManagement")} />}
       {section === "dashboard" && <CaseDashboard importedCount={importedCount} onNavigate={go} canUseIntakeForm={canUseIntakeForm} />}
       {section === "clients" && <CaseClients onImported={(n) => setImportedCount((c) => c + n)} />}
       {section === "resources" && <CaseResources />}

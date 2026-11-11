@@ -293,3 +293,15 @@ export async function revokeProgram(userId, programKey, reason) {
   const { error } = await supabase.rpc("admin_revoke_program", { p_user: userId, p_program: programKey, p_reason: reason || null });
   if (error) throw error;
 }
+
+// Everyone who can open one program (active rows), keyed by user id:
+// { <userId>: { source, grantedAt, grantedBy } }. Read by each program's
+// Staff & Access tab (components/ProgramStaffAccess.jsx).
+export async function fetchProgramMembers(programKey) {
+  const { data, error } = await supabase.from("user_program_access")
+    .select("user_id, source, granted_at, granted_by").eq("program_key", programKey).is("revoked_at", null);
+  if (error) throw error;
+  const out = {};
+  data.forEach((r) => { out[r.user_id] = { source: r.source, grantedAt: r.granted_at, grantedBy: r.granted_by }; });
+  return out;
+}
