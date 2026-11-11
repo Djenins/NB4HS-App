@@ -1,14 +1,15 @@
 // AdminUsers.jsx -- Administration > Staff accounts: every account with its
-// positions, account type, roles, status and last sign-in; filters; and
-// "Invite staff". A row opens the person's account (AdminUserProfile).
+// position, access at a glance (each program's level, Front desk,
+// Administrator -- lib/accessLevels.js), status and last sign-in; filters;
+// and "Invite staff". A row opens the person's account (AdminUserProfile).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import { ACCOUNT_STATUSES, accountStatus, adminErrorKey, fetchAccounts, filterAccounts, sortAccounts } from "../../lib/adminAccounts.js";
 import { ROLES } from "../../lib/constants.js";
+import { fetchAccessLevels } from "../../lib/accessLevels.js";
 import { roleLabel } from "../../lib/utils.js";
-import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
 import { Card } from "../ui/card.jsx";
 import { DataTable } from "../ui/data-table.jsx";
@@ -19,6 +20,7 @@ import { PageHeader } from "../ui/page-header.jsx";
 import { SearchInput } from "../ui/search-input.jsx";
 import { AccountStatusBadge, PersonCell, accountStatusLabel, fmtWhen } from "./adminShared.jsx";
 import InviteDialog from "./InviteDialog.jsx";
+import { AccessSummaryBadges } from "./AccessLevels.jsx";
 
 export default function AdminUsers() {
   const { lang, can, showToast } = useApp();
@@ -31,11 +33,19 @@ export default function AdminUsers() {
   const [role, setRole] = useState("");
   const [sort, setSort] = useState({ key: "name", dir: "asc" });
   const [inviting, setInviting] = useState(false);
+  const [levels, setLevels] = useState(null); // { [userId]: { access, mode } }
 
   const load = useCallback(() => {
     setLoadError(false);
+    // The summary is extra: if it can't load, the list still shows.
+    fetchAccessLevels().then(setLevels).catch(() => setLevels({}));
     return fetchAccounts().then(setAccounts).catch((e) => { setLoadError(true); showToast(t(adminErrorKey(e))); });
   }, [showToast, t]);
+  const accessCell = (u) => {
+    if (levels === null) return <span className="text-muted">…</span>;
+    const l = levels[u.id];
+    return <AccessSummaryBadges access={l ? l.access : null} mode={l ? l.mode : null} />;
+  };
   useEffect(() => { load(); }, [load]);
 
   const rows = useMemo(
@@ -62,12 +72,7 @@ export default function AdminUsers() {
     },
     {
       key: "access", header: t("adminAccessCol"),
-      cell: (u) => (
-        <div className="flex flex-wrap gap-1">
-          <Badge variant="neutral">{roleLabel(u.role, lang)}</Badge>
-          {u.roles.filter((r) => r.source === "admin").map((r) => <Badge key={r.id} variant="info">{r.name}</Badge>)}
-        </div>
-      )
+      cell: accessCell
     },
     { key: "status", header: t("statusLabel"), sortKey: "status", cell: (u) => <AccountStatusBadge account={u} /> },
     {
@@ -127,10 +132,7 @@ export default function AdminUsers() {
                   <PersonCell name={u.name} email={u.email} />
                   <AccountStatusBadge account={u} />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1 pl-12">
-                  <Badge variant="neutral">{roleLabel(u.role, lang)}</Badge>
-                  {u.positions.slice(0, 1).map((p) => <Badge key={p.id} variant="info">{p.name}</Badge>)}
-                </div>
+                <div className="mt-2 pl-12">{accessCell(u)}</div>
               </button>
             )}
             empty={accounts && accounts.length

@@ -84,6 +84,8 @@ export function adminErrorKey(error) {
   var code = error && error.code;
   if (/your own (account|access)/i.test(text)) return "adminErrSelf";
   if (/no active System Administrator/i.test(text)) return "adminErrLastAdmin";
+  if (/set access levels/i.test(text)) return "accessErrSystemAdminOnly";
+  if (/unknown program or access level/i.test(text)) return "userActionError";
   if (/System Administrator/i.test(text)) return "adminErrSystemAdminOnly";
   if (/reason is required/i.test(text)) return "adminErrReason";
   if (/permissions you do not hold|grant permissions you hold|programs you can access yourself/i.test(text)) return "adminErrEscalation";
@@ -107,6 +109,8 @@ function toAccount(r) {
     createdAt: r.created_at, invitedAt: r.invited_at, deactivatedAt: r.deactivated_at, deactivatedBy: r.deactivated_by,
     lastSignInAt: r.last_sign_in_at, emailConfirmedAt: r.email_confirmed_at, bannedUntil: r.banned_until,
     sessionCount: r.session_count || 0,
+    // account_type | levels (a1_simple_access_levels); filled in by withAccessModes().
+    accessMode: r.access_mode || "account_type",
     positions: (r.positions || []).map(function (p) { return { id: p.id, name: p.name, isPrimary: p.is_primary }; }),
     roles: (r.roles || []).map(function (x) {
       return { id: x.id, roleId: x.role_id, key: x.key, name: x.name, kind: x.kind, programKey: x.program_key || "", source: x.source, expiresAt: x.expires_at };
@@ -114,16 +118,31 @@ function toAccount(r) {
   };
 }
 
+// admin_users() predates profiles.access_mode; read it alongside.
+async function withAccessModes(accounts) {
+  if (!accounts.length) return accounts;
+  const { data, error } = await supabase.from("profiles").select("id, access_mode, account_type_before_levels").in("id", accounts.map((a) => a.id));
+  if (error) throw error;
+  const row = {};
+  (data || []).forEach((p) => { row[p.id] = p; });
+  return accounts.map((a) => Object.assign(a, {
+    accessMode: (row[a.id] && row[a.id].access_mode) || "account_type",
+    // The account type "Go back to account type" restores.
+    accountTypeBefore: (row[a.id] && row[a.id].account_type_before_levels) || null
+  }));
+}
+
 export async function fetchAccounts() {
   const { data, error } = await supabase.rpc("admin_users");
   if (error) throw error;
-  return (data || []).map(toAccount);
+  return withAccessModes((data || []).map(toAccount));
 }
 
 export async function fetchAccount(userId) {
   const { data, error } = await supabase.rpc("admin_users", { p_user: userId });
   if (error) throw error;
-  return data && data[0] ? toAccount(data[0]) : null;
+  if (!data || !data[0]) return null;
+  return (await withAccessModes([toAccount(data[0])]))[0];
 }
 
 export async function setAccountActive(userId, active, reason) {
