@@ -27,17 +27,18 @@
 // would mean leaking real credentials, not demo ones.
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowRight, BarChart3, Calendar, Eye, EyeOff, GraduationCap, Heart, Lock, Scale, ShieldCheck, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, useT } from "../context/AppContext.jsx";
 import { ORG } from "../lib/constants.js";
 import { pendingApptCount } from "../lib/appointments.js";
 import { LOGO_URL } from "../lib/logo.js";
+import { supabase } from "../lib/supabase.js";
 import { navPath } from "../lib/nav.js";
 import { fetchMyPermissions } from "../lib/permissions.js";
 import { resolveNavItems } from "../lib/useNavItems.js";
 import { AUTH_MODEL, landingItem } from "../lib/workspaces.js";
-import { fetchProfile, resetPasswordForEmail, signIn, signOut } from "../lib/supabaseAuth.js";
+import { fetchProfile, mfaStep, resetPasswordForEmail, signIn, signOut, startTotpEnrollment, verifiedTotpFactor, verifyTotp } from "../lib/supabaseAuth.js";
 import { BUTTON_RESET, Button } from "../components/ui/button.jsx";
 import { CONTROL } from "../components/ui/field.jsx";
 import { cn } from "../lib/cn.js";
@@ -73,6 +74,41 @@ export default function StaffLogin() {
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState("login");
   const [resetEmail, setResetEmail] = useState("");
+  // Two-step sign-in (s1): "enroll" shows a QR code to scan, "verify" asks
+  // for the 6-digit code. Both end in finishSignIn().
+  const [code, setCode] = useState("");
+  const [enrollment, setEnrollment] = useState(null);
+  const [factorId, setFactorId] = useState(null);
+
+  async function goToMfaStep(step) {
+    setCode("");
+    try {
+      if (step === "enroll") {
+        const e = await startTotpEnrollment();
+        setEnrollment(e);
+        setFactorId(e.factorId);
+      } else {
+        const f = await verifiedTotpFactor();
+        setFactorId(f ? f.id : null);
+      }
+      setMode(step === "enroll" ? "mfa-enroll" : "mfa-verify");
+    } catch (err) {
+      await signOut();
+      setMode("login");
+      showToast(t("mfaSetupError"));
+    }
+  }
+
+  // A tab left on the code screen, or reloaded mid-setup, still holds the
+  // password-only session: pick up where it stopped.
+  useEffect(() => {
+    let cancelled = false;
+    mfaStep().then((step) => {
+      if (!cancelled && (step === "verify" || step === "enroll")) goToMfaStep(step);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Phase 1 Supabase migration: real auth (supabase.auth.signInWithPassword)
   // instead of the old plaintext data.users lookup -- see supabaseAuth.js.
@@ -88,7 +124,43 @@ export default function StaffLogin() {
       showToast(t("loginError"));
       return;
     }
-    const profile = await fetchProfile(authData.user.id);
+    setPassword("");
+    const step = await mfaStep();
+    if (step !== "done") {
+      await goToMfaStep(step);
+      setSubmitting(false);
+      return;
+    }
+    await finishSignIn(authData.user.id);
+  }
+
+  async function handleCodeSubmit(e) {
+    e.preventDefault();
+    if (!factorId) return;
+    setSubmitting(true);
+    try {
+      await verifyTotp(factorId, code);
+    } catch (err) {
+      setSubmitting(false);
+      setCode("");
+      showToast(t("mfaCodeError"));
+      return;
+    }
+    const { data: who } = await supabase.auth.getUser();
+    await finishSignIn(who && who.user ? who.user.id : null);
+  }
+
+  async function useAnotherAccount() {
+    await signOut();
+    setEnrollment(null);
+    setFactorId(null);
+    setCode("");
+    setMode("login");
+  }
+
+  // The password (and, from s1, the authenticator code) checked out.
+  async function finishSignIn(userId) {
+    const profile = userId ? await fetchProfile(userId) : null;
     if (!profile || profile.active === false) {
       await signOut();
       setSubmitting(false);
@@ -121,6 +193,14 @@ export default function StaffLogin() {
     setMode("login");
     setResetEmail("");
   }
+
+  const HEADINGS = {
+    login: [t("welcomeBackHeading"), t("staffLoginSubtitle")],
+    forgot: [t("forgotPasswordHeading"), t("forgotPasswordSubtitle")],
+    "mfa-enroll": [t("mfaEnrollHeading"), t("mfaEnrollSubtitle")],
+    "mfa-verify": [t("mfaVerifyHeading"), t("mfaVerifySubtitle")]
+  };
+  const mfaMode = mode === "mfa-enroll" || mode === "mfa-verify";
 
   const stats = [
     { icon: Calendar, num: (data.classes || []).length, label: t("landingClassesOfferedLabel") },
@@ -224,14 +304,64 @@ export default function StaffLogin() {
               </div>
               <div className="mt-3 text-touch-meta font-bold text-primary">{t("staffLoginTitle")}</div>
               <h1 className="mt-1 mb-[0.55em] text-touch-title font-extrabold text-card-foreground">
-                {mode === "login" ? t("welcomeBackHeading") : t("forgotPasswordHeading")}
+                {HEADINGS[mode][0]}
               </h1>
-              <p className="mt-2 text-touch-body text-muted">{mode === "login" ? t("staffLoginSubtitle") : t("forgotPasswordSubtitle")}</p>
+              <p className="mt-2 text-touch-body text-muted">{HEADINGS[mode][1]}</p>
             </div>
 
             <Card className="mx-auto mt-6 w-full max-w-[460px]">
               <CardContent className="p-6 sm:p-10">
-                {mode === "login" ? (
+                {mfaMode ? (
+                  <form onSubmit={handleCodeSubmit} noValidate>
+                    {mode === "mfa-enroll" && enrollment ? (
+                      <div className="mb-5">
+                        <ol className="m-0 mb-4 list-decimal space-y-1 pl-5 text-touch-label text-card-foreground">
+                          <li>{t("mfaEnrollStep1")}</li>
+                          <li>{t("mfaEnrollStep2")}</li>
+                          <li>{t("mfaEnrollStep3")}</li>
+                        </ol>
+                        <img
+                          src={enrollment.qrCode}
+                          alt={t("mfaQrAlt")}
+                          className="mx-auto h-48 w-48 rounded-control bg-white p-2"
+                        />
+                        <p className="mt-3 text-center text-touch-meta text-muted">{t("mfaManualKey")}</p>
+                        <p className="m-0 select-all break-all text-center font-mono text-touch-label font-semibold text-card-foreground">{enrollment.secret}</p>
+                      </div>
+                    ) : null}
+                    <div className="mb-5">
+                      <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="mfa-code">{t("mfaCodeLabel")}</label>
+                      <input
+                        id="mfa-code"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        autoFocus
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        className={cn(CONTROL, "h-14 rounded-touch px-4 text-center font-mono text-touch-title tracking-[0.4em]")}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={code.length !== 6 || submitting || !factorId}
+                      className="mt-2 h-14 w-full rounded-touch text-touch-body"
+                    >
+                      {t("mfaVerifyBtn")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    {mode === "mfa-verify" ? <p className="mt-4 text-center text-touch-meta text-muted">{t("mfaLostPhone")}</p> : null}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="mt-3 h-auto w-full text-touch-meta font-semibold text-muted hover:bg-transparent hover:text-card-foreground"
+                      onClick={useAnotherAccount}
+                    >
+                      {t("mfaUseAnotherAccount")}
+                    </Button>
+                  </form>
+                ) : mode === "login" ? (
                   <form onSubmit={handleSubmit} noValidate>
                     <div className="mb-5">
                       <label className="required mb-2 block text-touch-label font-semibold text-card-foreground" htmlFor="login-email">{t("loginEmail")}</label>

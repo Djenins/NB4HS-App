@@ -23,8 +23,8 @@ import { Skeleton } from "../ui/skeleton.jsx";
 import { fmtWhen } from "./adminShared.jsx";
 import DatePicker from "../DatePicker.jsx";
 
-const ACTION_TONE = { insert: "success", update: "info", delete: "danger", invite: "violet", revoke_sessions: "warning", password_reset: "neutral" };
-const ACTIONS = ["insert", "update", "delete", "invite", "revoke_sessions", "password_reset"];
+const ACTION_TONE = { insert: "success", update: "info", delete: "danger", invite: "violet", revoke_sessions: "warning", password_reset: "neutral", mfa_reset: "warning" };
+const ACTIONS = ["insert", "update", "delete", "invite", "revoke_sessions", "password_reset", "mfa_reset"];
 const EMPTY = { actor: "", subject: "", table: "", action: "", from: "", to: "" };
 
 function show(v) {

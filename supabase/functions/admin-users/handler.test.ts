@@ -22,6 +22,10 @@ function fakes(opts: { perms?: string[]; signedIn?: boolean; lastSignIn?: string
       admin: {
         inviteUserByEmail: (email: string, o: Any) => { calls.push(["invite", email, o]); return Promise.resolve(opts.inviteError ? { data: null, error: opts.inviteError } : { data: { user }, error: null }); },
         generateLink: (o: Any) => { calls.push(["link", o]); return Promise.resolve({ data: { user, properties: { action_link: "https://x/verify?token=t" } }, error: null }); },
+        mfa: {
+          listFactors: (o: Any) => { calls.push(["listFactors", o.userId]); return Promise.resolve({ data: { factors: [{ id: "f1" }, { id: "f2" }] }, error: null }); },
+          deleteFactor: (o: Any) => { calls.push(["deleteFactor", o.id, o.userId]); return Promise.resolve({ data: {}, error: null }); }
+        },
         getUserById: (id: string) => Promise.resolve(id === user.id ? { data: { user }, error: null } : { data: { user: null }, error: { message: "nope" } })
       },
       resetPasswordForEmail: (email: string, o: Any) => { calls.push(["reset", email, o]); return Promise.resolve({ data: {}, error: null }); }
@@ -108,4 +112,22 @@ Deno.test("unknown actions and bad ids", async () => {
   assertEquals((await fakes().handle(post({ action: "delete_everyone" }))).status, 400);
   assertEquals((await fakes().handle(post({ action: "password_reset", user_id: "x" }))).status, 400);
   assertEquals((await fakes().handle(post({ action: "password_reset", user_id: "22222222-2222-2222-2222-222222222222" }))).status, 404);
+});
+
+Deno.test("mfa_reset logs first, removes every factor, then signs the person out", async () => {
+  const f = fakes();
+  const res = await f.handle(post({ action: "mfa_reset", user_id: f.user.id, reason: "Lost phone" }));
+  assertEquals(res.status, 200);
+  const steps = f.calls.filter((c) => c[1] !== "has_permission").map((c) => c[0] === "rpc" ? c[1] : c[0]);
+  assertEquals(steps, ["admin_log_auth_action", "listFactors", "deleteFactor", "deleteFactor", "admin_revoke_sessions"]);
+  assertEquals(f.calls.find((c) => c[1] === "admin_log_auth_action")[2].p_action, "mfa_reset");
+});
+
+Deno.test("mfa_reset needs admin.users.edit and touches nothing when refused", async () => {
+  const f = fakes({ perms: ["admin.users.invite"] });
+  assertEquals((await f.handle(post({ action: "mfa_reset", user_id: f.user.id }))).status, 403);
+  assertEquals(f.calls.filter((c) => c[0] !== "rpc").length, 0);
+  const blocked = fakes({ rpcError: { code: "42501", message: "not allowed" } });
+  assertEquals((await blocked.handle(post({ action: "mfa_reset", user_id: blocked.user.id }))).status, 403);
+  assertEquals(blocked.calls.filter((c) => c[0] === "deleteFactor").length, 0);
 });

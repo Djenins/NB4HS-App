@@ -5,6 +5,8 @@
 //                   one-time link to set a password
 //   resend_invite   again, for an account that has never signed in
 //   password_reset  email a password-reset link
+//   mfa_reset       remove a staff member's authenticator (lost phone) and
+//                   sign them out; they set up a new one at next sign-in
 //
 // Deactivate, reactivate and "sign out everywhere" don't need this function:
 // they are database functions (admin_set_user_active, admin_revoke_sessions
@@ -92,7 +94,7 @@ export function createHandler(deps: Deps) {
     let body: Any;
     try { body = await req.json(); } catch { return json(400, { error: "bad_request" }); }
     const action = body && body.action;
-    const needs = action === "password_reset" ? "admin.users.edit"
+    const needs = action === "password_reset" || action === "mfa_reset" ? "admin.users.edit"
       : action === "invite" || action === "resend_invite" ? "admin.users.invite" : null;
     if (!needs) return json(400, { error: "unknown_action" });
 
@@ -134,6 +136,21 @@ export function createHandler(deps: Deps) {
       const sent = await sendInvite(deps, user.email, delivery, redirectTo);
       if (sent.error) return authError(sent.error);
       return json(200, { user_id: userId, link: sent.link || null });
+    }
+
+    if (action === "mfa_reset") {
+      const log = await caller.rpc("admin_log_auth_action", { p_user: userId, p_action: "mfa_reset", p_reason: reason || "Two-step sign-in reset" });
+      if (log.error) return json(statusForDbError(log.error), { error: "forbidden", detail: log.error.message });
+      const factors = await deps.admin.auth.admin.mfa.listFactors({ userId });
+      if (factors.error) return authError(factors.error);
+      for (const f of (factors.data && factors.data.factors) || []) {
+        const del = await deps.admin.auth.admin.mfa.deleteFactor({ id: f.id, userId });
+        if (del.error) return authError(del.error);
+      }
+      // An open aal2 session would outlive its factor; end them all.
+      const out = await caller.rpc("admin_revoke_sessions", { p_user: userId, p_reason: reason || "Two-step sign-in reset" });
+      if (out.error) return json(statusForDbError(out.error), { error: "not_signed_out", detail: out.error.message, user_id: userId });
+      return json(200, { user_id: userId });
     }
 
     // password_reset

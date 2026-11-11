@@ -22,7 +22,7 @@ import ProgramAccessTab from "./ProgramAccessTab.jsx";
 import { useApp, useT } from "../../context/AppContext.jsx";
 import {
   accountStatus, addUserPosition, adminErrorKey, assignRole, assignableRoles, fetchAccessCatalog, fetchAccount,
-  fetchPositions, removeUserPosition, resendInvite, revokeRole, revokeSessions, sendPasswordReset,
+  fetchPositions, removeUserPosition, resendInvite, revokeRole, revokeSessions, resetTwoStep, sendPasswordReset,
   setAccountActive, setPrimaryPosition, updateAccountProfile
 } from "../../lib/adminAccounts.js";
 import { ROLES } from "../../lib/constants.js";
@@ -385,6 +385,7 @@ export default function AdminUserProfile({ userId }) {
     const out = [];
     if (status === "invited" && can("admin.users.invite")) out.push({ key: "resend", label: t("adminResendInvite"), icon: Mail, variant: "secondary" });
     if (status === "active" && can("admin.users.edit")) out.push({ key: "reset", label: t("adminSendReset"), icon: KeyRound, variant: "secondary" });
+    if (status === "active" && can("admin.users.edit")) out.push({ key: "mfa", label: t("adminResetMfa"), icon: KeyRound, variant: "secondary" });
     // Any status: accounts switched off before Phase 2 can still hold old sessions.
     if (account.sessionCount > 0 && can("admin.users.revoke_sessions")) out.push({ key: "signout", label: t("adminSignOutEverywhere"), icon: LogOut, variant: "secondary" });
     if (status === "inactive" && can("admin.users.deactivate")) out.push({ key: "approve", label: t("adminApprove"), icon: UserCheck, variant: "primary" });
@@ -426,6 +427,10 @@ export default function AdminUserProfile({ userId }) {
     reset: {
       title: t("adminResetTitle").replace("{name}", who), description: t("adminResetDesc").replace("{email}", account.email), confirm: t("adminSendReset"), optional: true,
       run: (reason) => act(() => sendPasswordReset(account.id, reason), "adminResetSent")
+    },
+    mfa: {
+      title: t("adminResetMfaTitle").replace("{name}", who), description: t("adminResetMfaDesc"), confirm: t("adminResetMfa"), danger: true,
+      run: (reason) => act(() => resetTwoStep(account.id, reason), "adminMfaResetDone")
     },
     resend: {
       title: t("adminResendTitle").replace("{name}", who), description: t("adminResendDesc"), confirm: t("adminResendInvite"), optional: true,

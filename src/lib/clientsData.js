@@ -833,7 +833,7 @@ export async function lookupClientAppointments(lastName, email, phone) {
   if (error) { console.warn("lookupClientAppointments failed", error); throw error; }
   return (data || []).map((row) => ({
     date: row.appt_date || "", time: row.appt_time || "", meetingWith: row.meeting_with,
-    status: row.status, reason: row.reason || ""
+    status: row.status
   }));
 }
 export async function updateAppointmentStatus(id, status) {

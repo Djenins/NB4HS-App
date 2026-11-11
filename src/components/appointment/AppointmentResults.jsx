@@ -5,9 +5,11 @@
 // The three are deliberately distinct: a request that failed must not tell a
 // visitor their appointment doesn't exist. Every field rendered here comes
 // straight from lookup_client_appointments' own columns (date, time, who the
-// meeting is with, status, reason) -- nothing is derived or invented, and no
-// identifier or internal note is exposed.
-import { CalendarDays, CalendarX2, Clock, MessageSquareText, TriangleAlert, UserRound } from "lucide-react";
+// meeting is with, status) -- nothing is derived or invented, and no
+// identifier or internal note is exposed. The reason the client typed is
+// deliberately not returned (s1): last name plus phone is often known to
+// family, landlords or employers.
+import { CalendarDays, CalendarX2, Clock, TriangleAlert, UserRound } from "lucide-react";
 import { apptStatusLabel, meetingWithLabel } from "../../lib/appointments.js";
 import { fmtDateLong } from "../../lib/utils.js";
 import { cn } from "../../lib/cn.js";
@@ -48,13 +50,6 @@ function AppointmentCard({ appt, lang, t }) {
           <UserRound size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
           <dd className="m-0 font-semibold text-navy dark:text-[color:var(--text)]">{meetingWithLabel(appt.meetingWith, lang)}</dd>
         </div>
-        {appt.reason && (
-          <div className="flex min-w-0 items-start gap-2">
-            <dt className="sr-only">{t("apptLookupReasonLabel")}</dt>
-            <MessageSquareText size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
-            <dd className="m-0 min-w-0 text-muted">{appt.reason}</dd>
-          </div>
-        )}
       </dl>
     </li>
   );
