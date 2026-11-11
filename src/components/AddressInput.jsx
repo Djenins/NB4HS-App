@@ -9,16 +9,31 @@
 // picked street is written into the input directly). The suggestion list is
 // portalled and fixed-positioned under the input, so no form needs a layout
 // change to host it.
+//
+// A named place (a shop, a clinic) shows its name above the address and
+// passes it on as `name`. `recent` (optional) is a list of places the person
+// used before, shown first when they match what's typed -- or on focus while
+// the field is empty -- and handed back as { street: text, recent: true }.
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { useT } from "../context/AppContext.jsx";
-import { ADDRESS_MIN_QUERY, addressLabel, searchAddresses } from "../lib/addressLookup.js";
+import { ADDRESS_MIN_QUERY, placeLabel, searchAddresses } from "../lib/addressLookup.js";
 import { cn } from "../lib/cn.js";
 
 const DEBOUNCE_MS = 250;
+const RECENT_WHILE_TYPING = 3;
+const RECENT_ON_FOCUS = 5;
 
-export default function AddressInput({ as: Control = "input", onAddressSelect, onChange, onKeyDown, onBlur, value, className, ...rest }) {
+// Recent places matching the query; all of them (up to a few) when empty.
+function matchRecent(recent, query) {
+  const q = (query || "").trim().toLowerCase();
+  if (!recent || !recent.length) return [];
+  if (!q) return recent.slice(0, RECENT_ON_FOCUS);
+  return recent.filter((r) => r.toLowerCase().indexOf(q) !== -1 && r.toLowerCase() !== q).slice(0, RECENT_WHILE_TYPING);
+}
+
+export default function AddressInput({ as: Control = "input", onAddressSelect, onChange, onKeyDown, onBlur, onFocus, value, className, recent, ...rest }) {
   const t = useT();
   const inputRef = useRef(null);
   const listId = useId();
@@ -31,15 +46,18 @@ export default function AddressInput({ as: Control = "input", onAddressSelect, o
   const typed = useRef(false);
 
   useEffect(() => {
-    if (!typed.current || query.trim().length < ADDRESS_MIN_QUERY) { setItems([]); setOpen(false); return undefined; }
+    if (!typed.current) return undefined;
+    const fromRecent = matchRecent(recent, query).map((text) => ({ street: text, city: "", state: "", zip: "", recent: true }));
+    const show = (rows) => { const all = fromRecent.concat(rows); setItems(all); setActive(-1); setOpen(all.length > 0); };
+    if (query.trim().length < ADDRESS_MIN_QUERY) { show([]); return undefined; }
     const ctrl = new AbortController();
     const id = setTimeout(() => {
       searchAddresses(query, ctrl.signal)
-        .then((rows) => { setItems(rows); setActive(-1); setOpen(rows.length > 0); })
+        .then(show)
         .catch(() => { /* offline or aborted: the field still works as plain text */ });
     }, DEBOUNCE_MS);
     return () => { clearTimeout(id); ctrl.abort(); };
-  }, [query]);
+  }, [query, recent]);
 
   const place = useCallback(() => {
     if (inputRef.current) setRect(inputRef.current.getBoundingClientRect());
@@ -88,6 +106,11 @@ export default function AddressInput({ as: Control = "input", onAddressSelect, o
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onBlur={(e) => { close(); if (onBlur) onBlur(e); }}
+        onFocus={(e) => {
+          // An empty field with recent places offers them straight away.
+          if (recent && recent.length && !e.target.value) { typed.current = true; setQuery(""); setItems(matchRecent(recent, "").map((text) => ({ street: text, city: "", state: "", zip: "", recent: true }))); setActive(-1); setOpen(true); }
+          if (onFocus) onFocus(e);
+        }}
         autoComplete="off"
         role="combobox"
         aria-autocomplete="list"
@@ -103,7 +126,7 @@ export default function AddressInput({ as: Control = "input", onAddressSelect, o
           <ul id={listId} role="listbox" aria-label={t("addressSuggestions")} className="m-0 max-h-[50vh] list-none overflow-y-auto p-1.5">
             {items.map((a, i) => (
               <li
-                key={addressLabel(a)}
+                key={(a.recent ? "r:" : "a:") + placeLabel(a)}
                 id={listId + "-" + i}
                 role="option"
                 aria-selected={i === active}
@@ -115,15 +138,23 @@ export default function AddressInput({ as: Control = "input", onAddressSelect, o
                   i === active ? "bg-primary-tint" : "hover:bg-background"
                 )}
               >
-                <MapPin size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
+                {a.recent
+                  ? <Clock size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
+                  : <MapPin size={18} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />}
                 <span className="min-w-0">
-                  <span className="block text-[0.95rem] font-semibold leading-snug">{a.street}</span>
-                  <span className="block text-[13px] leading-snug text-muted">{[a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span>
+                  <span className="block text-[0.95rem] font-semibold leading-snug">{a.name || a.street}</span>
+                  {a.recent ? null : (
+                    <span className="block text-[13px] leading-snug text-muted">
+                      {[a.name ? a.street : "", a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+                    </span>
+                  )}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="m-0 border-t border-border px-3 py-1.5 text-right text-[13px] text-muted">© OpenStreetMap</p>
+          {items.some((a) => !a.recent) && (
+            <p className="m-0 border-t border-border px-3 py-1.5 text-right text-[13px] text-muted">© OpenStreetMap</p>
+          )}
         </div>,
         document.body
       )}

@@ -91,3 +91,25 @@ describe("mileage sheet", () => {
     expect(mileagePdfName({ staffName: "Marie Joseph", month: "2026-11" })).toBe("mileage-log-marie-joseph-2026-11.pdf");
   });
 });
+
+describe("emailableStaff", () => {
+  it("keeps active staff with an email, the signed-in person first", async () => {
+    const { emailableStaff } = await import("./mileage.js");
+    const list = emailableStaff([
+      { id: "b", name: "Bea", email: "bea@x.org" },
+      { id: "me", name: "Zed", email: "zed@x.org" },
+      { id: "c", name: "Cal", email: "" },
+      { id: "d", name: "Dee", email: "dee@x.org", active: false },
+      { id: "a", name: "Abe", email: "abe@x.org" }
+    ], "me");
+    expect(list.map((p) => p.id)).toEqual(["me", "a", "b"]);
+  });
+});
+
+describe("mileageEmailError", () => {
+  it("explains email that isn't set up yet", async () => {
+    const { mileageEmailError } = await import("./mileage.js");
+    expect(mileageEmailError("email_not_configured")).toMatch(/isn't set up/);
+    expect(mileageEmailError("whatever")).toMatch(/Couldn't send/);
+  });
+});
