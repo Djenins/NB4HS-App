@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { addressLabel, searchAddresses, stateCode } from "./addressLookup.js";
+import { addressLabel, placeLabel, searchAddresses, stateCode } from "./addressLookup.js";
 
-function mockPhoton(features) {
-  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ features: features.map((p) => ({ properties: p })) }) })));
+function mockPhoton(features, coords) {
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({
+    features: features.map((p, i) => (coords ? { properties: p, geometry: { coordinates: coords[i] } } : { properties: p }))
+  }) })));
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -37,12 +39,24 @@ describe("searchAddresses", () => {
       { type: "street", name: "Rue Principale", city: "Montréal", countrycode: "CA" }
     ]);
     const rows = await searchAddresses("100 Broad St Pawtucket");
-    expect(rows).toEqual([{ street: "100 Broad Street", city: "Pawtucket", state: "RI", zip: "02866" }]);
+    expect(rows).toEqual([{ street: "100 Broad Street", city: "Pawtucket", state: "RI", zip: "02866", name: "Walgreens" }]);
+    expect(placeLabel(rows[0])).toBe("Walgreens, 100 Broad Street, Pawtucket, RI 02866");
   });
 
   it("drops duplicate addresses", async () => {
     const dup = { type: "street", name: "Ocean Street", city: "Providence", state: "Rhode Island", postcode: "02907", countrycode: "US" };
     mockPhoton([dup, dup]);
     expect(await searchAddresses("12 Ocean St Providence x")).toHaveLength(1);
+  });
+
+  it("carries a place's map point, and no name for a street-level match", async () => {
+    mockPhoton([
+      { type: "other", name: "Providence Public Library", housenumber: "150", street: "Empire Street", city: "Providence", state: "Rhode Island", postcode: "02903", countrycode: "US" },
+      { type: "street", name: "Chalkstone Avenue", city: "Providence", state: "Rhode Island", postcode: "02908", countrycode: "US" }
+    ], [[-71.4155, 41.8205], [-71.43, 41.83]]);
+    const rows = await searchAddresses("library providence");
+    expect(rows[0]).toMatchObject({ name: "Providence Public Library", street: "150 Empire Street", lat: 41.8205, lon: -71.4155 });
+    expect(rows[1].name).toBeUndefined();
+    expect(rows[1]).toMatchObject({ street: "Chalkstone Avenue", lat: 41.83, lon: -71.43 });
   });
 });

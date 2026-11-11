@@ -9,10 +9,18 @@
 // supervisors their team's, to check it or print the sheet; only the owner
 // edits their own trips (RLS: m1_mileage_log).
 // Staff-only, so English (like My Availability).
+//
+// From and To look places up as you type (components/AddressInput.jsx, with
+// your recent places first) and save the place's name with its address; once
+// both ends are looked-up places, the driving distance fills in Miles
+// (lib/drivingDistance.js) unless the person already typed their own.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Car, ChevronLeft, ChevronRight, Copy, Download, FileText, Gauge, Pencil, Plus, Printer, Receipt, Route, Trash2 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { LOGO_URL } from "../lib/logo.js";
+import { placeLabel, searchAddresses } from "../lib/addressLookup.js";
+import { drivingMiles, hasPoint } from "../lib/drivingDistance.js";
+import AddressInput from "../components/AddressInput.jsx";
 import {
   deleteTrip, emptyTripForm, fetchMileageTeam, fetchRecentTrips, fetchTrips, fmtMiles, fmtMoney, frequentPlaces,
   monthKey, monthLabel, monthRange, odometerMiles, orgMileageRate, reimbursement, saveTrip, shiftMonth,
@@ -59,19 +67,38 @@ async function loadLogo() {
   }
 }
 
+// The map point of a recent place, if the lookup still finds that exact place.
+async function pointFor(text, signal) {
+  const rows = await searchAddresses(text, signal).catch(() => []);
+  const want = text.trim().toLowerCase();
+  const hit = rows.find((r) => placeLabel(r).toLowerCase() === want);
+  return hit && hasPoint(hit) ? { lat: hit.lat, lon: hit.lon } : null;
+}
+
 function TripDialog({ open, editing, initial, places, saving, onClose, onSave }) {
   const [form, setForm] = useState(initial);
   const [errors, setErrors] = useState({});
   const [showOdometer, setShowOdometer] = useState(false);
+  // Map points of From / To when they came from the lookup.
+  const [points, setPoints] = useState({ startLocation: null, destination: null });
+  // "idle" | "finding" | "found" | "none"; `autoMiles` is what the map
+  // filled in, so a later route may replace it but never the person's own.
+  const [route, setRoute] = useState("idle");
+  const [autoMiles, setAutoMiles] = useState(null);
   useEffect(() => {
     if (!open) return;
     setForm(initial);
     setErrors({});
     setShowOdometer(initial.odometerStart !== "" || initial.odometerEnd !== "");
+    setPoints({ startLocation: null, destination: null });
+    setRoute("idle");
+    setAutoMiles(null);
   }, [open, initial]);
 
   const set = (key) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (key === "startLocation" || key === "destination") setPoints((p) => Object.assign({}, p, { [key]: null }));
+    if (key === "miles" || key === "odometerStart" || key === "odometerEnd") setAutoMiles(null);
     setForm((f) => {
       const next = Object.assign({}, f, { [key]: value });
       // Both odometer readings fill in the miles (still editable).
@@ -83,6 +110,50 @@ function TripDialog({ open, editing, initial, places, saving, onClose, onSave })
     });
   };
 
+  // A place picked from the list: its name and address, and its map point
+  // (looked up again for a recent place, which is saved as text only).
+  const pick = (key) => (a) => {
+    const text = a.recent ? a.street : placeLabel(a);
+    setForm((f) => Object.assign({}, f, { [key]: text }));
+    if (a.recent) {
+      setPoints((p) => Object.assign({}, p, { [key]: null }));
+      pointFor(text).then((pt) => {
+        if (pt) setPoints((p) => Object.assign({}, p, { [key]: pt }));
+      });
+    } else {
+      setPoints((p) => Object.assign({}, p, { [key]: hasPoint(a) ? { lat: a.lat, lon: a.lon } : null }));
+    }
+  };
+
+  // Both ends known: suggest the driving miles, unless the person typed theirs.
+  const userMiles = form.miles !== "" && form.miles !== autoMiles;
+  useEffect(() => {
+    if (!hasPoint(points.startLocation) || !hasPoint(points.destination)) {
+      setRoute("idle");
+      // An end changed: the map's miles no longer fit; the person's stay.
+      if (autoMiles !== null) {
+        setForm((f) => (f.miles === autoMiles ? Object.assign({}, f, { miles: "" }) : f));
+        setAutoMiles(null);
+      }
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    setRoute("finding");
+    drivingMiles(points.startLocation, points.destination, ctrl.signal)
+      .then((m) => {
+        if (m === null) { setRoute("none"); return; }
+        setRoute("found");
+        if (!userMiles) {
+          setAutoMiles(String(m));
+          setForm((f) => Object.assign({}, f, { miles: String(m) }));
+        }
+      })
+      .catch(() => { /* aborted */ });
+    return () => ctrl.abort();
+    // userMiles is read when the route lands; it must not restart the lookup.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points.startLocation, points.destination]);
+
   function submit(e) {
     e.preventDefault();
     const found = validateTrip(form);
@@ -93,6 +164,12 @@ function TripDialog({ open, editing, initial, places, saving, onClose, onSave })
 
   const miles = Number(form.miles);
   const counted = Number.isFinite(miles) && miles > 0 ? tripMiles({ miles, roundTrip: form.roundTrip }) : null;
+  const fromMap = autoMiles !== null && form.miles === autoMiles;
+  let milesHint;
+  if (route === "finding") milesHint = "Finding the driving distance…";
+  else if (route === "none" && !form.miles) milesHint = "No driving route found. Use your odometer or a map app.";
+  else if (counted !== null) milesHint = (fromMap ? "Driving distance from the map. " : "") + "Counts as " + fmtMiles(counted) + " miles" + (form.roundTrip ? " (there and back)." : ".");
+  else milesHint = "From your odometer or a map app.";
 
   return (
     <Dialog
@@ -111,24 +188,23 @@ function TripDialog({ open, editing, initial, places, saving, onClose, onSave })
         </>
       )}
     >
-      <datalist id="mileage-places">
-        {places.map((p) => <option key={p} value={p} />)}
-      </datalist>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Date" htmlFor="ml-date" required error={errors.tripDate} className="sm:col-span-2 sm:max-w-[14rem]">
           <Input id="ml-date" type="date" value={form.tripDate} max={todayIso()} onChange={set("tripDate")} aria-invalid={!!errors.tripDate} />
         </Field>
-        <Field label="From" htmlFor="ml-from" required error={errors.startLocation} hint="An address or a place, like “NB4HS office”.">
-          <Input id="ml-from" list="mileage-places" autoComplete="off" maxLength={200} value={form.startLocation} onChange={set("startLocation")} aria-invalid={!!errors.startLocation} />
+        <Field label="From" htmlFor="ml-from" required error={errors.startLocation} hint="Type an address or a place name, like “CVS Broad St”.">
+          <AddressInput as={Input} id="ml-from" recent={places} maxLength={200} value={form.startLocation}
+            onChange={set("startLocation")} onAddressSelect={pick("startLocation")} aria-invalid={!!errors.startLocation} />
         </Field>
-        <Field label="To" htmlFor="ml-to" required error={errors.destination}>
-          <Input id="ml-to" list="mileage-places" autoComplete="off" maxLength={200} value={form.destination} onChange={set("destination")} aria-invalid={!!errors.destination} />
+        <Field label="To" htmlFor="ml-to" required error={errors.destination} hint="Pick from the list to get the miles filled in.">
+          <AddressInput as={Input} id="ml-to" recent={places} maxLength={200} value={form.destination}
+            onChange={set("destination")} onAddressSelect={pick("destination")} aria-invalid={!!errors.destination} />
         </Field>
         <Field label="Purpose" htmlFor="ml-purpose" required error={errors.purpose} hint="What the trip was for: a client visit, an outreach event, a delivery, a meeting." className="sm:col-span-2">
           <Input id="ml-purpose" maxLength={300} value={form.purpose} onChange={set("purpose")} aria-invalid={!!errors.purpose} />
         </Field>
         <Field label="Miles, one way" htmlFor="ml-miles" required error={errors.miles}
-          hint={counted !== null ? "Counts as " + fmtMiles(counted) + " miles" + (form.roundTrip ? " (there and back)." : ".") : "From your odometer or a map app."}>
+          hint={milesHint}>
           <Input id="ml-miles" type="number" inputMode="decimal" step="0.1" min="0.1" max="1000" className="tabular-nums"
             value={form.miles} onChange={set("miles")} aria-invalid={!!errors.miles} />
         </Field>
