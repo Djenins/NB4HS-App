@@ -15,14 +15,14 @@
 // both ends are looked-up places, the driving distance fills in Miles
 // (lib/drivingDistance.js) unless the person already typed their own.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Car, ChevronLeft, ChevronRight, Copy, Download, FileText, Gauge, Pencil, Plus, Printer, Receipt, Route, Trash2 } from "lucide-react";
+import { ArrowRight, Car, ChevronLeft, ChevronRight, Copy, Download, FileText, Gauge, Mail, Pencil, Plus, Printer, Receipt, Route, Trash2, X } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { LOGO_URL } from "../lib/logo.js";
 import { placeLabel, searchAddresses } from "../lib/addressLookup.js";
 import { drivingMiles, hasPoint } from "../lib/drivingDistance.js";
 import AddressInput from "../components/AddressInput.jsx";
 import {
-  deleteTrip, emptyTripForm, fetchMileageTeam, fetchRecentTrips, fetchTrips, fmtMiles, fmtMoney, frequentPlaces,
+  MAX_EMAIL_NOTE, MAX_EMAIL_RECIPIENTS, deleteTrip, emailMileageSheet, emailableStaff, emptyTripForm, mileageEmailError, fetchMileageTeam, fetchRecentTrips, fetchTrips, fmtMiles, fmtMoney, frequentPlaces,
   monthKey, monthLabel, monthRange, odometerMiles, orgMileageRate, reimbursement, saveTrip, shiftMonth,
   totalMiles, tripDateLabel, tripMiles, tripToForm, validateTrip
 } from "../lib/mileage.js";
@@ -243,10 +243,101 @@ function TripDialog({ open, editing, initial, places, saving, onClose, onSave })
   );
 }
 
+// Email the month's sheet (the same PDF as Download) to staff: the person
+// themselves by default, plus a supervisor or whoever handles reimbursement.
+// Only staff accounts -- the sheet can list client addresses.
+function EmailSheetDialog({ open, staff, selfId, monthName, onClose, onSend }) {
+  const [picked, setPicked] = useState([]);
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    setPicked(staff.some((p) => p.id === selfId) ? [selfId] : []);
+    setNote("");
+    setError("");
+    setSending(false);
+  }, [open, selfId, staff]);
+
+  const byId = useMemo(() => Object.fromEntries(staff.map((p) => [p.id, p])), [staff]);
+  const others = staff.filter((p) => picked.indexOf(p.id) === -1);
+  const full = picked.length >= MAX_EMAIL_RECIPIENTS;
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!picked.length) { setError("Pick at least one person."); return; }
+    setSending(true);
+    setError("");
+    const message = await onSend(picked, note.trim());
+    setSending(false);
+    if (message) setError(message);
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={"Email the " + monthName + " sheet"}
+      description="Sends the PDF to the people you pick. It goes only to NB4HS staff accounts, because the sheet can list client addresses."
+      closeLabel="Close"
+      as="form"
+      panelProps={{ onSubmit: submit, noValidate: true }}
+      footer={(
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={sending} disabled={!picked.length}>
+            <Mail className="h-4 w-4" aria-hidden="true" />Send email
+          </Button>
+        </>
+      )}
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-1.5">
+          <span id="ml-email-to" className="text-meta font-semibold text-card-foreground">Send to</span>
+          {picked.length ? (
+            <ul aria-labelledby="ml-email-to" className="m-0 flex list-none flex-wrap gap-2 p-0">
+              {picked.map((id) => {
+                const p = byId[id] || {};
+                return (
+                  <li key={id} className="flex min-h-[36px] items-center gap-2 rounded-control border border-border bg-surface-sunken py-1 pl-3 pr-1 text-ui">
+                    <span className="min-w-0">
+                      <span className="font-semibold text-card-foreground">{id === selfId ? "Me" : p.name || p.email}</span>
+                      <span className="ml-1.5 text-meta text-muted">{p.email}</span>
+                    </span>
+                    <IconButton type="button" size="sm" variant="ghost" label={"Remove " + (p.name || p.email)}
+                      onClick={() => setPicked((list) => list.filter((x) => x !== id))}>
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : <p className="m-0 text-ui text-muted">Nobody yet.</p>}
+        </div>
+        <Field label="Add a staff member" htmlFor="ml-email-add"
+          hint={full ? "Up to " + MAX_EMAIL_RECIPIENTS + " people per email." : "A supervisor, or whoever handles reimbursement."}>
+          <Select id="ml-email-add" value="" disabled={full || !others.length}
+            onChange={(e) => { const id = e.target.value; if (id) setPicked((list) => list.concat([id])); }}>
+            <option value="">Choose a person…</option>
+            {others.map((p) => <option key={p.id} value={p.id}>{(p.id === selfId ? "Me — " : "") + (p.name || p.email) + (p.name ? " (" + p.email + ")" : "")}</option>)}
+          </Select>
+        </Field>
+        <Field label="Note (optional)" htmlFor="ml-email-note" hint={note.length > MAX_EMAIL_NOTE - 100 ? (MAX_EMAIL_NOTE - note.length) + " characters left." : undefined}>
+          <Textarea id="ml-email-note" rows={3} maxLength={MAX_EMAIL_NOTE} value={note} onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Here's my November mileage for reimbursement." />
+        </Field>
+        {error ? <p role="alert" className="m-0 text-ui text-tone-danger-ink">{error}</p> : null}
+      </div>
+    </Dialog>
+  );
+}
+
 export default function Mileage() {
   const { session, orgSettings, data, showToast, requestConfirm } = useApp();
   const [personId, setPersonId] = useState(session ? session.id : null);
   const [people, setPeople] = useState([]);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const emailStaff = useMemo(() => emailableStaff(data.profiles, session && session.id), [data.profiles, session]);
   const [month, setMonth] = useState(() => monthKey());
   const [trips, setTrips] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -369,6 +460,25 @@ export default function Mileage() {
     if (!pdfReady) return;
     const opts = sheetOpts(false);
     buildMileagePdf(pdf.current.JsPDF, opts).save(mileagePdfName(opts));
+  }
+  // Builds the same PDF as Download and sends it; answers with an error
+  // message for the dialog, or nothing once it's sent.
+  async function emailSheet(recipients, note) {
+    if (!pdfReady) return "The sheet isn't ready yet. Try again in a moment.";
+    const opts = sheetOpts(false);
+    const dataUri = buildMileagePdf(pdf.current.JsPDF, opts).output("datauristring");
+    try {
+      await emailMileageSheet({
+        staffId: personId, month, recipients, note, fileName: mileagePdfName(opts),
+        pdfBase64: dataUri.slice(dataUri.indexOf(",") + 1)
+      });
+    } catch (err) {
+      console.warn("emailMileageSheet failed", err);
+      return mileageEmailError(err && err.code);
+    }
+    setEmailOpen(false);
+    showToast(recipients.length === 1 ? "Mileage sheet emailed." : "Mileage sheet emailed to " + recipients.length + " people.");
+    return "";
   }
 
   const columns = [
@@ -524,6 +634,9 @@ export default function Mileage() {
               <Button variant="secondary" onClick={downloadSheet} disabled={!pdfReady || !trips || !trips.length}>
                 <Download className="h-4 w-4" aria-hidden="true" />Download PDF
               </Button>
+              <Button variant="secondary" onClick={() => setEmailOpen(true)} disabled={!pdfReady || !trips || !trips.length}>
+                <Mail className="h-4 w-4" aria-hidden="true" />Email PDF
+              </Button>
             </div>
             <div className="border-t border-border pt-3">
               <Button variant="outline" size="sm" onClick={() => printSheet(true)} disabled={!pdfReady}>
@@ -546,6 +659,15 @@ export default function Mileage() {
           onSave={save}
         />
       ) : null}
+
+      <EmailSheetDialog
+        open={emailOpen}
+        staff={emailStaff}
+        selfId={session && session.id}
+        monthName={monthLabel(month).split(" ")[0]}
+        onClose={() => setEmailOpen(false)}
+        onSend={emailSheet}
+      />
     </>
   );
 }
