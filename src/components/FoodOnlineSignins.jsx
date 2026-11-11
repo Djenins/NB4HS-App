@@ -229,7 +229,7 @@ function EventRow({ ev, onChanged, onDeleted, buildPdf }) {
   const [signups, setSignups] = useState(null);
   const [busy, setBusy] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const url = foodSignupUrl(ev.id);
+  const url = foodSignupUrl(ev);
 
   // Load the list when it's opened, and keep it current while open.
   useEffect(() => {
